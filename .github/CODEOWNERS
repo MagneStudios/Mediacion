@@ -2,7 +2,7 @@
 # Cuando un PR toca estos archivos, se pide review automáticamente a los owners listados.
 
 # Owners por defecto de todo el repo (equipo de desarrollo + Magne Studios)
-*                       @MagneStudios @franGhisoni @MarianooFernandezz @ValenCBgit
+*                       @MagneStudios @franGhisoni @MarianooFernandezz @ValenCBgit @DonatoBruno00
 
 # Documentación técnica — cambios de alcance requieren revisión de Magne Studios
 /docs/                  @MagneStudios
