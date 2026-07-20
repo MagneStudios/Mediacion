@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentación técnica del proyecto
+    url: https://github.com/MagneStudios/Mediacion/tree/main/docs
+    about: Antes de abrir un issue, revisá el alcance y los IDs de requerimiento en la documentación técnica.
