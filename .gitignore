@@ -61,3 +61,7 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+
+# === Otros ===
+/docs/contextom
+/docs/documentacion-oficial

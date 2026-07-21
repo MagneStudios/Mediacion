@@ -1,0 +1,539 @@
+// ============================================================
+// Proyecto Mediación — schema.dbml
+// Fase 1: Modelo de Datos
+// Fecha: 2026-07-20
+// Fuente: docs/Mediacion_Documentacion_Tecnica_v1.0.pdf (§5)
+// ============================================================
+// Requiere extensión pgcrypto para gen_random_uuid()
+// ============================================================
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+Enum rol_usuario {
+  admin
+  parte
+  mediador
+  estudio
+}
+
+Enum metodo_caso {
+  negociacion
+  conciliacion
+  mediacion
+}
+
+Enum estado_caso {
+  nuevo
+  activo
+  en_negociacion
+  acordado
+  cerrado
+  terminado
+  vencido
+}
+
+Enum estado_ronda {
+  activa
+  completada
+}
+
+Enum estado_propuesta {
+  pendiente
+  aceptada
+  rechazada
+}
+
+Enum estado_acuerdo {
+  borrador
+  enviado_a_firma
+  firmado
+  con_aviso
+}
+
+Enum estado_pago {
+  pendiente
+  aprobado
+  rechazado
+}
+
+Enum decision_propuesta {
+  acepta
+  rechaza
+}
+
+Enum canal_notificacion {
+  email
+  push
+}
+
+Enum tipo_invitacion {
+  link
+  codigo
+  email
+}
+
+Enum estado_invitacion {
+  pendiente
+  aceptada
+  rechazada
+  expirada
+}
+
+Enum categoria_item {
+  cuidado_ninos
+  cronogramas
+  bienes
+  economico
+  personalizado
+}
+
+Enum rol_en_caso {
+  parte_a
+  parte_b
+  mediador
+}
+
+Enum tipo_tarea {
+  tarea
+  evento_calendario
+}
+
+Enum estado_tarea {
+  pendiente
+  en_progreso
+  completada
+}
+
+Enum verif_biometrica {
+  pendiente
+  aprobada
+  rechazada
+}
+
+Enum estado_suscripcion {
+  activa
+  cancelada
+  vencida
+  pendiente_pago
+}
+
+Enum estado_mediacion {
+  solicitada
+  aceptada
+  rechazada
+  activa
+  finalizada
+}
+
+// ============================================================
+// TABLAS — IDENTIDAD
+// ============================================================
+
+Table usuarios {
+  id uuid [pk, default: `gen_random_uuid()`]
+  rol rol_usuario [not null]
+  nombre text [not null]
+  apellido text [not null]
+  email text [unique, not null]
+  documento text [unique, not null]
+  telefono text
+  idioma text [default: 'es', note: 'Idioma preferido (es / en)']
+  password_hash text
+  verif_biometrica verif_biometrica [default: 'pendiente']
+  estudio_id uuid
+  activo bool [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Usuarios del sistema. RF-AUT. RN-12: datos sensibles con consentimiento.'
+}
+
+Table estudios {
+  id uuid [pk, default: `gen_random_uuid()`]
+  nombre text [not null]
+  plan_id uuid
+  marca_config jsonb [note: 'Configuración de marca/apariencia del estudio']
+  activo bool [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Estudios jurídicos. RF-EST: panel web de gestión.'
+}
+
+Table carpetas {
+  id uuid [pk, default: `gen_random_uuid()`]
+  estudio_id uuid [not null]
+  nombre text [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Carpetas de organización del panel de estudios. RF-EST.'
+}
+
+// ============================================================
+// TABLAS — MONETIZACIÓN
+// ============================================================
+
+Table planes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  nombre text [unique, not null, note: 'base | simple | plus | estudio']
+  limite_carpetas int [not null]
+  limite_casos int [not null]
+  limite_iteraciones_ia int [not null]
+  precio numeric(10,2) [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Planes de suscripción. RN-15: precios y límites a confirmar.'
+}
+
+Table suscripciones {
+  id uuid [pk, default: `gen_random_uuid()`]
+  usuario_id uuid
+  estudio_id uuid
+  plan_id uuid [not null]
+  estado estado_suscripcion [not null, default: 'pendiente_pago']
+  fecha_inicio timestamptz
+  fecha_fin timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Suscripciones. Exactly one of usuario_id / estudio_id must be non-null (validar en API).'
+}
+
+Table pagos {
+  id uuid [pk, default: `gen_random_uuid()`]
+  suscripcion_id uuid [not null]
+  mp_payment_id text [unique, note: 'ID del pago en Mercado Pago']
+  estado estado_pago [not null, default: 'pendiente']
+  monto numeric(10,2) [not null]
+  metodo text [note: 'Método de pago según MP']
+  fecha timestamptz
+  raw_webhook jsonb [note: 'Payload completo del webhook de MP para auditoría']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Pagos via Mercado Pago. §7: estado real lo define el webhook. RN-15.'
+}
+
+// ============================================================
+// TABLAS — CASOS Y VINCULACIÓN
+// ============================================================
+
+Table casos {
+  id uuid [pk, default: `gen_random_uuid()`]
+  creador_id uuid [not null]
+  estudio_id uuid
+  carpeta_id uuid
+  nombre text [not null]
+  descripcion text
+  metodo metodo_caso [not null]
+  estado estado_caso [not null, default: 'nuevo']
+  ronda_actual int [not null, default: 1, note: 'Sincronizado vía trigger con tabla rondas']
+  sla_tipo text [note: 'Tipo de plazo SLA']
+  plazo timestamptz [note: 'Vencimiento para el semáforo']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Casos/salas. RN-07: requiere al menos 2 partes. Máquina de estados §5.'
+}
+
+Table caso_partes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  usuario_id uuid [not null]
+  rol_en_caso rol_en_caso [not null]
+  estado_invitacion estado_invitacion [not null, default: 'pendiente']
+  fecha_union timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (caso_id, usuario_id) [unique]
+  }
+
+  Note: 'Relación caso-usuario. RN-07: caso activo con 2 partes. Unique (caso_id, usuario_id).'
+}
+
+Table invitaciones {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  tipo tipo_invitacion [not null]
+  token text [unique, note: 'Token para invitación por link o código']
+  email_destino text [note: 'Email destino para invitación por correo']
+  estado estado_invitacion [not null, default: 'pendiente']
+  fecha_envio timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Invitaciones a contraparte. RF-CAS: link, código o correo.'
+}
+
+// ============================================================
+// TABLAS — ITEMS / POSICIONES
+// ============================================================
+
+Table items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  parte_id uuid [not null]
+  categoria categoria_item [not null]
+  nombre text [not null]
+  descripcion text
+  valor_min text [note: 'Rango mínimo. Text para soportar numéricos y descriptivos (ej. "fines de semana")']
+  valor_max text [note: 'Rango máximo. Text por la misma razón que valor_min']
+  puede_ceder bool [not null, default: false]
+  condiciones_cesion text [note: 'Condiciones en las que cedería. RF-NEG-003']
+  privado bool [not null, default: true, note: 'RN-01: nunca visible a la contraparte']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (caso_id, parte_id) [name: 'idx_items_caso_parte', note: 'RN-01: aislamiento de posiciones']
+  }
+
+  Note: 'Posiciones privadas. RN-01: aislamiento absoluto. RN-02: rango de acuerdo. RF-NEG.'
+}
+
+// ============================================================
+// TABLAS — RONDAS Y PROPUESTAS
+// ============================================================
+
+Table rondas {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  numero int [not null, note: 'Número de ronda (1, 2, 3, ...)']
+  estado estado_ronda [not null, default: 'activa']
+  fecha_inicio timestamptz [not null, default: `now()`]
+  fecha_fin timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (caso_id, numero) [unique]
+  }
+
+  Note: 'Rondas de negociación. RN-04: cada rechazo abre una nueva. RN-05: mediador desde ronda 3.'
+}
+
+Table propuestas {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  ronda_id uuid [not null]
+  contenido jsonb [not null, note: 'Punto de encuentro propuesto por la IA (sin datos crudos de cada parte)']
+  fundamentacion text [note: 'Fundamento (interés superior del niño); nullable. RN-06.']
+  estado estado_propuesta [not null, default: 'pendiente']
+  modelo_ia text [note: 'Modelo de OpenRouter usado (conmutable). RN-16.']
+  fecha timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Propuestas de IA. RN-03: une posiciones sin exponer datos privados. RF-IA.'
+}
+
+Table respuestas_propuesta {
+  id uuid [pk, default: `gen_random_uuid()`]
+  propuesta_id uuid [not null]
+  parte_id uuid [not null]
+  decision decision_propuesta [not null]
+  fecha timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (propuesta_id, parte_id) [unique]
+  }
+
+  Note: 'Respuestas de cada parte. RN-04: rechazo abre nueva ronda. Unique (propuesta_id, parte_id).'
+}
+
+// ============================================================
+// TABLAS — MEDIACIÓN
+// ============================================================
+
+Table mediaciones {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  mediador_id uuid [not null]
+  estado estado_mediacion [not null, default: 'solicitada']
+  ronda int [not null, note: 'Número de ronda en que se solicitó']
+  fecha_solicitud timestamptz [not null, default: `now()`]
+  fecha_aceptacion timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Mediación humana. RN-05: desde ronda 3. A confirmar: basta una parte o acuerdo de ambas.'
+}
+
+// ============================================================
+// TABLAS — ACUERDOS Y POST-ACUERDO
+// ============================================================
+
+Table acuerdos {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  contenido jsonb [not null, note: 'Contenido del acuerdo']
+  documento_url text [note: 'URL del documento generado en Storage']
+  docusign_envelope_id text [note: 'ID del envelope en DocuSign']
+  estado estado_acuerdo [not null, default: 'borrador']
+  fecha timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Acuerdos. RN-09: firma vía DocuSign; estado lo define el webhook. RF-ACU.'
+}
+
+Table firmas {
+  id uuid [pk, default: `gen_random_uuid()`]
+  acuerdo_id uuid [not null]
+  usuario_id uuid [not null]
+  docusign_status text [not null, default: 'pending', note: 'Estado de DocuSign (sent, delivered, signed, etc.)']
+  fecha_firma timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Firmas DocuSign. RN-09: la validez depende de la firma y la voluntad. Ley 25.506.'
+}
+
+Table tareas {
+  id uuid [pk, default: `gen_random_uuid()`]
+  acuerdo_id uuid [not null]
+  caso_id uuid [not null]
+  tipo tipo_tarea [not null]
+  descripcion text [not null]
+  fecha_evento timestamptz [note: 'Fecha del evento calendario (si aplica)']
+  estado estado_tarea [not null, default: 'pendiente']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Tareas/accionables post-acuerdo. RN-14. RF-POS: pueden agregarse al calendario.'
+}
+
+Table incumplimientos {
+  id uuid [pk, default: `gen_random_uuid()`]
+  acuerdo_id uuid [not null]
+  reportante_id uuid [not null]
+  descripcion text [not null]
+  fecha timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Avisos de incumplimiento. RF-ACU-005.'
+}
+
+// ============================================================
+// TABLAS — NOTIFICACIONES
+// ============================================================
+
+Table notificaciones {
+  id uuid [pk, default: `gen_random_uuid()`]
+  usuario_id uuid [not null]
+  caso_id uuid
+  canal canal_notificacion [not null]
+  evento text [not null, note: 'Tipo de evento que disparó la notificación']
+  estado text [not null, default: 'pendiente', note: 'pendiente | enviada | fallida']
+  fecha timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Notificaciones email/push. RN-11. RF-SLA-003.'
+}
+
+// ============================================================
+// TABLAS — INVERSORES
+// ============================================================
+
+Table inversores {
+  id uuid [pk, default: `gen_random_uuid()`]
+  nombre text [not null]
+  email text [not null]
+  capital_disponible text [note: 'Rango o monto de capital disponible']
+  experiencia text [note: 'Experiencia del inversor']
+  fecha timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Landing de captación. RF-INV. No es un rol con cuenta.'
+}
+
+// ============================================================
+// TABLAS — AUDITORÍA
+// ============================================================
+
+Table auditoria {
+  id uuid [pk, default: `gen_random_uuid()`]
+  usuario_id uuid
+  accion text [not null, note: 'Acción realizada (ej. "crear_caso", "firmar_acuerdo")']
+  entidad text [not null, note: 'Entidad afectada (ej. "casos", "acuerdos")']
+  entidad_id uuid [note: 'ID del registro afectado']
+  detalle jsonb [note: 'Detalles adicionales (before/after, metadata)']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Log de auditoría inmutable. RNF-10: trazabilidad de acciones relevantes.'
+}
+
+// ============================================================
+// TABLAS — CONFIGURACIÓN
+// ============================================================
+
+Table configuracion {
+  id uuid [pk, default: `gen_random_uuid()`]
+  clave text [unique, not null, note: 'Clave del setting (ej. "ia_modelo")']
+  valor jsonb [not null, note: 'Valor del setting']
+  descripcion text [note: 'Descripción del setting']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Configuración del sistema (key-value). RF-IA-005: modelo IA conmutable. RF-CFG.'
+}
+
+// ============================================================
+// RELACIONES
+// ============================================================
+
+// Identidad
+Ref: usuarios.estudio_id > estudios.id
+Ref: estudios.plan_id > planes.id
+Ref: carpetas.estudio_id > estudios.id
+
+// Monetización
+Ref: suscripciones.usuario_id > usuarios.id
+Ref: suscripciones.estudio_id > estudios.id
+Ref: suscripciones.plan_id > planes.id
+Ref: pagos.suscripcion_id > suscripciones.id
+
+// Casos
+Ref: casos.creador_id > usuarios.id
+Ref: casos.estudio_id > estudios.id
+Ref: casos.carpeta_id > carpetas.id
+Ref: caso_partes.caso_id > casos.id
+Ref: caso_partes.usuario_id > usuarios.id
+Ref: invitaciones.caso_id > casos.id
+
+// Items
+Ref: items.caso_id > casos.id
+Ref: items.parte_id > usuarios.id
+
+// Rondas y propuestas
+Ref: rondas.caso_id > casos.id
+Ref: propuestas.caso_id > casos.id
+Ref: propuestas.ronda_id > rondas.id
+Ref: respuestas_propuesta.propuesta_id > propuestas.id
+Ref: respuestas_propuesta.parte_id > usuarios.id
+
+// Mediación
+Ref: mediaciones.caso_id > casos.id
+Ref: mediaciones.mediador_id > usuarios.id
+
+// Acuerdos
+Ref: acuerdos.caso_id > casos.id
+Ref: firmas.acuerdo_id > acuerdos.id
+Ref: firmas.usuario_id > usuarios.id
+Ref: tareas.acuerdo_id > acuerdos.id
+Ref: tareas.caso_id > casos.id
+Ref: incumplimientos.acuerdo_id > acuerdos.id
+Ref: incumplimientos.reportante_id > usuarios.id
+
+// Notificaciones
+Ref: notificaciones.usuario_id > usuarios.id
+Ref: notificaciones.caso_id > casos.id
+
+// Auditoría
+Ref: auditoria.usuario_id > usuarios.id
