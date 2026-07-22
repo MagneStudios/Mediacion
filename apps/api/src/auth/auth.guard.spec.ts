@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "@nestjs/common";
-import { HttpException, UnauthorizedException } from "@nestjs/common";
+import { HttpException, Logger, UnauthorizedException } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { AuthGuard } from "./auth.guard";
 import type {
@@ -119,6 +119,37 @@ describe("AuthGuard", () => {
 
     expect(result).toBe(true);
     expect(request.user).toEqual(provisionedUser);
+  });
+
+  it("rejects with a generic 500 and logs server-side when the repository fetch throws", async () => {
+    const loggerErrorSpy = jest
+      .spyOn(Logger.prototype, "error")
+      .mockImplementation(() => undefined);
+    const claims: VerifiedClaims = { sub: "user-1" };
+    const repositoryError = new Error(
+      "connection terminated unexpectedly: pg pool exhausted",
+    );
+    const guard = createGuard({
+      verify: jest.fn().mockResolvedValue(claims),
+      findAuthById: jest.fn().mockRejectedValue(repositoryError),
+    });
+    const context = createContext({
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    const error = await captureThrown(guard.canActivate(context));
+
+    expect(error).toBeInstanceOf(HttpException);
+    expect((error as HttpException).getStatus()).toBe(500);
+    expect((error as HttpException).getResponse()).toEqual({
+      code: "internal_error",
+      message: "Internal server error",
+    });
+    expect(
+      JSON.stringify((error as HttpException).getResponse()),
+    ).not.toContain("pg pool exhausted");
+    expect(loggerErrorSpy).toHaveBeenCalledWith(repositoryError.message);
+    loggerErrorSpy.mockRestore();
   });
 
   it("rejects with 401 user_not_provisioned when the token is valid but no usuarios row exists", async () => {
