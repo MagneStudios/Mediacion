@@ -25,4 +25,18 @@ describe("AppModule health route wiring", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: "ok" });
   });
+
+  it("responds with a uniform 404 body for an unknown route", async () => {
+    const response = await request(app.getHttpServer()).get(
+      "/nonexistent-route",
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: {
+        code: "not_found",
+        message: expect.stringContaining("Cannot GET"),
+      },
+    });
+  });
 });
