@@ -24,4 +24,34 @@ describe("loadConfig", () => {
       "PORT must be a valid port number between 1 and 65535, received: 70000",
     );
   });
+
+  it("throws when PORT is zero", () => {
+    expect(() => loadConfig({ PORT: "0" })).toThrow(
+      "PORT must be a valid port number between 1 and 65535, received: 0",
+    );
+  });
+
+  it("throws when PORT is negative", () => {
+    expect(() => loadConfig({ PORT: "-1" })).toThrow(
+      "PORT must be a valid port number between 1 and 65535, received: -1",
+    );
+  });
+
+  it("throws when PORT is a decimal number", () => {
+    expect(() => loadConfig({ PORT: "3000.5" })).toThrow(
+      "PORT must be a valid port number between 1 and 65535, received: 3000.5",
+    );
+  });
+
+  it("accepts PORT at the maximum valid boundary", () => {
+    const appConfig = loadConfig({ PORT: "65535" });
+
+    expect(appConfig.port).toBe(65535);
+  });
+
+  it("throws when PORT is one above the maximum boundary", () => {
+    expect(() => loadConfig({ PORT: "65536" })).toThrow(
+      "PORT must be a valid port number between 1 and 65535, received: 65536",
+    );
+  });
 });

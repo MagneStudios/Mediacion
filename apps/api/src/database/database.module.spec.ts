@@ -1,31 +1,47 @@
+import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
 import { Kysely } from "kysely";
 import { DatabaseModule } from "./database.module";
 import { KYSELY } from "./database.tokens";
 
 describe("DatabaseModule", () => {
-  it("resolves an overridden KYSELY provider without connecting to a database", async () => {
+  describe("with an overridden KYSELY provider", () => {
+    let moduleReference: TestingModule;
     const fakeKysely = { fake: true };
 
-    const moduleReference = await Test.createTestingModule({
-      imports: [DatabaseModule],
-    })
-      .overrideProvider(KYSELY)
-      .useValue(fakeKysely)
-      .compile();
+    beforeAll(async () => {
+      moduleReference = await Test.createTestingModule({
+        imports: [DatabaseModule],
+      })
+        .overrideProvider(KYSELY)
+        .useValue(fakeKysely)
+        .compile();
+    });
 
-    const resolvedKysely = moduleReference.get(KYSELY);
+    afterAll(async () => {
+      await moduleReference.close();
+    });
 
-    expect(resolvedKysely).toBe(fakeKysely);
+    it("resolves the overridden value without connecting to a database", () => {
+      expect(moduleReference.get(KYSELY)).toBe(fakeKysely);
+    });
   });
 
-  it("builds a real Kysely instance from the default provider without connecting", async () => {
-    const moduleReference = await Test.createTestingModule({
-      imports: [DatabaseModule],
-    }).compile();
+  describe("with the default provider", () => {
+    let moduleReference: TestingModule;
 
-    const resolvedKysely = moduleReference.get(KYSELY);
+    beforeAll(async () => {
+      moduleReference = await Test.createTestingModule({
+        imports: [DatabaseModule],
+      }).compile();
+    });
 
-    expect(resolvedKysely).toBeInstanceOf(Kysely);
+    afterAll(async () => {
+      await moduleReference.close();
+    });
+
+    it("builds a real Kysely instance without connecting", () => {
+      expect(moduleReference.get(KYSELY)).toBeInstanceOf(Kysely);
+    });
   });
 });

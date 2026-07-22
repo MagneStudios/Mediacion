@@ -1,0 +1,16 @@
+name: ci-deno
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno fmt --check supabase/functions
+      - run: deno lint supabase/functions
+      - run: deno test --config supabase/functions/health/deno.json supabase/functions/health
