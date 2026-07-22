@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-07-21
+> Última actualización: 2026-07-22
 
 ## Objetivo
 
@@ -107,14 +107,74 @@ pnpm supabase stop
 docker exec -it supabase_db_Mediacion psql -U postgres -d postgres
 ```
 
+## Testing
+
+### Scripts Python
+
+```bash
+# Verificar schema (56 checks: tablas, funciones, enums, RLS, triggers, seeds)
+python scripts/smoke_migrations.py
+
+# Validar RLS multi-rol (13 checks: items, casos, suscripciones, helper functions)
+python scripts/validate_rls.py
+
+# Generar datos de prueba con Faker
+python scripts/seed_data.py --reset --count 5
+
+# Setup completo después de db reset (SQL tests + validación)
+.\scripts\setup_test_env.ps1
+```
+
+### Suite SQL de tests (tmp/)
+
+Los tests SQL se ejecutan contra Supabase local vía Docker:
+
+```bash
+Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion psql -U postgres -d postgres
+```
+
+| Archivo | Qué verifica |
+|---------|-------------|
+| `test_01_setup.sql` | Trigger handle_new_user crea registro en usuarios |
+| `test_02_caso.sql` | Inserción de caso + vinculación de partes |
+| `test_03_items.sql` | Items con valor_min/valor_max tipo text |
+| `test_04_rls_isolation.sql` | RLS RN-01: parte solo ve sus items |
+| `test_05_estados.sql` | Máquina de estados del caso |
+| `test_06_xor.sql` | CHECK XOR en suscripciones |
+| `test_07_audit.sql` | Triggers de auditoría + updated_at |
+| `test_08_rondas.sql` | Sync ronda_actual + unique constraint |
+| `test_09_integridad.sql` | FK y unique constraints |
+| `test_10_rls_deep.sql` | Mediator/admin/non-member vs RLS |
+| `test_11_helper_functions.sql` | is_part_of_case, is_admin, etc. |
+| `test_12_e2e_flow.sql` | Flujo completo: caso → rondas → propuestas → mediación → acuerdos → cierre |
+
+### Resultados de testing (2026-07-22)
+
+**Schema validation (smoke_migrations.py):** 56/56 PASS
+- 22 tablas, 11 funciones, 18 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
+
+**RLS validation (validate_rls.py):** 13/13 PASS
+- Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
+- Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos
+
+**SQL tests (A1-E4):** 24/24 PASS
+- RLS: items, casos, configuración, auditoría, notificaciones, suscripciones
+- Integrity: CHECK XOR, unique constraints, FK protection, state machine
+- Triggers: handle_new_user (rol default + explícito), sync_ronda_actual, audit trail, updated_at
+- Grants: authenticated/anon/service_role con CRUD completo
+
+### Hallazgo: FK sin CASCADE (D1)
+
+`items.parte_id` → `usuarios.id` no tiene ON DELETE CASCADE. Esto es **intencional**: en un sistema de mediación, borrar un usuario no debe borrar sus posiciones de un caso. El flujo correcto es desactivar (`activo = false`), no borrar.
+
 ## Pendiente
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 18 enums, relaciones y notas |
 | Fase 2 — Migraciones | ✅ Cerrada | 7 archivos SQL aplicados y testeados |
-| Fase 3 — Scripts Python | ⏳ Pendiente | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ⏳ Pendiente | Matriz de casos + suite ejecutable + flujo completo |
+| Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
+| Fase 4 — QA/E2E | ⏳ Pendiente | Esperando backend listo para tests de integración |
 
 ### Pendiente del backend
 - Endpoint de webhooks (`/webhooks/docusign`, `/webhooks/mercadopago`): validación del secret/header
@@ -122,7 +182,5 @@ docker exec -it supabase_db_Mediacion psql -U postgres -d postgres
 
 ### Pendiente del cliente (a confirmar)
 - Precios y límites finales de los planes
-- ¿El mediador accede a posiciones privadas o solo a propuestas agregadas? (asumimos: ve posiciones)
-- ¿Basta una parte para solicitar mediador? (asumimos: sí)
 - Proveedor de biometría
 - Calendario nativo vs proveedor externo
