@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
@@ -22,6 +23,8 @@ function extractBearerToken(
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     @Inject(TOKEN_VERIFIER) private readonly tokenVerifier: TokenVerifier,
     @Inject(UsersRepository) private readonly usersRepository: UsersRepository,
@@ -47,7 +50,17 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("Invalid or expired token");
     });
 
-    const user = await this.usersRepository.findAuthById(claims.sub);
+    const user = await this.usersRepository
+      .findAuthById(claims.sub)
+      .catch((error: unknown) => {
+        const repositoryError =
+          error instanceof Error ? error : new Error(String(error));
+        this.logger.error(repositoryError.message);
+        throw new HttpException(
+          { code: "internal_error", message: "Internal server error" },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      });
     if (!user) {
       throw new HttpException(
         { code: "user_not_provisioned", message: "User is not provisioned" },

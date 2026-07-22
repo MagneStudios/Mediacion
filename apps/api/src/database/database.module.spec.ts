@@ -1,6 +1,7 @@
 import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
 import { Kysely } from "kysely";
+import { ConfigModule } from "../config/config.module";
 import { DatabaseModule } from "./database.module";
 import { KYSELY } from "./database.tokens";
 
@@ -32,7 +33,7 @@ describe("DatabaseModule", () => {
 
     beforeAll(async () => {
       moduleReference = await Test.createTestingModule({
-        imports: [DatabaseModule],
+        imports: [ConfigModule, DatabaseModule],
       }).compile();
     });
 
