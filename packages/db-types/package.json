@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "kysely": "^0.28.17",
     "typescript": "^7.0.2"
   }
 }

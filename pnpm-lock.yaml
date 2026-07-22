@@ -84,6 +84,9 @@ importers:
 
   packages/db-types:
     devDependencies:
+      kysely:
+        specifier: ^0.28.17
+        version: 0.28.17
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
