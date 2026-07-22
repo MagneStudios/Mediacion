@@ -54,4 +54,65 @@ describe("loadConfig", () => {
       "PORT must be a valid port number between 1 and 65535, received: 65536",
     );
   });
+
+  it("throws in production when SUPABASE_JWT_SECRET is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      }),
+    ).toThrow("SUPABASE_JWT_SECRET is required and must be non-empty");
+  });
+
+  it("throws in production when SUPABASE_JWT_SECRET is whitespace-only", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: " ",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      }),
+    ).toThrow("SUPABASE_JWT_SECRET is required and must be non-empty");
+  });
+
+  it("throws in production when DATABASE_URL is fully unset", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+      }),
+    ).toThrow(
+      "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
+    );
+  });
+
+  it("throws in production when DATABASE_URL is malformed", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "not-a-url",
+      }),
+    ).toThrow(
+      "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
+    );
+  });
+
+  it("uses safe placeholders outside production when unset", () => {
+    const appConfig = loadConfig({});
+
+    expect(appConfig.supabaseJwtSecret).toBe("dev-placeholder-secret");
+    expect(appConfig.databaseUrl).toBe(
+      "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+    );
+  });
+
+  it("accepts explicit values outside production", () => {
+    const appConfig = loadConfig({
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+    });
+
+    expect(appConfig.supabaseJwtSecret).toBe("my-secret");
+    expect(appConfig.databaseUrl).toBe("postgres://user:pass@host:5432/db");
+  });
 });
