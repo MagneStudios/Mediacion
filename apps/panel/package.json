@@ -1,0 +1,11 @@
+{
+  "name": "@mediacion/panel",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "exit 0",
+    "test": "exit 0",
+    "typecheck": "exit 0",
+    "lint": "exit 0"
+  }
+}
