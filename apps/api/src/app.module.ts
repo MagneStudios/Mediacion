@@ -2,16 +2,19 @@ import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
+import { RolesGuard } from "./auth/roles.guard";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ConfigModule } from "./config/config.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
+import { MeModule } from "./me/me.module";
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, AuthModule, HealthModule],
+  imports: [ConfigModule, DatabaseModule, AuthModule, HealthModule, MeModule],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_GUARD, useExisting: AuthGuard },
+    { provide: APP_GUARD, useExisting: RolesGuard },
   ],
 })
 export class AppModule {}

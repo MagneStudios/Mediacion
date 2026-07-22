@@ -30,4 +30,53 @@ describe("UsersRepository", () => {
 
     expect(result).toBeUndefined();
   });
+
+  it("selects the profile-safe columns filtered by the caller's id", async () => {
+    const row = {
+      id: "user-1",
+      rol: "parte",
+      nombre: "Ana",
+      apellido: "Diaz",
+      email: "a@b.com",
+      telefono: null,
+      idioma: "es",
+      verif_biometrica: "pendiente",
+      estudio_id: null,
+      activo: true,
+    };
+    const fakeKysely = createFakeKysely(row);
+    const repository = new UsersRepository(fakeKysely as never);
+
+    const result = await repository.findProfileById("user-1");
+
+    expect(fakeKysely.selectFrom).toHaveBeenCalledWith("usuarios");
+    expect(fakeKysely.select).toHaveBeenCalledWith([
+      "id",
+      "rol",
+      "nombre",
+      "apellido",
+      "email",
+      "telefono",
+      "idioma",
+      "verif_biometrica",
+      "estudio_id",
+      "activo",
+    ]);
+    expect(fakeKysely.where).toHaveBeenCalledTimes(1);
+    expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", "user-1");
+    expect(result).toEqual(row);
+  });
+
+  it.each(["caller-xyz", "another-caller-abc"])(
+    "filters strictly by the exact caller id %s, never a substitute",
+    async (callerId) => {
+      const fakeKysely = createFakeKysely(undefined);
+      const repository = new UsersRepository(fakeKysely as never);
+
+      await repository.findProfileById(callerId);
+
+      expect(fakeKysely.where).toHaveBeenCalledTimes(1);
+      expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", callerId);
+    },
+  );
 });

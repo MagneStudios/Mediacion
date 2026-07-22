@@ -6,6 +6,22 @@ export type AuthenticatedUser = Pick<
   "id" | "email" | "rol"
 >;
 
+export type RolUsuario = AuthenticatedUser["rol"];
+
+export type MeProfile = Pick<
+  Selectable<Database["usuarios"]>,
+  | "id"
+  | "rol"
+  | "nombre"
+  | "apellido"
+  | "email"
+  | "telefono"
+  | "idioma"
+  | "verif_biometrica"
+  | "estudio_id"
+  | "activo"
+>;
+
 export type AuthenticatedRequest = {
   headers: { authorization?: string };
   user?: AuthenticatedUser;
