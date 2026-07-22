@@ -33,6 +33,27 @@ describe("AllExceptionsFilter", () => {
     });
   });
 
+  it("renders a custom code from the exception response when present", () => {
+    const filter = new AllExceptionsFilter();
+    const { host, json, status } = createHost();
+
+    filter.catch(
+      new HttpException(
+        { code: "user_not_provisioned", message: "User is not provisioned" },
+        HttpStatus.UNAUTHORIZED,
+      ),
+      host,
+    );
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
+    expect(json).toHaveBeenCalledWith({
+      error: {
+        code: "user_not_provisioned",
+        message: "User is not provisioned",
+      },
+    });
+  });
+
   it("renders an unknown error as a generic 500 with no leaked detail", () => {
     const filter = new AllExceptionsFilter();
     const { host, json, status } = createHost();

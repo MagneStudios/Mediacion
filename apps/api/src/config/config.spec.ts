@@ -2,13 +2,13 @@ import { loadConfig } from "./config";
 
 describe("loadConfig", () => {
   it("defaults the port to 3000 when PORT is not set", () => {
-    const appConfig = loadConfig({});
+    const appConfig = loadConfig({ NODE_ENV: "test" });
 
     expect(appConfig.port).toBe(3000);
   });
 
   it("uses the PORT environment variable when set", () => {
-    const appConfig = loadConfig({ PORT: "4500" });
+    const appConfig = loadConfig({ NODE_ENV: "test", PORT: "4500" });
 
     expect(appConfig.port).toBe(4500);
   });
@@ -44,7 +44,7 @@ describe("loadConfig", () => {
   });
 
   it("accepts PORT at the maximum valid boundary", () => {
-    const appConfig = loadConfig({ PORT: "65535" });
+    const appConfig = loadConfig({ NODE_ENV: "test", PORT: "65535" });
 
     expect(appConfig.port).toBe(65535);
   });
@@ -97,12 +97,44 @@ describe("loadConfig", () => {
     );
   });
 
-  it("uses safe placeholders outside production when unset", () => {
-    const appConfig = loadConfig({});
+  it("uses safe placeholders when NODE_ENV is test and values are unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
 
     expect(appConfig.supabaseJwtSecret).toBe("dev-placeholder-secret");
     expect(appConfig.databaseUrl).toBe(
       "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+    );
+  });
+
+  it("throws when NODE_ENV is unset and SUPABASE_JWT_SECRET is missing", () => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: "postgresql://user:pass@host:5432/db" }),
+    ).toThrow("SUPABASE_JWT_SECRET is required and must be non-empty");
+  });
+
+  it("throws when NODE_ENV is development and SUPABASE_JWT_SECRET is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      }),
+    ).toThrow("SUPABASE_JWT_SECRET is required and must be non-empty");
+  });
+
+  it("throws when NODE_ENV is unset and DATABASE_URL is missing", () => {
+    expect(() => loadConfig({ SUPABASE_JWT_SECRET: "test-secret" })).toThrow(
+      "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
+    );
+  });
+
+  it("throws when NODE_ENV is development and DATABASE_URL is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "development",
+        SUPABASE_JWT_SECRET: "test-secret",
+      }),
+    ).toThrow(
+      "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
     );
   });
 

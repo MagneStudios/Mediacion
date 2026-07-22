@@ -24,28 +24,28 @@ function parsePort(rawPort: string): number {
 
 function parseSupabaseJwtSecret(
   rawSecret: string | undefined,
-  isProduction: boolean,
+  isTestEnv: boolean,
 ): string {
   if (rawSecret && rawSecret.trim().length > 0) {
     return rawSecret;
   }
-  if (isProduction) {
-    throw new Error("SUPABASE_JWT_SECRET is required and must be non-empty");
+  if (isTestEnv) {
+    return placeholderSupabaseJwtSecret;
   }
-  return placeholderSupabaseJwtSecret;
+  throw new Error("SUPABASE_JWT_SECRET is required and must be non-empty");
 }
 
 function parseDatabaseUrl(
   rawDatabaseUrl: string | undefined,
-  isProduction: boolean,
+  isTestEnv: boolean,
 ): string {
   if (!rawDatabaseUrl) {
-    if (isProduction) {
-      throw new Error(
-        "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
-      );
+    if (isTestEnv) {
+      return placeholderDatabaseUrl;
     }
-    return placeholderDatabaseUrl;
+    throw new Error(
+      "DATABASE_URL must be a valid postgres:// or postgresql:// connection string",
+    );
   }
   if (!postgresUrlPattern.test(rawDatabaseUrl)) {
     throw new Error(
@@ -56,12 +56,12 @@ function parseDatabaseUrl(
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
-  const isProduction = environment.NODE_ENV === "production";
+  const isTestEnv = environment.NODE_ENV === "test";
   const port = environment.PORT ? parsePort(environment.PORT) : defaultPort;
   const supabaseJwtSecret = parseSupabaseJwtSecret(
     environment.SUPABASE_JWT_SECRET,
-    isProduction,
+    isTestEnv,
   );
-  const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, isProduction);
+  const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, isTestEnv);
   return { port, supabaseJwtSecret, databaseUrl };
 }
