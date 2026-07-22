@@ -1,32 +1,19 @@
 {
-  "name": "mediacion-iapnp",
-  "version": "0.1.0",
+  "name": "mediacion",
+  "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.13.0",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=22"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.110.3",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.544.0",
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "biome ci .",
+    "typecheck": "tsc -b"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@biomejs/biome": "^2.5.5",
+    "typescript": "^7.0.2"
   }
 }

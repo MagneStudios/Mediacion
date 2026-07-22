@@ -65,3 +65,6 @@ temp/
 # === Otros ===
 /docs/contextom
 /docs/documentacion-oficial
+
+# === SDD / agent tooling cache ===
+.atl/
