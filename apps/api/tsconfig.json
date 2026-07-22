@@ -6,5 +6,6 @@
     "emitDecoratorMetadata": true,
     "types": ["node", "jest"]
   },
+  "references": [{ "path": "../../packages/shared" }],
   "include": ["src/**/*.ts"]
 }

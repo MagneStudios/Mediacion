@@ -9,9 +9,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@mediacion/db-types": "workspace:*",
+    "@mediacion/shared": "workspace:*",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
+    "kysely": "^0.28.17",
+    "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -22,7 +26,10 @@
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.1",
     "jest": "^30.4.2",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
