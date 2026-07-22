@@ -7,6 +7,7 @@ const config: Config = {
   transform: {
     "^.+\\.(t|j)s$": "@swc/jest",
   },
+  transformIgnorePatterns: ["node_modules/(?!.*jose)"],
   testEnvironment: "node",
 };
 

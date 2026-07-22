@@ -12,6 +12,19 @@ function codeForStatus(status: number): string {
   return statusCodes[status] ?? "error";
 }
 
+function codeFromException(exception: HttpException): string {
+  const response = exception.getResponse();
+  if (
+    typeof response === "object" &&
+    response !== null &&
+    "code" in response &&
+    typeof response.code === "string"
+  ) {
+    return response.code;
+  }
+  return codeForStatus(exception.getStatus());
+}
+
 function messageFromException(exception: HttpException): string {
   const response = exception.getResponse();
   if (typeof response === "string") {
@@ -39,7 +52,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const status = exception.getStatus();
       response.status(status).json({
         error: {
-          code: codeForStatus(status),
+          code: codeFromException(exception),
           message: messageFromException(exception),
         },
       });
