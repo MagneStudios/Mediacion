@@ -37,13 +37,13 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title} accessibilityRole="header">
+          <View style={[styles.header, isWide ? styles.headerWide : null]}>
+            <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
               {t('cases.title')}
             </Text>
             <Button
               variant="primary"
-              fullWidth
+              fullWidth={!isWide}
               iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
               onPress={onCreateCase}
             >
@@ -104,6 +104,18 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  // Wide web: title left, compact intrinsic-width CTA right — never a
+  // hardcoded button width, `fullWidth={false}` already sizes the button to
+  // its own content (see Button.tsx). Mobile/medium keep the original
+  // column layout (title above a full-width button) untouched.
+  headerWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleWide: {
+    flex: 1,
   },
   title: {
     fontFamily: typography.headline.fontFamily,
