@@ -7,13 +7,24 @@ import { toDomainError } from "../common/db/pg-error";
 import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
 import { buildCasoLockQuery } from "./caso-lock-query";
+import { emailsMatch } from "./email-match";
 import type {
   InvitacionCreated,
   JoinedCaso,
   TipoInvitacion,
 } from "./invitaciones.types";
+import { isInvitationExpired } from "./invitation-ttl";
 
 const estadoInvitacionPendiente = "pendiente" as const;
+const estadoInvitacionExpirada = "expirada" as const;
+const tipoInvitacionEmail = "email" as const;
+
+function invalidTokenError(): HttpException {
+  return new HttpException(
+    { code: "invalid_token", message: "Invalid or used token" },
+    HttpStatus.NOT_FOUND,
+  );
+}
 
 @Injectable()
 export class InvitacionesRepository {
@@ -26,6 +37,7 @@ export class InvitacionesRepository {
     casoId: string,
     tipo: TipoInvitacion,
     token: string,
+    emailDestino: string | null,
   ): Promise<InvitacionCreated> {
     return this.kysely
       .insertInto("invitaciones")
@@ -34,6 +46,8 @@ export class InvitacionesRepository {
         tipo,
         token,
         estado: estadoInvitacionPendiente,
+        email_destino: emailDestino,
+        fecha_envio: new Date().toISOString(),
       })
       .returning(["id", "tipo", "token", "estado"])
       .executeTakeFirstOrThrow()
@@ -42,7 +56,11 @@ export class InvitacionesRepository {
       });
   }
 
-  joinCase(token: string, callerId: string): Promise<JoinedCaso> {
+  joinCase(
+    token: string,
+    callerId: string,
+    callerEmail: string,
+  ): Promise<JoinedCaso> {
     return this.kysely
       .transaction()
       .execute(async (trx) => {
@@ -54,9 +72,28 @@ export class InvitacionesRepository {
           .forUpdate()
           .executeTakeFirst();
         if (!invitacion) {
+          throw invalidTokenError();
+        }
+
+        if (isInvitationExpired(invitacion.fecha_envio)) {
+          await trx
+            .updateTable("invitaciones")
+            .set({ estado: estadoInvitacionExpirada })
+            .where("id", "=", invitacion.id)
+            .execute();
+          return null;
+        }
+
+        if (
+          invitacion.tipo === tipoInvitacionEmail &&
+          !emailsMatch(invitacion.email_destino, callerEmail)
+        ) {
           throw new HttpException(
-            { code: "invalid_token", message: "Invalid or used token" },
-            HttpStatus.NOT_FOUND,
+            {
+              code: "forbidden",
+              message: "Invitation email does not match the caller",
+            },
+            HttpStatus.FORBIDDEN,
           );
         }
 
@@ -109,6 +146,12 @@ export class InvitacionesRepository {
           .select(["id", "estado"])
           .where("id", "=", invitacion.caso_id)
           .executeTakeFirstOrThrow();
+      })
+      .then((result) => {
+        if (!result) {
+          throw invalidTokenError();
+        }
+        return result;
       })
       .catch((error: unknown) => {
         if (error instanceof HttpException) {

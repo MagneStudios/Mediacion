@@ -7,6 +7,7 @@ export type TipoInvitacion = Invitacion["tipo"];
 
 export type CreateInvitacionDto = {
   tipo: TipoInvitacion;
+  email_destino?: string;
 };
 
 export type InvitacionCreated = Pick<
