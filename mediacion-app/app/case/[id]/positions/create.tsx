@@ -5,10 +5,12 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 
 import { Button } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PositionFormFields } from '@/features/positions/components/PositionFormFields';
 import { usePositionDraft } from '@/features/positions/hooks/usePositionDraft';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { CategoriaPosicion } from '@/types/position';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { validatePositionRange } from '@/utils/validate-position-range';
@@ -18,6 +20,7 @@ export default function CreatePositionScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { draft, setCategory, setBasicInfo, setRange, setConcession } = usePositionDraft();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [category, setLocalCategory] = useState<CategoriaPosicion | null>(draft.category);
   const [name, setName] = useState(draft.name);
@@ -67,7 +70,11 @@ export default function CreatePositionScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Stack.Screen options={{ title: '' }} />
 
         <Text style={styles.title} accessibilityRole="header">
@@ -129,7 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

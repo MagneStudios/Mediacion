@@ -4,15 +4,18 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { RoundHistoryCard } from '@/features/negotiation/components/RoundHistoryCard';
 import { useRoundHistory } from '@/features/negotiation/hooks/useRoundHistory';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 export default function NegotiationHistoryScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const result = useRoundHistory(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   return (
     <View style={styles.container}>
@@ -20,7 +23,7 @@ export default function NegotiationHistoryScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.roundId}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">
             {t('negotiation.history.title')}
@@ -63,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   title: {

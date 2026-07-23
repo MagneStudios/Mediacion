@@ -4,10 +4,12 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { MetodoCaso } from '@/types/case';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
@@ -17,6 +19,7 @@ export default function CaseCreateMethodScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { draft, setMetodo } = useCaseCreationFlow();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const handleContinue = () => {
     if (!draft.metodo) return;
@@ -25,7 +28,10 @@ export default function CaseCreateMethodScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={2} total={4} label={t('caseCreation.progress', { step: 2, total: 4 })} />
 
@@ -69,7 +75,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

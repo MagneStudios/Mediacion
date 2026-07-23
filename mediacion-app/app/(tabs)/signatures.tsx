@@ -4,10 +4,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { SignatureInboxCard } from '@/features/agreements/components/SignatureInboxCard';
 import { useSignatureInbox } from '@/features/agreements/hooks/useSignatureInbox';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { SignatureInboxItem } from '@/types/agreement';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
@@ -16,6 +18,7 @@ export default function SignaturesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const result = useSignatureInbox();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const openAgreement = (caseId: string) => {
     blurActiveElement();
@@ -89,7 +92,10 @@ export default function SignaturesScreen() {
   }
 
   return (
-    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
+    >
       <Text style={styles.title} accessibilityRole="header">
         {t('agreement.inbox.title')}
       </Text>
@@ -113,7 +119,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.lg,
   },
   title: {

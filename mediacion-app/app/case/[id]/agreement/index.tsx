@@ -2,8 +2,9 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, LoadingState } from '@/design-system';
+import { Button, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -11,6 +12,7 @@ import { DocumentPreparationState } from '@/features/agreements/components/Docum
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
@@ -19,6 +21,7 @@ export default function AgreementDashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { status, state, reload, prepareStatus, prepareDocument } = useAgreement(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   if (status === 'loading') {
     return (
@@ -58,15 +61,9 @@ export default function AgreementDashboardScreen() {
         : t('agreement.status.borrador');
   const statusVisual = allSignaturesComplete ? 'success' : agreement.estado === 'enviado_a_firma' ? 'info' : 'neutral';
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
-
-      <Text style={styles.title} accessibilityRole="header">
-        {t('agreement.dashboard.title')}
-      </Text>
+  const primaryColumn = (
+    <>
       <PrivacyNotice title={t('agreement.sharedMarker.title')}>{t('agreement.sharedMarker.body')}</PrivacyNotice>
-
       <SharedAgreementCard
         title={agreement.title}
         summary={agreement.summary}
@@ -76,7 +73,11 @@ export default function AgreementDashboardScreen() {
         statusLabel={statusLabel}
         statusVisual={statusVisual}
       />
+    </>
+  );
 
+  const secondaryColumn = (
+    <>
       <SignatureProgressCard
         title={t('agreement.progress.title')}
         signers={signers}
@@ -128,6 +129,21 @@ export default function AgreementDashboardScreen() {
       >
         {t('agreement.history.viewAction')}
       </Button>
+    </>
+  );
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+    >
+      <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
+
+      <Text style={styles.title} accessibilityRole="header">
+        {t('agreement.dashboard.title')}
+      </Text>
+
+      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
     </ScrollView>
   );
 }
@@ -138,7 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

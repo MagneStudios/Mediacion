@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, ErrorState, Icon, LoadingState, StatusPill } from '../../design-system';
+import { Badge, Button, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
+import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import { appendCaseActivity } from '../../services/activity.service';
 import { casesService } from '../../services/cases.service';
 import { appendCaseNotice } from '../../services/notices.service';
@@ -31,6 +33,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { status, detail, reload } = useCaseDetail(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
   const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -104,8 +107,47 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 
   const isAwaitingCounterparty = detail.estado === 'nuevo';
 
+  const positionsSection = (() => {
+    const eligibility = getPositionEligibility(detail.estado);
+    const canCreate = eligibility === 'editable';
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>{t('caseDetail.positions.title')}</Text>
+        <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
+        <View style={styles.positionsActions}>
+          {canCreate ? (
+            <Button
+              variant="primary"
+              fullWidth
+              iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
+              onPress={() => {
+                blurActiveElement();
+                router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
+              }}
+            >
+              {t('caseDetail.positions.createAction')}
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              blurActiveElement();
+              router.push({ pathname: '/case/[id]/positions', params: { id: caseId } });
+            }}
+          >
+            {t('caseDetail.positions.viewAction')}
+          </Button>
+        </View>
+      </View>
+    );
+  })();
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+    >
       <Text style={styles.title} accessibilityRole="header">
         {detail.title}
       </Text>
@@ -158,49 +200,20 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           </View>
         </View>
       ) : (
-        <>
-          {(() => {
-            const eligibility = getPositionEligibility(detail.estado);
-            const canCreate = eligibility === 'editable';
-            return (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>{t('caseDetail.positions.title')}</Text>
-                <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
-                <View style={styles.positionsActions}>
-                  {canCreate ? (
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
-                      onPress={() => {
-                        blurActiveElement();
-                        router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
-                      }}
-                    >
-                      {t('caseDetail.positions.createAction')}
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    onPress={() => {
-                      blurActiveElement();
-                      router.push({ pathname: '/case/[id]/positions', params: { id: caseId } });
-                    }}
-                  >
-                    {t('caseDetail.positions.viewAction')}
-                  </Button>
-                </View>
-              </View>
-            );
-          })()}
-
-          <NegotiationSummaryCard caseId={caseId} />
-
-          <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
-
-          {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
-        </>
+        <ResponsiveColumns
+          primary={
+            <>
+              {positionsSection}
+              <NegotiationSummaryCard caseId={caseId} />
+            </>
+          }
+          secondary={
+            <>
+              <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
+              {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
+            </>
+          }
+        />
       )}
 
       <SimulateInvitationAcceptanceDialog
@@ -231,7 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

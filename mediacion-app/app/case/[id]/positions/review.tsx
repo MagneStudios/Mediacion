@@ -5,11 +5,13 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button, ErrorState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { PositionReviewCard } from '@/features/positions/components/PositionReviewCard';
 import { usePositionDraft } from '@/features/positions/hooks/usePositionDraft';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { positionsService } from '@/services/positions.service';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
@@ -21,10 +23,14 @@ export default function ReviewPositionScreen() {
   const router = useRouter();
   const { draft, reset } = usePositionDraft();
   const [status, setStatus] = useState<SaveStatus>('idle');
+  const { horizontalPadding } = useResponsiveLayout();
 
   if (!draft.category || draft.canConcede === null) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+      >
         <Stack.Screen options={{ title: '' }} />
         <ErrorState
           title={t('positions.review.error.title')}
@@ -120,7 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

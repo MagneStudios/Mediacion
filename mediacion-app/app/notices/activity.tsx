@@ -4,10 +4,12 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { ActivityTimelineItem } from '@/features/notices/components/ActivityTimelineItem';
 import { useActivity } from '@/features/notices/hooks/useActivity';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { ActivityListItem } from '@/types/activity';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
@@ -17,6 +19,7 @@ export default function ActivityScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const result = useActivity();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const handleActivate = (item: ActivityListItem) => {
     const href = resolveNoticeDestination(item.destination);
@@ -31,7 +34,7 @@ export default function ActivityScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">
             {t('activity.title')}
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   title: {

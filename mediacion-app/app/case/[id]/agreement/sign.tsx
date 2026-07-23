@@ -6,18 +6,21 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { MockSignatureConfirmation } from '@/features/agreements/components/MockSignatureConfirmation';
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureEnvironmentNotice } from '@/features/agreements/components/SignatureEnvironmentNotice';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function AgreementSignScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
   const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId);
 
   const [confirmed, setConfirmed] = useState(false);
@@ -73,7 +76,10 @@ export default function AgreementSignScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: t('agreement.sign.title') }} />
 
       <Text style={styles.title} accessibilityRole="header">
@@ -151,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

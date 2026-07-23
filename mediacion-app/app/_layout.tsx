@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
 import { colors } from '@/design-system/tokens/colors';
 import '@/i18n';
 
@@ -60,9 +61,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={mediacionNavigationTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
+      <ResponsiveAppShell>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      </ResponsiveAppShell>
       <StatusBar style="dark" />
     </ThemeProvider>
   );

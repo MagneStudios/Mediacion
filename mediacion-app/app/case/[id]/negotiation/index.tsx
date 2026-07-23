@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AIProcessingState, Button, ErrorState, Icon, LoadingState } from '@/design-system';
+import { AIProcessingState, Button, ErrorState, Icon, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { useCaseDetail } from '@/features/cases/hooks/useCaseDetail';
@@ -16,6 +17,7 @@ import { ProposalResponseDialog } from '@/features/negotiation/components/Propos
 import { SharedProposalCard } from '@/features/negotiation/components/SharedProposalCard';
 import { WaitingForPartyState } from '@/features/negotiation/components/WaitingForPartyState';
 import { useNegotiation } from '@/features/negotiation/hooks/useNegotiation';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { DecisionPropuesta } from '@/types/negotiation';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
@@ -30,6 +32,7 @@ export default function NegotiationDashboardScreen() {
   // same explicit not-found presentation as every sibling route instead of
   // a silent, near-blank read_only render.
   const { status: caseStatus, detail: caseDetail } = useCaseDetail(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
   const {
     status,
     state,
@@ -106,15 +109,8 @@ export default function NegotiationDashboardScreen() {
   const proposalStatusVisual =
     currentProposal?.estado === 'pendiente' ? 'ai' : currentProposal?.estado === 'aceptada' ? 'success' : 'warning';
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('negotiation.dashboard.title') }} />
-
-      <Text style={styles.title} accessibilityRole="header">
-        {t('negotiation.dashboard.title')}
-      </Text>
-      <PrivacyNotice>{t('negotiation.dashboard.privacyNotice')}</PrivacyNotice>
-
+  const primaryColumn = (
+    <>
       {currentRound ? (
         <CurrentRoundCard
           roundLabel={t('negotiation.round.label', { number: currentRound.number })}
@@ -216,6 +212,12 @@ export default function NegotiationDashboardScreen() {
           </>
         )
       ) : null}
+    </>
+  );
+
+  const secondaryColumn = (
+    <>
+      <PrivacyNotice>{t('negotiation.dashboard.privacyNotice')}</PrivacyNotice>
 
       <MediatorSummaryCard caseId={caseId} />
 
@@ -229,6 +231,21 @@ export default function NegotiationDashboardScreen() {
       >
         {t('negotiation.history.viewAction')}
       </Button>
+    </>
+  );
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+    >
+      <Stack.Screen options={{ title: t('negotiation.dashboard.title') }} />
+
+      <Text style={styles.title} accessibilityRole="header">
+        {t('negotiation.dashboard.title')}
+      </Text>
+
+      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
       <ProposalResponseDialog
         visible={pendingDecision != null}
@@ -258,7 +275,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

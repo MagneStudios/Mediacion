@@ -5,11 +5,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 
 import { Badge, Button, ErrorState, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { useCaseDetail } from '@/features/cases/hooks/useCaseDetail';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { PositionFormFields } from '@/features/positions/components/PositionFormFields';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { positionsService } from '@/services/positions.service';
 import type { CategoriaPosicion, PositionItem } from '@/types/position';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -23,6 +25,7 @@ export default function EditPositionScreen() {
   const { id: caseId, positionId } = useLocalSearchParams<{ id: string; positionId: string }>();
   const { t } = useTranslation();
   const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const { status: caseStatus, detail } = useCaseDetail(caseId);
 
@@ -149,7 +152,11 @@ export default function EditPositionScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Stack.Screen options={{ title: '' }} />
 
         <Text style={styles.title} accessibilityRole="header">
@@ -224,7 +231,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

@@ -2,7 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Icon, StatusPill } from '@/design-system';
+import { Button, Icon, ScreenContainer, StatusPill } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
@@ -35,7 +35,7 @@ export default function CaseCreateSuccessScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer widthToken="form" centerVertically style={styles.content}>
       <Stack.Screen
         options={{
           title: '',
@@ -67,17 +67,14 @@ export default function CaseCreateSuccessScreen() {
           {t('caseCreation.success.backToDashboard')}
         </Button>
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: semanticColors.surface.canvas,
+  content: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
+    paddingVertical: spacing.lg,
     gap: spacing.sm,
   },
   badge: {

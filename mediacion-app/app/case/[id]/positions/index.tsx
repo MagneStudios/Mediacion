@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -12,6 +13,7 @@ import { useCaseDetail } from '@/features/cases/hooks/useCaseDetail';
 import { DeletePositionDialog } from '@/features/positions/components/DeletePositionDialog';
 import { PositionCard } from '@/features/positions/components/PositionCard';
 import { useOwnPositions } from '@/features/positions/hooks/useOwnPositions';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { positionsService } from '@/services/positions.service';
 import type { PositionItem } from '@/types/position';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -24,6 +26,7 @@ export default function OwnPositionsScreen() {
 
   const { status: caseStatus, detail, reload: reloadCase } = useCaseDetail(caseId);
   const positionsResult = useOwnPositions(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [deleteTarget, setDeleteTarget] = useState<PositionItem | null>(null);
   const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'error'>('idle');
@@ -91,7 +94,7 @@ export default function OwnPositionsScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">
@@ -193,7 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   header: {

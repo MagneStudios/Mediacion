@@ -2,7 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, Icon } from '@/design-system';
+import { Button, ErrorState, Icon, ScreenContainer } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
@@ -29,7 +29,7 @@ export default function SignedOutScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer widthToken="form" centerVertically style={styles.content}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.iconCircle}>
@@ -47,18 +47,15 @@ export default function SignedOutScreen() {
           {t('profile.signedOut.returnAction')}
         </Button>
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: semanticColors.surface.canvas,
+  content: {
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.sm,
-    padding: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   iconCircle: {
     width: 56,

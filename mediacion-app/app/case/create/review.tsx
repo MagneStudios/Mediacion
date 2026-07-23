@@ -5,12 +5,14 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button, ErrorState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { CaseReviewCard } from '@/features/cases/components/CaseReviewCard';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
@@ -21,6 +23,7 @@ export default function CaseCreateReviewScreen() {
   const router = useRouter();
   const { draft, setCreatedCase } = useCaseCreationFlow();
   const [status, setStatus] = useState<CreateStatus>('idle');
+  const { horizontalPadding } = useResponsiveLayout();
 
   const handleCreate = async () => {
     if (status === 'submitting' || !draft.metodo) return;
@@ -44,7 +47,10 @@ export default function CaseCreateReviewScreen() {
     // Defensive fallback — the wizard is push-only in order, so this only
     // triggers if a step was skipped some other way.
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
         <Stack.Screen options={{ title: '' }} />
         <ErrorState
           title={t('caseCreation.review.error.title')}
@@ -59,7 +65,10 @@ export default function CaseCreateReviewScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={3} total={4} label={t('caseCreation.progress', { step: 3, total: 4 })} />
 
@@ -110,7 +119,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

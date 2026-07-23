@@ -2,7 +2,8 @@
   "common": {
     "back": "Atrás",
     "retry": "Reintentar",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "mainNavigation": "Navegación principal"
   },
   "tabs": {
     "cases": "Casos",

@@ -3,8 +3,10 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
+import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import type { CaseSummary } from '../../types/case';
 import { CaseCard } from './components/CaseCard';
 import { useCases } from './hooks/useCases';
@@ -17,13 +19,23 @@ export type CasesDashboardScreenProps = {
 export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboardScreenProps) {
   const { t } = useTranslation();
   const result = useCases();
+  const { isWide, horizontalPadding } = useResponsiveLayout();
+  // Two columns at `wide` and above (never three/four, even at extraWide —
+  // isWide alone already covers that whole range). RN requires a remount
+  // when numColumns changes; `key` forces that safely. The list has no
+  // internal state tied to a specific render (read-only data from
+  // useCases()), so recreation loses nothing.
+  const numColumns = isWide ? 2 : 1;
 
   return (
     <View style={styles.container}>
       <FlatList
+        key={numColumns}
         data={result.status === 'success' ? result.cases : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">
@@ -39,8 +51,16 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
             </Button>
           </View>
         }
-        renderItem={({ item }) => <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        renderItem={({ item }) =>
+          numColumns > 1 ? (
+            <View style={styles.gridItem}>
+              <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />
+            </View>
+          ) : (
+            <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />
+          )
+        }
+        ItemSeparatorComponent={numColumns > 1 ? undefined : () => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={
           result.status === 'loading' ? (
             <LoadingState label={t('cases.loading')} />
@@ -70,8 +90,16 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
+  },
+  columnWrapper: {
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 0,
   },
   header: {
     gap: spacing.sm,

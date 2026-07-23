@@ -3,8 +3,9 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ErrorState, LoadingState } from '@/design-system';
+import { ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
@@ -14,6 +15,7 @@ import { ProfileHeaderCard } from '@/features/profile/components/ProfileHeaderCa
 import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
 import { useNotificationPreferences } from '@/features/profile/hooks/useNotificationPreferences';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function ProfileScreen() {
@@ -21,6 +23,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { status, profile, reload } = useProfile();
   const notifications = useNotificationPreferences();
+  const { horizontalPadding } = useResponsiveLayout();
 
   if (status === 'loading') {
     return (
@@ -50,14 +53,8 @@ export default function ProfileScreen() {
 
   const appVersion = Constants.expoConfig?.version ?? '—';
 
-  return (
-    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
-      <Text style={styles.title} accessibilityRole="header">
-        {t('profile.header.title')}
-      </Text>
-
-      <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.overview')} />
-
+  const primaryColumn = (
+    <>
       <ProfileHeaderCard
         displayName={`${profile.nombre} ${profile.apellido}`}
         roleLabel={t(`profile.role.${profile.rol}`)}
@@ -71,13 +68,32 @@ export default function ProfileScreen() {
         <PreferenceRow label={t('profile.summary.notifications')} value={notificationsValue} />
         <PreferenceRow label={t('profile.summary.privacy')} value={t('profile.summary.privacyValue')} />
       </View>
+    </>
+  );
 
+  const secondaryColumn = (
+    <>
       <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
       <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
       <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
       <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
       <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
       <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
+    </>
+  );
+
+  return (
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+    >
+      <Text style={styles.title} accessibilityRole="header">
+        {t('profile.header.title')}
+      </Text>
+
+      <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.overview')} />
+
+      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
       <Text style={styles.version}>{t('profile.version', { version: appVersion })}</Text>
     </ScrollView>
@@ -95,7 +111,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
   },
   title: {

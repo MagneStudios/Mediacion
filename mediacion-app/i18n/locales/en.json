@@ -2,7 +2,8 @@
   "common": {
     "back": "Back",
     "retry": "Try again",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "mainNavigation": "Main navigation"
   },
   "tabs": {
     "cases": "Cases",

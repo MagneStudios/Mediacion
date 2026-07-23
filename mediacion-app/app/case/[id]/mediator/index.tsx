@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, LoadingState } from '@/design-system';
+import { Button, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -12,6 +13,7 @@ import { MediatorDemoNotice } from '@/features/mediator/components/MediatorDemoN
 import { MediatorRequestDialog } from '@/features/mediator/components/MediatorRequestDialog';
 import { SharedMediatorProfileCard } from '@/features/mediator/components/SharedMediatorProfileCard';
 import { useMediator } from '@/features/mediator/hooks/useMediator';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 const SUMMARY_KEY_BY_ELIGIBILITY = {
@@ -29,6 +31,7 @@ export default function MediatorDashboardScreen() {
   const router = useRouter();
   const { status, state, reload, requestStatus, requestMediator, resetRequestStatus } = useMediator(caseId);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const { horizontalPadding } = useResponsiveLayout();
 
   if (status === 'loading') {
     return (
@@ -60,16 +63,8 @@ export default function MediatorDashboardScreen() {
 
   const summaryKey = SUMMARY_KEY_BY_ELIGIBILITY[state.eligibility];
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('mediator.dashboard.title') }} />
-
-      <Text style={styles.title} accessibilityRole="header">
-        {t('mediator.dashboard.title')}
-      </Text>
-      <PrivacyNotice>{t('mediator.dashboard.privacyNotice')}</PrivacyNotice>
-      <MediatorDemoNotice title={t('mediator.demoNotice.title')} body={t('mediator.demoNotice.body')} />
-
+  const primaryColumn = (
+    <>
       <View style={styles.section}>
         <Text style={styles.sectionHeading} accessibilityRole="header">
           {t('mediator.explainer.title')}
@@ -92,6 +87,13 @@ export default function MediatorDashboardScreen() {
           {requestStatus === 'pending' ? t('common.loading') : t('mediator.summary.requestAction')}
         </Button>
       ) : null}
+    </>
+  );
+
+  const secondaryColumn = (
+    <>
+      <PrivacyNotice>{t('mediator.dashboard.privacyNotice')}</PrivacyNotice>
+      <MediatorDemoNotice title={t('mediator.demoNotice.title')} body={t('mediator.demoNotice.body')} />
 
       {state.mediator ? <SharedMediatorProfileCard profile={state.mediator} assignedAt={state.mediation?.acceptedAt} /> : null}
 
@@ -105,6 +107,21 @@ export default function MediatorDashboardScreen() {
       >
         {t('mediator.activity.viewAction')}
       </Button>
+    </>
+  );
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+    >
+      <Stack.Screen options={{ title: t('mediator.dashboard.title') }} />
+
+      <Text style={styles.title} accessibilityRole="header">
+        {t('mediator.dashboard.title')}
+      </Text>
+
+      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
       <MediatorRequestDialog
         visible={confirmVisible}
@@ -131,7 +148,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

@@ -4,10 +4,12 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { ErrorState, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnvironmentNotice';
 import { NotificationPreferenceRow } from '@/features/profile/components/NotificationPreferenceRow';
 import { useNotificationPreferences } from '@/features/profile/hooks/useNotificationPreferences';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { NotificationPreferences } from '@/types/profile';
 
 const CATEGORY_KEYS: (keyof NotificationPreferences)[] = [
@@ -23,6 +25,7 @@ const CATEGORY_KEYS: (keyof NotificationPreferences)[] = [
 export default function ProfileNotificationsScreen() {
   const { t } = useTranslation();
   const { status, preferences, reload, updateStatus, togglePreference, retryLastToggle } = useNotificationPreferences();
+  const { horizontalPadding } = useResponsiveLayout();
 
   if (status === 'loading' || !preferences) {
     return (
@@ -43,7 +46,10 @@ export default function ProfileNotificationsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: t('profile.notifications.title') }} />
 
       <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.notifications')} />
@@ -79,7 +85,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   list: {

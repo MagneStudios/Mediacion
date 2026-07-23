@@ -6,10 +6,12 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { Button, ErrorState, Input, LoadingState } from '@/design-system';
 import { SelectableCard } from '@/design-system/components/SelectableCard';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { LanguageSelector } from '@/features/profile/components/LanguageSelector';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { AccessibilityPreference, CommunicationPreference, PreferredLanguage } from '@/types/profile';
 
 type Draft = {
@@ -23,6 +25,7 @@ type Draft = {
 export default function ProfileEditScreen() {
   const { t } = useTranslation();
   const { status, profile, reload, updateStatus, updateProfile, resetUpdateStatus } = useProfile();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [savedOnce, setSavedOnce] = useState(false);
@@ -73,7 +76,10 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: t('profile.edit.title') }} />
 
       <Text style={styles.sectionTitle}>{t('profile.edit.nameSection')}</Text>
@@ -150,7 +156,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
   },
   sectionTitle: {

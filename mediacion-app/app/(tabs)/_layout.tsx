@@ -7,12 +7,19 @@ import { Icon } from '@/design-system';
 import { fontFamily } from '@/design-system/tokens/typography';
 import { colors } from '@/design-system/tokens/colors';
 import { useUnreadNotices } from '@/features/notices/hooks/useUnreadNotices';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 const MAX_BADGE_COUNT = 9;
 
 export default function TabLayout() {
   const { t } = useTranslation();
   const unreadCount = useUnreadNotices();
+  // The desktop sidebar (mounted once, above this navigator, in
+  // ResponsiveAppShell) is the only place a sidebar is ever rendered — this
+  // layout never renders a second one. It only decides, from the exact same
+  // responsive signal, whether its own bottom tab bar should be visible, so
+  // the two are never shown at the same time.
+  const { showDesktopSidebar } = useResponsiveLayout();
 
   return (
     <Tabs
@@ -21,10 +28,12 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.inkTertiary,
-        tabBarStyle: {
-          backgroundColor: colors.surface1,
-          borderTopColor: colors.hairline,
-        },
+        tabBarStyle: showDesktopSidebar
+          ? { display: 'none' }
+          : {
+              backgroundColor: colors.surface1,
+              borderTopColor: colors.hairline,
+            },
         tabBarLabelStyle: {
           fontFamily: fontFamily.medium,
           fontSize: 10,

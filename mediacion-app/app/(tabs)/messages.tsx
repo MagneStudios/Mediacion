@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { DeadlineNoticeCard } from '@/features/notices/components/DeadlineNoticeCard';
@@ -15,6 +16,7 @@ import { NoticesDemoNotice } from '@/features/notices/components/NoticesDemoNoti
 import { NoticesOverviewHeader } from '@/features/notices/components/NoticesOverviewHeader';
 import { UnreadSummaryCard } from '@/features/notices/components/UnreadSummaryCard';
 import { useNotices } from '@/features/notices/hooks/useNotices';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { NoticeFilter as NoticeFilterValue, NoticeListItem } from '@/types/notice';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
@@ -25,6 +27,7 @@ export default function NoticeCenterScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<NoticeFilterValue>('all');
   const { status, notices, reload, markingId, markErrorId, markOneRead, markAllStatus, markAllRead } = useNotices(filter);
+  const { horizontalPadding } = useResponsiveLayout();
 
   const handleActivate = async (notice: NoticeListItem) => {
     const requiresCase = 'caseId' in notice.destination;
@@ -81,7 +84,7 @@ export default function NoticeCenterScreen() {
       <FlatList
         data={status === 'success' ? notices : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={listHeader}
         renderItem={({ item }) => {
           const CardComponent = item.category === 'deadline' ? DeadlineNoticeCard : NoticeCard;
@@ -133,7 +136,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
   },
   headerSection: {
     gap: spacing.sm,

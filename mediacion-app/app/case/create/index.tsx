@@ -5,16 +5,19 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 
 import { Button, Input } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function CaseCreateBasicInfoScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { draft, setBasicInfo } = useCaseCreationFlow();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [nombre, setNombre] = useState(draft.nombre);
   const [descripcion, setDescripcion] = useState(draft.descripcion);
@@ -38,7 +41,11 @@ export default function CaseCreateBasicInfoScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Stack.Screen options={{ title: '' }} />
         <CaseCreationProgress step={1} total={4} label={t('caseCreation.progress', { step: 1, total: 4 })} />
 
@@ -86,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

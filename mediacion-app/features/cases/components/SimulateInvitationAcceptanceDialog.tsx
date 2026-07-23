@@ -4,8 +4,10 @@ import { Button, ErrorState, Icon } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { shadows } from '../../../design-system/tokens/elevation';
+import { getModalMaxWidth } from '../../../design-system/tokens/layout';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
+import { useResponsiveLayout } from '../../../hooks/use-responsive-layout';
 
 export type SimulateInvitationAcceptanceDialogProps = {
   visible: boolean;
@@ -38,10 +40,12 @@ export function SimulateInvitationAcceptanceDialog({
   onConfirm,
   onCancel,
 }: SimulateInvitationAcceptanceDialogProps) {
+  const { isWide } = useResponsiveLayout();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} accessibilityViewIsModal statusBarTranslucent>
       <View style={styles.overlay}>
-        <View style={styles.panel} accessibilityRole="alert" accessible>
+        <View style={[styles.panel, { maxWidth: getModalMaxWidth(isWide) }]} accessibilityRole="alert" accessible>
           <View style={styles.iconCircle}>
             <Icon name="send" size={22} color={semanticColors.text.secondary} />
           </View>
@@ -78,7 +82,7 @@ const styles = StyleSheet.create({
   },
   panel: {
     width: '100%',
-    maxWidth: 360,
+    maxHeight: '90%',
     backgroundColor: semanticColors.surface.card,
     borderRadius: radii.lg,
     padding: spacing.lg,

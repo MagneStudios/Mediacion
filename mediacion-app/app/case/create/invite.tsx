@@ -5,11 +5,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 
 import { Button, ErrorState, Input, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { InvitationResultCard } from '@/features/cases/components/InvitationResultCard';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
 import type { TipoInvitacion } from '@/types/case';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -23,6 +25,7 @@ export default function CaseCreateInviteScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { draft, setInvitationResult } = useCaseCreationFlow();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [tipo, setTipo] = useState<TipoInvitacion | null>(null);
   const [email, setEmail] = useState('');
@@ -55,7 +58,10 @@ export default function CaseCreateInviteScreen() {
 
   if (!draft.caseId) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+      >
         <Stack.Screen options={{ title: '' }} />
         <ErrorState
           title={t('caseCreation.review.error.title')}
@@ -71,7 +77,11 @@ export default function CaseCreateInviteScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Stack.Screen options={{ title: '' }} />
         <CaseCreationProgress step={4} total={4} label={t('caseCreation.progress', { step: 4, total: 4 })} />
 
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   title: {

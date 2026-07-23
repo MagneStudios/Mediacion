@@ -4,16 +4,19 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { ActivityTimelineItem } from '@/features/notices/components/ActivityTimelineItem';
 import { useMediatorActivity } from '@/features/mediator/hooks/useMediatorActivity';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function MediatorActivityScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const result = useMediatorActivity(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   return (
     <View style={styles.container}>
@@ -21,7 +24,7 @@ export default function MediatorActivityScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">
             {t('mediator.activity.title')}
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   title: {

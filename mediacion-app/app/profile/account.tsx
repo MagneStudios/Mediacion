@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { AccountActionCard } from '@/features/profile/components/AccountActionCard';
@@ -14,6 +15,7 @@ import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnviron
 import { SignOutDialog } from '@/features/profile/components/SignOutDialog';
 import { useAccountActions } from '@/features/profile/hooks/useAccountActions';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import i18n from '@/i18n';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
@@ -36,6 +38,7 @@ export default function ProfileAccountScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { profile } = useProfile();
+  const { horizontalPadding } = useResponsiveLayout();
   const {
     signOutStatus,
     signOut,
@@ -82,7 +85,10 @@ export default function ProfileAccountScreen() {
   const appVersion = Constants.expoConfig?.version ?? '—';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
       <Stack.Screen options={{ title: t('profile.account.title') }} />
 
       <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.account')} />
@@ -157,7 +163,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   actionButton: {

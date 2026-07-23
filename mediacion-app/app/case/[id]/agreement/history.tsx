@@ -4,16 +4,19 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { AgreementHistoryCard } from '@/features/agreements/components/AgreementHistoryCard';
 import { useAgreementHistory } from '@/features/agreements/hooks/useAgreementHistory';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function AgreementHistoryScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const result = useAgreementHistory(caseId);
+  const { horizontalPadding } = useResponsiveLayout();
 
   return (
     <View style={styles.container}>
@@ -21,7 +24,7 @@ export default function AgreementHistoryScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">
             {t('agreement.history.title')}
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   title: {
