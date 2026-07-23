@@ -1,0 +1,75 @@
+{
+  "common": {
+    "back": "Back",
+    "retry": "Try again",
+    "loading": "Loading…"
+  },
+  "tabs": {
+    "cases": "Cases",
+    "messages": "Messages",
+    "signatures": "Signatures",
+    "profile": "Profile"
+  },
+  "cases": {
+    "title": "Your cases",
+    "newCase": "Start a new case",
+    "loading": "Looking for your cases…",
+    "empty": {
+      "title": "No cases yet",
+      "description": "Once you start or join a case, it will show up in this list."
+    },
+    "error": {
+      "title": "We couldn't load your cases",
+      "description": "Check your connection and try again whenever you're ready.",
+      "retry": "Try again"
+    },
+    "status": {
+      "inReview": "In review",
+      "proposalReady": "Proposal ready",
+      "signed": "Signed",
+      "sla": "SLA {{hours}} h"
+    },
+    "round": "Round {{number}}",
+    "noRound": "No active round"
+  },
+  "caseDetail": {
+    "caseCode": "Case {{code}}",
+    "privacyNotice": "Your private positions are never shared with the other party. They will only see what you choose to propose.",
+    "progress": "Progress",
+    "sharedProposal": "Shared proposal",
+    "from": "From {{name}}",
+    "generateAi": "Generate proposal with AI",
+    "aiBadge": "AI-assisted",
+    "aiPending": {
+      "status": "Generating…",
+      "description": "Looking for a middle ground both parties could accept. You can keep using the app in the meantime."
+    },
+    "aiDone": {
+      "title": "Suggested proposal",
+      "disclaimer": "The AI only suggests. The final decision belongs to the parties.",
+      "use": "Use this proposal",
+      "accepted": "Accepted",
+      "adjust": "Adjust"
+    }
+  },
+  "placeholders": {
+    "comingSoon": {
+      "title": "Coming soon",
+      "description": "We're still working on this section. There's nothing to show here yet."
+    }
+  },
+  "states": {
+    "loading": {
+      "title": "Loading"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "retry": "Try again"
+    },
+    "aiProcessing": {
+      "badge": "AI-assisted",
+      "status": "Generating…",
+      "description": "The AI is looking for a proposal both parties could accept. You can keep using the app in the meantime."
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "common": {
+    "back": "Atrás",
+    "retry": "Reintentar",
+    "loading": "Cargando…"
+  },
+  "tabs": {
+    "cases": "Casos",
+    "messages": "Mensajes",
+    "signatures": "Firmas",
+    "profile": "Perfil"
+  },
+  "cases": {
+    "title": "Tus casos",
+    "newCase": "Abrir un caso nuevo",
+    "loading": "Buscando tus casos…",
+    "empty": {
+      "title": "Todavía no tenés casos",
+      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+    },
+    "error": {
+      "title": "No pudimos cargar tus casos",
+      "description": "Revisá tu conexión e intentá de nuevo cuando quieras.",
+      "retry": "Reintentar"
+    },
+    "status": {
+      "inReview": "En revisión",
+      "proposalReady": "Propuesta lista",
+      "signed": "Firmado",
+      "sla": "SLA {{hours}} h"
+    },
+    "round": "Ronda {{number}}",
+    "noRound": "Sin ronda activa"
+  },
+  "caseDetail": {
+    "caseCode": "Caso {{code}}",
+    "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
+    "progress": "Progreso",
+    "sharedProposal": "Propuesta compartida",
+    "from": "De {{name}}",
+    "generateAi": "Generar propuesta con IA",
+    "aiBadge": "Asistido por IA",
+    "aiPending": {
+      "status": "Generando…",
+      "description": "Buscando un punto medio a partir de lo que ambas partes puedan aceptar. Podés seguir usando la app mientras tanto."
+    },
+    "aiDone": {
+      "title": "Propuesta sugerida",
+      "disclaimer": "La IA solo sugiere. La decisión final es de las partes.",
+      "use": "Usar propuesta",
+      "accepted": "Aceptada",
+      "adjust": "Ajustar"
+    }
+  },
+  "placeholders": {
+    "comingSoon": {
+      "title": "Próximamente",
+      "description": "Estamos trabajando en esta sección. Todavía no hay nada para mostrar acá."
+    }
+  },
+  "states": {
+    "loading": {
+      "title": "Cargando"
+    },
+    "error": {
+      "title": "Algo no salió bien",
+      "retry": "Reintentar"
+    },
+    "aiProcessing": {
+      "badge": "Asistido por IA",
+      "status": "Generando…",
+      "description": "La IA está buscando una propuesta en base a lo que ambas partes puedan aceptar. Podés seguir usando la app mientras tanto."
+    }
+  }
+}

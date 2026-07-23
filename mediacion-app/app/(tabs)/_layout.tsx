@@ -1,33 +1,57 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Icon } from '@/design-system';
+import { fontFamily } from '@/design-system/tokens/typography';
+import { colors } from '@/design-system/tokens/colors';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: colors.ink,
+        tabBarInactiveTintColor: colors.inkTertiary,
+        tabBarStyle: {
+          backgroundColor: colors.surface1,
+          borderTopColor: colors.hairline,
+        },
+        tabBarLabelStyle: {
+          fontFamily: fontFamily.medium,
+          fontSize: 10,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: t('tabs.cases'),
+          tabBarIcon: ({ color }) => <Icon name="folder" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="messages"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: t('tabs.messages'),
+          tabBarIcon: ({ color }) => <Icon name="messages-square" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="signatures"
+        options={{
+          title: t('tabs.signatures'),
+          tabBarIcon: ({ color }) => <Icon name="file-signature" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: t('tabs.profile'),
+          tabBarIcon: ({ color }) => <Icon name="user" size={22} color={color} />,
         }}
       />
     </Tabs>
