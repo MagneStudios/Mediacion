@@ -10,5 +10,6 @@ import { MembershipService } from "./membership.service";
   imports: [AuthModule, DatabaseModule],
   controllers: [CasosController],
   providers: [CasosService, CasosRepository, MembershipService],
+  exports: [CasosRepository, MembershipService],
 })
 export class CasosModule {}

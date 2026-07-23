@@ -8,6 +8,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ConfigModule } from "./config/config.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
+import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { MeModule } from "./me/me.module";
 
 @Module({
@@ -18,6 +19,7 @@ import { MeModule } from "./me/me.module";
     HealthModule,
     MeModule,
     CasosModule,
+    InvitacionesModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

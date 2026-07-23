@@ -321,4 +321,47 @@ describe("CasosRepository", () => {
       expect(result).toBeUndefined();
     });
   });
+
+  describe("activateIfNuevo", () => {
+    function createFakeTrx(execute: jest.Mock) {
+      const where2 = jest.fn().mockReturnValue({ execute });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const set = jest.fn().mockReturnValue({ where: where1 });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      return { updateTable, set, where1, where2, execute };
+    }
+
+    it("activates a case from nuevo to activo using the provided trx, never touching ronda_actual", async () => {
+      const fakeTrx = createFakeTrx(jest.fn().mockResolvedValue(undefined));
+      const repository = new CasosRepository({} as never);
+
+      await repository.activateIfNuevo("caso-1", fakeTrx as never);
+
+      expect(fakeTrx.updateTable).toHaveBeenCalledWith("casos");
+      expect(fakeTrx.set).toHaveBeenCalledWith({ estado: "activo" });
+      expect(fakeTrx.where1).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(fakeTrx.where2).toHaveBeenCalledWith("estado", "=", "nuevo");
+      const updatedValues = fakeTrx.set.mock.calls[0][0];
+      expect(updatedValues).not.toHaveProperty("ronda_actual");
+    });
+
+    it("maps a trigger-raised invalid-transition exception to a uniform 409 via the shared pg-error guard", async () => {
+      const triggerError = {
+        code: "P0001",
+        message: "invalid caso estado transition",
+      };
+      const fakeTrx = createFakeTrx(jest.fn().mockRejectedValue(triggerError));
+      const repository = new CasosRepository({} as never);
+
+      let thrown: unknown;
+      try {
+        await repository.activateIfNuevo("caso-1", fakeTrx as never);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(ConflictError);
+      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
+    });
+  });
 });
