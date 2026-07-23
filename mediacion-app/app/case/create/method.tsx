@@ -12,6 +12,7 @@ import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow'
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { MetodoCaso } from '@/types/case';
 import { blurActiveElement } from '@/utils/blur-active-element';
+import { getMethodIcon } from '@/utils/get-method-icon';
 
 const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
@@ -43,7 +44,7 @@ export default function CaseCreateMethodScreen() {
       {METHODS.map((metodo) => (
         <SelectableCard
           key={metodo}
-          icon={metodo === 'mediacion' ? 'scale' : metodo === 'conciliacion' ? 'shield-check' : 'messages-square'}
+          icon={getMethodIcon(metodo)}
           title={t(`methods.${metodo}`)}
           description={t(`caseCreation.method.descriptions.${metodo}`)}
           selected={draft.metodo === metodo}

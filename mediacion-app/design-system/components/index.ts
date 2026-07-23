@@ -10,6 +10,8 @@ export { StatusPill } from './StatusPill';
 export type { StatusPillProps, StatusPillStatus } from './StatusPill';
 export { Avatar } from './Avatar';
 export type { AvatarProps, AvatarSize } from './Avatar';
+export { EntityTypeIndicator } from './EntityTypeIndicator';
+export type { EntityTypeIndicatorProps } from './EntityTypeIndicator';
 export { Icon } from './Icon';
 export type { IconProps, IconName } from './Icon';
 export { EmptyState } from './EmptyState';

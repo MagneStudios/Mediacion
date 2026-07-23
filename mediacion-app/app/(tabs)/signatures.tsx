@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
+import type { IconName } from '@/design-system/components/Icon';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
@@ -56,7 +57,12 @@ export default function SignaturesScreen() {
           ? t('agreement.status.enviado_a_firma')
           : t('agreement.status.borrador');
 
-  const renderGroup = (title: string, groupItems: SignatureInboxItem[], statusVisual: 'neutral' | 'info' | 'success') =>
+  const renderGroup = (
+    title: string,
+    groupItems: SignatureInboxItem[],
+    statusVisual: 'neutral' | 'info' | 'success' | 'warning',
+    statusIcon: IconName,
+  ) =>
     groupItems.length > 0 ? (
       <View style={styles.section} key={title}>
         <Text style={styles.sectionTitle} accessibilityRole="header">
@@ -70,6 +76,7 @@ export default function SignaturesScreen() {
               agreementTitle={item.agreementTitle}
               statusLabel={statusLabelFor(item)}
               statusVisual={statusVisual}
+              statusIcon={statusIcon}
               dateLabel={item.completedAt ? formatAgreementDate(item.completedAt) : undefined}
               reviewLabel={t('agreement.inbox.reviewAction')}
               onReview={() => openAgreement(item.caseId)}
@@ -99,10 +106,10 @@ export default function SignaturesScreen() {
       <Text style={styles.title} accessibilityRole="header">
         {t('agreement.inbox.title')}
       </Text>
-      {renderGroup(t('agreement.inbox.groups.pending'), pending, 'neutral')}
-      {renderGroup(t('agreement.inbox.groups.waitingOther'), waitingOther, 'info')}
-      {renderGroup(t('agreement.inbox.groups.completed'), completed, 'success')}
-      {renderGroup(t('agreement.inbox.groups.withNotice'), withNotice, 'neutral')}
+      {renderGroup(t('agreement.inbox.groups.pending'), pending, 'neutral', 'pencil')}
+      {renderGroup(t('agreement.inbox.groups.waitingOther'), waitingOther, 'info', 'clock')}
+      {renderGroup(t('agreement.inbox.groups.completed'), completed, 'success', 'shield-check')}
+      {renderGroup(t('agreement.inbox.groups.withNotice'), withNotice, 'warning', 'alert-circle')}
     </ScrollView>
   );
 }

@@ -90,6 +90,14 @@ export function NoticeCard({
     </>
   );
 
+  // Unread gets a left accent bar so it reads at a glance, not only via the
+  // small text marker in the footer — color is never the only unread signal,
+  // the marker text stays. Read, non-actionable (purely informational)
+  // notices additionally drop to a quieter border once already handled, so
+  // the list's visual weight tracks what still needs attention.
+  const accentStyle = emphasis === 'warning' ? styles.accentWarning : !read ? styles.accentUnread : styles.accentRead;
+  const quietStyle = read && !actionable ? styles.cardQuiet : null;
+
   if (actionable) {
     return (
       <Card
@@ -97,7 +105,7 @@ export function NoticeCard({
         onPress={onActivate}
         accessibilityLabel={title}
         accessibilityState={{ busy: Boolean(isMarking), selected: !read }}
-        style={[styles.card, emphasis === 'warning' ? styles.cardWarning : null]}
+        style={[styles.card, accentStyle, quietStyle]}
       >
         {content}
       </Card>
@@ -105,7 +113,7 @@ export function NoticeCard({
   }
 
   return (
-    <Card style={[styles.card, emphasis === 'warning' ? styles.cardWarning : null]}>
+    <Card style={[styles.card, accentStyle, quietStyle]}>
       {content}
       {!read && onMarkRead ? (
         <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking} style={styles.markReadButton}>
@@ -121,9 +129,29 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: spacing.md,
     gap: spacing.xs,
+    borderWidth: 1,
+    borderLeftWidth: 3,
   },
-  cardWarning: {
+  cardQuiet: {
+    borderColor: semanticColors.border.soft,
+  },
+  // borderColor is repeated alongside borderLeftColor in every variant here
+  // (even where the two agree) — RN Web resolves border-*-color as
+  // independent atomic classes whose cascade order isn't guaranteed to
+  // match this array's order, so a variant that only sets borderLeftColor
+  // can silently lose to Card's own default borderColor class. Setting
+  // both from the same object sidesteps that.
+  accentUnread: {
+    borderColor: semanticColors.border.default,
+    borderLeftColor: semanticColors.text.primary,
+  },
+  accentWarning: {
     borderColor: semanticColors.status.warningFg,
+    borderLeftColor: semanticColors.status.warningFg,
+  },
+  accentRead: {
+    borderColor: semanticColors.border.default,
+    borderLeftColor: 'transparent',
   },
   headerRow: {
     flexDirection: 'row',

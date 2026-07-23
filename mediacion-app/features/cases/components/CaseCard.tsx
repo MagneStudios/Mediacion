@@ -1,15 +1,26 @@
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, Card, Icon, StatusPill } from '../../../design-system';
+import { Card, EntityTypeIndicator, Icon, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { typography } from '../../../design-system/tokens/typography';
 import { spacing } from '../../../design-system/tokens/spacing';
-import type { CaseSummary } from '../../../types/case';
+import type { CaseSummary, CaseVisualStatus } from '../../../types/case';
+import { getMethodIcon } from '../../../utils/get-method-icon';
 
 export type CaseCardProps = {
   caseSummary: CaseSummary;
   onPress: () => void;
+};
+
+/** Same fg palette StatusPill uses per status — kept here so the card's left accent bar always agrees with its own StatusPill instead of a second color vocabulary. */
+const STATUS_ACCENT: Record<CaseVisualStatus, string> = {
+  success: semanticColors.status.successFg,
+  warning: semanticColors.status.warningFg,
+  error: semanticColors.status.errorFg,
+  info: semanticColors.status.infoFg,
+  neutral: semanticColors.border.default,
+  ai: semanticColors.ai.accent,
 };
 
 export function CaseCard({ caseSummary, onPress }: CaseCardProps) {
@@ -25,13 +36,14 @@ export function CaseCard({ caseSummary, onPress }: CaseCardProps) {
     : t(`methods.${caseSummary.metodo}`);
 
   return (
-    <Card interactive onPress={onPress} accessibilityLabel={caseSummary.title} style={styles.card}>
+    <Card
+      interactive
+      onPress={onPress}
+      accessibilityLabel={caseSummary.title}
+      style={[styles.card, { borderWidth: 1, borderLeftWidth: 3, borderLeftColor: STATUS_ACCENT[caseSummary.visualStatus] }]}
+    >
       <View style={styles.top}>
-        {caseSummary.counterpartyName ? (
-          <Avatar name={caseSummary.counterpartyName} />
-        ) : (
-          <Avatar icon="user" />
-        )}
+        <EntityTypeIndicator icon={getMethodIcon(caseSummary.metodo)} tone={caseSummary.visualStatus} accessibilityLabel={t(`methods.${caseSummary.metodo}`)} />
         <View style={styles.body}>
           <Text style={styles.title} numberOfLines={1}>
             {caseSummary.title}

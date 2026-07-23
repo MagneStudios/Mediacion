@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, StatusPill } from '../../../design-system';
+import { Button, Card, EntityTypeIndicator, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
+import type { IconName } from '../../../design-system/components/Icon';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 
 export type SignatureInboxCardProps = {
@@ -11,9 +12,21 @@ export type SignatureInboxCardProps = {
   agreementTitle: string;
   statusLabel: string;
   statusVisual: StatusPillStatus;
+  /** Signature-specific glyph for this group (draft/needs-your-signature/waiting/complete/notice) — never the generic case-card pattern. */
+  statusIcon: IconName;
   dateLabel?: string;
   reviewLabel: string;
   onReview: () => void;
+};
+
+/** Same fg palette StatusPill uses per status — keeps the left accent bar and icon chip in agreement with the pill shown in the header. */
+const ACCENT: Record<StatusPillStatus, string> = {
+  success: semanticColors.status.successFg,
+  warning: semanticColors.status.warningFg,
+  error: semanticColors.status.errorFg,
+  info: semanticColors.status.infoFg,
+  neutral: semanticColors.border.default,
+  ai: semanticColors.ai.accent,
 };
 
 /** One signature-inbox entry — no provider IDs, no certificate data, no other party details. Card is non-interactive; the review action is a sibling Button. */
@@ -22,13 +35,15 @@ export function SignatureInboxCard({
   agreementTitle,
   statusLabel,
   statusVisual,
+  statusIcon,
   dateLabel,
   reviewLabel,
   onReview,
 }: SignatureInboxCardProps) {
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, { borderWidth: 1, borderLeftWidth: 3, borderLeftColor: ACCENT[statusVisual] }]}>
       <View style={styles.header}>
+        <EntityTypeIndicator icon={statusIcon} tone={statusVisual} />
         <View style={styles.textColumn}>
           <Text style={styles.caseTitle} numberOfLines={1}>
             {caseTitle}
@@ -60,10 +75,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   textColumn: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   caseTitle: {

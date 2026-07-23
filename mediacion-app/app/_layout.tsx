@@ -64,6 +64,25 @@ export default function RootLayout() {
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/*
+            Every route below owns its own nested `<Stack>` (declared in its
+            own `_layout.tsx`) — that inner Stack already renders the one
+            header/back button each of its screens needs. Without
+            `headerShown: false` here, this root Stack would ALSO render a
+            default header (raw route name as title) for the group as a
+            whole, and — because React Navigation's back-button visibility
+            bubbles up through ancestor navigators — every inner screen would
+            show a second, redundant back control on top of its own. This is
+            the single ownership rule: the innermost Stack owns the header:
+            the root Stack never does for routes that have one.
+          */}
+          <Stack.Screen name="case/create" options={{ headerShown: false }} />
+          <Stack.Screen name="case/[id]/positions" options={{ headerShown: false }} />
+          <Stack.Screen name="case/[id]/negotiation" options={{ headerShown: false }} />
+          <Stack.Screen name="case/[id]/agreement" options={{ headerShown: false }} />
+          <Stack.Screen name="case/[id]/mediator" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="notices" options={{ headerShown: false }} />
         </Stack>
       </ResponsiveAppShell>
       <StatusBar style="dark" />
