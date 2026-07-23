@@ -1,11 +1,12 @@
 /**
  * Domain types for the mobile "Casos" feature. Value unions mirror the names
  * already defined in the Supabase schema (`mediacion.dbml` / rol_usuario,
- * estado_caso, estado_ronda, estado_propuesta, metodo_caso, tipo_invitacion,
- * estado_invitacion) so the eventual switch to the real API is a
- * type-compatible drop-in — but this file is a standalone declaration; it
- * does not import from packages/db-types or apps/api, and nothing here
- * assumes an endpoint shape that doesn't exist yet.
+ * estado_caso, metodo_caso, tipo_invitacion, estado_invitacion) so the
+ * eventual switch to the real API is a type-compatible drop-in — but this
+ * file is a standalone declaration; it does not import from
+ * packages/db-types or apps/api, and nothing here assumes an endpoint shape
+ * that doesn't exist yet. Round/proposal enums (estado_ronda,
+ * estado_propuesta, decision_propuesta) live in types/negotiation.ts.
  */
 
 export type RolUsuario = 'admin' | 'parte' | 'mediador' | 'estudio';
@@ -18,10 +19,6 @@ export type EstadoCaso =
   | 'cerrado'
   | 'terminado'
   | 'vencido';
-
-export type EstadoRonda = 'activa' | 'completada';
-
-export type EstadoPropuesta = 'pendiente' | 'aceptada' | 'rechazada';
 
 /** Resolution method chosen for a case. Matches the `metodo_caso` enum. */
 export type MetodoCaso = 'negociacion' | 'conciliacion' | 'mediacion';
@@ -60,19 +57,6 @@ export type CaseSummary = {
 export type CaseDetail = CaseSummary & {
   caseCode: string;
   descripcion?: string;
-  sharedProposal: {
-    fromName: string;
-    summary: string;
-    status: CaseVisualStatus;
-  } | null;
-};
-
-export type AiProposal = {
-  id: string;
-  caseId: string;
-  estado: EstadoPropuesta;
-  summary: string;
-  generatedAt: string;
 };
 
 export type CaseInvitation = {

@@ -42,21 +42,6 @@
     "caseCode": "Caso {{code}}",
     "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
     "progress": "Progreso",
-    "sharedProposal": "Propuesta compartida",
-    "from": "De {{name}}",
-    "generateAi": "Generar propuesta con IA",
-    "aiBadge": "Asistido por IA",
-    "aiPending": {
-      "status": "Generando…",
-      "description": "Buscando un punto medio a partir de lo que ambas partes puedan aceptar. Podés seguir usando la app mientras tanto."
-    },
-    "aiDone": {
-      "title": "Propuesta sugerida",
-      "disclaimer": "La IA solo sugiere. La decisión final es de las partes.",
-      "use": "Usar propuesta",
-      "accepted": "Aceptada",
-      "adjust": "Ajustar"
-    },
     "awaitingCounterparty": {
       "title": "Esperando a la contraparte",
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
@@ -290,6 +275,134 @@
       "continue": "Continuar"
     }
   },
+  "negotiation": {
+    "sectionTitle": "Negociación",
+    "summary": {
+      "viewAction": "Ver negociación",
+      "error": {
+        "title": "No pudimos cargar la negociación"
+      },
+      "waitingCounterparty": {
+        "title": "Esperando a la contraparte",
+        "description": "Cuando la otra parte se una al caso, van a poder empezar a negociar.",
+        "status": "Esperando"
+      },
+      "positionsIncomplete": {
+        "title": "Faltan tus posiciones",
+        "description": "Completá tus posiciones privadas para participar en la próxima propuesta.",
+        "status": "Pendiente"
+      },
+      "waitingOtherParty": {
+        "title": "Esperando que la otra parte esté lista",
+        "description": "Todavía no pueden generar una propuesta compartida.",
+        "status": "Esperando"
+      },
+      "ready": {
+        "title": "Listo para negociar",
+        "description": "Ya pueden generar una propuesta compartida para esta ronda.",
+        "status": "Listo"
+      },
+      "inProgressPending": {
+        "title": "Propuesta esperando tu respuesta",
+        "description": "Hay una propuesta compartida lista para que la revises.",
+        "status": "Propuesta lista"
+      },
+      "inProgressWaiting": {
+        "title": "Esperando a la otra parte",
+        "description": "Ya respondiste. Falta la respuesta de la otra parte.",
+        "status": "En revisión"
+      },
+      "completedNoAgreement": {
+        "title": "Ronda completada sin acuerdo",
+        "description": "Pueden continuar en una nueva ronda con otra alternativa.",
+        "status": "Sin acuerdo"
+      },
+      "agreementReached": {
+        "title": "Llegaron a un acuerdo",
+        "description": "Ambas partes aceptaron la propuesta compartida.",
+        "status": "Acordado"
+      },
+      "readOnly": {
+        "title": "Negociación cerrada",
+        "description": "Este caso ya no admite nuevas propuestas ni respuestas.",
+        "status": "Cerrado"
+      }
+    },
+    "dashboard": {
+      "title": "Negociación",
+      "privacyNotice": "Tus posiciones privadas no se muestran en la negociación. La contraparte no verá tus valores."
+    },
+    "round": {
+      "label": "Ronda {{number}}",
+      "statusActive": "En curso",
+      "statusCompleted": "Completada"
+    },
+    "proposal": {
+      "rationaleTitle": "Fundamento",
+      "statusPending": "Pendiente de respuesta",
+      "statusAccepted": "Aceptada",
+      "statusRejected": "No aceptada"
+    },
+    "generate": {
+      "action": "Generar propuesta",
+      "badge": "Asistido por IA",
+      "generatingTitle": "Preparando una propuesta",
+      "generatingBody": "La IA está organizando una alternativa compartida a partir de la información disponible.",
+      "privacyNote": "Las posiciones privadas no se muestran en la propuesta.",
+      "error": {
+        "title": "No pudimos generar la propuesta"
+      }
+    },
+    "startRound": {
+      "action": "Iniciar nueva ronda",
+      "error": {
+        "title": "No pudimos iniciar la ronda"
+      }
+    },
+    "response": {
+      "accept": "Aceptar propuesta",
+      "reject": "No aceptar",
+      "waitingOtherTitle": "Esperando a la otra parte",
+      "waitingOther": "Tu respuesta ya quedó registrada. Vas a ver el resultado cuando la otra parte responda.",
+      "dialogs": {
+        "accept": {
+          "title": "¿Aceptar esta propuesta?",
+          "body": "Tu respuesta quedará registrada. El acuerdo solo avanza si ambas partes aceptan."
+        },
+        "reject": {
+          "title": "¿No aceptar esta propuesta?",
+          "body": "Podrán continuar en una nueva ronda con otra alternativa."
+        },
+        "confirmAccept": "Confirmar aceptación",
+        "confirmReject": "Confirmar rechazo",
+        "cancel": "Cancelar"
+      },
+      "error": {
+        "title": "No pudimos registrar tu respuesta"
+      }
+    },
+    "resolution": {
+      "agreementBody": "Ambas partes aceptaron la propuesta compartida.",
+      "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda."
+    },
+    "mediator": {
+      "title": "Podés solicitar acompañamiento",
+      "body": "Desde esta ronda, un mediador humano puede acompañar el diálogo.",
+      "badge": "Disponible próximamente"
+    },
+    "history": {
+      "title": "Historial de rondas",
+      "viewAction": "Ver historial",
+      "empty": {
+        "title": "Todavía no hay rondas completadas",
+        "description": "Cuando se complete una ronda, va a aparecer acá."
+      },
+      "item": {
+        "agreementReached": "Acuerdo alcanzado",
+        "notAccepted": "No aceptada"
+      }
+    }
+  },
   "placeholders": {
     "comingSoon": {
       "title": "Próximamente",
@@ -303,11 +416,6 @@
     "error": {
       "title": "Algo no salió bien",
       "retry": "Reintentar"
-    },
-    "aiProcessing": {
-      "badge": "Asistido por IA",
-      "status": "Generando…",
-      "description": "La IA está buscando una propuesta en base a lo que ambas partes puedan aceptar. Podés seguir usando la app mientras tanto."
     }
   }
 }

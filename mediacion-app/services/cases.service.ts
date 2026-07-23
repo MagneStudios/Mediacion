@@ -1,6 +1,5 @@
 import { generateMockCaseId, generateMockCode, generateMockInvitationId, generateMockInvitationLink } from '../utils/mock-id';
 import type {
-  AiProposal,
   CaseDetail,
   CaseInvitation,
   CaseSummary,
@@ -21,7 +20,6 @@ import { createFailureController, delay, rejectAfter } from './mock-utils';
 export type CasesService = {
   listCases(): Promise<CaseSummary[]>;
   getCaseDetail(caseId: string): Promise<CaseDetail | undefined>;
-  generateAiProposal(caseId: string): Promise<AiProposal>;
   createCase(input: CreateCaseInput): Promise<CaseSummary>;
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
   getInvitation(caseId: string): Promise<CaseInvitation | null>;
@@ -50,19 +48,6 @@ export function createMockCasesService(): CasesService {
     async getCaseDetail(caseId) {
       return delay(mockCaseDetails[caseId], 400);
     },
-    async generateAiProposal(caseId) {
-      return delay(
-        {
-          id: `proposal-${caseId}-${Date.now()}`,
-          caseId,
-          estado: 'pendiente',
-          summary:
-            'Calendario alterno semanal con entrega los viernes. Vacaciones por mitades y revisión a los seis meses.',
-          generatedAt: new Date().toISOString(),
-        },
-        1800,
-      );
-    },
     async createCase(input) {
       if (failures.consume('createCase')) {
         return rejectAfter('mock_create_case_failed', 500);
@@ -87,7 +72,6 @@ export function createMockCasesService(): CasesService {
         ...summary,
         caseCode,
         descripcion: input.descripcion,
-        sharedProposal: null,
       };
 
       const created = await delay({ summary, detail }, 900);

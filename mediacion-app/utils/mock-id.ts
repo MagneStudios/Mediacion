@@ -43,3 +43,13 @@ export function generateMockInvitationId(): string {
 export function generateMockPositionId(): string {
   return `position-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock negotiation-round identifier for the in-memory session store. */
+export function generateMockRoundId(): string {
+  return `round-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock shared-proposal identifier for the in-memory session store. */
+export function generateMockProposalId(): string {
+  return `proposal-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

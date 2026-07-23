@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { casesService } from '../../../services/cases.service';
-import type { AiProposal, CaseDetail } from '../../../types/case';
+import type { CaseDetail } from '../../../types/case';
 
 export type CaseDetailStatus = 'loading' | 'error' | 'success';
-export type AiProposalStatus = 'idle' | 'pending' | 'done';
 
 export function useCaseDetail(caseId: string) {
   const [status, setStatus] = useState<CaseDetailStatus>('loading');
   const [detail, setDetail] = useState<CaseDetail | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
-
-  const [aiStatus, setAiStatus] = useState<AiProposalStatus>('idle');
-  const [proposal, setProposal] = useState<AiProposal | undefined>(undefined);
-  const [accepted, setAccepted] = useState(false);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -43,26 +38,9 @@ export function useCaseDetail(caseId: string) {
     };
   }, [caseId, attempt]);
 
-  const generateAiProposal = useCallback(() => {
-    setAiStatus('pending');
-    casesService.generateAiProposal(caseId).then((result) => {
-      setProposal(result);
-      setAiStatus('done');
-    });
-  }, [caseId]);
-
-  const acceptAiProposal = useCallback(() => {
-    setAccepted(true);
-  }, []);
-
   return {
     status,
     detail,
     reload,
-    aiStatus,
-    proposal,
-    accepted,
-    generateAiProposal,
-    acceptAiProposal,
   };
 }

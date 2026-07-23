@@ -46,24 +46,13 @@ export const mockCaseDetails: Record<string, CaseDetail> = {
   'case-1': {
     ...mockCases[0],
     caseCode: 'CASO-2026-0431',
-    sharedProposal: {
-      fromName: 'Marco D.',
-      summary: 'Semanas alternas con entrega los viernes en el centro escolar. Vacaciones divididas por mitades.',
-      status: 'info',
-    },
   },
   'case-2': {
     ...mockCases[1],
     caseCode: 'CASO-2026-0512',
-    sharedProposal: null,
   },
   'case-3': {
     ...mockCases[2],
     caseCode: 'CASO-2026-0287',
-    sharedProposal: {
-      fromName: 'Marco D.',
-      summary: 'Acuerdo cerrado en la ronda anterior.',
-      status: 'success',
-    },
   },
 };

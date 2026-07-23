@@ -42,21 +42,6 @@
     "caseCode": "Case {{code}}",
     "privacyNotice": "Your private positions are never shared with the other party. They will only see what you choose to propose.",
     "progress": "Progress",
-    "sharedProposal": "Shared proposal",
-    "from": "From {{name}}",
-    "generateAi": "Generate proposal with AI",
-    "aiBadge": "AI-assisted",
-    "aiPending": {
-      "status": "Generating…",
-      "description": "Looking for a middle ground both parties could accept. You can keep using the app in the meantime."
-    },
-    "aiDone": {
-      "title": "Suggested proposal",
-      "disclaimer": "The AI only suggests. The final decision belongs to the parties.",
-      "use": "Use this proposal",
-      "accepted": "Accepted",
-      "adjust": "Adjust"
-    },
     "awaitingCounterparty": {
       "title": "Waiting for the other party",
       "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
@@ -290,6 +275,134 @@
       "continue": "Continue"
     }
   },
+  "negotiation": {
+    "sectionTitle": "Negotiation",
+    "summary": {
+      "viewAction": "View negotiation",
+      "error": {
+        "title": "We couldn't load the negotiation"
+      },
+      "waitingCounterparty": {
+        "title": "Waiting for the other party",
+        "description": "Once the other party joins the case, you'll be able to start negotiating.",
+        "status": "Waiting"
+      },
+      "positionsIncomplete": {
+        "title": "Your positions are missing",
+        "description": "Complete your private positions to take part in the next proposal.",
+        "status": "Pending"
+      },
+      "waitingOtherParty": {
+        "title": "Waiting for the other party to be ready",
+        "description": "You can't generate a shared proposal yet.",
+        "status": "Waiting"
+      },
+      "ready": {
+        "title": "Ready to negotiate",
+        "description": "You can now generate a shared proposal for this round.",
+        "status": "Ready"
+      },
+      "inProgressPending": {
+        "title": "Proposal waiting for your response",
+        "description": "There's a shared proposal ready for you to review.",
+        "status": "Proposal ready"
+      },
+      "inProgressWaiting": {
+        "title": "Waiting for the other party",
+        "description": "You've already responded. The other party's response is still pending.",
+        "status": "In review"
+      },
+      "completedNoAgreement": {
+        "title": "Round completed without agreement",
+        "description": "You can continue in a new round with another alternative.",
+        "status": "No agreement"
+      },
+      "agreementReached": {
+        "title": "You reached an agreement",
+        "description": "Both parties accepted the shared proposal.",
+        "status": "Agreed"
+      },
+      "readOnly": {
+        "title": "Negotiation closed",
+        "description": "This case no longer accepts new proposals or responses.",
+        "status": "Closed"
+      }
+    },
+    "dashboard": {
+      "title": "Negotiation",
+      "privacyNotice": "Your private positions are never shown in the negotiation. The other party won't see your values."
+    },
+    "round": {
+      "label": "Round {{number}}",
+      "statusActive": "In progress",
+      "statusCompleted": "Completed"
+    },
+    "proposal": {
+      "rationaleTitle": "Rationale",
+      "statusPending": "Awaiting response",
+      "statusAccepted": "Accepted",
+      "statusRejected": "Not accepted"
+    },
+    "generate": {
+      "action": "Generate proposal",
+      "badge": "AI-assisted",
+      "generatingTitle": "Preparing a proposal",
+      "generatingBody": "The AI is organizing a shared alternative from the information available.",
+      "privacyNote": "Private positions are not shown in the proposal.",
+      "error": {
+        "title": "We couldn't generate the proposal"
+      }
+    },
+    "startRound": {
+      "action": "Start a new round",
+      "error": {
+        "title": "We couldn't start the round"
+      }
+    },
+    "response": {
+      "accept": "Accept proposal",
+      "reject": "Don't accept",
+      "waitingOtherTitle": "Waiting for the other party",
+      "waitingOther": "Your response has been recorded. You'll see the outcome once the other party responds.",
+      "dialogs": {
+        "accept": {
+          "title": "Accept this proposal?",
+          "body": "Your response will be recorded. The agreement only moves forward if both parties accept."
+        },
+        "reject": {
+          "title": "Not accept this proposal?",
+          "body": "You'll be able to continue in a new round with another alternative."
+        },
+        "confirmAccept": "Confirm acceptance",
+        "confirmReject": "Confirm rejection",
+        "cancel": "Cancel"
+      },
+      "error": {
+        "title": "We couldn't record your response"
+      }
+    },
+    "resolution": {
+      "agreementBody": "Both parties accepted the shared proposal.",
+      "notAcceptedBody": "The proposal wasn't accepted by both parties. You can continue in a new round."
+    },
+    "mediator": {
+      "title": "You can request support",
+      "body": "From this round on, a human mediator can support the dialogue.",
+      "badge": "Available soon"
+    },
+    "history": {
+      "title": "Round history",
+      "viewAction": "View history",
+      "empty": {
+        "title": "No completed rounds yet",
+        "description": "Once a round is completed, it will show up here."
+      },
+      "item": {
+        "agreementReached": "Agreement reached",
+        "notAccepted": "Not accepted"
+      }
+    }
+  },
   "placeholders": {
     "comingSoon": {
       "title": "Coming soon",
@@ -303,11 +416,6 @@
     "error": {
       "title": "Something went wrong",
       "retry": "Try again"
-    },
-    "aiProcessing": {
-      "badge": "AI-assisted",
-      "status": "Generating…",
-      "description": "The AI is looking for a proposal both parties could accept. You can keep using the app in the meantime."
     }
   }
 }
