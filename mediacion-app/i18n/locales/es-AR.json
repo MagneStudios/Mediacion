@@ -383,7 +383,8 @@
     },
     "resolution": {
       "agreementBody": "Ambas partes aceptaron la propuesta compartida.",
-      "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda."
+      "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda.",
+      "reviewAgreementAction": "Revisar acuerdo"
     },
     "mediator": {
       "title": "Podés solicitar acompañamiento",
@@ -400,6 +401,102 @@
       "item": {
         "agreementReached": "Acuerdo alcanzado",
         "notAccepted": "No aceptada"
+      }
+    }
+  },
+  "agreement": {
+    "sectionTitle": "Acuerdo",
+    "dashboard": {
+      "title": "Acuerdo"
+    },
+    "sharedMarker": {
+      "title": "Acuerdo compartido",
+      "body": "Este contenido es visible para ambas partes y no incluye posiciones privadas."
+    },
+    "detail": {
+      "rationaleTitle": "Fundamento"
+    },
+    "status": {
+      "borrador": "En preparación",
+      "enviado_a_firma": "Lista para firmar",
+      "firmado": "Firmado (simulado)",
+      "con_aviso": "Con aviso",
+      "conAvisoNotice": "Este acuerdo tiene un aviso registrado y no admite nuevas acciones."
+    },
+    "progress": {
+      "title": "Progreso de firma"
+    },
+    "signer": {
+      "own": "Vos",
+      "other": "La otra parte",
+      "signed": "Firma simulada",
+      "pending": "Pendiente"
+    },
+    "prepare": {
+      "action": "Preparar versión para firma",
+      "preparingTitle": "Preparando la versión para firma",
+      "preparingBody": "La versión de prueba estará disponible en unos instantes.",
+      "error": {
+        "title": "No pudimos preparar el documento"
+      }
+    },
+    "sign": {
+      "title": "Firmar acuerdo",
+      "goToAction": "Ir a firmar",
+      "confirmationLabel": "Leí el acuerdo compartido y deseo registrar una firma simulada en este entorno de prueba.",
+      "action": "Registrar firma simulada",
+      "notReady": "Este acuerdo todavía no está listo para firma.",
+      "error": {
+        "title": "No pudimos registrar tu firma simulada"
+      },
+      "registered": {
+        "title": "Firma simulada registrada",
+        "body": "Tu confirmación quedó guardada en esta demostración. Esto no reemplaza una firma digital real."
+      },
+      "backToAgreement": "Volver al acuerdo"
+    },
+    "environment": {
+      "title": "Entorno de prueba",
+      "body": "Esta es una firma simulada dentro de un entorno de prueba. La integración de firma digital real se realizará en una etapa posterior."
+    },
+    "response": {
+      "waitingOther": "Esperando la firma de la otra parte",
+      "completed": "Ambas partes completaron la firma simulada"
+    },
+    "summary": {
+      "title": "Acuerdo alcanzado",
+      "body": "Ambas partes aceptaron la propuesta compartida. Podés revisar el acuerdo y su estado de firma.",
+      "viewAction": "Ver acuerdo",
+      "unavailable": "Todavía no hay un acuerdo disponible para este caso."
+    },
+    "history": {
+      "title": "Historial del acuerdo",
+      "viewAction": "Ver historial",
+      "empty": {
+        "title": "Todavía no hay eventos",
+        "description": "Los eventos del acuerdo van a aparecer acá."
+      },
+      "event": {
+        "agreement_created": "Se creó el acuerdo compartido",
+        "preparation_started": "Empezó la preparación de la versión para firma",
+        "document_ready": "La versión para firma quedó lista",
+        "own_signature_registered": "Registraste tu firma simulada",
+        "waiting_for_other_party": "Quedó esperando la firma de la otra parte",
+        "both_signatures_completed": "Ambas partes completaron la firma simulada"
+      }
+    },
+    "inbox": {
+      "title": "Firmas",
+      "reviewAction": "Ver acuerdo",
+      "empty": {
+        "title": "No tenés firmas pendientes",
+        "description": "Los acuerdos listos para firma aparecerán acá."
+      },
+      "groups": {
+        "pending": "Pendientes",
+        "waitingOther": "Esperando a la otra parte",
+        "completed": "Completadas",
+        "withNotice": "Con aviso"
       }
     }
   },

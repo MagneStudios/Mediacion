@@ -148,7 +148,18 @@ export default function NegotiationDashboardScreen() {
         <Text style={styles.bodyText}>{t('negotiation.resolution.notAcceptedBody')}</Text>
       ) : null}
 
-      {bothAccepted ? <Text style={styles.bodyText}>{t('negotiation.resolution.agreementBody')}</Text> : null}
+      {bothAccepted ? (
+        <View style={styles.section}>
+          <Text style={styles.bodyText}>{t('negotiation.resolution.agreementBody')}</Text>
+          <Button
+            variant="primary"
+            fullWidth
+            onPress={() => router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } })}
+          >
+            {t('negotiation.resolution.reviewAgreementAction')}
+          </Button>
+        </View>
+      ) : null}
 
       {canStartRound ? (
         startRoundStatus === 'error' ? (
@@ -230,6 +241,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     letterSpacing: -0.4,
     color: semanticColors.text.primary,
+  },
+  section: {
+    gap: spacing.xs,
   },
   bodyText: {
     fontFamily: typography.bodySm.fontFamily,

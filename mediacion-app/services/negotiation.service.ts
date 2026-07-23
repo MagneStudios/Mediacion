@@ -43,6 +43,14 @@ export type NegotiationService = {
   submitOwnProposalResponse(caseId: string, proposalId: string, decision: DecisionPropuesta): Promise<NegotiationState>;
   startNextRound(caseId: string): Promise<NegotiationRound>;
   getRoundHistory(caseId: string): Promise<RoundHistoryItem[]>;
+  /**
+   * Read-only accessor for the agreement feature (agreements.service.ts).
+   * Returns the case's accepted proposal — estado === 'aceptada' — or null.
+   * Never returns a stale rejected/pending proposal, never mutates
+   * negotiation state, and never exposes internal responses or the
+   * simulated counterparty's raw decision.
+   */
+  getAcceptedProposal(caseId: string): Promise<SharedProposal | null>;
 };
 
 /** In-memory only — cleared on app restart, never written to disk, never logged. */
@@ -306,6 +314,11 @@ export function createMockNegotiationService(): NegotiationService {
       // buildNegotiationState reports waitingForOtherParty: true instead.
 
       return buildNegotiationState(caseId);
+    },
+
+    async getAcceptedProposal(caseId) {
+      const accepted = mockProposals.find((proposal) => proposal.caseId === caseId && proposal.estado === 'aceptada');
+      return delay(accepted ?? null, 300);
     },
   };
 }

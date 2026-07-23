@@ -383,7 +383,8 @@
     },
     "resolution": {
       "agreementBody": "Both parties accepted the shared proposal.",
-      "notAcceptedBody": "The proposal wasn't accepted by both parties. You can continue in a new round."
+      "notAcceptedBody": "The proposal wasn't accepted by both parties. You can continue in a new round.",
+      "reviewAgreementAction": "Review agreement"
     },
     "mediator": {
       "title": "You can request support",
@@ -400,6 +401,102 @@
       "item": {
         "agreementReached": "Agreement reached",
         "notAccepted": "Not accepted"
+      }
+    }
+  },
+  "agreement": {
+    "sectionTitle": "Agreement",
+    "dashboard": {
+      "title": "Agreement"
+    },
+    "sharedMarker": {
+      "title": "Shared agreement",
+      "body": "This content is visible to both parties and does not include private positions."
+    },
+    "detail": {
+      "rationaleTitle": "Rationale"
+    },
+    "status": {
+      "borrador": "In preparation",
+      "enviado_a_firma": "Ready to sign",
+      "firmado": "Signed (simulated)",
+      "con_aviso": "Under notice",
+      "conAvisoNotice": "This agreement has a notice on record and doesn't accept new actions."
+    },
+    "progress": {
+      "title": "Signature progress"
+    },
+    "signer": {
+      "own": "You",
+      "other": "The other party",
+      "signed": "Simulated signature",
+      "pending": "Pending"
+    },
+    "prepare": {
+      "action": "Prepare version for signature",
+      "preparingTitle": "Preparing the version for signature",
+      "preparingBody": "The test version will be ready in a moment.",
+      "error": {
+        "title": "We couldn't prepare the document"
+      }
+    },
+    "sign": {
+      "title": "Sign agreement",
+      "goToAction": "Go to sign",
+      "confirmationLabel": "I read the shared agreement and want to register a simulated signature in this test environment.",
+      "action": "Register simulated signature",
+      "notReady": "This agreement isn't ready for signature yet.",
+      "error": {
+        "title": "We couldn't register your simulated signature"
+      },
+      "registered": {
+        "title": "Simulated signature registered",
+        "body": "Your confirmation was saved in this demonstration. This does not replace a real digital signature."
+      },
+      "backToAgreement": "Back to agreement"
+    },
+    "environment": {
+      "title": "Test environment",
+      "body": "This is a simulated signature within a test environment. Real digital-signature integration will happen at a later stage."
+    },
+    "response": {
+      "waitingOther": "Waiting for the other party's signature",
+      "completed": "Both parties completed the simulated signature"
+    },
+    "summary": {
+      "title": "Agreement reached",
+      "body": "Both parties accepted the shared proposal. You can review the agreement and its signature status.",
+      "viewAction": "View agreement",
+      "unavailable": "There's no agreement available for this case yet."
+    },
+    "history": {
+      "title": "Agreement history",
+      "viewAction": "View history",
+      "empty": {
+        "title": "No events yet",
+        "description": "Agreement events will show up here."
+      },
+      "event": {
+        "agreement_created": "The shared agreement was created",
+        "preparation_started": "Preparation of the signature-ready version started",
+        "document_ready": "The version for signature became ready",
+        "own_signature_registered": "You registered your simulated signature",
+        "waiting_for_other_party": "It's waiting for the other party's signature",
+        "both_signatures_completed": "Both parties completed the simulated signature"
+      }
+    },
+    "inbox": {
+      "title": "Signatures",
+      "reviewAction": "View agreement",
+      "empty": {
+        "title": "You have no pending signatures",
+        "description": "Agreements ready for signature will appear here."
+      },
+      "groups": {
+        "pending": "Pending",
+        "waitingOther": "Waiting for the other party",
+        "completed": "Completed",
+        "withNotice": "Under notice"
       }
     }
   },

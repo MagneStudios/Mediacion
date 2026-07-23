@@ -1,5 +1,127 @@
-import { ComingSoonScreen } from '@/components/coming-soon-screen';
+import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
+import { semanticColors } from '@/design-system/tokens/colors';
+import { spacing } from '@/design-system/tokens/spacing';
+import { typography } from '@/design-system/tokens/typography';
+import { SignatureInboxCard } from '@/features/agreements/components/SignatureInboxCard';
+import { useSignatureInbox } from '@/features/agreements/hooks/useSignatureInbox';
+import type { SignatureInboxItem } from '@/types/agreement';
+import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function SignaturesScreen() {
-  return <ComingSoonScreen icon="file-signature" />;
+  const { t } = useTranslation();
+  const router = useRouter();
+  const result = useSignatureInbox();
+
+  const openAgreement = (caseId: string) => router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+
+  if (result.status === 'loading') {
+    return (
+      <View style={styles.container}>
+        <LoadingState label={t('common.loading')} />
+      </View>
+    );
+  }
+
+  if (result.status === 'error') {
+    return (
+      <View style={styles.container}>
+        <ErrorState title={t('states.error.title')} retryLabel={t('states.error.retry')} onRetry={result.reload} />
+      </View>
+    );
+  }
+
+  const items = result.status === 'success' ? result.items : [];
+  const pending = items.filter((item) => item.estado === 'borrador' || (item.estado === 'enviado_a_firma' && item.ownStatus === 'pendiente'));
+  const waitingOther = items.filter((item) => item.estado === 'enviado_a_firma' && item.ownStatus === 'firmado');
+  const completed = items.filter((item) => item.estado === 'firmado');
+  const withNotice = items.filter((item) => item.estado === 'con_aviso');
+
+  const statusLabelFor = (item: SignatureInboxItem) =>
+    item.estado === 'firmado'
+      ? t('agreement.status.firmado')
+      : item.estado === 'con_aviso'
+        ? t('agreement.status.con_aviso')
+        : item.estado === 'enviado_a_firma'
+          ? t('agreement.status.enviado_a_firma')
+          : t('agreement.status.borrador');
+
+  const renderGroup = (title: string, groupItems: SignatureInboxItem[], statusVisual: 'neutral' | 'info' | 'success') =>
+    groupItems.length > 0 ? (
+      <View style={styles.section} key={title}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {title}
+        </Text>
+        <View style={styles.list}>
+          {groupItems.map((item) => (
+            <SignatureInboxCard
+              key={item.caseId}
+              caseTitle={item.caseTitle}
+              agreementTitle={item.agreementTitle}
+              statusLabel={statusLabelFor(item)}
+              statusVisual={statusVisual}
+              dateLabel={item.completedAt ? formatAgreementDate(item.completedAt) : undefined}
+              reviewLabel={t('agreement.inbox.reviewAction')}
+              onReview={() => openAgreement(item.caseId)}
+            />
+          ))}
+        </View>
+      </View>
+    ) : null;
+
+  if (items.length === 0) {
+    return (
+      <View style={styles.container}>
+        <EmptyState
+          icon={<Icon name="file-signature" size={28} color={semanticColors.text.tertiary} />}
+          title={t('agreement.inbox.empty.title')}
+          description={t('agreement.inbox.empty.description')}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('agreement.inbox.title')}
+      </Text>
+      {renderGroup(t('agreement.inbox.groups.pending'), pending, 'neutral')}
+      {renderGroup(t('agreement.inbox.groups.waitingOther'), waitingOther, 'info')}
+      {renderGroup(t('agreement.inbox.groups.completed'), completed, 'success')}
+      {renderGroup(t('agreement.inbox.groups.withNotice'), withNotice, 'neutral')}
+    </ScrollView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: semanticColors.surface.canvas,
+    justifyContent: 'center',
+  },
+  content: {
+    padding: spacing.md,
+    gap: spacing.lg,
+  },
+  title: {
+    fontFamily: typography.headline.fontFamily,
+    fontSize: 26,
+    letterSpacing: -0.5,
+    color: semanticColors.text.primary,
+  },
+  section: {
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 13,
+    color: semanticColors.text.tertiary,
+  },
+  list: {
+    gap: spacing.sm,
+  },
+});

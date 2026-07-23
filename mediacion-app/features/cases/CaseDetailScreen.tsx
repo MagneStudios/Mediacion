@@ -10,6 +10,7 @@ import { spacing } from '../../design-system/tokens/spacing';
 import { casesService } from '../../services/cases.service';
 import type { CaseInvitation } from '../../types/case';
 import { getPositionEligibility } from '../../utils/position-eligibility';
+import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { PrivacyNotice } from './components/PrivacyNotice';
@@ -139,6 +140,8 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           })()}
 
           <NegotiationSummaryCard caseId={caseId} />
+
+          {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
         </>
       )}
     </ScrollView>

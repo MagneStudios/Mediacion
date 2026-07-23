@@ -53,3 +53,13 @@ export function generateMockRoundId(): string {
 export function generateMockProposalId(): string {
   return `proposal-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock shared-agreement identifier for the in-memory session store. */
+export function generateMockAgreementId(): string {
+  return `agreement-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock agreement-history-event identifier for the in-memory session store. */
+export function generateMockHistoryId(): string {
+  return `history-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
