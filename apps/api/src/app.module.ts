@@ -9,6 +9,7 @@ import { ConfigModule } from "./config/config.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
+import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
 
 @Module({
@@ -20,6 +21,7 @@ import { MeModule } from "./me/me.module";
     MeModule,
     CasosModule,
     InvitacionesModule,
+    ItemsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
