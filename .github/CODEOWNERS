@@ -14,6 +14,9 @@
 /packages/db-types/           @MarianooFernandezz @DonatoBruno00
 /.github/workflows/           @DonatoBruno00 @MagneStudios
 
+# Frontend: panel web
+/apps/panel/                  @ValenCBgit
+
 # Supabase: owner por defecto es la DB, salvo Edge Functions (backend)
 /supabase/                    @MarianooFernandezz
 /supabase/migrations/         @MarianooFernandezz

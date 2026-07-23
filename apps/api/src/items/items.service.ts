@@ -45,6 +45,15 @@ function assertValidCreateInput(input: CreateItemDto): void {
   assertValidRange(input.valor_min, input.valor_max);
 }
 
+function assertValidUpdateInput(patch: UpdateItemDto): void {
+  if (patch.categoria !== undefined) {
+    assertValidCategoria(patch.categoria);
+  }
+  if (patch.nombre !== undefined) {
+    assertValidNombre(patch.nombre);
+  }
+}
+
 function assertHasUpdatableFields(updatable: UpdateItemDto): void {
   if (Object.keys(updatable).length === 0) {
     throw new HttpException(
@@ -101,12 +110,7 @@ export class ItemsService {
     patch: UpdateItemDto,
   ): Promise<OwnItem> {
     assertHasUpdatableFields(pickUpdatableFields(patch));
-    if (patch.categoria !== undefined) {
-      assertValidCategoria(patch.categoria);
-    }
-    if (patch.nombre !== undefined) {
-      assertValidNombre(patch.nombre);
-    }
+    assertValidUpdateInput(patch);
     const updated = await this.itemsRepository.updateOwnWithLock(
       itemId,
       callerId,
