@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -15,7 +16,10 @@ import {
 import { semanticColors } from '../../design-system/tokens/colors';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
-import { radii } from '../../design-system/tokens/radii';
+import { casesService } from '../../services/cases.service';
+import type { CaseInvitation } from '../../types/case';
+import { InvitationResultCard } from './components/InvitationResultCard';
+import { PrivacyNotice } from './components/PrivacyNotice';
 import { useCaseDetail } from './hooks/useCaseDetail';
 
 export type CaseDetailScreenProps = {
@@ -26,6 +30,20 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
   const { status, detail, reload, aiStatus, proposal, accepted, generateAiProposal, acceptAiProposal } =
     useCaseDetail(caseId);
+
+  const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
+  const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
+  const handleViewInvitation = async () => {
+    setInvitationStatus('loading');
+    try {
+      const result = await casesService.getInvitation(caseId);
+      setInvitation(result);
+      setInvitationStatus('idle');
+    } catch {
+      setInvitationStatus('error');
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -47,82 +65,122 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     );
   }
 
+  const isAwaitingCounterparty = detail.estado === 'nuevo';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{detail.title}</Text>
       <Text style={styles.subtitle}>{t('caseDetail.caseCode', { code: detail.caseCode })}</Text>
 
-      <View style={styles.privacyNotice}>
-        <Icon name="lock" size={15} color={semanticColors.text.tertiary} />
-        <Text style={styles.privacyText}>{t('caseDetail.privacyNotice')}</Text>
-      </View>
+      <PrivacyNotice>{t('caseDetail.privacyNotice')}</PrivacyNotice>
 
-      {detail.sharedProposal ? (
+      {isAwaitingCounterparty ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t('caseDetail.sharedProposal')}</Text>
-          <Card style={styles.proposalCard}>
-            <View style={styles.proposalHeader}>
-              <Avatar name={detail.sharedProposal.fromName} size="sm" />
-              <Text style={styles.proposalTitle}>
-                {t('caseDetail.from', { name: detail.sharedProposal.fromName })}
-              </Text>
-              <StatusPill status={detail.sharedProposal.status}>
-                {t(`cases.status.${detail.statusLabelKey}`)}
-              </StatusPill>
-            </View>
-            <Text style={styles.proposalText}>{detail.sharedProposal.summary}</Text>
-          </Card>
+          <View style={styles.methodRow}>
+            <Badge variant="neutral">{t(`methods.${detail.metodo}`)}</Badge>
+            <StatusPill status="info">{t('cases.status.awaitingCounterparty')}</StatusPill>
+          </View>
+          <Text style={styles.sectionLabel}>{t('caseDetail.awaitingCounterparty.title')}</Text>
+          <Text style={styles.proposalText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
+
+          {invitation ? (
+            <InvitationResultCard
+              label={
+                invitation.tipo === 'link'
+                  ? t('caseCreation.invite.linkLabel')
+                  : invitation.tipo === 'codigo'
+                    ? t('caseCreation.invite.codeLabel')
+                    : t('caseCreation.invite.emailLabel')
+              }
+              value={invitation.token ?? invitation.emailDestino ?? ''}
+              monospace={invitation.tipo === 'codigo'}
+              copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
+              copiedLabel={t('caseCreation.invite.copied')}
+            />
+          ) : invitationStatus === 'error' ? (
+            <ErrorState
+              title={t('caseDetail.awaitingCounterparty.invitationError')}
+              retryLabel={t('common.retry')}
+              onRetry={handleViewInvitation}
+            />
+          ) : (
+            <Button variant="secondary" onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
+              {invitationStatus === 'loading'
+                ? t('common.loading')
+                : t('caseDetail.awaitingCounterparty.viewInvitation')}
+            </Button>
+          )}
         </View>
-      ) : null}
-
-      <View style={styles.section}>
-        {aiStatus === 'pending' ? (
-          <AIProcessingState
-            badgeLabel={t('caseDetail.aiBadge')}
-            statusLabel={t('caseDetail.aiPending.status')}
-            description={t('caseDetail.aiPending.description')}
-          />
-        ) : null}
-
-        {aiStatus === 'done' && proposal ? (
-          <Card style={styles.proposalCard}>
-            <View style={styles.proposalHeader}>
-              <Badge variant="ai" iconLeft={<Icon name="sparkles" size={12} color={semanticColors.ai.accent} />}>
-                {t('caseDetail.aiBadge')}
-              </Badge>
-              <Text style={styles.proposalTitle}>{t('caseDetail.aiDone.title')}</Text>
+      ) : (
+        <>
+          {detail.sharedProposal ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>{t('caseDetail.sharedProposal')}</Text>
+              <Card style={styles.proposalCard}>
+                <View style={styles.proposalHeader}>
+                  <Avatar name={detail.sharedProposal.fromName} size="sm" />
+                  <Text style={styles.proposalTitle}>
+                    {t('caseDetail.from', { name: detail.sharedProposal.fromName })}
+                  </Text>
+                  <StatusPill status={detail.sharedProposal.status}>
+                    {t(`cases.status.${detail.statusLabelKey}`)}
+                  </StatusPill>
+                </View>
+                <Text style={styles.proposalText}>{detail.sharedProposal.summary}</Text>
+              </Card>
             </View>
-            <Text style={styles.proposalText}>{proposal.summary}</Text>
-            <Text style={styles.disclaimer}>{t('caseDetail.aiDone.disclaimer')}</Text>
-            {accepted ? (
-              <View style={styles.acceptedRow}>
-                <Icon name="check" size={16} color={semanticColors.status.successFg} />
-                <Text style={styles.acceptedText}>{t('caseDetail.aiDone.accepted')}</Text>
-              </View>
-            ) : (
-              <View style={styles.proposalActions}>
-                <Button variant="primary" size="sm" onPress={acceptAiProposal}>
-                  {t('caseDetail.aiDone.use')}
-                </Button>
-                <Button variant="tertiary" size="sm">
-                  {t('caseDetail.aiDone.adjust')}
-                </Button>
-              </View>
-            )}
-          </Card>
-        ) : null}
+          ) : null}
 
-        {aiStatus === 'idle' ? (
-          <Button
-            variant="ai"
-            fullWidth
-            iconLeft={<Icon name="sparkles" size={16} color={semanticColors.action.aiFg} />}
-            onPress={generateAiProposal}
-          >
-            {t('caseDetail.generateAi')}
-          </Button>
-        ) : null}
-      </View>
+          <View style={styles.section}>
+            {aiStatus === 'pending' ? (
+              <AIProcessingState
+                badgeLabel={t('caseDetail.aiBadge')}
+                statusLabel={t('caseDetail.aiPending.status')}
+                description={t('caseDetail.aiPending.description')}
+              />
+            ) : null}
+
+            {aiStatus === 'done' && proposal ? (
+              <Card style={styles.proposalCard}>
+                <View style={styles.proposalHeader}>
+                  <Badge variant="ai" iconLeft={<Icon name="sparkles" size={12} color={semanticColors.ai.accent} />}>
+                    {t('caseDetail.aiBadge')}
+                  </Badge>
+                  <Text style={styles.proposalTitle}>{t('caseDetail.aiDone.title')}</Text>
+                </View>
+                <Text style={styles.proposalText}>{proposal.summary}</Text>
+                <Text style={styles.disclaimer}>{t('caseDetail.aiDone.disclaimer')}</Text>
+                {accepted ? (
+                  <View style={styles.acceptedRow}>
+                    <Icon name="check" size={16} color={semanticColors.status.successFg} />
+                    <Text style={styles.acceptedText}>{t('caseDetail.aiDone.accepted')}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.proposalActions}>
+                    <Button variant="primary" size="sm" onPress={acceptAiProposal}>
+                      {t('caseDetail.aiDone.use')}
+                    </Button>
+                    <Button variant="tertiary" size="sm">
+                      {t('caseDetail.aiDone.adjust')}
+                    </Button>
+                  </View>
+                )}
+              </Card>
+            ) : null}
+
+            {aiStatus === 'idle' ? (
+              <Button
+                variant="ai"
+                fullWidth
+                iconLeft={<Icon name="sparkles" size={16} color={semanticColors.action.aiFg} />}
+                onPress={generateAiProposal}
+              >
+                {t('caseDetail.generateAi')}
+              </Button>
+            ) : null}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -148,20 +206,10 @@ const styles = StyleSheet.create({
     color: semanticColors.text.tertiary,
     marginTop: -spacing.xs,
   },
-  privacyNotice: {
+  methodRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: semanticColors.surface.sunken,
-    borderRadius: radii.lg,
-    padding: spacing.sm,
-  },
-  privacyText: {
-    flex: 1,
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: semanticColors.text.secondary,
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   section: {
     gap: spacing.xs,

@@ -20,16 +20,24 @@ export function CaseCard({ caseSummary, onPress }: CaseCardProps) {
       ? t('cases.round', { number: caseSummary.roundNumber })
       : t('cases.noRound');
 
+  const metaText = caseSummary.counterpartyName
+    ? `${caseSummary.counterpartyName} · ${roundLabel}`
+    : t(`methods.${caseSummary.metodo}`);
+
   return (
     <Card interactive onPress={onPress} accessibilityLabel={caseSummary.title} style={styles.card}>
       <View style={styles.top}>
-        <Avatar name={caseSummary.counterpartyName} />
+        {caseSummary.counterpartyName ? (
+          <Avatar name={caseSummary.counterpartyName} />
+        ) : (
+          <Avatar icon="user" />
+        )}
         <View style={styles.body}>
           <Text style={styles.title} numberOfLines={1}>
             {caseSummary.title}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {caseSummary.counterpartyName} · {roundLabel}
+            {metaText}
           </Text>
         </View>
         <Icon name="chevron-right" size={18} color={semanticColors.text.quaternary} />

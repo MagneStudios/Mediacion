@@ -10,6 +10,7 @@ export default function CasesScreen() {
       onOpenCase={(caseSummary) =>
         router.push({ pathname: '/case/[id]', params: { id: caseSummary.id } })
       }
+      onCreateCase={() => router.push('/case/create')}
     />
   );
 }

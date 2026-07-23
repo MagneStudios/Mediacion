@@ -10,9 +10,14 @@
     "signatures": "Firmas",
     "profile": "Perfil"
   },
+  "methods": {
+    "negociacion": "Negociación",
+    "conciliacion": "Conciliación",
+    "mediacion": "Mediación"
+  },
   "cases": {
     "title": "Tus casos",
-    "newCase": "Abrir un caso nuevo",
+    "createCase": "Crear un caso",
     "loading": "Buscando tus casos…",
     "empty": {
       "title": "Todavía no tenés casos",
@@ -27,6 +32,7 @@
       "inReview": "En revisión",
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
+      "awaitingCounterparty": "Esperando a la contraparte",
       "sla": "SLA {{hours}} h"
     },
     "round": "Ronda {{number}}",
@@ -50,6 +56,94 @@
       "use": "Usar propuesta",
       "accepted": "Aceptada",
       "adjust": "Ajustar"
+    },
+    "awaitingCounterparty": {
+      "title": "Esperando a la contraparte",
+      "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
+      "viewInvitation": "Ver invitación",
+      "invitationError": "No pudimos cargar la invitación"
+    }
+  },
+  "caseCreation": {
+    "progress": "Paso {{step}} de {{total}}",
+    "basicInfo": {
+      "title": "Creá un nuevo caso",
+      "subtitle": "Primero agregá una referencia que te ayude a reconocerlo. La contraparte verá el nombre y la descripción.",
+      "nameLabel": "Nombre del caso",
+      "namePlaceholder": "Por ejemplo, organización familiar",
+      "nameError": "Ingresá un nombre para el caso",
+      "descriptionLabel": "Descripción breve",
+      "descriptionPlaceholder": "Opcional",
+      "descriptionHint": "No incluyas posiciones privadas ni información sensible.",
+      "continue": "Continuar"
+    },
+    "method": {
+      "title": "Elegí el método de resolución",
+      "subtitle": "Podés cambiarlo más adelante si el caso lo necesita.",
+      "descriptions": {
+        "negociacion": "Las partes intercambian propuestas y buscan un punto de acuerdo.",
+        "conciliacion": "El proceso incorpora orientación para acercar las posiciones.",
+        "mediacion": "Un tercero neutral acompaña el diálogo y facilita el acuerdo."
+      },
+      "selected": "Seleccionado",
+      "continue": "Continuar",
+      "back": "Volver"
+    },
+    "review": {
+      "title": "Revisá la información",
+      "nameLabel": "Nombre del caso",
+      "descriptionLabel": "Descripción",
+      "methodLabel": "Método",
+      "privacyReminder": "Las posiciones y los rangos de acuerdo se cargan después de forma privada.",
+      "create": "Crear caso",
+      "creating": "Creando el caso…",
+      "edit": "Editar información",
+      "error": {
+        "title": "No pudimos crear el caso",
+        "retry": "Reintentar"
+      }
+    },
+    "invite": {
+      "title": "Invitá a la contraparte",
+      "subtitle": "Elegí cómo querés compartir el acceso a este caso.",
+      "method": {
+        "link": {
+          "title": "Enlace",
+          "description": "Compartí un enlace de invitación por el medio que prefieras."
+        },
+        "codigo": {
+          "title": "Código",
+          "description": "Compartí un código corto para que la otra parte se una."
+        },
+        "email": {
+          "title": "Correo",
+          "description": "Preparamos la invitación para el correo que indiques."
+        }
+      },
+      "linkLabel": "Enlace de invitación",
+      "codeLabel": "Código de invitación",
+      "emailLabel": "Correo de la contraparte",
+      "emailPlaceholder": "nombre@ejemplo.com",
+      "emailError": "Ingresá un correo válido",
+      "copy": {
+        "link": "Copiar enlace",
+        "codigo": "Copiar código"
+      },
+      "copied": "Copiado",
+      "sendInvitation": "Preparar invitación",
+      "preparedMessage": "La invitación quedó preparada.",
+      "sandboxMessage": "La invitación se registró en el entorno de prueba.",
+      "continue": "Continuar",
+      "error": {
+        "title": "No pudimos preparar la invitación"
+      }
+    },
+    "success": {
+      "title": "El caso está listo",
+      "body": "La invitación quedó preparada. Cuando la contraparte se una, podrán continuar con el proceso.",
+      "status": "Esperando a la contraparte",
+      "viewCase": "Ver caso",
+      "backToDashboard": "Volver a mis casos"
     }
   },
   "placeholders": {

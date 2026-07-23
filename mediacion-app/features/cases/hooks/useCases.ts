@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { casesService } from '../../../services/cases.service';
 import type { CaseSummary } from '../../../types/case';
@@ -13,6 +14,7 @@ export function useCases(): UseCasesResult {
   const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'success'>('loading');
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const hasLoadedOnceRef = useRef(false);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -28,6 +30,7 @@ export function useCases(): UseCasesResult {
         if (cancelled) return;
         setCases(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
+        hasLoadedOnceRef.current = true;
       })
       .catch(() => {
         if (cancelled) return;
@@ -37,6 +40,26 @@ export function useCases(): UseCasesResult {
       cancelled = true;
     };
   }, [attempt]);
+
+  // Silent refresh on focus: picks up cases created elsewhere in the same
+  // session (see createCase in services/cases.service.ts) without flashing a
+  // loading state over an already-populated dashboard. Skipped until the
+  // first load has completed, and its dependency array never changes, so it
+  // cannot loop or re-register repeatedly.
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedOnceRef.current) return;
+      let cancelled = false;
+      casesService.listCases().then((result) => {
+        if (cancelled) return;
+        setCases(result);
+        setStatus(result.length === 0 ? 'empty' : 'success');
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   if (status === 'loading') return { status, cases: undefined };
   if (status === 'error') return { status, cases: undefined, reload };

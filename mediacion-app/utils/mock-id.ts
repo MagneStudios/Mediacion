@@ -1,0 +1,39 @@
+/**
+ * Mock-only identifier generators for the phase-2 case-creation flow. These
+ * are display tokens for a development sandbox, never real auth material —
+ * see CaseInvitation.token. Not cryptographically secure by design.
+ */
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function randomString(length: number, alphabet: string): string {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return result;
+}
+
+/** Short human-shareable invitation code, e.g. "K7P2QX". Mock-only. */
+export function generateMockCode(): string {
+  return randomString(6, CODE_ALPHABET);
+}
+
+/**
+ * Mock invitation link using the app's own registered scheme (see app.json
+ * "scheme": "mediacionapp") — not a real external domain, and not wired to
+ * any deep-link handling in this phase. Clearly a dev-only placeholder.
+ */
+export function generateMockInvitationLink(): string {
+  const token = randomString(10, CODE_ALPHABET).toLowerCase();
+  return `mediacionapp://invitacion/mock-${token}`;
+}
+
+/** Mock case identifier for the in-memory session store. */
+export function generateMockCaseId(): string {
+  return `case-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock invitation identifier for the in-memory session store. */
+export function generateMockInvitationId(): string {
+  return `invitation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

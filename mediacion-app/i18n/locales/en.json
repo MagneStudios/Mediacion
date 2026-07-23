@@ -10,9 +10,14 @@
     "signatures": "Signatures",
     "profile": "Profile"
   },
+  "methods": {
+    "negociacion": "Negotiation",
+    "conciliacion": "Conciliation",
+    "mediacion": "Mediation"
+  },
   "cases": {
     "title": "Your cases",
-    "newCase": "Start a new case",
+    "createCase": "Start a case",
     "loading": "Looking for your cases…",
     "empty": {
       "title": "No cases yet",
@@ -27,6 +32,7 @@
       "inReview": "In review",
       "proposalReady": "Proposal ready",
       "signed": "Signed",
+      "awaitingCounterparty": "Waiting for the other party",
       "sla": "SLA {{hours}} h"
     },
     "round": "Round {{number}}",
@@ -50,6 +56,94 @@
       "use": "Use this proposal",
       "accepted": "Accepted",
       "adjust": "Adjust"
+    },
+    "awaitingCounterparty": {
+      "title": "Waiting for the other party",
+      "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
+      "viewInvitation": "View invitation",
+      "invitationError": "We couldn't load the invitation"
+    }
+  },
+  "caseCreation": {
+    "progress": "Step {{step}} of {{total}}",
+    "basicInfo": {
+      "title": "Start a new case",
+      "subtitle": "First, add a reference that helps you recognize it. The other party will see the name and description.",
+      "nameLabel": "Case name",
+      "namePlaceholder": "For example, family arrangements",
+      "nameError": "Enter a name for the case",
+      "descriptionLabel": "Short description",
+      "descriptionPlaceholder": "Optional",
+      "descriptionHint": "Don't include private positions or sensitive information.",
+      "continue": "Continue"
+    },
+    "method": {
+      "title": "Choose the resolution method",
+      "subtitle": "You can change this later if the case needs it.",
+      "descriptions": {
+        "negociacion": "The parties exchange proposals and look for a point of agreement.",
+        "conciliacion": "The process includes guidance to bring the positions closer together.",
+        "mediacion": "A neutral third party supports the dialogue and helps reach an agreement."
+      },
+      "selected": "Selected",
+      "continue": "Continue",
+      "back": "Back"
+    },
+    "review": {
+      "title": "Review the information",
+      "nameLabel": "Case name",
+      "descriptionLabel": "Description",
+      "methodLabel": "Method",
+      "privacyReminder": "Positions and agreement ranges are loaded privately afterward.",
+      "create": "Create case",
+      "creating": "Creating the case…",
+      "edit": "Edit information",
+      "error": {
+        "title": "We couldn't create the case",
+        "retry": "Try again"
+      }
+    },
+    "invite": {
+      "title": "Invite the other party",
+      "subtitle": "Choose how you'd like to share access to this case.",
+      "method": {
+        "link": {
+          "title": "Link",
+          "description": "Share an invitation link through whichever channel you prefer."
+        },
+        "codigo": {
+          "title": "Code",
+          "description": "Share a short code so the other party can join."
+        },
+        "email": {
+          "title": "Email",
+          "description": "We'll prepare the invitation for the email address you provide."
+        }
+      },
+      "linkLabel": "Invitation link",
+      "codeLabel": "Invitation code",
+      "emailLabel": "Other party's email",
+      "emailPlaceholder": "name@example.com",
+      "emailError": "Enter a valid email address",
+      "copy": {
+        "link": "Copy link",
+        "codigo": "Copy code"
+      },
+      "copied": "Copied",
+      "sendInvitation": "Prepare invitation",
+      "preparedMessage": "The invitation is ready.",
+      "sandboxMessage": "The invitation was recorded in the test environment.",
+      "continue": "Continue",
+      "error": {
+        "title": "We couldn't prepare the invitation"
+      }
+    },
+    "success": {
+      "title": "The case is ready",
+      "body": "The invitation is ready. Once the other party joins, you'll be able to continue the process.",
+      "status": "Waiting for the other party",
+      "viewCase": "View case",
+      "backToDashboard": "Back to my cases"
     }
   },
   "placeholders": {

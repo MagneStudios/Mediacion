@@ -11,9 +11,10 @@ import { useCases } from './hooks/useCases';
 
 export type CasesDashboardScreenProps = {
   onOpenCase: (caseSummary: CaseSummary) => void;
+  onCreateCase: () => void;
 };
 
-export function CasesDashboardScreen({ onOpenCase }: CasesDashboardScreenProps) {
+export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboardScreenProps) {
   const { t } = useTranslation();
   const result = useCases();
 
@@ -24,24 +25,22 @@ export function CasesDashboardScreen({ onOpenCase }: CasesDashboardScreenProps) 
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
-          <Text style={styles.title} accessibilityRole="header">
-            {t('cases.title')}
-          </Text>
+          <View style={styles.header}>
+            <Text style={styles.title} accessibilityRole="header">
+              {t('cases.title')}
+            </Text>
+            <Button
+              variant="primary"
+              fullWidth
+              iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
+              onPress={onCreateCase}
+            >
+              {t('cases.createCase')}
+            </Button>
+          </View>
         }
         renderItem={({ item }) => <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        ListFooterComponent={
-          result.status === 'success' ? (
-            <Button
-              variant="secondary"
-              fullWidth
-              iconLeft={<Icon name="plus" size={16} color={semanticColors.action.secondaryFg} />}
-              style={styles.newCaseButton}
-            >
-              {t('cases.newCase')}
-            </Button>
-          ) : null
-        }
         ListEmptyComponent={
           result.status === 'loading' ? (
             <LoadingState label={t('cases.loading')} />
@@ -74,14 +73,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     flexGrow: 1,
   },
+  header: {
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   title: {
     fontFamily: typography.headline.fontFamily,
     fontSize: 26,
     letterSpacing: -0.5,
     color: semanticColors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  newCaseButton: {
-    marginTop: spacing.xs,
   },
 });

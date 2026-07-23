@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type AccessibilityRole,
+  type AccessibilityState,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
@@ -12,6 +20,9 @@ export type CardProps = {
   interactive?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** Defaults to "button" — override for e.g. a single-select option card ("radio"). */
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
 };
@@ -69,7 +80,16 @@ const VARIANT_STYLE: Record<CardVariant, ViewStyle> = {
  * depth is the cream→white surface change (see tokens/elevation). Interactive
  * cards strengthen their border on press rather than lifting or scaling.
  */
-export function Card({ variant = 'default', interactive = false, onPress, accessibilityLabel, children, style }: CardProps) {
+export function Card({
+  variant = 'default',
+  interactive = false,
+  onPress,
+  accessibilityLabel,
+  accessibilityRole = 'button',
+  accessibilityState,
+  children,
+  style,
+}: CardProps) {
   const base = VARIANT_STYLE[variant];
 
   if (!interactive) {
@@ -79,8 +99,9 @@ export function Card({ variant = 'default', interactive = false, onPress, access
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       style={({ pressed }) => [
         styles.base,
         base,
