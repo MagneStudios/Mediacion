@@ -1,0 +1,324 @@
+import { HttpStatus } from "@nestjs/common";
+import { ConflictError } from "../common/errors/domain-errors";
+import { CasosRepository } from "./casos.repository";
+import type { CreateCasoDto } from "./casos.types";
+import { estadoInvitacionAceptada } from "./casos.types";
+
+describe("CasosRepository", () => {
+  describe("createCaseWithParteA", () => {
+    function createFakeTrxKyselyWithParteRejection(
+      insertedCaso: unknown,
+      parteError: unknown,
+    ) {
+      const casoExecuteTakeFirstOrThrow = jest
+        .fn()
+        .mockResolvedValue(insertedCaso);
+      const casoReturningAll = jest.fn().mockReturnValue({
+        executeTakeFirstOrThrow: casoExecuteTakeFirstOrThrow,
+      });
+      const casoValues = jest
+        .fn()
+        .mockReturnValue({ returningAll: casoReturningAll });
+
+      const parteExecute = jest.fn().mockRejectedValue(parteError);
+      const parteValues = jest.fn().mockReturnValue({ execute: parteExecute });
+
+      const insertInto = jest.fn((table: string) => {
+        if (table === "casos") {
+          return { values: casoValues };
+        }
+        return { values: parteValues };
+      });
+
+      const trx = { insertInto };
+      const execute = jest.fn((callback: (trx: unknown) => unknown) =>
+        callback(trx),
+      );
+      const transaction = jest.fn().mockReturnValue({ execute });
+
+      return { casoValues, parteValues, transaction };
+    }
+
+    it("maps a pg unique-violation raised by the parte_a insert to a uniform 409, leaking no db detail", async () => {
+      const pgError = {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "caso_partes_caso_id_usuario_id_key"',
+      };
+      const fakeKysely = createFakeTrxKyselyWithParteRejection(
+        { id: "caso-1" },
+        pgError,
+      );
+      const repository = new CasosRepository(fakeKysely as never);
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      let thrown: unknown;
+      try {
+        await repository.createCaseWithParteA(dto, "user-1");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(ConflictError);
+      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
+      const responseBody = JSON.stringify(
+        (thrown as ConflictError).getResponse(),
+      );
+      expect(responseBody).toEqual('{"code":"conflict","message":"Conflict"}');
+      expect(responseBody).not.toContain("caso_partes_caso_id_usuario_id_key");
+    });
+
+    it("propagates a rejection from the parte_a insert out of the transaction, proving both-or-neither", async () => {
+      const connectionError = new Error("connection lost");
+      const fakeKysely = createFakeTrxKyselyWithParteRejection(
+        { id: "caso-1" },
+        connectionError,
+      );
+      const repository = new CasosRepository(fakeKysely as never);
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      await expect(
+        repository.createCaseWithParteA(dto, "user-1"),
+      ).rejects.toThrow("connection lost");
+      expect(fakeKysely.casoValues).toHaveBeenCalledTimes(1);
+      expect(fakeKysely.parteValues).toHaveBeenCalledTimes(1);
+    });
+
+    function createFakeTrxKysely(insertedCaso: unknown) {
+      const casoExecuteTakeFirstOrThrow = jest
+        .fn()
+        .mockResolvedValue(insertedCaso);
+      const casoReturningAll = jest.fn().mockReturnValue({
+        executeTakeFirstOrThrow: casoExecuteTakeFirstOrThrow,
+      });
+      const casoValues = jest
+        .fn()
+        .mockReturnValue({ returningAll: casoReturningAll });
+
+      const parteExecute = jest.fn().mockResolvedValue(undefined);
+      const parteValues = jest.fn().mockReturnValue({ execute: parteExecute });
+
+      const insertInto = jest.fn((table: string) => {
+        if (table === "casos") {
+          return { values: casoValues };
+        }
+        return { values: parteValues };
+      });
+
+      const trx = { insertInto };
+      const execute = jest.fn((callback: (trx: unknown) => unknown) =>
+        callback(trx),
+      );
+      const transaction = jest.fn().mockReturnValue({ execute });
+
+      return {
+        transaction,
+        insertInto,
+        casoValues,
+        parteValues,
+        casoExecuteTakeFirstOrThrow,
+        parteExecute,
+      };
+    }
+
+    it("inserts a casos row and a parte_a caso_partes row in the same transaction", async () => {
+      const insertedCaso = {
+        id: "caso-1",
+        creador_id: "user-1",
+        nombre: "Divorcio",
+        descripcion: null,
+        metodo: "mediacion",
+        estado: "nuevo",
+        created_at: "now",
+        updated_at: "now",
+      };
+      const fakeKysely = createFakeTrxKysely(insertedCaso);
+      const repository = new CasosRepository(fakeKysely as never);
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      const result = await repository.createCaseWithParteA(dto, "user-1");
+
+      expect(fakeKysely.transaction).toHaveBeenCalledTimes(1);
+      expect(fakeKysely.insertInto).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.casoValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          creador_id: "user-1",
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        }),
+      );
+      expect(fakeKysely.insertInto).toHaveBeenCalledWith("caso_partes");
+      expect(fakeKysely.parteValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          caso_id: "caso-1",
+          usuario_id: "user-1",
+          rol_en_caso: "parte_a",
+          estado_invitacion: estadoInvitacionAceptada,
+        }),
+      );
+      expect(result).toBe(insertedCaso);
+    });
+
+    it("never sets estado or ronda_actual explicitly on insert", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      await repository.createCaseWithParteA(dto, "user-1");
+
+      const insertedValues = fakeKysely.casoValues.mock.calls[0][0];
+      expect(insertedValues).not.toHaveProperty("estado");
+      expect(insertedValues).not.toHaveProperty("ronda_actual");
+    });
+  });
+
+  describe("findOwnCases", () => {
+    function createBehavioralKysely(
+      casosById: Record<string, { id: string }>,
+      casoPartes: Array<{
+        caso_id: string;
+        usuario_id: string;
+        estado_invitacion: string;
+      }>,
+    ) {
+      const predicates: Array<[string, string, unknown]> = [];
+      const chain: {
+        selectFrom: jest.Mock;
+        innerJoin: jest.Mock;
+        select: jest.Mock;
+        where: jest.Mock;
+        execute: jest.Mock;
+      } = {
+        selectFrom: jest.fn(),
+        innerJoin: jest.fn(),
+        select: jest.fn(),
+        where: jest.fn(),
+        execute: jest.fn(),
+      };
+      chain.selectFrom.mockReturnValue(chain);
+      chain.innerJoin.mockReturnValue(chain);
+      chain.select.mockReturnValue(chain);
+      chain.where.mockImplementation(
+        (column: string, _operator: string, value: unknown) => {
+          predicates.push([column, _operator, value]);
+          return chain;
+        },
+      );
+      chain.execute.mockImplementation(async () => {
+        const usuarioPredicate = predicates.find(
+          ([column]) => column === "caso_partes.usuario_id",
+        );
+        const estadoPredicate = predicates.find(
+          ([column]) => column === "caso_partes.estado_invitacion",
+        );
+        if (!usuarioPredicate || !estadoPredicate) {
+          throw new Error(
+            "findOwnCases must scope by both usuario_id and estado_invitacion",
+          );
+        }
+        const callerId = usuarioPredicate[2];
+        const requiredEstado = estadoPredicate[2];
+        return casoPartes
+          .filter(
+            (parte) =>
+              parte.usuario_id === callerId &&
+              parte.estado_invitacion === requiredEstado,
+          )
+          .map((parte) => casosById[parte.caso_id]);
+      });
+      return chain;
+    }
+
+    it("returns only the caller's own accepted case, never another caller's case in the same table", async () => {
+      const casoDeA = { id: "caso-a" };
+      const casoDeB = { id: "caso-b" };
+      const casosById = { "caso-a": casoDeA, "caso-b": casoDeB };
+      const casoPartes = [
+        {
+          caso_id: "caso-a",
+          usuario_id: "user-a",
+          estado_invitacion: estadoInvitacionAceptada,
+        },
+        {
+          caso_id: "caso-b",
+          usuario_id: "user-b",
+          estado_invitacion: estadoInvitacionAceptada,
+        },
+      ];
+
+      const fakeKyselyForA = createBehavioralKysely(casosById, casoPartes);
+      const repositoryForA = new CasosRepository(fakeKyselyForA as never);
+      const resultForA = await repositoryForA.findOwnCases("user-a");
+      expect(fakeKyselyForA.selectFrom).toHaveBeenCalledWith("casos");
+      expect(fakeKyselyForA.innerJoin).toHaveBeenCalledWith(
+        "caso_partes",
+        "caso_partes.caso_id",
+        "casos.id",
+      );
+      expect(resultForA).toEqual([casoDeA]);
+      expect(resultForA).not.toContainEqual(casoDeB);
+
+      const fakeKyselyForB = createBehavioralKysely(casosById, casoPartes);
+      const repositoryForB = new CasosRepository(fakeKyselyForB as never);
+      const resultForB = await repositoryForB.findOwnCases("user-b");
+      expect(resultForB).toEqual([casoDeB]);
+      expect(resultForB).not.toContainEqual(casoDeA);
+    });
+  });
+
+  describe("findDetailForMember", () => {
+    function createFakeSelectKysely(row: unknown) {
+      const executeTakeFirst = jest.fn().mockResolvedValue(row);
+      const where3 = jest.fn().mockReturnValue({ executeTakeFirst });
+      const where2 = jest.fn().mockReturnValue({ where: where3 });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const select = jest.fn().mockReturnValue({ where: where1 });
+      const innerJoin = jest.fn().mockReturnValue({ select });
+      const selectFrom = jest.fn().mockReturnValue({ innerJoin });
+      return {
+        selectFrom,
+        innerJoin,
+        select,
+        where1,
+        where2,
+        where3,
+        executeTakeFirst,
+      };
+    }
+
+    it("scopes the detail query by casoId and callerId membership, excluding items", async () => {
+      const row = { id: "caso-1", nombre: "Divorcio" };
+      const fakeKysely = createFakeSelectKysely(row);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.findDetailForMember("caso-1", "user-1");
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.where1).toHaveBeenCalledWith("casos.id", "=", "caso-1");
+      expect(fakeKysely.where2).toHaveBeenCalledWith(
+        "caso_partes.usuario_id",
+        "=",
+        "user-1",
+      );
+      expect(fakeKysely.where3).toHaveBeenCalledWith(
+        "caso_partes.estado_invitacion",
+        "=",
+        estadoInvitacionAceptada,
+      );
+      const selectedColumns = fakeKysely.select.mock.calls[0][0] as string[];
+      expect(selectedColumns.some((column) => column.includes("item"))).toBe(
+        false,
+      );
+      expect(result).toBe(row);
+    });
+
+    it("returns undefined when the caller has no membership row", async () => {
+      const fakeKysely = createFakeSelectKysely(undefined);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.findDetailForMember("caso-1", "stranger");
+
+      expect(result).toBeUndefined();
+    });
+  });
+});
