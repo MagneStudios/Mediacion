@@ -1,6 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "mediacion-app"
+  - "packages/*"
 allowBuilds:
   '@swc/core': true
   unrs-resolver: true
