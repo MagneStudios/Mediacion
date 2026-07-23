@@ -85,7 +85,7 @@ export default function SignaturesScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
       <Text style={styles.title} accessibilityRole="header">
         {t('agreement.inbox.title')}
       </Text>
@@ -103,7 +103,12 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
     justifyContent: 'center',
   },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: semanticColors.surface.canvas,
+  },
   content: {
+    flexGrow: 1,
     padding: spacing.md,
     gap: spacing.lg,
   },
