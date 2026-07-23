@@ -1,6 +1,8 @@
 # Frontend agent handoff — Proyecto Mediación mobile app
 
-Last updated: end of phase 5 (agreement review, mock signatures). Written for a future Claude Code session picking this work back up — read this before touching `mediacion-app/`.
+Last updated: end of phase 6 (profile, account settings, privacy/help/legal info, mocked session & account actions). Written for a future Claude Code session picking this work back up — read this before touching `mediacion-app/`.
+
+The roadmap changed after phase 5: the plan is now to **finish the full mocked product** before any real backend integration begins. Phase 6 was the first phase under that revised roadmap — do not start wiring a real backend until the user explicitly says the mocked product is complete and asks for it.
 
 ## Product context
 
@@ -32,7 +34,8 @@ mediacion-app/
     cases/                    dashboard, case-detail, creation wizard, invitations
     positions/                own private-position CRUD
     negotiation/               rounds, shared proposals, responses
-    agreements/                final agreement review + mock signatures  ← new this phase
+    agreements/                final agreement review + mock signatures
+    profile/                    own profile, preferences, notifications, mocked session/account  ← new this phase
   services/                    one file per domain, each exports a singleton + a
                                 createMockXService() factory — the ONLY place a real
                                 backend integration would plug in later
@@ -76,6 +79,9 @@ No Context is used anywhere except two short-lived wizard drafts (`CaseCreationP
 Mirror these **exactly** wherever the backend already defines them — this codebase does not invent parallel vocabularies for persisted state:
 
 ```
+rol_usuario         admin | parte | mediador | estudio
+usuarios.idioma     'es' | 'en'                              (plain text field, NOT the i18n locale code)
+usuarios.activo     boolean only — there is no multi-state account-status enum
 estado_caso        nuevo | activo | en_negociacion | acordado | cerrado | terminado | vencido
 metodo_caso        negociacion | conciliacion | mediacion
 tipo_invitacion     link | codigo | email
@@ -92,6 +98,24 @@ Known, deliberate gaps between backend shape and this frontend (all documented i
 - No separate "document" entity exists — `acuerdos.documento_url`/`docusign_envelope_id` are just fields on the same row. `types/agreement.ts` has no `SignatureDocument` type; document readiness/completion lives on `SharedAgreement.estado`/`readyAt`/`completedAt` directly.
 - `firmas.docusign_status` is free text mirroring a real provider's vocabulary this app never calls — the frontend deliberately does **not** imitate it. `MockSignatureStatus = 'pendiente' | 'firmado'` is an invented, clearly-documented presentation-only type, not a backend enum.
 - Transient UI concepts (generating/preparing/submitting/loading) are **never** persisted enum values — always local `MutationStatus` (`idle|pending|error`) in a hook, regardless of how tempting a richer backend-shaped status union looked in early drafts.
+- `Table notificaciones` only logs already-sent deliveries (`canal`, `evento`, `estado: pendiente|enviada|fallida`) — there is **no backend schema at all** for per-category user notification opt-ins. `types/profile.ts`'s `NotificationPreferences` (7 booleans) is entirely frontend-invented presentation state.
+- There is **no legal-consent timestamp field** anywhere in `usuarios` (no `consentimiento_at`/terms-acceptance column) and **no support/contact-preference schema** either — the profile/legal/help screens never claim to persist either concept against a real backend.
+- `usuarios.estudio_id` exists but is irrelevant to the `parte` persona this app has used since phase 1 — `MockProfile` omits it entirely rather than inventing an estudio membership.
+
+## Mocked profile/session/account behavior (phase 6)
+
+`services/profile.service.ts` holds three pieces of in-memory state, all cleared on app restart: `mockProfile`, `mockNotificationPreferences`, and a bare `mockSessionActive` boolean.
+
+- **`mockSessionActive`** is the smallest possible mock "session" — not a token, not a fake user id, not an auth object. Nothing currently gates on it (there's no real route guard in this phase); `signOutMock()`/`restoreMockSession()` just flip it. It exists purely as a placeholder for a future real session check.
+- **Sign-out never clears case/position/negotiation/agreement/signature data or the notification/profile preferences** — only the session flag. Confirmed by reading `signOutMock()`: it touches nothing else.
+- **Sign-out navigation** (`app/profile/account.tsx`): `router.dismissAll()` then `router.replace('/signed-out')`, in that order — `dismissAll` first collapses the pushed `(tabs)` → `profile` stack back to the root, so the following `replace` swaps out the root entry itself, leaving `signed-out` as the *only* entry in history (no back-swipe/back-button path into the tabs). `app/signed-out.tsx` also sets `headerShown: false` for good measure. "Volver a la demo" calls `restoreMockSession()` then `router.replace('/(tabs)')`.
+- **Account deactivation is idempotent by design**: `requestAccountDeactivationMock()` checks `mockProfile.deactivationRequestedAt` first — if already set, it returns `{status:'already_requested', requestedAt: <original value>}` with **no mutation at all**; only the first call ever writes a timestamp. `usuarios.activo` is **never** flipped by a deactivation request — a request is not a real deactivation, and the UI copy never implies otherwise.
+
+### Frontend-only mock presentation concepts (no backend equivalent — documented in `types/profile.ts`)
+
+- `NotificationPreferences` (7 category booleans) — no backend table for per-category opt-ins exists at all today.
+- `CommunicationPreference` (`email_summary | in_app_only`) and `AccessibilityPreference` (`system_default | larger_text_preference`) — both invented UI-only preferences. The accessibility preference is **stored and displayed but not wired to any actual rendering change** — deliberately, to avoid a half-built app-wide font-scaling feature; its copy says explicitly that it's demo-only.
+- `deactivationRequestedAt` — a presentation-only marker, not a real backend column.
 
 ## Completed phases
 
@@ -99,9 +123,10 @@ Known, deliberate gaps between backend shape and this frontend (all documented i
 2. **Case creation & invitation** — 5-step wizard (`app/case/create/*`), `CaseCreationProvider` draft Context, `link|codigo|email` invitation flow, dashboard integration.
 3. **Private positions** — `app/case/[id]/positions/*`, category/range/concession form, review→save, edit, delete-with-confirmation, strict own-position isolation in the mock service.
 4. **Negotiation** — `app/case/[id]/negotiation/*`, round/proposal lifecycle, AI-assisted (sage) proposal generation, accept/reject with confirmation dialog, deterministic simulated counterparty responses, mediator-availability card from round ≥ 3. Replaced the phase-1 embedded AI demo in `CaseDetailScreen`.
-5. **Agreement & mock signatures** (this phase) — `app/case/[id]/agreement/*`, lazy agreement materialization from an accepted proposal only, `borrador → enviado_a_firma → firmado` transitions, mock signature confirmation flow, Firmas tab now a real grouped inbox (Pendientes / Esperando a la otra parte / Completadas / Con aviso).
+5. **Agreement & mock signatures** — `app/case/[id]/agreement/*`, lazy agreement materialization from an accepted proposal only, `borrador → enviado_a_firma → firmado` transitions, mock signature confirmation flow, Firmas tab now a real grouped inbox (Pendientes / Esperando a la otra parte / Completadas / Con aviso).
+6. **Profile, account settings & mocked session** (this phase) — `app/profile/*` + `app/(tabs)/profile.tsx` (real overview, replacing the "Próximamente" placeholder) + `app/signed-out.tsx`. Editable presentation preferences (name, language, communication/accessibility preference), 7-category notification toggles, privacy/help/legal informational screens, simulated sign-out and idempotent account-deactivation request. Perfil is no longer a placeholder — only **Mensajes** still is.
 
-A recurring corrective task between phases 3 and 4 fixed RN-Web-specific runtime issues (nested-button HTML validity, `useNativeDriver` on web, `shadow*` → `boxShadow` deprecation, a focus-release utility for React Navigation's web `aria-hidden` warning) — see that session if similar RN-Web warnings resurface.
+A recurring corrective task between phases 3 and 4 fixed RN-Web-specific runtime issues (nested-button HTML validity, `useNativeDriver` on web, `shadow*` → `boxShadow` deprecation, a focus-release utility for React Navigation's web `aria-hidden` warning) — see that session if similar RN-Web warnings resurface. A second, smaller corrective task after phase 5 fixed a `ScrollView` runtime crash in the Firmas tab (`justifyContent` had been placed in the `ScrollView`'s `style` prop instead of `contentContainerStyle`) — the same style/contentContainerStyle split is checked on every new screen since.
 
 ## Demo data — the three seeded cases
 
@@ -114,15 +139,17 @@ Every phase's deterministic behavior is anchored to the same three cases, each d
 ## Routes
 
 ```
-app/(tabs)/{index,messages,signatures,profile}.tsx     bottom tabs — Casos, Mensajes*, Firmas, Perfil*
+app/(tabs)/{index,messages,signatures,profile}.tsx     bottom tabs — Casos, Mensajes*, Firmas, Perfil
 app/case/create/{_layout,index,method,review,invite,success}.tsx
 app/case/[id]/index.tsx                                 case detail (folder form — NOT a flat [id].tsx file)
 app/case/[id]/positions/{_layout,index,create,review}.tsx
 app/case/[id]/positions/[positionId]/edit.tsx
 app/case/[id]/negotiation/{_layout,index,history}.tsx
 app/case/[id]/agreement/{_layout,index,sign,history}.tsx
+app/profile/{_layout,edit,notifications,privacy,help,legal,account}.tsx
+app/signed-out.tsx                                      demo landing after simulated sign-out (outside tabs)
 ```
-`*` Mensajes/Perfil are still phase-1 "Próximamente" placeholders. Only stable IDs (`id`, `positionId`) ever appear in route params — no draft text, decisions, values, or tokens.
+`*` Mensajes is still the phase-1 "Próximamente" placeholder — Perfil is now fully built. Only stable IDs (`id`, `positionId`) ever appear in route params — no draft text, decisions, values, or tokens. No profile route needs a dynamic segment at all (single authenticated persona, no per-user routing).
 
 ## Validation commands (run every phase)
 
@@ -147,18 +174,23 @@ This sandbox mounts the repo at a lowercase-`documents` path while the real path
 - `mockCases`/`mockCaseDetails` (phase 1) and the negotiation/agreement mock stores are separate parallel structures kept in sync only at the specific mutation points that need it (`markCaseAsAgreed`, agreement materialization) — there's no single source of truth object graph. Fine at this scale; would need real consolidation before backend integration.
 - Root `biome.json` technically includes `mediacion-app/` in its glob, but the project's own `expo lint` (eslint-config-expo) is what's actually been used for validation every phase — never verified whether root `biome ci .` also passes over `mediacion-app/` cleanly.
 - `con_aviso` (`estado_acuerdo`) is modeled and treated as read-only everywhere it's checked, but no flow in this app ever produces it — it exists only for backend-fidelity and defensive handling.
+- The accessibility preference (`system_default | larger_text_preference`) is saved and shown but doesn't change any actual text size yet — see the phase-6 section above.
+- `mockSessionActive` has no reader anywhere — it's a deliberate placeholder, not dead code (see phase-6 section above), but a future phase adding a real route guard is the natural place to start actually using it.
+- Mensajes is still the one remaining phase-1 placeholder tab.
 
-## Files touched in phase 5
+## Files touched in phase 6
 
-**Created:** `types/agreement.ts`, `mocks/agreements.ts`, `services/agreements.service.ts`, `utils/format-agreement-date.ts`, `features/agreements/hooks/{useAgreement,useAgreementHistory,useSignatureInbox}.ts`, `features/agreements/components/{SharedAgreementCard,SharedAgreementTermCard,SignerStatusRow,SignatureProgressCard,SignatureEnvironmentNotice,MockSignatureConfirmation,AgreementHistoryCard,SignatureInboxCard,DocumentPreparationState,AgreementSummaryCard}.tsx`, `app/case/[id]/agreement/{_layout,index,sign,history}.tsx`.
-**Modified:** `services/negotiation.service.ts` (added read-only `getAcceptedProposal`), `utils/mock-id.ts` (2 new ID generators), `features/cases/CaseDetailScreen.tsx` (+`AgreementSummaryCard` when `estado === 'acordado'`), `app/case/[id]/negotiation/index.tsx` (+"Revisar acuerdo" link on joint acceptance), `app/(tabs)/signatures.tsx` (placeholder → real grouped inbox), `i18n/locales/{es-AR,en}.json`.
+**Created:** `types/profile.ts`, `mocks/profile.ts`, `services/profile.service.ts`, `utils/map-language.ts`, `features/profile/hooks/{useProfile,useNotificationPreferences,useAccountActions}.ts`, `features/profile/components/{ProfileHeaderCard,ProfileMenuItem,PreferenceRow,NotificationPreferenceRow,LanguageSelector,PrivacySummaryCard,DemoEnvironmentNotice,AccountActionCard,SignOutDialog,DeactivationDialog,HelpTopicCard,LegalNoticeCard}.tsx`, `app/profile/{_layout,edit,notifications,privacy,help,legal,account}.tsx`, `app/signed-out.tsx`.
+**Modified:** `app/(tabs)/profile.tsx` (placeholder → real overview), `design-system/components/Icon.tsx` (added `help-circle`/`file-text`/`settings` glyphs — a small necessary addition beyond the originally enumerated modify-list, flagged to the user in the phase-6 report), `i18n/locales/{es-AR,en}.json` (new `profile.*` namespace).
 **Deleted:** none.
 
 ## Recommended next step
 
-Every service in this codebase was explicitly built as "the single place to swap in a real API-backed implementation later," implementing a plain TypeScript interface (`CasesService`, `PositionsService`, `NegotiationService`, `AgreementsService`) against an in-memory mock. The natural phase 6 is **not** another mocked feature — the mocked product surface area (case → positions → negotiation → agreement/signature) is now end-to-end complete per the original scope. Good candidates, roughly in order of value:
-1. Wire one real service (`cases` is the smallest/safest) against `apps/api` behind the existing interface, proving the swap-in pattern before doing the rest.
-2. Or: a dedicated QA/polish pass — actual device/simulator testing (impossible in this sandboxed environment), since every phase so far has only had static verification.
-3. Or: the Estudio web panel (`apps/panel`, currently a placeholder) — out of scope for every phase so far, explicitly.
+The roadmap now calls for finishing the mocked product before any backend integration. Profile/account (phase 6) is done; case → positions → negotiation → agreement/signature (phases 1-5) were already done. Remaining candidates for the next mock phase, roughly in likely order:
+1. **Mensajes** — the one still-unbuilt tab; likely a mocked messaging/comment thread per case.
+2. A dedicated QA/polish pass across all six phases — actual device/simulator testing (impossible in this sandboxed environment), since every phase so far has only had static verification.
+3. The Estudio web panel (`apps/panel`, currently a placeholder) — always explicitly out of scope so far.
+
+Only after the user confirms the mocked product is complete should backend integration begin — starting with the smallest/safest service (`cases`) behind its existing interface, per the pattern every service here was already built for.
 
 Confirm which direction with the user before starting; don't assume.

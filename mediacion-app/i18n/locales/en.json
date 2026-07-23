@@ -500,6 +500,143 @@
       }
     }
   },
+  "profile": {
+    "demoNotice": {
+      "title": "Demonstration environment",
+      "overview": "This section uses simulated data. No account or session action affects a real system yet.",
+      "notifications": "The alerts you enable here aren't connected to real notifications yet: no emails or push notifications are sent in this demo.",
+      "account": "The actions on this screen are demonstration-only. There is no real authentication and no data is deleted."
+    },
+    "header": { "title": "Profile" },
+    "role": {
+      "admin": "Administration",
+      "parte": "Mediation party",
+      "mediador": "Mediator",
+      "estudio": "Law firm"
+    },
+    "status": {
+      "active": "Active account",
+      "inactive": "Deactivated account"
+    },
+    "menu": {
+      "edit": { "label": "Edit profile", "description": "Name, language, and preferences" },
+      "notifications": { "label": "Notifications", "description": "Turn notification categories on or off" },
+      "privacy": { "label": "Privacy and data", "description": "How we protect your information" },
+      "help": { "label": "Help and support", "description": "Frequently asked questions and contact" },
+      "legal": { "label": "Legal", "description": "Terms, notices, and general information" },
+      "account": { "label": "Account", "description": "Session and account deactivation" }
+    },
+    "summary": {
+      "sectionTitle": "Summary",
+      "language": "Language",
+      "notifications": "Notifications",
+      "notificationsValue": "{{enabled}}/{{total}}",
+      "privacy": "Privacy",
+      "privacyValue": "Positions protected"
+    },
+    "version": "Version {{version}} (demo)",
+    "edit": {
+      "title": "Edit profile",
+      "nameSection": "Name",
+      "firstNameLabel": "First name",
+      "lastNameLabel": "Last name",
+      "languageSection": "Language",
+      "languageEs": "Español",
+      "languageEsDescription": "Spanish (Argentina)",
+      "languageEn": "English",
+      "languageEnDescription": "English",
+      "selectedLabel": "Selected",
+      "communicationSection": "Communication preference",
+      "communicationEmail": "Email summary",
+      "communicationEmailDescription": "A periodic summary, simulated in this demo",
+      "communicationInApp": "In-app only",
+      "communicationInAppDescription": "No email summaries",
+      "accessibilitySection": "Accessibility preference",
+      "accessibilitySystem": "System default",
+      "accessibilitySystemDescription": "Uses your device's text size",
+      "accessibilityLargerText": "Larger text (preference)",
+      "accessibilityLargerTextDescription": "This preference is saved only in this demonstration. It doesn't change the app's text size yet.",
+      "save": "Save changes",
+      "saved": "Your changes were saved in this demonstration.",
+      "error": { "title": "We couldn't save your changes", "retry": "Retry" }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "categories": {
+        "caseUpdates": { "label": "Case updates", "description": "Status changes on your active cases" },
+        "proposalReady": { "label": "Proposal ready", "description": "When the AI generates a new shared proposal" },
+        "responseReceived": { "label": "Response received", "description": "When the other party responds to a proposal" },
+        "signatureReady": { "label": "Signature ready", "description": "When an agreement is ready to sign" },
+        "agreementCompleted": { "label": "Agreement completed", "description": "When both parties have signed the agreement" },
+        "mediatorAvailability": { "label": "Mediator availability", "description": "When a mediator becomes available for your case" },
+        "productUpdates": { "label": "Product updates", "description": "General product announcements" }
+      },
+      "error": { "title": "We couldn't update the preference", "retry": "Retry" }
+    },
+    "privacy": {
+      "title": "Privacy and data",
+      "isolation": { "title": "Your private positions", "body": "The private positions you enter in each case are visible only to you. The other party never sees your values, conditions, or descriptions." },
+      "sharedProposals": { "title": "Shared proposals", "body": "AI proposals show an already-sanitized middle ground: they never reveal either party's original private positions." },
+      "signatures": { "title": "Signatures in this environment", "body": "Signatures in this demo are simulated. No legal or cryptographic signature is performed." },
+      "future": { "title": "Coming later", "body": "Real backend and authentication integration will arrive in a later stage of the project." },
+      "links": { "deactivation": "Request account deactivation", "support": "Contact support" }
+    },
+    "help": {
+      "title": "Help and support",
+      "topics": {
+        "flow": { "question": "How does the mediation process work?", "answer": "Each party enters private positions, the AI suggests a middle-ground proposal, and both parties accept or reject it over successive rounds." },
+        "privacy": { "question": "How are my private positions protected?", "answer": "Only you can see your positions. The other party never accesses that information — they only see the already-sanitized proposals." },
+        "afterAgreement": { "question": "What happens after reaching an agreement?", "answer": "The agreement becomes available for both parties to review and sign before it's marked complete." },
+        "signatureSimulation": { "question": "Are the signatures legally valid?", "answer": "Not yet. In this demo, signing is a simulated in-app confirmation, with no legal validity or cryptographic certification." },
+        "mediator": { "question": "When does a mediator get involved?", "answer": "If a negotiation doesn't reach an agreement after two rounds, requesting a mediator becomes available from the third round." }
+      },
+      "contact": { "action": "Contact support", "notice": "This demo doesn't send any real message to support yet. There is no active contact channel." }
+    },
+    "legal": {
+      "title": "Legal",
+      "generalInfoBadge": "General information",
+      "terms": { "title": "Terms of use", "body": "General information about using the app during this demonstration stage. This content does not constitute legal advice. The final version must be reviewed by the legal team." },
+      "privacyNotice": { "title": "Privacy notice", "body": "A general description of how information is handled within this demonstration environment. This content does not constitute legal advice. The final version must be reviewed by the legal team." },
+      "aiNotice": { "title": "AI assistance notice", "body": "Artificial intelligence suggests agreement proposals, but never decides or replaces the judgment of the parties or a mediator. This content does not constitute legal advice." },
+      "signatureNotice": { "title": "Signature simulation notice", "body": "Signatures recorded in this demo are simulated: they have no legal validity and do not use a certified signature provider. This content does not constitute legal advice." },
+      "noAdvice": { "title": "No legal advice", "body": "Nothing shown in this app constitutes legal advice. The final version must be reviewed by the legal team before publication." }
+    },
+    "account": {
+      "title": "Account",
+      "versionLabel": "Version {{version}} (demo)",
+      "signOut": {
+        "cardTitle": "Sign out",
+        "cardDescription": "Simulate signing out of this demo.",
+        "action": "Sign out (demo)",
+        "dialogTitle": "Sign out?",
+        "dialogBody": "You'll leave this demonstration. Your cases, positions, and other simulated data are not deleted.",
+        "confirm": "Sign out",
+        "cancel": "Cancel",
+        "error": { "title": "We couldn't sign you out", "retry": "Retry" }
+      },
+      "deactivation": {
+        "cardTitle": "Request account deactivation",
+        "cardDescription": "Register a simulated deactivation request for this demo.",
+        "action": "Request deactivation",
+        "viewStatusAction": "View request status",
+        "dialogTitle": "Request account deactivation?",
+        "dialogBody": "This action doesn't delete any data or affect a real system: it only registers a simulated request in this demo.",
+        "confirm": "Request deactivation",
+        "cancel": "Cancel",
+        "close": "Close",
+        "requestedNotice": "The request was registered in this demonstration on {{date}}.",
+        "alreadyRequestedTitle": "We already have your request",
+        "alreadyRequestedBody": "The request was registered in this demonstration on {{date}}. No new request was created.",
+        "error": { "title": "We couldn't register the request", "retry": "Retry" }
+      }
+    },
+    "signedOut": {
+      "title": "Session ended (demo)",
+      "body": "This is a simulated session: there is no real authentication yet. Your cases and demo data are still available.",
+      "returnAction": "Back to the demo",
+      "error": { "title": "We couldn't restore the session", "retry": "Retry" }
+    }
+  },
   "placeholders": {
     "comingSoon": {
       "title": "Coming soon",

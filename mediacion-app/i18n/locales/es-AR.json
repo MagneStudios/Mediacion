@@ -500,6 +500,143 @@
       }
     }
   },
+  "profile": {
+    "demoNotice": {
+      "title": "Entorno de demostración",
+      "overview": "Esta sección utiliza datos simulados. Ninguna acción de cuenta o sesión afecta un sistema real todavía.",
+      "notifications": "Los avisos que activés acá todavía no están conectados a notificaciones reales: no se envían emails ni push en esta demostración.",
+      "account": "Las acciones de esta pantalla son solo demostrativas. No hay autenticación real ni se elimina información."
+    },
+    "header": { "title": "Perfil" },
+    "role": {
+      "admin": "Administración",
+      "parte": "Parte en mediación",
+      "mediador": "Mediador/a",
+      "estudio": "Estudio jurídico"
+    },
+    "status": {
+      "active": "Cuenta activa",
+      "inactive": "Cuenta desactivada"
+    },
+    "menu": {
+      "edit": { "label": "Editar perfil", "description": "Nombre, idioma y preferencias" },
+      "notifications": { "label": "Notificaciones", "description": "Activá o desactivá avisos por categoría" },
+      "privacy": { "label": "Privacidad y datos", "description": "Cómo protegemos tu información" },
+      "help": { "label": "Ayuda y soporte", "description": "Preguntas frecuentes y contacto" },
+      "legal": { "label": "Legales", "description": "Términos, avisos e información general" },
+      "account": { "label": "Cuenta", "description": "Sesión y baja de cuenta" }
+    },
+    "summary": {
+      "sectionTitle": "Resumen",
+      "language": "Idioma",
+      "notifications": "Notificaciones",
+      "notificationsValue": "{{enabled}}/{{total}}",
+      "privacy": "Privacidad",
+      "privacyValue": "Posiciones protegidas"
+    },
+    "version": "Versión {{version}} (demo)",
+    "edit": {
+      "title": "Editar perfil",
+      "nameSection": "Nombre",
+      "firstNameLabel": "Nombre",
+      "lastNameLabel": "Apellido",
+      "languageSection": "Idioma",
+      "languageEs": "Español",
+      "languageEsDescription": "Español (Argentina)",
+      "languageEn": "English",
+      "languageEnDescription": "English",
+      "selectedLabel": "Seleccionado",
+      "communicationSection": "Preferencia de comunicación",
+      "communicationEmail": "Resumen por email",
+      "communicationEmailDescription": "Un resumen periódico, simulado en esta demostración",
+      "communicationInApp": "Solo en la app",
+      "communicationInAppDescription": "Sin resúmenes por email",
+      "accessibilitySection": "Preferencia de accesibilidad",
+      "accessibilitySystem": "Predeterminada del sistema",
+      "accessibilitySystemDescription": "Usa el tamaño de texto del dispositivo",
+      "accessibilityLargerText": "Texto más grande (preferencia)",
+      "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
+      "save": "Guardar cambios",
+      "saved": "Los cambios se guardaron en esta demostración.",
+      "error": { "title": "No pudimos guardar los cambios", "retry": "Reintentar" }
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "categories": {
+        "caseUpdates": { "label": "Novedades del caso", "description": "Cambios de estado en tus casos activos" },
+        "proposalReady": { "label": "Propuesta lista", "description": "Cuando la IA genera una nueva propuesta compartida" },
+        "responseReceived": { "label": "Respuesta recibida", "description": "Cuando la otra parte responde a una propuesta" },
+        "signatureReady": { "label": "Firma disponible", "description": "Cuando un acuerdo está listo para firmar" },
+        "agreementCompleted": { "label": "Acuerdo completado", "description": "Cuando ambas partes firmaron el acuerdo" },
+        "mediatorAvailability": { "label": "Disponibilidad de mediador/a", "description": "Cuando un mediador queda disponible para tu caso" },
+        "productUpdates": { "label": "Novedades de la aplicación", "description": "Anuncios generales del producto" }
+      },
+      "error": { "title": "No pudimos actualizar la preferencia", "retry": "Reintentar" }
+    },
+    "privacy": {
+      "title": "Privacidad y datos",
+      "isolation": { "title": "Tus posiciones privadas", "body": "Las posiciones privadas que cargás en cada caso solo las ves vos. La otra parte nunca accede a tus valores, condiciones o descripciones." },
+      "sharedProposals": { "title": "Propuestas compartidas", "body": "Las propuestas de la IA muestran un punto medio ya sanitizado: nunca revelan las posiciones privadas originales de ninguna parte." },
+      "signatures": { "title": "Firmas en este entorno", "body": "Las firmas de esta demostración son simuladas. No se realiza ninguna firma legal ni criptográfica." },
+      "future": { "title": "Próximamente", "body": "La integración con el backend real y la autenticación llegarán en una etapa posterior del proyecto." },
+      "links": { "deactivation": "Solicitar baja de cuenta", "support": "Contactar a soporte" }
+    },
+    "help": {
+      "title": "Ayuda y soporte",
+      "topics": {
+        "flow": { "question": "¿Cómo funciona el proceso de mediación?", "answer": "Cada parte carga sus posiciones privadas, la IA sugiere una propuesta intermedia y ambas partes la aceptan o la rechazan en rondas sucesivas." },
+        "privacy": { "question": "¿Cómo se protegen mis posiciones privadas?", "answer": "Solo vos podés ver tus posiciones. La otra parte nunca accede a esa información; solo ve las propuestas ya sanitizadas." },
+        "afterAgreement": { "question": "¿Qué pasa después de llegar a un acuerdo?", "answer": "El acuerdo queda disponible para revisión y firma de ambas partes antes de darse por completado." },
+        "signatureSimulation": { "question": "¿Las firmas son legalmente válidas?", "answer": "Todavía no. En esta demostración, la firma es una confirmación simulada dentro de la app, sin validez legal ni certificación criptográfica." },
+        "mediator": { "question": "¿Cuándo interviene un mediador?", "answer": "Si una negociación no llega a un acuerdo después de dos rondas, se habilita la posibilidad de solicitar un mediador desde la tercera ronda." }
+      },
+      "contact": { "action": "Contactar a soporte", "notice": "En esta demostración no se envía ningún mensaje real a soporte. Todavía no hay un canal de contacto activo." }
+    },
+    "legal": {
+      "title": "Legales",
+      "generalInfoBadge": "Información general",
+      "terms": { "title": "Términos de uso", "body": "Información general sobre el uso de la aplicación durante esta etapa de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal." },
+      "privacyNotice": { "title": "Aviso de privacidad", "body": "Descripción general de cómo se maneja la información dentro de este entorno de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal." },
+      "aiNotice": { "title": "Aviso sobre asistencia de IA", "body": "La inteligencia artificial sugiere propuestas de acuerdo, pero nunca decide ni reemplaza el criterio de las partes ni de un mediador. Este contenido no constituye asesoramiento legal." },
+      "signatureNotice": { "title": "Aviso sobre firma simulada", "body": "Las firmas registradas en esta demostración son simuladas: no tienen validez legal ni utilizan un proveedor de firma certificada. Este contenido no constituye asesoramiento legal." },
+      "noAdvice": { "title": "Sin asesoramiento legal", "body": "Nada de lo mostrado en esta aplicación constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal antes de su publicación." }
+    },
+    "account": {
+      "title": "Cuenta",
+      "versionLabel": "Versión {{version}} (demo)",
+      "signOut": {
+        "cardTitle": "Cerrar sesión",
+        "cardDescription": "Simulá el cierre de sesión en esta demostración.",
+        "action": "Cerrar sesión (demo)",
+        "dialogTitle": "¿Cerrar sesión?",
+        "dialogBody": "Vas a salir de esta demostración. Tus casos, posiciones y demás datos simulados no se eliminan.",
+        "confirm": "Cerrar sesión",
+        "cancel": "Cancelar",
+        "error": { "title": "No pudimos cerrar la sesión", "retry": "Reintentar" }
+      },
+      "deactivation": {
+        "cardTitle": "Solicitar baja de cuenta",
+        "cardDescription": "Registrá una solicitud de baja simulada para esta demostración.",
+        "action": "Solicitar baja",
+        "viewStatusAction": "Ver estado de la solicitud",
+        "dialogTitle": "¿Solicitar la baja de tu cuenta?",
+        "dialogBody": "Esta acción no elimina ningún dato ni afecta un sistema real: solo registra una solicitud simulada en esta demostración.",
+        "confirm": "Solicitar baja",
+        "cancel": "Cancelar",
+        "close": "Cerrar",
+        "requestedNotice": "La solicitud quedó registrada en esta demostración el {{date}}.",
+        "alreadyRequestedTitle": "Ya registramos tu solicitud",
+        "alreadyRequestedBody": "La solicitud quedó registrada en esta demostración el {{date}}. No se generó una nueva solicitud.",
+        "error": { "title": "No pudimos registrar la solicitud", "retry": "Reintentar" }
+      }
+    },
+    "signedOut": {
+      "title": "Sesión finalizada (demo)",
+      "body": "Esta es una sesión simulada: no hay autenticación real todavía. Tus casos y datos de la demostración siguen disponibles.",
+      "returnAction": "Volver a la demo",
+      "error": { "title": "No pudimos restaurar la sesión", "retry": "Reintentar" }
+    }
+  },
   "placeholders": {
     "comingSoon": {
       "title": "Próximamente",
