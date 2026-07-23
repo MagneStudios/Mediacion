@@ -6,6 +6,7 @@ import { Button, Card, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
+import { blurActiveElement } from '../../../utils/blur-active-element';
 import { useAgreement } from '../hooks/useAgreement';
 
 export type AgreementSummaryCardProps = {
@@ -71,7 +72,10 @@ export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
         <Button
           variant="secondary"
           fullWidth
-          onPress={() => router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } })}
+          onPress={() => {
+            blurActiveElement();
+            router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+          }}
         >
           {t('agreement.summary.viewAction')}
         </Button>

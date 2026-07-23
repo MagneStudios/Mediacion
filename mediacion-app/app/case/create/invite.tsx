@@ -12,6 +12,7 @@ import { InvitationResultCard } from '@/features/cases/components/InvitationResu
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import { casesService } from '@/services/cases.service';
 import type { TipoInvitacion } from '@/types/case';
+import { blurActiveElement } from '@/utils/blur-active-element';
 import { isValidEmail } from '@/utils/validate-email';
 
 const TIPOS: TipoInvitacion[] = ['link', 'codigo', 'email'];
@@ -56,7 +57,14 @@ export default function CaseCreateInviteScreen() {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Stack.Screen options={{ title: '' }} />
-        <ErrorState title={t('caseCreation.review.error.title')} retryLabel={t('caseCreation.method.back')} onRetry={() => router.back()} />
+        <ErrorState
+          title={t('caseCreation.review.error.title')}
+          retryLabel={t('caseCreation.method.back')}
+          onRetry={() => {
+            blurActiveElement();
+            router.back();
+          }}
+        />
       </ScrollView>
     );
   }
@@ -67,7 +75,9 @@ export default function CaseCreateInviteScreen() {
         <Stack.Screen options={{ title: '' }} />
         <CaseCreationProgress step={4} total={4} label={t('caseCreation.progress', { step: 4, total: 4 })} />
 
-        <Text style={styles.title}>{t('caseCreation.invite.title')}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('caseCreation.invite.title')}
+        </Text>
         <Text style={styles.subtitle}>{t('caseCreation.invite.subtitle')}</Text>
 
         {TIPOS.map((option) => (
@@ -118,7 +128,14 @@ export default function CaseCreateInviteScreen() {
                 ? t('caseCreation.invite.sandboxMessage')
                 : t('caseCreation.invite.preparedMessage')}
             </Text>
-            <Button variant="primary" fullWidth onPress={() => router.push('/case/create/success')}>
+            <Button
+              variant="primary"
+              fullWidth
+              onPress={() => {
+                blurActiveElement();
+                router.push('/case/create/success');
+              }}
+            >
               {t('caseCreation.invite.continue')}
             </Button>
           </>

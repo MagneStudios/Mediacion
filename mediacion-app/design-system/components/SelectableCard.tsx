@@ -13,6 +13,8 @@ export type SelectableCardProps = {
   selected: boolean;
   selectedLabel: string;
   onPress: () => void;
+  /** Announced after the title/description — used to attach a group-level validation error (e.g. "choose a topic to continue") to every card in the group, since the error text itself sits outside the radio group. */
+  accessibilityHint?: string;
 };
 
 /**
@@ -21,12 +23,13 @@ export type SelectableCardProps = {
  * invitation method, position category, concession choice) rather than
  * duplicated per feature.
  */
-export function SelectableCard({ icon, title, description, selected, selectedLabel, onPress }: SelectableCardProps) {
+export function SelectableCard({ icon, title, description, selected, selectedLabel, onPress, accessibilityHint }: SelectableCardProps) {
   return (
     <Card
       interactive
       onPress={onPress}
       accessibilityLabel={title}
+      accessibilityHint={accessibilityHint}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       style={[styles.card, selected ? styles.cardSelected : null]}

@@ -9,6 +9,7 @@ import { typography } from '@/design-system/tokens/typography';
 import { SignatureInboxCard } from '@/features/agreements/components/SignatureInboxCard';
 import { useSignatureInbox } from '@/features/agreements/hooks/useSignatureInbox';
 import type { SignatureInboxItem } from '@/types/agreement';
+import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function SignaturesScreen() {
@@ -16,7 +17,10 @@ export default function SignaturesScreen() {
   const router = useRouter();
   const result = useSignatureInbox();
 
-  const openAgreement = (caseId: string) => router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+  const openAgreement = (caseId: string) => {
+    blurActiveElement();
+    router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+  };
 
   if (result.status === 'loading') {
     return (

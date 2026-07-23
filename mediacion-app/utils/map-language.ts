@@ -13,7 +13,3 @@ const IDIOMA_TO_LOCALE: Record<PreferredLanguage, string> = {
 export function idiomaToLocale(idioma: PreferredLanguage): string {
   return IDIOMA_TO_LOCALE[idioma];
 }
-
-export function localeToIdioma(locale: string): PreferredLanguage {
-  return locale.startsWith('es') ? 'es' : 'en';
-}

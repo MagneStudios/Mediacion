@@ -8,6 +8,7 @@ import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 import type { NegotiationState } from '../../../types/negotiation';
+import { blurActiveElement } from '../../../utils/blur-active-element';
 import { useNegotiation } from '../hooks/useNegotiation';
 
 export type NegotiationSummaryCardProps = {
@@ -85,7 +86,10 @@ export function NegotiationSummaryCard({ caseId }: NegotiationSummaryCardProps) 
         <Button
           variant="secondary"
           fullWidth
-          onPress={() => router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } })}
+          onPress={() => {
+            blurActiveElement();
+            router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } });
+          }}
         >
           {t('negotiation.summary.viewAction')}
         </Button>

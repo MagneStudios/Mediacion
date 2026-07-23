@@ -9,6 +9,7 @@ import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import type { MetodoCaso } from '@/types/case';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
@@ -19,6 +20,7 @@ export default function CaseCreateMethodScreen() {
 
   const handleContinue = () => {
     if (!draft.metodo) return;
+    blurActiveElement();
     router.push('/case/create/review');
   };
 
@@ -27,7 +29,9 @@ export default function CaseCreateMethodScreen() {
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={2} total={4} label={t('caseCreation.progress', { step: 2, total: 4 })} />
 
-      <Text style={styles.title}>{t('caseCreation.method.title')}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('caseCreation.method.title')}
+      </Text>
       <Text style={styles.subtitle}>{t('caseCreation.method.subtitle')}</Text>
 
       {METHODS.map((metodo) => (
@@ -45,7 +49,14 @@ export default function CaseCreateMethodScreen() {
       <Button variant="primary" fullWidth disabled={!draft.metodo} onPress={handleContinue}>
         {t('caseCreation.method.continue')}
       </Button>
-      <Button variant="tertiary" fullWidth onPress={() => router.back()}>
+      <Button
+        variant="tertiary"
+        fullWidth
+        onPress={() => {
+          blurActiveElement();
+          router.back();
+        }}
+      >
         {t('caseCreation.method.back')}
       </Button>
     </ScrollView>

@@ -20,6 +20,8 @@ export type CardProps = {
   interactive?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** Supplementary announcement after the label — e.g. a validation error attached to a selectable-card group. */
+  accessibilityHint?: string;
   /** Defaults to "button" — override for e.g. a single-select option card ("radio"). */
   accessibilityRole?: AccessibilityRole;
   accessibilityState?: AccessibilityState;
@@ -85,6 +87,7 @@ export function Card({
   interactive = false,
   onPress,
   accessibilityLabel,
+  accessibilityHint,
   accessibilityRole = 'button',
   accessibilityState,
   children,
@@ -101,6 +104,7 @@ export function Card({
       onPress={onPress}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState}
       style={({ pressed }) => [
         styles.base,

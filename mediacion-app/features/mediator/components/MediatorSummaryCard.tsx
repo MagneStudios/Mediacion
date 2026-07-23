@@ -8,6 +8,7 @@ import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { MediatorState } from '../../../types/mediator';
+import { blurActiveElement } from '../../../utils/blur-active-element';
 import { useMediator } from '../hooks/useMediator';
 
 export type MediatorSummaryCardProps = {
@@ -96,7 +97,10 @@ export function MediatorSummaryCard({ caseId, hideWhenUnavailable = false }: Med
     return null;
   }
 
-  const goToMediator = () => router.push({ pathname: '/case/[id]/mediator', params: { id: caseId } });
+  const goToMediator = () => {
+    blurActiveElement();
+    router.push({ pathname: '/case/[id]/mediator', params: { id: caseId } });
+  };
 
   return (
     <View style={styles.section}>

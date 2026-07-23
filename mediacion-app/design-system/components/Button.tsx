@@ -40,7 +40,7 @@ const VARIANT_BG_PRESSED: Record<ButtonVariant, string> = {
   secondary: semanticColors.surface.sunken,
   tertiary: 'rgba(17, 17, 17, 0.09)',
   ai: semanticColors.action.aiBgPressed,
-  destructive: '#eccccc',
+  destructive: semanticColors.status.errorBgPressed,
 };
 
 const VARIANT_FG: Record<ButtonVariant, string> = {

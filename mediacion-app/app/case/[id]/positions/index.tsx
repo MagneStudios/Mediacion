@@ -108,7 +108,10 @@ export default function OwnPositionsScreen() {
                 variant="primary"
                 fullWidth
                 iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
-                onPress={() => router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } })}
+                onPress={() => {
+                  blurActiveElement();
+                  router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
+                }}
               >
                 {t('positions.dashboard.createAction')}
               </Button>
@@ -150,7 +153,10 @@ export default function OwnPositionsScreen() {
                 canManage ? (
                   <Button
                     variant="primary"
-                    onPress={() => router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } })}
+                    onPress={() => {
+                  blurActiveElement();
+                  router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
+                }}
                   >
                     {t('positions.empty.action')}
                   </Button>

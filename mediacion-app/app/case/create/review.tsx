@@ -12,6 +12,7 @@ import { CaseReviewCard } from '@/features/cases/components/CaseReviewCard';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import { casesService } from '@/services/cases.service';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 type CreateStatus = 'idle' | 'submitting' | 'error';
 
@@ -32,6 +33,7 @@ export default function CaseCreateReviewScreen() {
       });
       setCreatedCase(created.id);
       setStatus('idle');
+      blurActiveElement();
       router.push('/case/create/invite');
     } catch {
       setStatus('error');
@@ -47,7 +49,10 @@ export default function CaseCreateReviewScreen() {
         <ErrorState
           title={t('caseCreation.review.error.title')}
           retryLabel={t('caseCreation.method.back')}
-          onRetry={() => router.back()}
+          onRetry={() => {
+            blurActiveElement();
+            router.back();
+          }}
         />
       </ScrollView>
     );
@@ -58,7 +63,9 @@ export default function CaseCreateReviewScreen() {
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={3} total={4} label={t('caseCreation.progress', { step: 3, total: 4 })} />
 
-      <Text style={styles.title}>{t('caseCreation.review.title')}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('caseCreation.review.title')}
+      </Text>
 
       <CaseReviewCard
         nameLabel={t('caseCreation.review.nameLabel')}
@@ -82,7 +89,15 @@ export default function CaseCreateReviewScreen() {
           {status === 'submitting' ? t('caseCreation.review.creating') : t('caseCreation.review.create')}
         </Button>
       )}
-      <Button variant="tertiary" fullWidth onPress={() => router.back()} disabled={status === 'submitting'}>
+      <Button
+        variant="tertiary"
+        fullWidth
+        onPress={() => {
+          blurActiveElement();
+          router.back();
+        }}
+        disabled={status === 'submitting'}
+      >
         {t('caseCreation.review.edit')}
       </Button>
     </ScrollView>

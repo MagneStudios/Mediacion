@@ -197,3 +197,55 @@ export async function appendMediatorNotice(input: StrictMediatorNoticeInput): Pr
   notifyUnreadListeners();
   return { ...committed };
 }
+
+const CASE_NOTICE_EVENT_KEYS = ['invitation_accepted_simulated'] as const;
+export type CaseNoticeEventKey = (typeof CASE_NOTICE_EVENT_KEYS)[number];
+
+const CASE_NOTICE_COPY: Record<CaseNoticeEventKey, { titleKey: string; bodyKey: string; priority: NoticePriority }> = {
+  invitation_accepted_simulated: {
+    titleKey: 'caseDetail.awaitingCounterparty.simulateAcceptance.notice.title',
+    bodyKey: 'caseDetail.awaitingCounterparty.simulateAcceptance.notice.body',
+    priority: 'normal',
+  },
+};
+
+export type StrictCaseNoticeInput = { caseId: string; eventKey: CaseNoticeEventKey };
+
+/**
+ * Narrow, validated append surface for the case-lifecycle demo actions
+ * only (phase 9's simulated invitation acceptance) — never a generic
+ * "create any notice" API. Category is always 'invitation' and destination
+ * is always `{ type: 'case', caseId }`, both fixed internally — never
+ * caller-supplied. Validates the event key against the fixed 1-value
+ * allow-list, validates the case exists (via casesService.getCaseTitle),
+ * and dedupes deterministically on a `case-notice-${caseId}-${eventKey}`
+ * id so a retried best-effort call is a guaranteed no-op. Returns null
+ * (never throws) on any validation failure or duplicate.
+ */
+export async function appendCaseNotice(input: StrictCaseNoticeInput): Promise<AppNotice | null> {
+  if (!CASE_NOTICE_EVENT_KEYS.includes(input.eventKey)) return null;
+
+  const title = await casesService.getCaseTitle(input.caseId);
+  if (!title) return null;
+
+  const id = `case-notice-${input.caseId}-${input.eventKey}`;
+  if (mockNotices.some((notice) => notice.id === id)) return null;
+
+  const copy = CASE_NOTICE_COPY[input.eventKey];
+  const notice: AppNotice = {
+    id,
+    category: 'invitation',
+    titleKey: copy.titleKey,
+    bodyKey: copy.bodyKey,
+    createdAt: new Date().toISOString(),
+    read: false,
+    priority: copy.priority,
+    destination: { type: 'case', caseId: input.caseId },
+    caseId: input.caseId,
+  };
+
+  const committed = await delay(notice, 200);
+  mockNotices.push(committed);
+  notifyUnreadListeners();
+  return { ...committed };
+}

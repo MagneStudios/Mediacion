@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.ai.tint,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#c7d6d1',
+    borderColor: semanticColors.ai.border,
     padding: spacing.md,
     gap: spacing.xs,
   },

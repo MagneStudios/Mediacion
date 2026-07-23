@@ -86,3 +86,41 @@ export async function appendMediatorActivity(input: StrictMediatorActivityInput)
   mockActivity.push(committed);
   return { ...committed };
 }
+
+const CASE_ACTIVITY_EVENT_KEYS = ['invitation_accepted'] as const satisfies readonly ActivityEventKey[];
+export type CaseActivityEventKey = (typeof CASE_ACTIVITY_EVENT_KEYS)[number];
+
+export type StrictCaseActivityInput = { caseId: string; eventKey: CaseActivityEventKey };
+
+/**
+ * Narrow, validated append surface for the case-lifecycle demo actions
+ * only (phase 9's simulated invitation acceptance) — reuses the existing
+ * `invitation_accepted` shared-safe event key (already part of
+ * ActivityEventKey and already seeded for case-1/2/3) rather than
+ * inventing a new one. Destination is always `{ type: 'case', caseId }`,
+ * fixed internally. Dedupes deterministically on a
+ * `case-activity-${caseId}-${eventKey}` id so a retried best-effort call
+ * is a guaranteed no-op. Returns null (never throws) on any validation
+ * failure or duplicate.
+ */
+export async function appendCaseActivity(input: StrictCaseActivityInput): Promise<ActivityItem | null> {
+  if (!CASE_ACTIVITY_EVENT_KEYS.includes(input.eventKey)) return null;
+
+  const title = await casesService.getCaseTitle(input.caseId);
+  if (!title) return null;
+
+  const id = `case-activity-${input.caseId}-${input.eventKey}`;
+  if (mockActivity.some((item) => item.id === id)) return null;
+
+  const item: ActivityItem = {
+    id,
+    eventKey: input.eventKey,
+    createdAt: new Date().toISOString(),
+    caseId: input.caseId,
+    destination: { type: 'case', caseId: input.caseId },
+  };
+
+  const committed = await delay(item, 200);
+  mockActivity.push(committed);
+  return { ...committed };
+}

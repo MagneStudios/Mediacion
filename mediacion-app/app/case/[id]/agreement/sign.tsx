@@ -12,6 +12,7 @@ import { MockSignatureConfirmation } from '@/features/agreements/components/Mock
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureEnvironmentNotice } from '@/features/agreements/components/SignatureEnvironmentNotice';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function AgreementSignScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
@@ -100,7 +101,14 @@ export default function AgreementSignScreen() {
           ) : waitingForOtherParty ? (
             <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text>
           ) : null}
-          <Button variant="secondary" fullWidth onPress={() => router.back()}>
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              blurActiveElement();
+              router.back();
+            }}
+          >
             {t('agreement.sign.backToAgreement')}
           </Button>
         </View>

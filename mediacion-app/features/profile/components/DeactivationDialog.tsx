@@ -65,7 +65,9 @@ export function DeactivationDialog({
 
           {alreadyRequested ? (
             <>
-              <Text style={styles.title}>{alreadyRequestedTitle}</Text>
+              <Text style={styles.title} accessibilityRole="header">
+                {alreadyRequestedTitle}
+              </Text>
               <Text style={styles.body}>{alreadyRequestedBody}</Text>
               <View style={styles.actions}>
                 <Button variant="tertiary" fullWidth onPress={onClose}>
@@ -75,7 +77,9 @@ export function DeactivationDialog({
             </>
           ) : (
             <>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.title} accessibilityRole="header">
+                {title}
+              </Text>
               <Text style={styles.body}>{body}</Text>
               {status === 'error' ? (
                 <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />

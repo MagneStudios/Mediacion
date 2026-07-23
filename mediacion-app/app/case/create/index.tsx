@@ -9,6 +9,7 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function CaseCreateBasicInfoScreen() {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export default function CaseCreateBasicInfoScreen() {
       return;
     }
     setBasicInfo(trimmedNombre, descripcion.trim());
+    blurActiveElement();
     router.push('/case/create/method');
   };
 
@@ -40,7 +42,9 @@ export default function CaseCreateBasicInfoScreen() {
         <Stack.Screen options={{ title: '' }} />
         <CaseCreationProgress step={1} total={4} label={t('caseCreation.progress', { step: 1, total: 4 })} />
 
-        <Text style={styles.title}>{t('caseCreation.basicInfo.title')}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('caseCreation.basicInfo.title')}
+        </Text>
         <Text style={styles.subtitle}>{t('caseCreation.basicInfo.subtitle')}</Text>
 
         <Input

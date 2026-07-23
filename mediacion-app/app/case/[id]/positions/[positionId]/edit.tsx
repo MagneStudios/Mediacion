@@ -12,6 +12,7 @@ import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { PositionFormFields } from '@/features/positions/components/PositionFormFields';
 import { positionsService } from '@/services/positions.service';
 import type { CategoriaPosicion, PositionItem } from '@/types/position';
+import { blurActiveElement } from '@/utils/blur-active-element';
 import { getPositionEligibility } from '@/utils/position-eligibility';
 import { validatePositionRange } from '@/utils/validate-position-range';
 
@@ -81,7 +82,14 @@ export default function EditPositionScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: '' }} />
-        <ErrorState title={t('positions.edit.notFound.title')} retryLabel={t('common.back')} onRetry={() => router.back()} />
+        <ErrorState
+          title={t('positions.edit.notFound.title')}
+          retryLabel={t('common.back')}
+          onRetry={() => {
+            blurActiveElement();
+            router.back();
+          }}
+        />
       </View>
     );
   }
@@ -132,6 +140,7 @@ export default function EditPositionScreen() {
         canConcede,
         concessionConditions: canConcede ? concessionConditions.trim() || undefined : undefined,
       });
+      blurActiveElement();
       router.back();
     } catch {
       setSaveStatus('error');
@@ -143,7 +152,9 @@ export default function EditPositionScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Stack.Screen options={{ title: '' }} />
 
-        <Text style={styles.title}>{readOnly ? t('positions.edit.readOnlyTitle') : t('positions.edit.title')}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {readOnly ? t('positions.edit.readOnlyTitle') : t('positions.edit.title')}
+        </Text>
 
         {readOnly ? (
           <Badge variant="neutral">{t('positions.edit.readOnlyBadge')}</Badge>

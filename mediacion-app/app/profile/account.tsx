@@ -120,7 +120,10 @@ export default function ProfileAccountScreen() {
         errorTitle={t('profile.account.signOut.error.title')}
         retryLabel={t('profile.account.signOut.error.retry')}
         onConfirm={confirmSignOut}
-        onCancel={() => setSignOutDialogVisible(false)}
+        onCancel={() => {
+          if (signOutStatus === 'pending') return;
+          setSignOutDialogVisible(false);
+        }}
       />
 
       <DeactivationDialog
@@ -137,7 +140,10 @@ export default function ProfileAccountScreen() {
         errorTitle={t('profile.account.deactivation.error.title')}
         retryLabel={t('profile.account.deactivation.error.retry')}
         onConfirm={confirmDeactivation}
-        onCancel={() => setDeactivationDialogVisible(false)}
+        onCancel={() => {
+          if (deactivateStatus === 'pending') return;
+          setDeactivationDialogVisible(false);
+        }}
         onClose={() => setDeactivationDialogVisible(false)}
       />
     </ScrollView>

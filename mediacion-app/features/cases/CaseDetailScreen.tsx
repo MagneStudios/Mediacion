@@ -7,19 +7,25 @@ import { Badge, Button, ErrorState, Icon, LoadingState, StatusPill } from '../..
 import { semanticColors } from '../../design-system/tokens/colors';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
+import { appendCaseActivity } from '../../services/activity.service';
 import { casesService } from '../../services/cases.service';
+import { appendCaseNotice } from '../../services/notices.service';
 import type { CaseInvitation } from '../../types/case';
+import { blurActiveElement } from '../../utils/blur-active-element';
 import { getPositionEligibility } from '../../utils/position-eligibility';
 import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { PrivacyNotice } from './components/PrivacyNotice';
+import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
 import { useCaseDetail } from './hooks/useCaseDetail';
 
 export type CaseDetailScreenProps = {
   caseId: string;
 };
+
+type MutationStatus = 'idle' | 'pending' | 'error';
 
 export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
@@ -29,6 +35,9 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
   const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
+  const [simulateDialogVisible, setSimulateDialogVisible] = useState(false);
+  const [simulateStatus, setSimulateStatus] = useState<MutationStatus>('idle');
+
   const handleViewInvitation = async () => {
     setInvitationStatus('loading');
     try {
@@ -37,6 +46,39 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       setInvitationStatus('idle');
     } catch {
       setInvitationStatus('error');
+    }
+  };
+
+  const openSimulateDialog = () => {
+    setSimulateStatus('idle');
+    setSimulateDialogVisible(true);
+  };
+
+  const handleConfirmSimulateAcceptance = async () => {
+    if (simulateStatus === 'pending') return;
+    setSimulateStatus('pending');
+    try {
+      await casesService.simulateInvitationAcceptance(caseId);
+      setSimulateStatus('idle');
+      setSimulateDialogVisible(false);
+      reload();
+
+      // Best-effort side effects only, strictly after the case transition
+      // above has already committed — a notice/activity failure here never
+      // rolls it back. Both narrow append functions dedupe internally, so
+      // this can never create a duplicate on a retried call.
+      try {
+        await appendCaseNotice({ caseId, eventKey: 'invitation_accepted_simulated' });
+      } catch {
+        // Best-effort mock side effect — never surfaced, never rolled back.
+      }
+      try {
+        await appendCaseActivity({ caseId, eventKey: 'invitation_accepted' });
+      } catch {
+        // Best-effort mock side effect — never surfaced, never rolled back.
+      }
+    } catch {
+      setSimulateStatus('error');
     }
   };
 
@@ -64,7 +106,9 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{detail.title}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {detail.title}
+      </Text>
       <Text style={styles.subtitle}>{t('caseDetail.caseCode', { code: detail.caseCode })}</Text>
 
       <PrivacyNotice>{t('caseDetail.privacyNotice')}</PrivacyNotice>
@@ -105,6 +149,13 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
                 : t('caseDetail.awaitingCounterparty.viewInvitation')}
             </Button>
           )}
+
+          <View style={styles.simulateSection}>
+            <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}</Text>
+            <Button variant="secondary" fullWidth onPress={openSimulateDialog} disabled={simulateStatus === 'pending'}>
+              {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
+            </Button>
+          </View>
         </View>
       ) : (
         <>
@@ -121,9 +172,10 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
                       variant="primary"
                       fullWidth
                       iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
-                      onPress={() =>
-                        router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } })
-                      }
+                      onPress={() => {
+                        blurActiveElement();
+                        router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
+                      }}
                     >
                       {t('caseDetail.positions.createAction')}
                     </Button>
@@ -131,7 +183,10 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
                   <Button
                     variant="secondary"
                     fullWidth
-                    onPress={() => router.push({ pathname: '/case/[id]/positions', params: { id: caseId } })}
+                    onPress={() => {
+                      blurActiveElement();
+                      router.push({ pathname: '/case/[id]/positions', params: { id: caseId } });
+                    }}
                   >
                     {t('caseDetail.positions.viewAction')}
                   </Button>
@@ -147,6 +202,22 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
         </>
       )}
+
+      <SimulateInvitationAcceptanceDialog
+        visible={simulateDialogVisible}
+        status={simulateStatus === 'pending' ? 'submitting' : simulateStatus === 'error' ? 'error' : 'idle'}
+        title={t('caseDetail.awaitingCounterparty.simulateAcceptance.dialog.title')}
+        body={t('caseDetail.awaitingCounterparty.simulateAcceptance.dialog.body')}
+        confirmLabel={t('caseDetail.awaitingCounterparty.simulateAcceptance.dialog.confirm')}
+        cancelLabel={t('caseDetail.awaitingCounterparty.simulateAcceptance.dialog.cancel')}
+        errorTitle={t('caseDetail.awaitingCounterparty.simulateAcceptance.error.title')}
+        retryLabel={t('common.retry')}
+        onConfirm={handleConfirmSimulateAcceptance}
+        onCancel={() => {
+          if (simulateStatus === 'pending') return;
+          setSimulateDialogVisible(false);
+        }}
+      />
     </ScrollView>
   );
 }
@@ -182,6 +253,10 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing.xs,
+  },
+  simulateSection: {
+    gap: spacing.xs,
+    marginTop: spacing.sm,
   },
   sectionLabel: {
     fontFamily: typography.eyebrow.fontFamily,

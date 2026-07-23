@@ -6,6 +6,7 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
 import { PrivacySummaryCard } from '@/features/profile/components/PrivacySummaryCard';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function ProfilePrivacyScreen() {
   const { t } = useTranslation();
@@ -23,12 +24,18 @@ export default function ProfilePrivacyScreen() {
       <ProfileMenuItem
         icon="alert-circle"
         label={t('profile.privacy.links.deactivation')}
-        onPress={() => router.push('/profile/account')}
+        onPress={() => {
+          blurActiveElement();
+          router.push('/profile/account');
+        }}
       />
       <ProfileMenuItem
         icon="help-circle"
         label={t('profile.privacy.links.support')}
-        onPress={() => router.push('/profile/help')}
+        onPress={() => {
+          blurActiveElement();
+          router.push('/profile/help');
+        }}
       />
     </ScrollView>
   );

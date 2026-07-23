@@ -47,7 +47,10 @@ export default function TabLayout() {
             <View style={styles.iconWrapper}>
               <Icon name="bell" size={22} color={color} />
               {unreadCount > 0 ? (
-                <View style={styles.badge}>
+                // The tab's own tabBarAccessibilityLabel already announces
+                // the unread count — this glyph is purely visual, hidden
+                // from assistive tech so it's never announced a second time.
+                <View style={styles.badge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Text style={styles.badgeText}>{unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(unreadCount)}</Text>
                 </View>
               ) : null}

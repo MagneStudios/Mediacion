@@ -11,6 +11,7 @@ import { DocumentPreparationState } from '@/features/agreements/components/Docum
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
+import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function AgreementDashboardScreen() {
@@ -41,7 +42,7 @@ export default function AgreementDashboardScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
-        <Text style={styles.bodyText}>{t('agreement.summary.unavailable')}</Text>
+        <ErrorState title={t('states.error.title')} retryLabel={t('states.error.retry')} onRetry={reload} />
       </View>
     );
   }
@@ -102,7 +103,10 @@ export default function AgreementDashboardScreen() {
         <Button
           variant="primary"
           fullWidth
-          onPress={() => router.push({ pathname: '/case/[id]/agreement/sign', params: { id: caseId } })}
+          onPress={() => {
+            blurActiveElement();
+            router.push({ pathname: '/case/[id]/agreement/sign', params: { id: caseId } });
+          }}
         >
           {t('agreement.sign.goToAction')}
         </Button>
@@ -117,7 +121,10 @@ export default function AgreementDashboardScreen() {
       <Button
         variant="tertiary"
         fullWidth
-        onPress={() => router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } })}
+        onPress={() => {
+          blurActiveElement();
+          router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
+        }}
       >
         {t('agreement.history.viewAction')}
       </Button>

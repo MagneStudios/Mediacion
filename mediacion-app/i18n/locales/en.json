@@ -43,12 +43,26 @@
   "caseDetail": {
     "caseCode": "Case {{code}}",
     "privacyNotice": "Your private positions are never shared with the other party. They will only see what you choose to propose.",
-    "progress": "Progress",
     "awaitingCounterparty": {
       "title": "Waiting for the other party",
       "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
       "viewInvitation": "View invitation",
-      "invitationError": "We couldn't load the invitation"
+      "invitationError": "We couldn't load the invitation",
+      "simulateAcceptance": {
+        "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
+        "action": "Simulate invitation acceptance",
+        "dialog": {
+          "title": "Simulate acceptance?",
+          "body": "This action only updates the demonstration. No real invitation will be sent or accepted.",
+          "confirm": "Simulate acceptance",
+          "cancel": "Cancel"
+        },
+        "error": { "title": "We couldn't simulate the acceptance" },
+        "notice": {
+          "title": "Invitation accepted (simulated)",
+          "body": "The acceptance was simulated to continue the demonstration."
+        }
+      }
     },
     "positions": {
       "title": "My private positions",
@@ -333,6 +347,10 @@
     "dashboard": {
       "title": "Negotiation",
       "privacyNotice": "Your private positions are never shown in the negotiation. The other party won't see your values."
+    },
+    "notFound": {
+      "title": "We couldn't find this case",
+      "description": "The link may no longer be valid. Go back to the previous case to continue."
     },
     "round": {
       "label": "Round {{number}}",
@@ -635,7 +653,6 @@
     }
   },
   "notices": {
-    "tabTitle": "Notices",
     "title": "Notice center",
     "demoNotice": {
       "title": "Demonstration environment",
@@ -821,9 +838,6 @@
     }
   },
   "states": {
-    "loading": {
-      "title": "Loading"
-    },
     "error": {
       "title": "Something went wrong",
       "retry": "Try again"

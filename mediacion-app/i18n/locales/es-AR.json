@@ -43,12 +43,26 @@
   "caseDetail": {
     "caseCode": "Caso {{code}}",
     "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
-    "progress": "Progreso",
     "awaitingCounterparty": {
       "title": "Esperando a la contraparte",
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
       "viewInvitation": "Ver invitación",
-      "invitationError": "No pudimos cargar la invitación"
+      "invitationError": "No pudimos cargar la invitación",
+      "simulateAcceptance": {
+        "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
+        "action": "Simular aceptación de la invitación",
+        "dialog": {
+          "title": "¿Simular aceptación?",
+          "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
+          "confirm": "Simular aceptación",
+          "cancel": "Cancelar"
+        },
+        "error": { "title": "No pudimos simular la aceptación" },
+        "notice": {
+          "title": "Invitación aceptada (simulada)",
+          "body": "La aceptación fue simulada para continuar la demostración."
+        }
+      }
     },
     "positions": {
       "title": "Mis posiciones privadas",
@@ -333,6 +347,10 @@
     "dashboard": {
       "title": "Negociación",
       "privacyNotice": "Tus posiciones privadas no se muestran en la negociación. La contraparte no verá tus valores."
+    },
+    "notFound": {
+      "title": "No encontramos este caso",
+      "description": "Es posible que el enlace ya no sea válido. Volvé al caso anterior para continuar."
     },
     "round": {
       "label": "Ronda {{number}}",
@@ -635,7 +653,6 @@
     }
   },
   "notices": {
-    "tabTitle": "Avisos",
     "title": "Centro de avisos",
     "demoNotice": {
       "title": "Entorno de demostración",
@@ -821,9 +838,6 @@
     }
   },
   "states": {
-    "loading": {
-      "title": "Cargando"
-    },
     "error": {
       "title": "Algo no salió bien",
       "retry": "Reintentar"

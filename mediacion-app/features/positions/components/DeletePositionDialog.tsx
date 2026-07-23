@@ -52,7 +52,9 @@ export function DeletePositionDialog({
           <View style={styles.iconCircle}>
             <Icon name="trash-2" size={22} color={semanticColors.status.errorFg} />
           </View>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
           <Text style={styles.body}>{body}</Text>
 
           {status === 'error' ? (

@@ -31,6 +31,19 @@ export type CasesService = {
    * guessing at a title.
    */
   getCaseTitle(caseId: string): Promise<string | null>;
+  /**
+   * Frontend-only demo affordance (phase 9) — simulates the other party
+   * accepting the invitation, since no real invitation-acceptance workflow
+   * exists in this mock. Transitions `estado: 'nuevo' → 'activo'`, both
+   * real, backend-aligned `estado_caso` values (`nuevo → activo` is a valid
+   * transition per the backend's own `validate_caso_estado_transition`
+   * trigger) — no new persisted status is invented. Only ever applies to a
+   * case currently in the exact `'nuevo'` state; calling it again on an
+   * already-transitioned case is a safe no-op that returns the current
+   * detail unchanged, never an error. Creates no counterparty identity, no
+   * token, no session — see CaseDetailScreen.tsx for the confirmation UI.
+   */
+  simulateInvitationAcceptance(caseId: string): Promise<CaseDetail>;
 };
 
 /**
@@ -39,9 +52,9 @@ export type CasesService = {
  * `__mockForceNextFailure('createCase')` to exercise the recoverable-error
  * path without touching the normal success path used by everyone else.
  */
-const failures = createFailureController<'createCase' | 'createInvitation'>();
+const failures = createFailureController<'createCase' | 'createInvitation' | 'simulateInvitationAcceptance'>();
 
-export function __mockForceNextFailure(operation: 'createCase' | 'createInvitation'): void {
+export function __mockForceNextFailure(operation: 'createCase' | 'createInvitation' | 'simulateInvitationAcceptance'): void {
   failures.force(operation);
 }
 
@@ -120,6 +133,36 @@ export function createMockCasesService(): CasesService {
     async getCaseTitle(caseId) {
       const detail = mockCaseDetails[caseId];
       return delay(detail ? detail.title : null, 150);
+    },
+
+    async simulateInvitationAcceptance(caseId) {
+      if (failures.consume('simulateInvitationAcceptance')) {
+        return rejectAfter('mock_simulate_invitation_acceptance_failed', 500);
+      }
+
+      const detail = mockCaseDetails[caseId];
+      if (!detail) return rejectAfter('case_not_found', 300);
+
+      if (detail.estado !== 'nuevo') {
+        // Already transitioned (or never awaiting) — return the current
+        // detail safely, no mutation, no error. Idempotent by design.
+        return delay(detail, 200);
+      }
+
+      // Build the complete next state before committing — no counterparty
+      // identity, token, or user-entered text is ever involved.
+      const updatedDetail: CaseDetail = { ...detail, estado: 'activo', statusLabelKey: 'inReview', visualStatus: 'info' };
+      const committed = await delay(updatedDetail, 900);
+
+      // Only mutate after the mock "request" resolves — a forced failure
+      // above never leaves the case partially transitioned.
+      mockCaseDetails[caseId] = committed;
+      const summaryIndex = mockCases.findIndex((c) => c.id === caseId);
+      if (summaryIndex !== -1) {
+        mockCases[summaryIndex] = { ...mockCases[summaryIndex], estado: 'activo', statusLabelKey: 'inReview', visualStatus: 'info' };
+      }
+
+      return committed;
     },
   };
 }

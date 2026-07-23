@@ -7,6 +7,7 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function CaseCreateSuccessScreen() {
   const { t } = useTranslation();
@@ -20,6 +21,7 @@ export default function CaseCreateSuccessScreen() {
 
   const handleViewCase = () => {
     reset();
+    blurActiveElement();
     router.dismissTo('/(tabs)');
     if (caseId) {
       router.push({ pathname: '/case/[id]', params: { id: caseId } });
@@ -28,6 +30,7 @@ export default function CaseCreateSuccessScreen() {
 
   const handleBackToDashboard = () => {
     reset();
+    blurActiveElement();
     router.dismissTo('/(tabs)');
   };
 
@@ -45,7 +48,9 @@ export default function CaseCreateSuccessScreen() {
         <Icon name="check" size={30} color={semanticColors.status.successFg} />
       </View>
 
-      <Text style={styles.title}>{t('caseCreation.success.title')}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('caseCreation.success.title')}
+      </Text>
       <Text style={styles.body}>{t('caseCreation.success.body')}</Text>
 
       <StatusPill status="info">{t('caseCreation.success.status')}</StatusPill>

@@ -7,6 +7,7 @@ import { AIProcessingState, Button, ErrorState, Icon, LoadingState } from '@/des
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
+import { useCaseDetail } from '@/features/cases/hooks/useCaseDetail';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { MediatorSummaryCard } from '@/features/mediator/components/MediatorSummaryCard';
 import { CurrentRoundCard } from '@/features/negotiation/components/CurrentRoundCard';
@@ -16,11 +17,19 @@ import { SharedProposalCard } from '@/features/negotiation/components/SharedProp
 import { WaitingForPartyState } from '@/features/negotiation/components/WaitingForPartyState';
 import { useNegotiation } from '@/features/negotiation/hooks/useNegotiation';
 import type { DecisionPropuesta } from '@/types/negotiation';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function NegotiationDashboardScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const router = useRouter();
+  // getNegotiationState() never rejects for an unknown case (it has no
+  // "case not found" signal of its own — see negotiation.service.ts) — the
+  // case's own existence is validated separately here via the same
+  // accessor every other route uses, so a direct/unknown-id entry gets the
+  // same explicit not-found presentation as every sibling route instead of
+  // a silent, near-blank read_only render.
+  const { status: caseStatus, detail: caseDetail } = useCaseDetail(caseId);
   const {
     status,
     state,
@@ -36,11 +45,28 @@ export default function NegotiationDashboardScreen() {
 
   const [pendingDecision, setPendingDecision] = useState<DecisionPropuesta | null>(null);
 
-  if (status === 'loading') {
+  if (caseStatus === 'loading' || status === 'loading') {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: t('negotiation.dashboard.title') }} />
         <LoadingState label={t('common.loading')} />
+      </View>
+    );
+  }
+
+  if (caseStatus === 'error' || !caseDetail) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: t('negotiation.dashboard.title') }} />
+        <ErrorState
+          title={t('negotiation.notFound.title')}
+          description={t('negotiation.notFound.description')}
+          retryLabel={t('common.back')}
+          onRetry={() => {
+            blurActiveElement();
+            router.back();
+          }}
+        />
       </View>
     );
   }
@@ -153,7 +179,10 @@ export default function NegotiationDashboardScreen() {
           <Button
             variant="primary"
             fullWidth
-            onPress={() => router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } })}
+            onPress={() => {
+              blurActiveElement();
+              router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+            }}
           >
             {t('negotiation.resolution.reviewAgreementAction')}
           </Button>
@@ -193,7 +222,10 @@ export default function NegotiationDashboardScreen() {
       <Button
         variant="tertiary"
         fullWidth
-        onPress={() => router.push({ pathname: '/case/[id]/negotiation/history', params: { id: caseId } })}
+        onPress={() => {
+          blurActiveElement();
+          router.push({ pathname: '/case/[id]/negotiation/history', params: { id: caseId } });
+        }}
       >
         {t('negotiation.history.viewAction')}
       </Button>

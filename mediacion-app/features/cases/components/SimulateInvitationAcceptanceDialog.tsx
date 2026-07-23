@@ -1,20 +1,18 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState, Icon } from '../../../design-system';
-import type { ButtonVariant } from '../../../design-system/components/Button';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { shadows } from '../../../design-system/tokens/elevation';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
-export type ProposalResponseDialogProps = {
+export type SimulateInvitationAcceptanceDialogProps = {
   visible: boolean;
   status: 'idle' | 'submitting' | 'error';
   title: string;
   body: string;
   confirmLabel: string;
-  confirmVariant: ButtonVariant;
   cancelLabel: string;
   errorTitle: string;
   retryLabel: string;
@@ -23,29 +21,29 @@ export type ProposalResponseDialogProps = {
 };
 
 /**
- * Confirms an accept/reject decision before it's submitted — a native
- * Modal, mirroring DeletePositionDialog's structure. The response itself is
- * immutable once submitted, so this is the one chance to back out.
+ * Confirms the phase-9 demo-only "simulate invitation acceptance" action —
+ * a native Modal mirroring ProposalResponseDialog/MediatorRequestDialog's
+ * structure exactly. This only ever updates the local mock demo; no real
+ * invitation is sent or accepted.
  */
-export function ProposalResponseDialog({
+export function SimulateInvitationAcceptanceDialog({
   visible,
   status,
   title,
   body,
   confirmLabel,
-  confirmVariant,
   cancelLabel,
   errorTitle,
   retryLabel,
   onConfirm,
   onCancel,
-}: ProposalResponseDialogProps) {
+}: SimulateInvitationAcceptanceDialogProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} accessibilityViewIsModal statusBarTranslucent>
       <View style={styles.overlay}>
         <View style={styles.panel} accessibilityRole="alert" accessible>
           <View style={styles.iconCircle}>
-            <Icon name="file-signature" size={22} color={semanticColors.text.secondary} />
+            <Icon name="send" size={22} color={semanticColors.text.secondary} />
           </View>
           <Text style={styles.title} accessibilityRole="header">
             {title}
@@ -56,7 +54,7 @@ export function ProposalResponseDialog({
             <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />
           ) : (
             <View style={styles.actions}>
-              <Button variant={confirmVariant} fullWidth onPress={onConfirm} disabled={status === 'submitting'}>
+              <Button variant="secondary" fullWidth onPress={onConfirm} disabled={status === 'submitting'}>
                 {confirmLabel}
               </Button>
               <Button variant="tertiary" fullWidth onPress={onCancel} disabled={status === 'submitting'}>

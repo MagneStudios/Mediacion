@@ -70,7 +70,9 @@ export default function CreatePositionScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Stack.Screen options={{ title: '' }} />
 
-        <Text style={styles.title}>{t('positions.create.title')}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('positions.create.title')}
+        </Text>
         <Text style={styles.subtitle}>{t('positions.create.subtitle')}</Text>
 
         <PositionFormFields

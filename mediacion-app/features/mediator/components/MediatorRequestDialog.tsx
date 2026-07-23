@@ -47,7 +47,9 @@ export function MediatorRequestDialog({
           <View style={styles.iconCircle}>
             <Icon name="scale" size={22} color={semanticColors.text.secondary} />
           </View>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
           <Text style={styles.body}>{body}</Text>
 
           {status === 'error' ? (

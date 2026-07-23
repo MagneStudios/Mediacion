@@ -89,9 +89,14 @@ export function PositionFormFields({
             selected={category === value}
             selectedLabel={t('positions.category.selected')}
             onPress={() => !disabled && onSelectCategory(value)}
+            accessibilityHint={categoryError}
           />
         ))}
-        {categoryError ? <Text style={styles.errorText}>{categoryError}</Text> : null}
+        {categoryError ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {categoryError}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -146,6 +151,7 @@ export function PositionFormFields({
           selected={canConcede === true}
           selectedLabel={t('positions.category.selected')}
           onPress={() => !disabled && onSelectConcede(true)}
+          accessibilityHint={concedeError}
         />
         <SelectableCard
           icon="x"
@@ -154,8 +160,13 @@ export function PositionFormFields({
           selected={canConcede === false}
           selectedLabel={t('positions.category.selected')}
           onPress={() => !disabled && onSelectConcede(false)}
+          accessibilityHint={concedeError}
         />
-        {concedeError ? <Text style={styles.errorText}>{concedeError}</Text> : null}
+        {concedeError ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {concedeError}
+          </Text>
+        ) : null}
 
         {canConcede === true ? (
           <Input

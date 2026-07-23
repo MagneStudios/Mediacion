@@ -29,7 +29,10 @@ export default function ReviewPositionScreen() {
         <ErrorState
           title={t('positions.review.error.title')}
           retryLabel={t('caseCreation.method.back')}
-          onRetry={() => router.back()}
+          onRetry={() => {
+            blurActiveElement();
+            router.back();
+          }}
         />
       </ScrollView>
     );
@@ -77,7 +80,9 @@ export default function ReviewPositionScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: '' }} />
 
-      <Text style={styles.title}>{t('positions.review.title')}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('positions.review.title')}
+      </Text>
 
       <PositionReviewCard rows={rows} />
 
@@ -94,7 +99,15 @@ export default function ReviewPositionScreen() {
           {status === 'submitting' ? t('positions.review.saving') : t('positions.review.save')}
         </Button>
       )}
-      <Button variant="tertiary" fullWidth onPress={() => router.back()} disabled={status === 'submitting'}>
+      <Button
+        variant="tertiary"
+        fullWidth
+        onPress={() => {
+          blurActiveElement();
+          router.back();
+        }}
+        disabled={status === 'submitting'}
+      >
         {t('positions.review.edit')}
       </Button>
     </ScrollView>

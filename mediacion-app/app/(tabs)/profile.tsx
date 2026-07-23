@@ -14,6 +14,7 @@ import { ProfileHeaderCard } from '@/features/profile/components/ProfileHeaderCa
 import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
 import { useNotificationPreferences } from '@/features/profile/hooks/useNotificationPreferences';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -71,12 +72,12 @@ export default function ProfileScreen() {
         <PreferenceRow label={t('profile.summary.privacy')} value={t('profile.summary.privacyValue')} />
       </View>
 
-      <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => router.push('/profile/edit')} />
-      <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => router.push('/profile/notifications')} />
-      <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => router.push('/profile/privacy')} />
-      <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => router.push('/profile/help')} />
-      <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => router.push('/profile/legal')} />
-      <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => router.push('/profile/account')} />
+      <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
+      <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
+      <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
+      <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
+      <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
+      <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
 
       <Text style={styles.version}>{t('profile.version', { version: appVersion })}</Text>
     </ScrollView>

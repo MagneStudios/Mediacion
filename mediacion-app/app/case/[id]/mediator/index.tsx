@@ -12,6 +12,7 @@ import { MediatorDemoNotice } from '@/features/mediator/components/MediatorDemoN
 import { MediatorRequestDialog } from '@/features/mediator/components/MediatorRequestDialog';
 import { SharedMediatorProfileCard } from '@/features/mediator/components/SharedMediatorProfileCard';
 import { useMediator } from '@/features/mediator/hooks/useMediator';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 const SUMMARY_KEY_BY_ELIGIBILITY = {
   unavailable_before_round_3: 'unavailableBeforeRound3',
@@ -97,7 +98,10 @@ export default function MediatorDashboardScreen() {
       <Button
         variant="tertiary"
         fullWidth
-        onPress={() => router.push({ pathname: '/case/[id]/mediator/activity', params: { id: caseId } })}
+        onPress={() => {
+          blurActiveElement();
+          router.push({ pathname: '/case/[id]/mediator/activity', params: { id: caseId } });
+        }}
       >
         {t('mediator.activity.viewAction')}
       </Button>

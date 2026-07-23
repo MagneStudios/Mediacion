@@ -80,6 +80,7 @@ export const semanticColors = {
     warningBg: '#f6eddc',
     errorFg: colors.semanticError,
     errorBg: '#f6e4e4',
+    errorBgPressed: '#eccccc',
     infoFg: colors.statusInfo,
     infoBg: '#e6eef1',
     neutralFg: colors.inkMuted,
@@ -88,5 +89,6 @@ export const semanticColors = {
   ai: {
     accent: colors.mediationSage,
     tint: '#eaf0ee',
+    border: '#c7d6d1',
   },
 } as const;
