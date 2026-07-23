@@ -30,7 +30,12 @@ describe("InvitacionesRepository", () => {
         casosRepository,
       );
 
-      const result = await repository.createInvite("caso-1", "link", "tok-abc");
+      const result = await repository.createInvite(
+        "caso-1",
+        "link",
+        "tok-abc",
+        null,
+      );
 
       expect(fakeKysely.insertInto).toHaveBeenCalledWith("invitaciones");
       expect(fakeKysely.values).toHaveBeenCalledWith({
@@ -38,8 +43,36 @@ describe("InvitacionesRepository", () => {
         tipo: "link",
         token: "tok-abc",
         estado: "pendiente",
+        email_destino: null,
+        fecha_envio: expect.any(String),
       });
       expect(result).toBe(inserted);
+    });
+
+    it("stores the target email for an email invitation", async () => {
+      const inserted = {
+        id: "inv-2",
+        tipo: "email",
+        token: "tok-def",
+        estado: "pendiente",
+      };
+      const fakeKysely = createFakeKysely(inserted);
+      const casosRepository = new CasosRepository({} as never);
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      await repository.createInvite(
+        "caso-1",
+        "email",
+        "tok-def",
+        "target@example.com",
+      );
+
+      expect(fakeKysely.values).toHaveBeenCalledWith(
+        expect.objectContaining({ email_destino: "target@example.com" }),
+      );
     });
 
     it("maps a token unique-violation to a uniform 409, leaking no db detail", async () => {
@@ -57,7 +90,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.createInvite("caso-1", "link", "tok-abc");
+        await repository.createInvite("caso-1", "link", "tok-abc", null);
       } catch (error) {
         thrown = error;
       }
@@ -72,7 +105,15 @@ describe("InvitacionesRepository", () => {
 
   describe("joinCase", () => {
     function createFakeTrx(options: {
-      invitacion: { id: string; caso_id: string } | undefined;
+      invitacion:
+        | {
+            id: string;
+            caso_id: string;
+            tipo?: string;
+            fecha_envio?: string;
+            email_destino?: string;
+          }
+        | undefined;
       miembros: Array<{ usuario_id: string }>;
       caso: { id: string; estado: string } | undefined;
       activateRejection?: unknown;
@@ -203,7 +244,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.joinCase("bad-token", "user-b");
+        await repository.joinCase("bad-token", "user-b", "user-b@test.com");
       } catch (error) {
         thrown = error;
       }
@@ -229,7 +270,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.joinCase("tok-1", "user-a");
+        await repository.joinCase("tok-1", "user-a", "user-a@test.com");
       } catch (error) {
         thrown = error;
       }
@@ -254,7 +295,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.joinCase("tok-1", "user-c");
+        await repository.joinCase("tok-1", "user-c", "user-c@test.com");
       } catch (error) {
         thrown = error;
       }
@@ -278,7 +319,11 @@ describe("InvitacionesRepository", () => {
         casosRepository,
       );
 
-      const result = await repository.joinCase("tok-1", "user-b");
+      const result = await repository.joinCase(
+        "tok-1",
+        "user-b",
+        "user-b@test.com",
+      );
 
       expect(fakeKysely.insertInto).toHaveBeenCalledWith("caso_partes");
       expect(fakeKysely.parteValues).toHaveBeenCalledWith(
@@ -318,7 +363,7 @@ describe("InvitacionesRepository", () => {
         casosRepository,
       );
 
-      await repository.joinCase("tok-1", "user-b");
+      await repository.joinCase("tok-1", "user-b", "user-b@test.com");
 
       expect(fakeKysely.casoSelect).toHaveBeenCalledWith("id");
       expect(fakeKysely.casoLockWhere).toHaveBeenCalledWith(
@@ -350,7 +395,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.joinCase("tok-1", "user-b");
+        await repository.joinCase("tok-1", "user-b", "user-b@test.com");
       } catch (error) {
         thrown = error;
       }
@@ -382,12 +427,165 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.joinCase("tok-1", "user-b");
+        await repository.joinCase("tok-1", "user-b", "user-b@test.com");
       } catch (error) {
         thrown = error;
       }
 
       expect(thrown).toBeInstanceOf(ConflictError);
+    });
+
+    it("rejects a token sent more than 7 days ago with a uniform 404, marking it expirada, creating no rows", async () => {
+      const eightDaysAgo = new Date(
+        Date.now() - 8 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "link",
+          fecha_envio: eightDaysAgo,
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+      });
+      const casosRepository = {
+        activateIfNuevo: jest.fn(),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      let thrown: unknown;
+      try {
+        await repository.joinCase("tok-1", "user-b", "user-b@test.com");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(fakeKysely.updateTable).toHaveBeenCalledWith("invitaciones");
+      expect(fakeKysely.invitacionUpdateSet).toHaveBeenCalledWith({
+        estado: "expirada",
+      });
+      expect(fakeKysely.insertInto).not.toHaveBeenCalled();
+    });
+
+    it("accepts a token sent 6 days ago, still within the 7-day TTL", async () => {
+      const sixDaysAgo = new Date(
+        Date.now() - 6 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "link",
+          fecha_envio: sixDaysAgo,
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+      });
+      const casosRepository = {
+        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      const result = await repository.joinCase(
+        "tok-1",
+        "user-b",
+        "user-b@test.com",
+      );
+
+      expect(result).toEqual({ id: "caso-1", estado: "activo" });
+      expect(fakeKysely.insertInto).toHaveBeenCalledWith("caso_partes");
+    });
+
+    it("rejects a mismatched email on an email-type invitation with a uniform 403, creating no rows", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "email",
+          email_destino: "target@test.com",
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+      });
+      const casosRepository = {
+        activateIfNuevo: jest.fn(),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      let thrown: unknown;
+      try {
+        await repository.joinCase("tok-1", "user-b", "wrong@test.com");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
+      expect(fakeKysely.insertInto).not.toHaveBeenCalled();
+    });
+
+    it("accepts a matching email on an email-type invitation, case-insensitively", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "email",
+          email_destino: "Target@Test.com",
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+      });
+      const casosRepository = {
+        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      const result = await repository.joinCase(
+        "tok-1",
+        "user-b",
+        "target@test.com",
+      );
+
+      expect(result).toEqual({ id: "caso-1", estado: "activo" });
+      expect(fakeKysely.insertInto).toHaveBeenCalledWith("caso_partes");
+    });
+
+    it("does not check email for a link-type invitation, even with an unrelated caller email", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: { id: "inv-1", caso_id: "caso-1", tipo: "link" },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+      });
+      const casosRepository = {
+        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      const result = await repository.joinCase(
+        "tok-1",
+        "user-b",
+        "anything@test.com",
+      );
+
+      expect(result).toEqual({ id: "caso-1", estado: "activo" });
     });
   });
 });

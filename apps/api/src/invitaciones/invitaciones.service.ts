@@ -10,6 +10,7 @@ import type {
 import { generateToken } from "./token";
 
 const validTipos: TipoInvitacion[] = ["link", "codigo", "email"];
+const tipoInvitacionEmail = "email" as const;
 
 function assertValidTipo(tipo: TipoInvitacion): void {
   if (!validTipos.includes(tipo)) {
@@ -17,6 +18,21 @@ function assertValidTipo(tipo: TipoInvitacion): void {
       {
         code: "invalid_input",
         message: `tipo must be one of ${validTipos.join(", ")}`,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+function assertValidEmailDestino(dto: CreateInvitacionDto): void {
+  if (
+    dto.tipo === tipoInvitacionEmail &&
+    (!dto.email_destino || dto.email_destino.trim().length === 0)
+  ) {
+    throw new HttpException(
+      {
+        code: "invalid_input",
+        message: "email_destino is required for tipo=email",
       },
       HttpStatus.BAD_REQUEST,
     );
@@ -38,6 +54,7 @@ export class InvitacionesService {
     dto: CreateInvitacionDto,
   ): Promise<InvitacionCreated> {
     assertValidTipo(dto.tipo);
+    assertValidEmailDestino(dto);
     const parte = await this.membershipService.assertMembership(
       casoId,
       callerId,
@@ -49,10 +66,19 @@ export class InvitacionesService {
       );
     }
     const token = generateToken();
-    return this.invitacionesRepository.createInvite(casoId, dto.tipo, token);
+    return this.invitacionesRepository.createInvite(
+      casoId,
+      dto.tipo,
+      token,
+      dto.email_destino ?? null,
+    );
   }
 
-  joinCase(token: string, callerId: string): Promise<JoinedCaso> {
-    return this.invitacionesRepository.joinCase(token, callerId);
+  joinCase(
+    token: string,
+    callerId: string,
+    callerEmail: string,
+  ): Promise<JoinedCaso> {
+    return this.invitacionesRepository.joinCase(token, callerId, callerEmail);
   }
 }

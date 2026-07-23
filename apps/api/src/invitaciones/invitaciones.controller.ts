@@ -30,6 +30,10 @@ export class InvitacionesController {
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: JoinCasoDto,
   ): Promise<JoinedCaso> {
-    return this.invitacionesService.joinCase(body.token, caller.id);
+    return this.invitacionesService.joinCase(
+      body.token,
+      caller.id,
+      caller.email,
+    );
   }
 }

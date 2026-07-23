@@ -53,7 +53,12 @@ describe("InvitacionesService", () => {
       });
 
       expect(assertMembership).toHaveBeenCalledWith("caso-1", "user-a");
-      expect(createInvite).toHaveBeenCalledWith("caso-1", "link", "tok-abc");
+      expect(createInvite).toHaveBeenCalledWith(
+        "caso-1",
+        "link",
+        "tok-abc",
+        null,
+      );
       expect(result).toEqual({
         id: "inv-1",
         tipo: "link",
@@ -125,18 +130,70 @@ describe("InvitacionesService", () => {
       expect((thrown as HttpException).getStatus()).toBe(400);
       expect(createInvite).not.toHaveBeenCalled();
     });
+
+    it("stores the target email for an email invitation", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const createInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+      });
+      const { service } = buildService({ assertMembership, createInvite });
+
+      await service.createInvitation("caso-1", "user-a", {
+        tipo: "email",
+        email_destino: "target@test.com",
+      });
+
+      expect(createInvite).toHaveBeenCalledWith(
+        "caso-1",
+        "email",
+        "tok-abc",
+        "target@test.com",
+      );
+    });
+
+    it("rejects an email invitation without an email_destino, never creating an invite", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const createInvite = jest.fn();
+      const { service } = buildService({ assertMembership, createInvite });
+
+      let thrown: unknown;
+      try {
+        await service.createInvitation("caso-1", "user-a", { tipo: "email" });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(400);
+      expect(createInvite).not.toHaveBeenCalled();
+    });
   });
 
   describe("joinCase", () => {
-    it("delegates to the repository with the token and caller id", async () => {
+    it("delegates to the repository with the token, caller id and caller email", async () => {
       const joinCase = jest
         .fn()
         .mockResolvedValue({ id: "caso-1", estado: "activo" });
       const { service } = buildService({ joinCase });
 
-      const result = await service.joinCase("tok-1", "user-b");
+      const result = await service.joinCase(
+        "tok-1",
+        "user-b",
+        "user-b@test.com",
+      );
 
-      expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b");
+      expect(joinCase).toHaveBeenCalledWith(
+        "tok-1",
+        "user-b",
+        "user-b@test.com",
+      );
       expect(result).toEqual({ id: "caso-1", estado: "activo" });
     });
   });

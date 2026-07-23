@@ -63,7 +63,7 @@ describe("InvitacionesController unit", () => {
 
     const result = await controller.joinCase(parteB, { token: "tok-1" });
 
-    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b");
+    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
     expect(result).toEqual({ id: "caso-1", estado: "activo" });
   });
 });
@@ -204,7 +204,49 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({ id: "caso-1", estado: "activo" });
-    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b");
+    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
+    await app.close();
+  });
+
+  it("rejects an expired token with a uniform 404", async () => {
+    const joinCase = jest
+      .fn()
+      .mockRejectedValue(
+        new HttpException(
+          { code: "invalid_token", message: "Invalid or used token" },
+          404,
+        ),
+      );
+    const app = await bootstrapApp({ assertMembership: jest.fn(), joinCase });
+
+    const response = await request(app.getHttpServer())
+      .post("/casos/unirse")
+      .set("Authorization", "Bearer user-b")
+      .send({ token: "tok-1" });
+
+    expect(response.status).toBe(404);
+    await app.close();
+  });
+
+  it("rejects an email-mismatch join with a uniform 403, distinct from token invalidity", async () => {
+    const joinCase = jest.fn().mockRejectedValue(
+      new HttpException(
+        {
+          code: "forbidden",
+          message: "Invitation email does not match the caller",
+        },
+        403,
+      ),
+    );
+    const app = await bootstrapApp({ assertMembership: jest.fn(), joinCase });
+
+    const response = await request(app.getHttpServer())
+      .post("/casos/unirse")
+      .set("Authorization", "Bearer user-b")
+      .send({ token: "tok-1" });
+
+    expect(response.status).toBe(403);
+    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
     await app.close();
   });
 });
