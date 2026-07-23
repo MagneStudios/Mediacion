@@ -15,6 +15,15 @@ import type { NoticeDestination } from './notice';
  * excludes private-position readiness entirely: that is a personal notice
  * only (see types/notice.ts), never a shared activity event, and never
  * derived from positionsService/PositionItem here.
+ *
+ * `mediator_requested` / `mediator_assigned` / `accompaniment_started`
+ * (phase 8) are the one deliberate exception to "never mutates" below —
+ * see services/activity.service.ts's `appendMediatorActivity`, a narrow,
+ * validated append surface used only by the mediator feature. No other
+ * feature may append to this feed. `accompaniment_started` is only ever
+ * appended if `estado_mediacion` transitions to `'activa'` — a transition
+ * this phase never triggers, so it's currently code-review-only (see
+ * agents/front/AGENTS.md).
  */
 export type ActivityEventKey =
   | 'case_created'
@@ -27,13 +36,17 @@ export type ActivityEventKey =
   | 'agreement_reached'
   | 'signature_ready'
   | 'own_mock_signature_registered'
-  | 'process_completed';
+  | 'process_completed'
+  | 'mediator_requested'
+  | 'mediator_assigned'
+  | 'accompaniment_started';
 
 /**
- * Immutable after seeding — nothing in this feature ever mutates an
- * ActivityItem. `own_response_registered` describes only the authenticated
- * party's own action; it never reveals the other party's hidden response
- * before shared resolution.
+ * Immutable after seeding, with one narrow exception: see
+ * `appendMediatorActivity` in services/activity.service.ts, which may
+ * append only the 3 mediator event keys above. `own_response_registered`
+ * describes only the authenticated party's own action; it never reveals
+ * the other party's hidden response before shared resolution.
  */
 export interface ActivityItem {
   id: string;

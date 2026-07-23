@@ -8,8 +8,8 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
+import { MediatorSummaryCard } from '@/features/mediator/components/MediatorSummaryCard';
 import { CurrentRoundCard } from '@/features/negotiation/components/CurrentRoundCard';
-import { MediatorAvailabilityCard } from '@/features/negotiation/components/MediatorAvailabilityCard';
 import { ProposalResponseActions } from '@/features/negotiation/components/ProposalResponseActions';
 import { ProposalResponseDialog } from '@/features/negotiation/components/ProposalResponseDialog';
 import { SharedProposalCard } from '@/features/negotiation/components/SharedProposalCard';
@@ -54,8 +54,7 @@ export default function NegotiationDashboardScreen() {
     );
   }
 
-  const { eligibility, currentRound, currentProposal, ownResponse, waitingForOtherParty, bothAccepted, roundResolved, mediatorAvailable } =
-    state;
+  const { eligibility, currentRound, currentProposal, ownResponse, waitingForOtherParty, bothAccepted, roundResolved } = state;
 
   const canRespond = eligibility === 'in_progress' && currentProposal?.estado === 'pendiente' && !ownResponse;
   const canStartRound = eligibility === 'ready' && (!currentRound || currentRound.estado === 'completada');
@@ -189,13 +188,7 @@ export default function NegotiationDashboardScreen() {
         )
       ) : null}
 
-      {mediatorAvailable ? (
-        <MediatorAvailabilityCard
-          title={t('negotiation.mediator.title')}
-          body={t('negotiation.mediator.body')}
-          badgeLabel={t('negotiation.mediator.badge')}
-        />
-      ) : null}
+      <MediatorSummaryCard caseId={caseId} />
 
       <Button
         variant="tertiary"

@@ -1,5 +1,5 @@
 import { buildInitialNotices } from '../mocks/notices';
-import type { AppNotice, NoticeFilter, NoticeListItem } from '../types/notice';
+import type { AppNotice, NoticeFilter, NoticeListItem, NoticePriority } from '../types/notice';
 import { casesService } from './cases.service';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 
@@ -122,3 +122,78 @@ export function createMockNoticesService(): NoticesService {
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
 export const noticesService: NoticesService = createMockNoticesService();
+
+const MEDIATOR_NOTICE_EVENT_KEYS = [
+  'mediator_request_submitted',
+  'mediator_request_pending',
+  'mediator_assigned',
+  'mediator_unavailable',
+] as const;
+export type MediatorNoticeEventKey = (typeof MEDIATOR_NOTICE_EVENT_KEYS)[number];
+
+const MEDIATOR_NOTICE_COPY: Record<MediatorNoticeEventKey, { titleKey: string; bodyKey: string; priority: NoticePriority }> = {
+  mediator_request_submitted: {
+    titleKey: 'mediator.notices.requestSubmitted.title',
+    bodyKey: 'mediator.notices.requestSubmitted.body',
+    priority: 'normal',
+  },
+  mediator_request_pending: {
+    titleKey: 'mediator.notices.requestPending.title',
+    bodyKey: 'mediator.notices.requestPending.body',
+    priority: 'normal',
+  },
+  mediator_assigned: {
+    titleKey: 'mediator.notices.assigned.title',
+    bodyKey: 'mediator.notices.assigned.body',
+    priority: 'important',
+  },
+  mediator_unavailable: {
+    titleKey: 'mediator.notices.unavailable.title',
+    bodyKey: 'mediator.notices.unavailable.body',
+    priority: 'normal',
+  },
+};
+
+export type StrictMediatorNoticeInput = { caseId: string; eventKey: MediatorNoticeEventKey };
+
+/**
+ * Narrow, validated append surface for the mediator feature only — never a
+ * generic "create any notice" API. Category is always 'mediator' and
+ * destination is always `{ type: 'mediator', caseId }`, both fixed
+ * internally — never caller-supplied — so this can't be used to inject an
+ * arbitrary notice shape. Validates the event key against the fixed
+ * 4-value allow-list, validates the case exists (via
+ * casesService.getCaseTitle), and dedupes deterministically on a
+ * `caseId + eventKey` id so a retried best-effort call after a mediator
+ * mutation never creates a duplicate notice. Returns null (never throws)
+ * on any validation failure or on a duplicate — callers treat this as a
+ * best-effort side effect that must never roll back an already-committed
+ * mediator state.
+ */
+export async function appendMediatorNotice(input: StrictMediatorNoticeInput): Promise<AppNotice | null> {
+  if (!MEDIATOR_NOTICE_EVENT_KEYS.includes(input.eventKey)) return null;
+
+  const title = await casesService.getCaseTitle(input.caseId);
+  if (!title) return null;
+
+  const id = `mediator-notice-${input.caseId}-${input.eventKey}`;
+  if (mockNotices.some((notice) => notice.id === id)) return null;
+
+  const copy = MEDIATOR_NOTICE_COPY[input.eventKey];
+  const notice: AppNotice = {
+    id,
+    category: 'mediator',
+    titleKey: copy.titleKey,
+    bodyKey: copy.bodyKey,
+    createdAt: new Date().toISOString(),
+    read: false,
+    priority: copy.priority,
+    destination: { type: 'mediator', caseId: input.caseId },
+    caseId: input.caseId,
+  };
+
+  const committed = await delay(notice, 200);
+  mockNotices.push(committed);
+  notifyUnreadListeners();
+  return { ...committed };
+}

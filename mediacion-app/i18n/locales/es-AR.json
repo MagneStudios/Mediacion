@@ -388,11 +388,6 @@
       "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda.",
       "reviewAgreementAction": "Revisar acuerdo"
     },
-    "mediator": {
-      "title": "Podés solicitar acompañamiento",
-      "body": "Desde esta ronda, un mediador humano puede acompañar el diálogo.",
-      "badge": "Disponible próximamente"
-    },
     "history": {
       "title": "Historial de rondas",
       "viewAction": "Ver historial",
@@ -724,7 +719,105 @@
       "agreement_reached": "Llegaron a un acuerdo",
       "signature_ready": "El documento quedó listo para firmar",
       "own_mock_signature_registered": "Registraste tu firma",
-      "process_completed": "El proceso quedó completo"
+      "process_completed": "El proceso quedó completo",
+      "mediator_requested": "Se solicitó acompañamiento de mediador",
+      "mediator_assigned": "Se asignó un mediador",
+      "accompaniment_started": "Comenzó el acompañamiento del mediador"
+    }
+  },
+  "mediator": {
+    "sectionTitle": "Acompañamiento",
+    "summary": {
+      "learnMoreAction": "Conocer acompañamiento",
+      "requestAction": "Solicitar mediador",
+      "viewAction": "Ver acompañamiento",
+      "error": { "title": "No pudimos cargar el acompañamiento" },
+      "unavailableBeforeRound3": {
+        "title": "Acompañamiento no disponible todavía",
+        "description": "El acompañamiento de un mediador estará disponible desde la tercera ronda.",
+        "status": "No disponible"
+      },
+      "available": {
+        "title": "Podés solicitar acompañamiento",
+        "description": "Podés solicitar un mediador humano para acompañar el diálogo compartido.",
+        "status": "Disponible"
+      },
+      "pending": {
+        "title": "Solicitud pendiente",
+        "description": "Tu solicitud simulada está pendiente.",
+        "status": "Pendiente"
+      },
+      "assigned": {
+        "title": "Mediador asignado",
+        "description": "Se asignó un mediador en esta demostración.",
+        "status": "Asignado"
+      },
+      "unavailable": {
+        "title": "Sin mediador asignado",
+        "description": "En esta demostración no se asignó un mediador para tu solicitud.",
+        "status": "No disponible"
+      },
+      "readOnly": {
+        "title": "Acompañamiento cerrado",
+        "description": "El acompañamiento de mediador para este caso ya no admite nuevas acciones.",
+        "status": "Cerrado"
+      }
+    },
+    "dashboard": {
+      "title": "Acompañamiento de mediador",
+      "privacyNotice": "El acompañamiento se limita a la información compartida del proceso. Tus posiciones privadas no se muestran en esta pantalla."
+    },
+    "demoNotice": {
+      "title": "Entorno de demostración",
+      "body": "La solicitud y asignación son simuladas. No se contactó a un profesional real."
+    },
+    "explainer": {
+      "title": "¿Qué es el acompañamiento de un mediador?",
+      "helpsBody": "El mediador ayuda a organizar el diálogo compartido entre las partes.",
+      "decisionBody": "El mediador no decide por las partes ni reemplaza su criterio ni el de un profesional.",
+      "privacyBody": "El mediador acompaña el diálogo compartido del caso. Tus posiciones privadas no se muestran en esta pantalla.",
+      "demoBody": "Esta funcionalidad está en etapa de demostración: la solicitud y la asignación son simuladas y no se contactó a ningún profesional real. No implica representación legal, autoridad judicial, certificación de confidencialidad, disponibilidad inmediata, credenciales verificadas ni asesoramiento legal, y no garantiza un acuerdo."
+    },
+    "request": {
+      "dialog": {
+        "title": "¿Solicitar acompañamiento?",
+        "body": "Registraremos una solicitud simulada para este caso. La asignación no es real en esta demostración. El mediador no decide por las partes ni ve tus posiciones privadas.",
+        "confirm": "Confirmar solicitud",
+        "cancel": "Cancelar"
+      },
+      "error": { "title": "No pudimos registrar tu solicitud" }
+    },
+    "profile": {
+      "roleLabel": "Mediador/a",
+      "summaryText": "Acompaña procesos de diálogo familiar con foco en la comunicación y la organización de acuerdos.",
+      "demoLabel": "Perfil de demostración",
+      "notVerifiedNotice": "La identidad y disponibilidad profesional no fueron verificadas en esta maqueta.",
+      "languagesLabel": "Idiomas",
+      "languages": { "es": "Español", "en": "Inglés" },
+      "assignedAtLabel": "Asignado el {{date}}"
+    },
+    "activity": {
+      "title": "Hitos del acompañamiento",
+      "viewAction": "Ver hitos del acompañamiento",
+      "empty": {
+        "title": "Todavía no hay hitos",
+        "description": "Los hitos del acompañamiento van a aparecer acá."
+      },
+      "error": { "title": "No pudimos cargar los hitos", "retry": "Reintentar" },
+      "event": {
+        "request_submitted": "Se registró la solicitud",
+        "request_pending": "La solicitud quedó pendiente",
+        "mediator_assigned": "Se asignó un mediador",
+        "accompaniment_started": "Comenzó el acompañamiento",
+        "follow_up_expected": "Próxima actualización esperada",
+        "request_unavailable": "No se asignó un mediador"
+      }
+    },
+    "notices": {
+      "requestSubmitted": { "title": "Solicitud de mediador registrada", "body": "Registramos tu solicitud simulada de acompañamiento para este caso." },
+      "requestPending": { "title": "Solicitud pendiente", "body": "Tu solicitud de acompañamiento sigue pendiente en esta demostración." },
+      "assigned": { "title": "Mediador asignado", "body": "Se asignó un mediador simulado para acompañar este caso." },
+      "unavailable": { "title": "No se asignó un mediador", "body": "En esta demostración no se asignó un mediador para tu solicitud." }
     }
   },
   "states": {

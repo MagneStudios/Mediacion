@@ -11,6 +11,7 @@ import { casesService } from '../../services/cases.service';
 import type { CaseInvitation } from '../../types/case';
 import { getPositionEligibility } from '../../utils/position-eligibility';
 import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
+import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { PrivacyNotice } from './components/PrivacyNotice';
@@ -140,6 +141,8 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           })()}
 
           <NegotiationSummaryCard caseId={caseId} />
+
+          <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
 
           {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
         </>

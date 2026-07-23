@@ -18,6 +18,8 @@ export function resolveNoticeDestination(destination: NoticeDestination): Href |
       return { pathname: '/case/[id]/agreement', params: { id: destination.caseId } };
     case 'signature':
       return { pathname: '/case/[id]/agreement/sign', params: { id: destination.caseId } };
+    case 'mediator':
+      return { pathname: '/case/[id]/mediator', params: { id: destination.caseId } };
     case 'activity':
       return '/notices/activity';
     case 'none':

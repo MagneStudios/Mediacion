@@ -63,3 +63,13 @@ export function generateMockAgreementId(): string {
 export function generateMockHistoryId(): string {
   return `history-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock mediation-record identifier for the in-memory session store. */
+export function generateMockMediationId(): string {
+  return `mediation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock mediator-activity-milestone identifier for the in-memory session store. */
+export function generateMockMediatorEventId(): string {
+  return `mediator-event-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

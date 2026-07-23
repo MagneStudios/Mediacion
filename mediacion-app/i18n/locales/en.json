@@ -388,11 +388,6 @@
       "notAcceptedBody": "The proposal wasn't accepted by both parties. You can continue in a new round.",
       "reviewAgreementAction": "Review agreement"
     },
-    "mediator": {
-      "title": "You can request support",
-      "body": "From this round on, a human mediator can support the dialogue.",
-      "badge": "Available soon"
-    },
     "history": {
       "title": "Round history",
       "viewAction": "View history",
@@ -724,7 +719,105 @@
       "agreement_reached": "You reached an agreement",
       "signature_ready": "The document was ready to sign",
       "own_mock_signature_registered": "You registered your signature",
-      "process_completed": "The process is complete"
+      "process_completed": "The process is complete",
+      "mediator_requested": "Mediator support was requested",
+      "mediator_assigned": "A mediator was assigned",
+      "accompaniment_started": "Mediator support started"
+    }
+  },
+  "mediator": {
+    "sectionTitle": "Mediator support",
+    "summary": {
+      "learnMoreAction": "Learn about mediator support",
+      "requestAction": "Request a mediator",
+      "viewAction": "View mediator support",
+      "error": { "title": "We couldn't load mediator support" },
+      "unavailableBeforeRound3": {
+        "title": "Mediator support not available yet",
+        "description": "Mediator support will be available starting from the third round.",
+        "status": "Not available"
+      },
+      "available": {
+        "title": "You can request support",
+        "description": "You can request a human mediator to support the shared dialogue.",
+        "status": "Available"
+      },
+      "pending": {
+        "title": "Request pending",
+        "description": "Your simulated request is pending.",
+        "status": "Pending"
+      },
+      "assigned": {
+        "title": "Mediator assigned",
+        "description": "A mediator was assigned in this demonstration.",
+        "status": "Assigned"
+      },
+      "unavailable": {
+        "title": "No mediator assigned",
+        "description": "No mediator was assigned to your request in this demonstration.",
+        "status": "Not available"
+      },
+      "readOnly": {
+        "title": "Mediator support closed",
+        "description": "Mediator support for this case no longer accepts new actions.",
+        "status": "Closed"
+      }
+    },
+    "dashboard": {
+      "title": "Mediator support",
+      "privacyNotice": "Mediator support is limited to the shared process information. Your private positions are never shown on this screen."
+    },
+    "demoNotice": {
+      "title": "Demonstration environment",
+      "body": "The request and assignment are simulated. No real professional was contacted."
+    },
+    "explainer": {
+      "title": "What is mediator support?",
+      "helpsBody": "A mediator helps organize the shared dialogue between the parties.",
+      "decisionBody": "A mediator doesn't decide for the parties and doesn't replace their judgment or a professional's.",
+      "privacyBody": "A mediator supports the case's shared dialogue. Your private positions are never shown on this screen.",
+      "demoBody": "This feature is in a demonstration stage: the request and assignment are simulated and no real professional was contacted. It does not imply legal representation, judicial authority, confidentiality certification, immediate availability, verified credentials, or legal advice, and it does not guarantee an agreement."
+    },
+    "request": {
+      "dialog": {
+        "title": "Request support?",
+        "body": "We'll record a simulated request for this case. The assignment isn't real in this demonstration. The mediator doesn't decide for the parties and doesn't see your private positions.",
+        "confirm": "Confirm request",
+        "cancel": "Cancel"
+      },
+      "error": { "title": "We couldn't register your request" }
+    },
+    "profile": {
+      "roleLabel": "Mediator",
+      "summaryText": "Supports family dialogue processes with a focus on communication and organizing agreements.",
+      "demoLabel": "Demonstration profile",
+      "notVerifiedNotice": "Professional identity and availability were not verified in this mockup.",
+      "languagesLabel": "Languages",
+      "languages": { "es": "Spanish", "en": "English" },
+      "assignedAtLabel": "Assigned on {{date}}"
+    },
+    "activity": {
+      "title": "Support milestones",
+      "viewAction": "View support milestones",
+      "empty": {
+        "title": "No milestones yet",
+        "description": "Support milestones will appear here."
+      },
+      "error": { "title": "We couldn't load the milestones", "retry": "Try again" },
+      "event": {
+        "request_submitted": "The request was registered",
+        "request_pending": "The request is still pending",
+        "mediator_assigned": "A mediator was assigned",
+        "accompaniment_started": "Support started",
+        "follow_up_expected": "Next update expected",
+        "request_unavailable": "No mediator was assigned"
+      }
+    },
+    "notices": {
+      "requestSubmitted": { "title": "Mediator request registered", "body": "We registered your simulated support request for this case." },
+      "requestPending": { "title": "Request pending", "body": "Your support request is still pending in this demonstration." },
+      "assigned": { "title": "Mediator assigned", "body": "A simulated mediator was assigned to support this case." },
+      "unavailable": { "title": "No mediator assigned", "body": "No mediator was assigned to your request in this demonstration." }
     }
   },
   "states": {

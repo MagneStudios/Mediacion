@@ -46,6 +46,7 @@ export type NoticeDestination =
   | { type: 'negotiation'; caseId: string }
   | { type: 'agreement'; caseId: string }
   | { type: 'signature'; caseId: string }
+  | { type: 'mediator'; caseId: string }
   | { type: 'activity' }
   | { type: 'none' };
 
