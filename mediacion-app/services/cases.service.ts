@@ -23,6 +23,14 @@ export type CasesService = {
   createCase(input: CreateCaseInput): Promise<CaseSummary>;
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
   getInvitation(caseId: string): Promise<CaseInvitation | null>;
+  /**
+   * Smallest possible lightweight lookup for other features (notices,
+   * activity) that only need a safe display title for a caseId — never
+   * caseCode, descripcion, or any other case-detail field. Returns null
+   * when the case doesn't exist, so callers can render safely instead of
+   * guessing at a title.
+   */
+  getCaseTitle(caseId: string): Promise<string | null>;
 };
 
 /**
@@ -108,6 +116,10 @@ export function createMockCasesService(): CasesService {
     },
     async getInvitation(caseId) {
       return delay(mockInvitations[caseId] ?? null, 300);
+    },
+    async getCaseTitle(caseId) {
+      const detail = mockCaseDetails[caseId];
+      return delay(detail ? detail.title : null, 150);
     },
   };
 }

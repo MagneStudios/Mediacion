@@ -6,7 +6,9 @@
   },
   "tabs": {
     "cases": "Casos",
-    "messages": "Mensajes",
+    "notices": "Avisos",
+    "noticesAccessibleUnread_one": "Avisos, {{count}} sin leer",
+    "noticesAccessibleUnread_other": "Avisos, {{count}} sin leer",
     "signatures": "Firmas",
     "profile": "Perfil"
   },
@@ -637,10 +639,92 @@
       "error": { "title": "No pudimos restaurar la sesión", "retry": "Reintentar" }
     }
   },
-  "placeholders": {
-    "comingSoon": {
-      "title": "Próximamente",
-      "description": "Estamos trabajando en esta sección. Todavía no hay nada para mostrar acá."
+  "notices": {
+    "tabTitle": "Avisos",
+    "title": "Centro de avisos",
+    "demoNotice": {
+      "title": "Entorno de demostración",
+      "body": "Los avisos de esta demostración no se envían por correo ni al dispositivo."
+    },
+    "privacyNotice": {
+      "title": "Privacidad",
+      "body": "Los avisos muestran únicamente información compartida del proceso. Tus posiciones privadas no se incluyen."
+    },
+    "unreadSummary_one": "Tenés {{count}} aviso sin leer",
+    "unreadSummary_other": "Tenés {{count}} avisos sin leer",
+    "noUnread": "Estás al día",
+    "filters": {
+      "all": "Todas",
+      "unread": "No leídas"
+    },
+    "markAllAction": "Marcar todas como leídas",
+    "markAllPending": "Marcando…",
+    "markReadAction": "Marcar como leído",
+    "markReadError": "No pudimos marcar este aviso como leído. Volvé a intentar.",
+    "readLabel": "Leído",
+    "unreadLabel": "No leído",
+    "importantLabel": "Importante",
+    "caseLine": "Caso: {{title}}",
+    "viewActivityAction": "Ver actividad",
+    "empty": {
+      "title": "No hay avisos para mostrar",
+      "description": "Todavía no hay avisos en esta demostración."
+    },
+    "error": {
+      "title": "No pudimos cargar los avisos",
+      "retry": "Reintentar"
+    },
+    "category": {
+      "case": "Caso",
+      "invitation": "Invitación",
+      "proposal": "Propuesta",
+      "response": "Respuesta",
+      "round": "Ronda",
+      "agreement": "Acuerdo",
+      "signature": "Firma",
+      "mediator": "Mediador",
+      "deadline": "Seguimiento",
+      "institutional": "Institucional",
+      "system": "Sistema"
+    },
+    "fixtures": {
+      "invitationAccepted": { "title": "La otra parte se unió al caso", "body": "La contraparte aceptó la invitación y el caso ya está activo." },
+      "proposalReady": { "title": "Propuesta lista", "body": "La IA generó una nueva propuesta compartida para revisar." },
+      "ownResponseRegistered": { "title": "Registramos tu respuesta", "body": "Tu respuesta a la propuesta quedó registrada." },
+      "waitingOtherParty": { "title": "Esperando a la otra parte", "body": "Ya respondiste la propuesta. Estamos esperando la respuesta de la otra parte." },
+      "newRoundAvailable": { "title": "Nueva ronda disponible", "body": "Se abrió la ronda {{number}} de negociación para este caso." },
+      "agreementReached": { "title": "Llegaron a un acuerdo", "body": "Ambas partes aceptaron la propuesta y el caso pasó a estado de acuerdo." },
+      "signatureReady": { "title": "Documento listo para firmar", "body": "El acuerdo quedó listo para la firma de ambas partes." },
+      "signaturePending": { "title": "Firma pendiente", "body": "Todavía faltaba tu firma simulada en este acuerdo." },
+      "processCompleted": { "title": "Proceso completado", "body": "Ambas partes firmaron y el acuerdo quedó completo." },
+      "deadline": { "title": "Seguimiento esperado", "body": "Se espera una actualización dentro de las próximas {{hours}} horas." },
+      "institutionalMediator": { "title": "Acompañamiento de mediador", "body": "Desde la tercera ronda puede solicitarse acompañamiento de un mediador." },
+      "personalPositionsReady": { "title": "Tus posiciones privadas están listas", "body": "Ya cargaste información privada para este caso. Solo vos podés verla." }
+    }
+  },
+  "activity": {
+    "title": "Actividad del proceso",
+    "empty": {
+      "title": "Todavía no hay actividad",
+      "description": "Las novedades compartidas del proceso van a aparecer acá."
+    },
+    "error": {
+      "title": "No pudimos cargar la actividad",
+      "retry": "Reintentar"
+    },
+    "caseLine": "Caso: {{title}}",
+    "event": {
+      "case_created": "Se creó el caso",
+      "invitation_sent": "Se envió una invitación",
+      "invitation_accepted": "La otra parte se unió al caso",
+      "negotiation_started": "Comenzó la negociación",
+      "proposal_ready": "Propuesta compartida lista (ronda {{number}})",
+      "own_response_registered": "Registraste tu respuesta",
+      "round_completed": "Se completó la ronda {{number}}",
+      "agreement_reached": "Llegaron a un acuerdo",
+      "signature_ready": "El documento quedó listo para firmar",
+      "own_mock_signature_registered": "Registraste tu firma",
+      "process_completed": "El proceso quedó completo"
     }
   },
   "states": {

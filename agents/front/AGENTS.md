@@ -1,8 +1,10 @@
 # Frontend agent handoff — Proyecto Mediación mobile app
 
-Last updated: end of phase 6 (profile, account settings, privacy/help/legal info, mocked session & account actions). Written for a future Claude Code session picking this work back up — read this before touching `mediacion-app/`.
+Last updated: end of phase 7 (Avisos notice center + read-only Actividad timeline). Written for a future Claude Code session picking this work back up — read this before touching `mediacion-app/`.
 
-The roadmap changed after phase 5: the plan is now to **finish the full mocked product** before any real backend integration begins. Phase 6 was the first phase under that revised roadmap — do not start wiring a real backend until the user explicitly says the mocked product is complete and asks for it.
+The roadmap changed after phase 5: the plan is now to **finish the full mocked product** before any real backend integration begins. Phases 6-7 are under that revised roadmap — do not start wiring a real backend until the user explicitly says the mocked product is complete and asks for it.
+
+**Product boundary correction (phase 7):** the technical documentation does **not** define a chat or messaging system between parties. The "Mensajes" tab was reinterpreted as a product **notice center** ("Avisos") — event-driven notices, a read-only shared activity timeline, and (already built in phase 6) profile/account settings. There is no chat, no conversation thread, no message composer, no user-authored text anywhere in this app, and none should be added without an explicit, separate product decision from the user.
 
 ## Product context
 
@@ -35,7 +37,8 @@ mediacion-app/
     positions/                own private-position CRUD
     negotiation/               rounds, shared proposals, responses
     agreements/                final agreement review + mock signatures
-    profile/                    own profile, preferences, notifications, mocked session/account  ← new this phase
+    profile/                    own profile, preferences, notifications, mocked session/account
+    notices/                    Avisos notice center + read-only shared activity timeline  ← new this phase
   services/                    one file per domain, each exports a singleton + a
                                 createMockXService() factory — the ONLY place a real
                                 backend integration would plug in later
@@ -101,6 +104,10 @@ Known, deliberate gaps between backend shape and this frontend (all documented i
 - `Table notificaciones` only logs already-sent deliveries (`canal`, `evento`, `estado: pendiente|enviada|fallida`) — there is **no backend schema at all** for per-category user notification opt-ins. `types/profile.ts`'s `NotificationPreferences` (7 booleans) is entirely frontend-invented presentation state.
 - There is **no legal-consent timestamp field** anywhere in `usuarios` (no `consentimiento_at`/terms-acceptance column) and **no support/contact-preference schema** either — the profile/legal/help screens never claim to persist either concept against a real backend.
 - `usuarios.estudio_id` exists but is irrelevant to the `parte` persona this app has used since phase 1 — `MockProfile` omits it entirely rather than inventing an estudio membership.
+- `notificaciones.evento` is free `text`, not a closed enum — `NoticeCategory` (11 values) is a frontend-only UI catalog, not a mirror. There is still no read/unread column anywhere.
+- `auditoria` (`usuario_id`, `accion: text`, `entidad: text`, `detalle: jsonb`) is an internal admin/audit trace — it is explicitly NOT read or mirrored by the shared Actividad timeline. `ActivityEventKey` is a separate, curated, already-shared-safe frontend vocabulary with no backend enum behind it.
+- `mediaciones` (a real mediation-request workflow: `solicitada → aceptada/rechazada → activa → finalizada`) exists on the backend but has never been built in this frontend at all — the app's `mediatorAvailable` (round ≥ 3) is only a UI eligibility flag, never a request record. The phase-7 mediator notice is deliberately generic/institutional, never tied to a specific case's live state.
+- `casos.plazo`/`sla_tipo` (real deadline/SLA fields) are only loosely echoed by the frontend's existing `CaseSummary.slaHours: number | null` (a duration, not an absolute date). Deadline notices read as a relative product follow-up estimate ("Se espera una actualización dentro de las próximas {{hours}} horas") — never a legal/court/statutory deadline claim, and never a calculated absolute due date.
 
 ## Mocked profile/session/account behavior (phase 6)
 
@@ -117,6 +124,18 @@ Known, deliberate gaps between backend shape and this frontend (all documented i
 - `CommunicationPreference` (`email_summary | in_app_only`) and `AccessibilityPreference` (`system_default | larger_text_preference`) — both invented UI-only preferences. The accessibility preference is **stored and displayed but not wired to any actual rendering change** — deliberately, to avoid a half-built app-wide font-scaling feature; its copy says explicitly that it's demo-only.
 - `deactivationRequestedAt` — a presentation-only marker, not a real backend column.
 
+## Notices & activity architecture (phase 7)
+
+**Case-title resolution (loose coupling).** Neither `notices.service.ts` nor `activity.service.ts` imports `mockCases`/`mockCaseDetails` directly. Both call the one small public accessor added to `cases.service.ts` for this purpose — `casesService.getCaseTitle(caseId): Promise<string | null>` — which returns only a title, never `caseCode`, `descripcion`, or any other case field. `AppNotice`/`ActivityItem` (the stored/fixture shapes) hold only `caseId`; `NoticeListItem`/`ActivityListItem` (what the services actually return from `listNotices()`/`listActivity()`) add a resolved `caseTitle` at read time. UI components never import `casesService` — they only ever see the already-resolved list-item shapes.
+
+**Positions stay out of both services entirely.** Neither file imports `positionsService` or `PositionItem`. Private-position readiness appears only as a **personal** notice fixture ("Tus posiciones privadas están listas" — no counts, no categories, no values) — never in the shared Actividad timeline, which is 100% static fixtures mirroring already-fixed historical timestamps from `mocks/negotiation.ts`/`mocks/agreements.ts` (parallel constants, not reads — zero coupling to those services either).
+
+**Live tab badge — no Context/Provider.** `notices.service.ts` keeps a tiny internal listener array, notified only from its own `markNoticeRead`/`markAllNoticesRead` after they commit. `features/notices/hooks/useUnreadNotices.ts` wraps this with React's built-in `useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)` — `getServerSnapshot` reuses the exact same synchronous function as `getSnapshot`, which is safe because the underlying array is freshly seeded identically on server (static export) and client (fresh session), so there's nothing to diverge at hydration. `app/(tabs)/_layout.tsx` calls the hook once in the `TabLayout` component itself (hooks-safe) and reads the resulting count from the `tabBarIcon` closure — `design-system/components/Icon.tsx` was not touched.
+
+**Typed, validated navigation.** `NoticeDestination`/`utils/resolve-notice-destination.ts` accept only 6 known variants (`case|negotiation|agreement|signature|activity|none`) mapped to the app's 4 real route shapes — never a raw string. For actionable **unread** notices, the sequence is strictly: attempt `markNoticeRead` → only on success, `blurActiveElement()` + navigate; on failure the notice stays unread and an inline recoverable error/retry shows on the card (re-tapping retries). Already-**read** actionable notices navigate directly with no mutation call at all. Duplicate activation for the same notice while a mark-read is in flight is a guarded no-op (`useNotices`'s `markingId` state). Informational (`destination.type === 'none'`) notices keep the outer `Card` non-interactive with a sibling "Marcar como leído" `Button`, shown only while unread.
+
+**Fixture-set summary:** 12 `AppNotice` fixtures (`mocks/notices.ts`) covering every required scenario at least once — invitation/proposal/response/round/agreement/signature/deadline/institutional/personal, mixed read+unread, actionable+no-destination. 21 `ActivityItem` fixtures (`mocks/activity.ts`) across the same three demo cases, restricted to the 11 shared-safe event keys (no `own_positions_ready`, no case-specific `mediator_available`).
+
 ## Completed phases
 
 1. **Foundation** — design-system tokens/primitives ported from the imported Claude Design System (native RN, not literal web copy), i18n (es-AR/en), Expo Router shell, bottom tabs (Casos/Mensajes/Firmas/Perfil), case dashboard + detail shell, typed mock data.
@@ -124,7 +143,8 @@ Known, deliberate gaps between backend shape and this frontend (all documented i
 3. **Private positions** — `app/case/[id]/positions/*`, category/range/concession form, review→save, edit, delete-with-confirmation, strict own-position isolation in the mock service.
 4. **Negotiation** — `app/case/[id]/negotiation/*`, round/proposal lifecycle, AI-assisted (sage) proposal generation, accept/reject with confirmation dialog, deterministic simulated counterparty responses, mediator-availability card from round ≥ 3. Replaced the phase-1 embedded AI demo in `CaseDetailScreen`.
 5. **Agreement & mock signatures** — `app/case/[id]/agreement/*`, lazy agreement materialization from an accepted proposal only, `borrador → enviado_a_firma → firmado` transitions, mock signature confirmation flow, Firmas tab now a real grouped inbox (Pendientes / Esperando a la otra parte / Completadas / Con aviso).
-6. **Profile, account settings & mocked session** (this phase) — `app/profile/*` + `app/(tabs)/profile.tsx` (real overview, replacing the "Próximamente" placeholder) + `app/signed-out.tsx`. Editable presentation preferences (name, language, communication/accessibility preference), 7-category notification toggles, privacy/help/legal informational screens, simulated sign-out and idempotent account-deactivation request. Perfil is no longer a placeholder — only **Mensajes** still is.
+6. **Profile, account settings & mocked session** — `app/profile/*` + `app/(tabs)/profile.tsx` (real overview, replacing the "Próximamente" placeholder) + `app/signed-out.tsx`. Editable presentation preferences (name, language, communication/accessibility preference), 7-category notification toggles, privacy/help/legal informational screens, simulated sign-out and idempotent account-deactivation request.
+7. **Avisos notice center & Actividad timeline** (this phase) — `app/(tabs)/messages.tsx` (filename unchanged; visible label is now "Avisos"/"Centro de avisos") + `app/notices/{_layout,activity}.tsx`. All/unread filters, mark-one/mark-all read (idempotent), live tab badge via `useSyncExternalStore`, deadline/institutional/personal notices, read-only shared activity timeline. Every tab is now fully built — no placeholder tabs remain.
 
 A recurring corrective task between phases 3 and 4 fixed RN-Web-specific runtime issues (nested-button HTML validity, `useNativeDriver` on web, `shadow*` → `boxShadow` deprecation, a focus-release utility for React Navigation's web `aria-hidden` warning) — see that session if similar RN-Web warnings resurface. A second, smaller corrective task after phase 5 fixed a `ScrollView` runtime crash in the Firmas tab (`justifyContent` had been placed in the `ScrollView`'s `style` prop instead of `contentContainerStyle`) — the same style/contentContainerStyle split is checked on every new screen since.
 
@@ -139,7 +159,7 @@ Every phase's deterministic behavior is anchored to the same three cases, each d
 ## Routes
 
 ```
-app/(tabs)/{index,messages,signatures,profile}.tsx     bottom tabs — Casos, Mensajes*, Firmas, Perfil
+app/(tabs)/{index,messages,signatures,profile}.tsx     bottom tabs — Casos, Avisos*, Firmas, Perfil
 app/case/create/{_layout,index,method,review,invite,success}.tsx
 app/case/[id]/index.tsx                                 case detail (folder form — NOT a flat [id].tsx file)
 app/case/[id]/positions/{_layout,index,create,review}.tsx
@@ -148,8 +168,9 @@ app/case/[id]/negotiation/{_layout,index,history}.tsx
 app/case/[id]/agreement/{_layout,index,sign,history}.tsx
 app/profile/{_layout,edit,notifications,privacy,help,legal,account}.tsx
 app/signed-out.tsx                                      demo landing after simulated sign-out (outside tabs)
+app/notices/{_layout,activity}.tsx                      Actividad del proceso — pushed from the Avisos tab
 ```
-`*` Mensajes is still the phase-1 "Próximamente" placeholder — Perfil is now fully built. Only stable IDs (`id`, `positionId`) ever appear in route params — no draft text, decisions, values, or tokens. No profile route needs a dynamic segment at all (single authenticated persona, no per-user routing).
+`*` The route filename is still `messages.tsx` (kept deliberately per the phase-7 instructions) but it renders the Notice Center directly — the visible tab label is "Avisos", i18n key `tabs.notices`. No tab or screen is a placeholder anymore. Only stable IDs (`id`, `positionId`) ever appear in route params — no draft text, decisions, values, timestamps, or notice/activity payload data. No profile or notices route needs a dynamic segment at all.
 
 ## Validation commands (run every phase)
 
@@ -176,21 +197,23 @@ This sandbox mounts the repo at a lowercase-`documents` path while the real path
 - `con_aviso` (`estado_acuerdo`) is modeled and treated as read-only everywhere it's checked, but no flow in this app ever produces it — it exists only for backend-fidelity and defensive handling.
 - The accessibility preference (`system_default | larger_text_preference`) is saved and shown but doesn't change any actual text size yet — see the phase-6 section above.
 - `mockSessionActive` has no reader anywhere — it's a deliberate placeholder, not dead code (see phase-6 section above), but a future phase adding a real route guard is the natural place to start actually using it.
-- Mensajes is still the one remaining phase-1 placeholder tab.
+- No seeded notice/activity fixture references a nonexistent case (all use case-1/2/3), so the "missing-case" defensive path in `notices.service.ts`/`activity.service.ts` (skip `caseTitle`, don't navigate) is verified only by code review — it has never actually been exercised end-to-end.
+- The deadline notice exists only for case-1 (the only seeded case with `slaHours` set) — no other case demonstrates that path.
+- The mediator-availability notice is deliberately generic/institutional (no case tie) since no seeded case is currently at round ≥ 3 — see the phase-7 architecture section above.
+- `components/coming-soon-screen.tsx` and `placeholders.comingSoon.*` were deleted in phase 7 once a full-project search confirmed zero remaining references (Mensajes was the last caller; Perfil had already dropped it in phase 6).
 
-## Files touched in phase 6
+## Files touched in phase 7
 
-**Created:** `types/profile.ts`, `mocks/profile.ts`, `services/profile.service.ts`, `utils/map-language.ts`, `features/profile/hooks/{useProfile,useNotificationPreferences,useAccountActions}.ts`, `features/profile/components/{ProfileHeaderCard,ProfileMenuItem,PreferenceRow,NotificationPreferenceRow,LanguageSelector,PrivacySummaryCard,DemoEnvironmentNotice,AccountActionCard,SignOutDialog,DeactivationDialog,HelpTopicCard,LegalNoticeCard}.tsx`, `app/profile/{_layout,edit,notifications,privacy,help,legal,account}.tsx`, `app/signed-out.tsx`.
-**Modified:** `app/(tabs)/profile.tsx` (placeholder → real overview), `design-system/components/Icon.tsx` (added `help-circle`/`file-text`/`settings` glyphs — a small necessary addition beyond the originally enumerated modify-list, flagged to the user in the phase-6 report), `i18n/locales/{es-AR,en}.json` (new `profile.*` namespace).
-**Deleted:** none.
+**Created:** `types/{notice,activity}.ts`, `mocks/{notices,activity}.ts`, `services/{notices,activity}.service.ts`, `utils/resolve-notice-destination.ts`, `features/notices/hooks/{useNotices,useActivity,useUnreadNotices}.ts`, `features/notices/components/{NoticesOverviewHeader,NoticeFilter,NoticeCard,NoticeCategoryBadge,UnreadSummaryCard,MarkAllReadAction,ActivityTimelineItem,DeadlineNoticeCard,NoticesDemoNotice}.tsx`, `app/notices/{_layout,activity}.tsx`.
+**Modified:** `app/(tabs)/messages.tsx` (placeholder → Notice Center; filename kept), `app/(tabs)/_layout.tsx` (tab icon `messages-square`→`bell`, live unread badge, label→"Avisos"), `services/cases.service.ts` (added the small `getCaseTitle(caseId)` read accessor — a necessary addition beyond the originally enumerated modify-list, per the approved fallback-helper instruction), `i18n/locales/{es-AR,en}.json` (new `notices.*`/`activity.*` namespaces, `tabs.messages`→`tabs.notices`, `placeholders.*` removed).
+**Deleted:** `components/coming-soon-screen.tsx` (zero remaining references, confirmed by a full-project search before deletion).
+**Simplified from the approved plan:** no separate `ActivityTimeline` wrapper component — the `FlatList` is inlined directly in `app/notices/activity.tsx` using `ActivityTimelineItem` as the row, matching how every other list screen in this app is already structured (e.g. `agreement/history.tsx`).
 
 ## Recommended next step
 
-The roadmap now calls for finishing the mocked product before any backend integration. Profile/account (phase 6) is done; case → positions → negotiation → agreement/signature (phases 1-5) were already done. Remaining candidates for the next mock phase, roughly in likely order:
-1. **Mensajes** — the one still-unbuilt tab; likely a mocked messaging/comment thread per case.
-2. A dedicated QA/polish pass across all six phases — actual device/simulator testing (impossible in this sandboxed environment), since every phase so far has only had static verification.
+Every tab is now fully built and the mocked product is feature-complete end-to-end: cases → positions → negotiation → agreement/signature → profile/account → notices/activity. Candidates for what comes next, roughly in likely order:
+1. Ask the user to confirm the mocked product is genuinely complete, then begin backend integration — starting with the smallest/safest service (`cases`) behind its existing interface, per the pattern every service here was already built for.
+2. A dedicated QA/polish pass across all seven phases — actual device/simulator testing (impossible in this sandboxed environment), since every phase so far has only had static verification.
 3. The Estudio web panel (`apps/panel`, currently a placeholder) — always explicitly out of scope so far.
-
-Only after the user confirms the mocked product is complete should backend integration begin — starting with the smallest/safest service (`cases`) behind its existing interface, per the pattern every service here was already built for.
 
 Confirm which direction with the user before starting; don't assume.

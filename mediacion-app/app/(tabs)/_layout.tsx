@@ -1,13 +1,18 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Icon } from '@/design-system';
 import { fontFamily } from '@/design-system/tokens/typography';
 import { colors } from '@/design-system/tokens/colors';
+import { useUnreadNotices } from '@/features/notices/hooks/useUnreadNotices';
+
+const MAX_BADGE_COUNT = 9;
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const unreadCount = useUnreadNotices();
 
   return (
     <Tabs
@@ -36,8 +41,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: t('tabs.messages'),
-          tabBarIcon: ({ color }) => <Icon name="messages-square" size={22} color={color} />,
+          title: t('tabs.notices'),
+          tabBarAccessibilityLabel: unreadCount > 0 ? t('tabs.noticesAccessibleUnread', { count: unreadCount }) : undefined,
+          tabBarIcon: ({ color }) => (
+            <View style={styles.iconWrapper}>
+              <Icon name="bell" size={22} color={color} />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(unreadCount)}</Text>
+                </View>
+              ) : null}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
@@ -57,3 +72,28 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrapper: {
+    width: 22,
+    height: 22,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.ink,
+  },
+  badgeText: {
+    fontFamily: fontFamily.medium,
+    fontSize: 9,
+    lineHeight: 11,
+    color: colors.onPrimary,
+  },
+});

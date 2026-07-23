@@ -6,7 +6,9 @@
   },
   "tabs": {
     "cases": "Cases",
-    "messages": "Messages",
+    "notices": "Notices",
+    "noticesAccessibleUnread_one": "Notices, {{count}} unread",
+    "noticesAccessibleUnread_other": "Notices, {{count}} unread",
     "signatures": "Signatures",
     "profile": "Profile"
   },
@@ -637,10 +639,92 @@
       "error": { "title": "We couldn't restore the session", "retry": "Retry" }
     }
   },
-  "placeholders": {
-    "comingSoon": {
-      "title": "Coming soon",
-      "description": "We're still working on this section. There's nothing to show here yet."
+  "notices": {
+    "tabTitle": "Notices",
+    "title": "Notice center",
+    "demoNotice": {
+      "title": "Demonstration environment",
+      "body": "Notices in this demo aren't sent by email or to your device."
+    },
+    "privacyNotice": {
+      "title": "Privacy",
+      "body": "Notices show only shared process information. Your private positions are never included."
+    },
+    "unreadSummary_one": "You have {{count}} unread notice",
+    "unreadSummary_other": "You have {{count}} unread notices",
+    "noUnread": "You're all caught up",
+    "filters": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "markAllAction": "Mark all as read",
+    "markAllPending": "Marking…",
+    "markReadAction": "Mark as read",
+    "markReadError": "We couldn't mark this notice as read. Try again.",
+    "readLabel": "Read",
+    "unreadLabel": "Unread",
+    "importantLabel": "Important",
+    "caseLine": "Case: {{title}}",
+    "viewActivityAction": "View activity",
+    "empty": {
+      "title": "No notices to show",
+      "description": "There are no notices in this demonstration yet."
+    },
+    "error": {
+      "title": "We couldn't load your notices",
+      "retry": "Retry"
+    },
+    "category": {
+      "case": "Case",
+      "invitation": "Invitation",
+      "proposal": "Proposal",
+      "response": "Response",
+      "round": "Round",
+      "agreement": "Agreement",
+      "signature": "Signature",
+      "mediator": "Mediator",
+      "deadline": "Follow-up",
+      "institutional": "Institutional",
+      "system": "System"
+    },
+    "fixtures": {
+      "invitationAccepted": { "title": "The other party joined the case", "body": "The counterparty accepted the invitation and the case is now active." },
+      "proposalReady": { "title": "Proposal ready", "body": "The AI generated a new shared proposal for you to review." },
+      "ownResponseRegistered": { "title": "We registered your response", "body": "Your response to the proposal was registered." },
+      "waitingOtherParty": { "title": "Waiting for the other party", "body": "You already responded to the proposal. We're waiting on the other party's response." },
+      "newRoundAvailable": { "title": "New round available", "body": "Round {{number}} of negotiation opened for this case." },
+      "agreementReached": { "title": "You reached an agreement", "body": "Both parties accepted the proposal and the case moved to agreement status." },
+      "signatureReady": { "title": "Document ready to sign", "body": "The agreement is ready for both parties to sign." },
+      "signaturePending": { "title": "Signature pending", "body": "Your mock signature was still pending on this agreement." },
+      "processCompleted": { "title": "Process completed", "body": "Both parties signed and the agreement is now complete." },
+      "deadline": { "title": "Follow-up expected", "body": "An update is expected within the next {{hours}} hours." },
+      "institutionalMediator": { "title": "Mediator support", "body": "From the third round onward, mediator support can be requested." },
+      "personalPositionsReady": { "title": "Your private positions are ready", "body": "You already entered private information for this case. Only you can see it." }
+    }
+  },
+  "activity": {
+    "title": "Process activity",
+    "empty": {
+      "title": "No activity yet",
+      "description": "Shared process updates will appear here."
+    },
+    "error": {
+      "title": "We couldn't load the activity",
+      "retry": "Retry"
+    },
+    "caseLine": "Case: {{title}}",
+    "event": {
+      "case_created": "The case was created",
+      "invitation_sent": "An invitation was sent",
+      "invitation_accepted": "The other party joined the case",
+      "negotiation_started": "Negotiation started",
+      "proposal_ready": "Shared proposal ready (round {{number}})",
+      "own_response_registered": "You registered your response",
+      "round_completed": "Round {{number}} completed",
+      "agreement_reached": "You reached an agreement",
+      "signature_ready": "The document was ready to sign",
+      "own_mock_signature_registered": "You registered your signature",
+      "process_completed": "The process is complete"
     }
   },
   "states": {
