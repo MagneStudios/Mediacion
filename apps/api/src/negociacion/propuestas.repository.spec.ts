@@ -46,11 +46,12 @@ describe("PropuestasRepository query builders", () => {
     expectReturnsOnlyAllowlistedColumns(compiled.sql);
   });
 
-  it("buildPatchGeneratedQuery updates propuestas scoped by id and returns only the allowlisted view", () => {
+  it("buildPatchGeneratedQuery updates propuestas scoped by caso_id and id and returns only the allowlisted view", () => {
     const db = createCompileOnlyKysely();
 
     const compiled = buildPatchGeneratedQuery(
       db,
+      "caso-1",
       "propuesta-1",
       { meetingPoint: [], narrative: "texto" },
       null,
@@ -58,14 +59,16 @@ describe("PropuestasRepository query builders", () => {
 
     expect(compiled.sql).toMatch(/^update "propuestas"/i);
     expect(compiled.sql).toMatch(/where\s+.*"id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
     expectReturnsOnlyAllowlistedColumns(compiled.sql);
   });
 
-  it("buildMarkEstadoQuery updates only estado, scoped by id, and returns only the allowlisted view", () => {
+  it("buildMarkEstadoQuery updates only estado, scoped by caso_id and id, and returns only the allowlisted view", () => {
     const db = createCompileOnlyKysely();
 
     const compiled = buildMarkEstadoQuery(
       db,
+      "caso-1",
       "propuesta-1",
       "aceptada",
     ).compile();
@@ -74,6 +77,8 @@ describe("PropuestasRepository query builders", () => {
     const setClause = compiled.sql.split(/where/i)[0];
     expect(setClause).toContain('"estado"');
     expect(setClause).not.toContain('"caso_id"');
+    expect(compiled.sql).toMatch(/where\s+.*"id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
     expectReturnsOnlyAllowlistedColumns(compiled.sql);
   });
 
@@ -161,6 +166,7 @@ describe("PropuestasRepository", () => {
     const repository = new PropuestasRepository(fake.kysely as never);
 
     const result = await repository.patchGenerated(
+      "caso-1",
       "missing",
       { meetingPoint: [], narrative: "texto" },
       null,
@@ -178,7 +184,7 @@ describe("PropuestasRepository", () => {
     const repository = new PropuestasRepository(fake.kysely as never);
 
     await expect(
-      repository.markEstado("prop-1", "aceptada"),
+      repository.markEstado("caso-1", "prop-1", "aceptada"),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 

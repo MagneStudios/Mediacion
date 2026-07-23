@@ -30,6 +30,7 @@ export function buildCreatePendingQuery(
 
 export function buildPatchGeneratedQuery(
   db: Kysely<Database>,
+  casoId: string,
   propuestaId: string,
   contenido: Propuesta["contenido"],
   fundamentacion: string | null,
@@ -38,11 +39,13 @@ export function buildPatchGeneratedQuery(
     .updateTable("propuestas")
     .set({ contenido, fundamentacion })
     .where("id", "=", propuestaId)
+    .where("caso_id", "=", casoId)
     .returning([...propuestaViewColumns]);
 }
 
 export function buildMarkEstadoQuery(
   db: Kysely<Database>,
+  casoId: string,
   propuestaId: string,
   estado: EstadoPropuesta,
 ) {
@@ -50,6 +53,7 @@ export function buildMarkEstadoQuery(
     .updateTable("propuestas")
     .set({ estado })
     .where("id", "=", propuestaId)
+    .where("caso_id", "=", casoId)
     .returning([...propuestaViewColumns]);
 }
 
@@ -84,12 +88,14 @@ export class PropuestasRepository {
   }
 
   patchGenerated(
+    casoId: string,
     propuestaId: string,
     contenido: Propuesta["contenido"],
     fundamentacion: string | null,
   ): Promise<PropuestaView | undefined> {
     return buildPatchGeneratedQuery(
       this.kysely,
+      casoId,
       propuestaId,
       contenido,
       fundamentacion,
@@ -101,10 +107,11 @@ export class PropuestasRepository {
   }
 
   markEstado(
+    casoId: string,
     propuestaId: string,
     estado: EstadoPropuesta,
   ): Promise<PropuestaView | undefined> {
-    return buildMarkEstadoQuery(this.kysely, propuestaId, estado)
+    return buildMarkEstadoQuery(this.kysely, casoId, propuestaId, estado)
       .executeTakeFirst()
       .catch((error: unknown) => {
         throw toDomainError(error);

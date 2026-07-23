@@ -15,14 +15,19 @@ function createCompileOnlyKysely(): Kysely<Database> {
 }
 
 describe("buildPropuestaLockQuery", () => {
-  it("compiles to a row-locked SELECT scoped by propuesta id", () => {
+  it("compiles to a row-locked SELECT scoped by caso_id and propuesta id", () => {
     const db = createCompileOnlyKysely();
 
-    const compiled = buildPropuestaLockQuery(db, "propuesta-1").compile();
+    const compiled = buildPropuestaLockQuery(
+      db,
+      "caso-1",
+      "propuesta-1",
+    ).compile();
 
     expect(compiled.sql).toMatch(/^select\s+\S+.*from\s+"propuestas"/i);
     expect(compiled.sql.toLowerCase()).toContain("for update");
     expect(compiled.sql).toMatch(/where\s+.*"id"\s*=\s*\$\d/i);
-    expect(compiled.parameters).toEqual(["propuesta-1"]);
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
+    expect(compiled.parameters).toEqual(["propuesta-1", "caso-1"]);
   });
 });
