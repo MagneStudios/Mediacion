@@ -12,6 +12,7 @@ import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
 import { NegociacionModule } from "./negociacion/negociacion.module";
+import { PagosModule } from "./pagos/pagos.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { NegociacionModule } from "./negociacion/negociacion.module";
     InvitacionesModule,
     ItemsModule,
     NegociacionModule,
+    PagosModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
