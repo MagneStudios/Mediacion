@@ -93,7 +93,7 @@ export function MediatorSummaryCard({ caseId, hideWhenUnavailable = false }: Med
   // "not yet available" informational state.
   const nothingToShow =
     !state?.mediation && (state?.eligibility === 'unavailable_before_round_3' || state?.eligibility === 'read_only');
-  if (status === 'success' && state && nothingToShow && hideWhenUnavailable) {
+  if (hideWhenUnavailable && (status === 'loading' || (status === 'success' && state && nothingToShow))) {
     return null;
   }
 
