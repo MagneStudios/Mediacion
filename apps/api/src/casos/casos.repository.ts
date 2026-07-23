@@ -88,4 +88,17 @@ export class CasosRepository {
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
       .executeTakeFirst();
   }
+
+  activateIfNuevo(casoId: string, trx: Kysely<Database>): Promise<void> {
+    return trx
+      .updateTable("casos")
+      .set({ estado: "activo" })
+      .where("id", "=", casoId)
+      .where("estado", "=", "nuevo")
+      .execute()
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
 }
