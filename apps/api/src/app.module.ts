@@ -11,6 +11,7 @@ import { HealthModule } from "./health/health.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
+import { NegociacionModule } from "./negociacion/negociacion.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MeModule } from "./me/me.module";
     CasosModule,
     InvitacionesModule,
     ItemsModule,
+    NegociacionModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
