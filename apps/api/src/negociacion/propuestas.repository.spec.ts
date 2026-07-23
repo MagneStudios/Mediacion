@@ -1,12 +1,14 @@
 import type { Database } from "@mediacion/db-types";
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
+import { ConflictError } from "../common/errors/domain-errors";
 import { propuestaViewColumns } from "./negociacion.types";
 import {
   buildCreatePendingQuery,
   buildFindForCaseQuery,
   buildMarkEstadoQuery,
   buildPatchGeneratedQuery,
+  PropuestasRepository,
 } from "./propuestas.repository";
 
 function createCompileOnlyKysely(): Kysely<Database> {
@@ -85,5 +87,137 @@ describe("PropuestasRepository query builders", () => {
       expect(compiled.sql).toContain(`"${column}"`);
     }
     expect(compiled.parameters).toEqual(["caso-1"]);
+  });
+});
+
+function createFakeKysely() {
+  const executeTakeFirstOrThrow = jest.fn();
+  const executeTakeFirst = jest.fn();
+  const execute = jest.fn();
+  const builder: Record<string, jest.Mock> = {
+    executeTakeFirstOrThrow,
+    executeTakeFirst,
+    execute,
+  };
+  const returnBuilder = jest.fn(() => builder);
+  builder.values = returnBuilder;
+  builder.set = returnBuilder;
+  builder.where = returnBuilder;
+  builder.select = returnBuilder;
+  builder.returning = returnBuilder;
+  const kysely = {
+    insertInto: jest.fn(() => builder),
+    updateTable: jest.fn(() => builder),
+    selectFrom: jest.fn(() => builder),
+  };
+  return {
+    kysely,
+    ...kysely,
+    where: builder.where,
+    executeTakeFirstOrThrow,
+    executeTakeFirst,
+    execute,
+  };
+}
+
+describe("PropuestasRepository", () => {
+  it("createPending returns the persisted allowlisted view", async () => {
+    const view = { id: "prop-1", caso_id: "caso-1" };
+    const fake = createFakeKysely();
+    fake.executeTakeFirstOrThrow.mockResolvedValue(view);
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.createPending(
+      "caso-1",
+      "ronda-1",
+      { meetingPoint: [], narrative: null },
+      "openai/gpt-4",
+    );
+
+    expect(result).toBe(view);
+  });
+
+  it("createPending maps a pg conflict into a domain ConflictError", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirstOrThrow.mockRejectedValue({
+      code: "23505",
+      message: "duplicate key",
+    });
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    await expect(
+      repository.createPending(
+        "caso-1",
+        "ronda-1",
+        { meetingPoint: [], narrative: null },
+        "openai/gpt-4",
+      ),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("patchGenerated returns undefined when no propuesta matches", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockResolvedValue(undefined);
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.patchGenerated(
+      "missing",
+      { meetingPoint: [], narrative: "texto" },
+      null,
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  it("markEstado maps a pg conflict into a domain ConflictError", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockRejectedValue({
+      code: "P0001",
+      message: "estado transition rejected",
+    });
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    await expect(
+      repository.markEstado("prop-1", "aceptada"),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("findForCase returns every allowlisted view row for the case", async () => {
+    const rows = [{ id: "prop-1" }, { id: "prop-2" }];
+    const fake = createFakeKysely();
+    fake.execute.mockResolvedValue(rows);
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.findForCase("caso-1");
+
+    expect(result).toBe(rows);
+  });
+
+  it("readBothPartyPositionsForEngine reads both parties' items scoped by caso", async () => {
+    const bothParties = [
+      {
+        parte_id: "parte-a",
+        categoria: "economico",
+        nombre: "monto",
+        valor_min: 100,
+        valor_max: 200,
+      },
+      {
+        parte_id: "parte-b",
+        categoria: "economico",
+        nombre: "monto",
+        valor_min: 150,
+        valor_max: 300,
+      },
+    ];
+    const fake = createFakeKysely();
+    fake.execute.mockResolvedValue(bothParties);
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.readBothPartyPositionsForEngine("caso-9");
+
+    expect(fake.selectFrom).toHaveBeenCalledWith("items");
+    expect(fake.where).toHaveBeenCalledWith("caso_id", "=", "caso-9");
+    expect(result).toBe(bothParties);
   });
 });

@@ -1,15 +1,20 @@
-import type { PropuestaView } from "./negociacion.types";
+import type { PropuestaView, propuestaViewColumns } from "./negociacion.types";
 
-type ForbiddenKeys = "valor_min" | "valor_max";
-type LeakedKeys = Extract<keyof PropuestaView, ForbiddenKeys>;
+type AllowlistedColumn = (typeof propuestaViewColumns)[number];
+type ViewKeysBeyondAllowlist = Exclude<keyof PropuestaView, AllowlistedColumn>;
+type AllowlistColumnsMissingFromView = Exclude<
+  AllowlistedColumn,
+  keyof PropuestaView
+>;
 type AssertNever<T extends never> = T;
-type PropuestaViewNeverLeaksItemRanges = AssertNever<LeakedKeys>;
+type PropuestaViewMatchesAllowlist = AssertNever<
+  ViewKeysBeyondAllowlist | AllowlistColumnsMissingFromView
+>;
 
 describe("PropuestaView", () => {
-  it("structurally omits valor_min and valor_max — RN-01 compile guard", () => {
-    const assertion: PropuestaViewNeverLeaksItemRanges extends never
-      ? true
-      : false = true;
-    expect(assertion).toBe(true);
+  it("exposes exactly the propuestaViewColumns allowlist — RN-01 compile guard", () => {
+    const guard: PropuestaViewMatchesAllowlist extends never ? true : false =
+      true;
+    expect(guard).toBe(true);
   });
 });
