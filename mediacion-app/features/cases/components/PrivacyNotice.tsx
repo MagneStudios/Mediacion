@@ -10,14 +10,19 @@ import { typography } from '../../../design-system/tokens/typography';
 export type PrivacyNoticeProps = {
   children: ReactNode;
   icon?: IconName;
+  /** Optional heading shown above the body text, for a stronger marker (e.g. a review screen's "Información privada"). */
+  title?: string;
 };
 
-/** Calm reminder banner used across the case-creation flow and case detail wherever privacy/sharing scope needs restating. */
-export function PrivacyNotice({ children, icon = 'lock' }: PrivacyNoticeProps) {
+/** Calm reminder banner used across the case-creation, case-detail, and position screens wherever privacy/sharing scope needs restating. */
+export function PrivacyNotice({ children, icon = 'lock', title }: PrivacyNoticeProps) {
   return (
     <View style={styles.container}>
       <Icon name={icon} size={15} color={semanticColors.text.tertiary} />
-      <Text style={styles.text}>{children}</Text>
+      <View style={styles.textColumn}>
+        {title ? <Text style={styles.title}>{title}</Text> : null}
+        <Text style={styles.text}>{children}</Text>
+      </View>
     </View>
   );
 }
@@ -31,8 +36,16 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.sm,
   },
-  text: {
+  textColumn: {
     flex: 1,
+    gap: 2,
+  },
+  title: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    color: semanticColors.text.primary,
+  },
+  text: {
     fontFamily: typography.bodySm.fontFamily,
     fontSize: 12.5,
     lineHeight: 18,

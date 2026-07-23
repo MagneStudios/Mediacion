@@ -62,6 +62,12 @@
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
       "viewInvitation": "Ver invitación",
       "invitationError": "No pudimos cargar la invitación"
+    },
+    "positions": {
+      "title": "Mis posiciones privadas",
+      "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
+      "createAction": "Cargar posición",
+      "viewAction": "Ver mis posiciones"
     }
   },
   "caseCreation": {
@@ -144,6 +150,144 @@
       "status": "Esperando a la contraparte",
       "viewCase": "Ver caso",
       "backToDashboard": "Volver a mis casos"
+    }
+  },
+  "positions": {
+    "dashboard": {
+      "title": "Mis posiciones privadas",
+      "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
+      "summary_one": "Cargaste {{count}} posición privada.",
+      "summary_other": "Cargaste {{count}} posiciones privadas.",
+      "createAction": "Cargar posición",
+      "loading": "Buscando tus posiciones…",
+      "error": {
+        "title": "No pudimos cargar tus posiciones"
+      }
+    },
+    "ineligible": {
+      "title": "Todavía no disponible",
+      "description": "Vas a poder cargar tus posiciones privadas cuando la contraparte se una al caso."
+    },
+    "empty": {
+      "title": "Todavía no cargaste posiciones",
+      "description": "Agregá los temas que querés resolver y definí de forma privada qué margen de acuerdo considerarías.",
+      "action": "Cargar primera posición"
+    },
+    "card": {
+      "range": "Rango: {{min}} a {{max}}",
+      "canConcedeYes": "Podría ceder",
+      "canConcedeNo": "No podría ceder",
+      "editAccessibilityLabel": "Editar posición: {{name}}",
+      "deleteAccessibilityLabel": "Eliminar posición: {{name}}"
+    },
+    "category": {
+      "sectionTitle": "Tema",
+      "privacyHint": "La categoría también es privada hasta que se genere una propuesta.",
+      "selected": "Seleccionado",
+      "error": "Elegí un tema para continuar",
+      "cuidado_ninos": {
+        "label": "Cuidado de niñas, niños y adolescentes",
+        "description": "Organización del cuidado cotidiano, sin datos identificatorios de menores."
+      },
+      "cronogramas": {
+        "label": "Cronogramas y organización",
+        "description": "Días, horarios y calendarios compartidos."
+      },
+      "bienes": {
+        "label": "Bienes",
+        "description": "Reparto o uso de bienes materiales."
+      },
+      "economico": {
+        "label": "Cuestiones económicas",
+        "description": "Montos, cuotas u otros valores económicos."
+      },
+      "personalizado": {
+        "label": "Otro tema",
+        "description": "Cualquier otro asunto que quieras resolver."
+      }
+    },
+    "basicInfo": {
+      "sectionTitle": "Describí tu posición",
+      "nameLabel": "Tema a resolver",
+      "namePlaceholder": "Por ejemplo, días de cuidado durante la semana",
+      "nameError": "Ingresá un nombre para esta posición",
+      "descriptionLabel": "Descripción privada",
+      "descriptionHint": "Evitá incluir datos personales innecesarios."
+    },
+    "range": {
+      "economic": {
+        "sectionTitle": "Rango económico",
+        "minLabel": "Valor mínimo aceptable",
+        "maxLabel": "Valor máximo aceptable"
+      },
+      "descriptive": {
+        "sectionTitle": "Rango de acuerdo",
+        "minLabel": "Límite mínimo que considerarías",
+        "maxLabel": "Límite máximo que considerarías"
+      },
+      "hint": "Podés escribir una cantidad, frecuencia o condición, según el tema.",
+      "privacyText": "Tu rango es privado. La otra parte no verá estos valores.",
+      "requiredError": "Completá este valor",
+      "invalidNumberError": "Ingresá un valor numérico válido",
+      "minExceedsMaxError": "El mínimo no puede ser mayor al máximo"
+    },
+    "concession": {
+      "sectionTitle": "¿Podrías ceder en este tema?",
+      "canConcedeTitle": "Podría ceder en este tema",
+      "canConcedeDescription": "Estás dispuesto o dispuesta a moverte de tu posición inicial.",
+      "cannotConcedeTitle": "No podría ceder en este tema",
+      "cannotConcedeDescription": "Este punto no tiene margen de negociación para vos.",
+      "error": "Elegí una opción para continuar",
+      "conditionsLabel": "¿En qué condiciones?",
+      "conditionsHint": "Esta información es privada y ayuda a generar propuestas sin mostrar tus límites."
+    },
+    "review": {
+      "title": "Revisá tu posición",
+      "categoryLabel": "Tema",
+      "nameLabel": "Nombre",
+      "descriptionLabel": "Descripción",
+      "rangeLabel": "Rango",
+      "rangeValue": "{{min}} a {{max}}",
+      "concessionLabel": "Posibilidad de ceder",
+      "conditionsLabel": "Condiciones para ceder",
+      "privacyTitle": "Información privada",
+      "privacyBody": "Solo vos podés revisar estos datos. La propuesta compartida no mostrará tus valores originales.",
+      "save": "Guardar posición",
+      "saving": "Guardando…",
+      "edit": "Editar",
+      "saveError": {
+        "title": "No pudimos guardar la posición",
+        "retry": "Reintentar"
+      },
+      "error": {
+        "title": "Falta información para revisar"
+      }
+    },
+    "edit": {
+      "title": "Editá tu posición",
+      "readOnlyTitle": "Detalle de tu posición",
+      "readOnlyBadge": "Solo lectura",
+      "save": "Guardar cambios",
+      "saveError": {
+        "title": "No pudimos guardar los cambios"
+      },
+      "notFound": {
+        "title": "No encontramos esta posición"
+      }
+    },
+    "delete": {
+      "title": "Eliminar posición",
+      "body": "¿Querés eliminar \"{{name}}\"? Esta acción no se puede deshacer en esta sesión de prueba.",
+      "confirm": "Eliminar posición",
+      "cancel": "Cancelar",
+      "error": {
+        "title": "No pudimos eliminar la posición"
+      }
+    },
+    "create": {
+      "title": "Describí tu posición",
+      "subtitle": "Completá cada sección con la información que quieras compartir de forma privada.",
+      "continue": "Continuar"
     }
   },
   "placeholders": {

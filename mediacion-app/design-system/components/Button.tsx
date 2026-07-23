@@ -5,7 +5,7 @@ import { radii } from '../tokens/radii';
 import { semanticColors } from '../tokens/colors';
 import { typography } from '../tokens/typography';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'ai';
+export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'ai' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export type ButtonProps = {
@@ -32,6 +32,7 @@ const VARIANT_BG: Record<ButtonVariant, string> = {
   secondary: semanticColors.action.secondaryBg,
   tertiary: semanticColors.action.tertiaryBg,
   ai: semanticColors.action.aiBg,
+  destructive: semanticColors.status.errorBg,
 };
 
 const VARIANT_BG_PRESSED: Record<ButtonVariant, string> = {
@@ -39,6 +40,7 @@ const VARIANT_BG_PRESSED: Record<ButtonVariant, string> = {
   secondary: semanticColors.surface.sunken,
   tertiary: 'rgba(17, 17, 17, 0.09)',
   ai: semanticColors.action.aiBgPressed,
+  destructive: '#eccccc',
 };
 
 const VARIANT_FG: Record<ButtonVariant, string> = {
@@ -46,12 +48,14 @@ const VARIANT_FG: Record<ButtonVariant, string> = {
   secondary: semanticColors.action.secondaryFg,
   tertiary: semanticColors.action.tertiaryFg,
   ai: semanticColors.action.aiFg,
+  destructive: semanticColors.status.errorFg,
 };
 
 /**
  * Mediación primary action control. `ai` (Mediation Sage) is reserved for
  * AI-assisted proposal actions — never mixed with a `primary` charcoal CTA in
- * the same screen.
+ * the same screen. `destructive` is a calm, restrained error tint for
+ * irreversible actions (e.g. deleting a position) — not a bright alarm color.
  */
 export function Button({
   variant = 'primary',

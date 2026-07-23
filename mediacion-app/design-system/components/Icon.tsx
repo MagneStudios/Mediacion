@@ -15,12 +15,17 @@ import {
   Lock,
   LogOut,
   MessagesSquare,
+  Pencil,
   Plus,
   Scale,
   Send,
   ShieldCheck,
   Sparkles,
+  Tag,
+  Trash2,
   User,
+  Wallet,
+  X,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -49,12 +54,17 @@ const ICONS = {
   lock: Lock,
   'log-out': LogOut,
   'messages-square': MessagesSquare,
+  pencil: Pencil,
   plus: Plus,
   scale: Scale,
   send: Send,
   'shield-check': ShieldCheck,
   sparkles: Sparkles,
+  tag: Tag,
+  'trash-2': Trash2,
   user: User,
+  wallet: Wallet,
+  x: X,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

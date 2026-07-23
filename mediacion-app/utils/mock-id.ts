@@ -1,7 +1,8 @@
 /**
- * Mock-only identifier generators for the phase-2 case-creation flow. These
- * are display tokens for a development sandbox, never real auth material —
- * see CaseInvitation.token. Not cryptographically secure by design.
+ * Mock-only identifier generators for the case-creation and position flows.
+ * These are display tokens for a development sandbox, never real auth
+ * material — see CaseInvitation.token. Not cryptographically secure by
+ * design.
  */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -36,4 +37,9 @@ export function generateMockCaseId(): string {
 /** Mock invitation identifier for the in-memory session store. */
 export function generateMockInvitationId(): string {
   return `invitation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock position-item identifier for the in-memory session store. */
+export function generateMockPositionId(): string {
+  return `position-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }

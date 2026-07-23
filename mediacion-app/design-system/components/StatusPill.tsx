@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
@@ -46,13 +46,13 @@ export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse 
           toValue: 0.35,
           duration: duration.aiPulse / 2,
           easing: easing.standard,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacity, {
           toValue: 1,
           duration: duration.aiPulse / 2,
           easing: easing.standard,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     );

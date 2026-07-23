@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { Button, ErrorState, Input } from '@/design-system';
+import { Button, ErrorState, Input, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { InvitationResultCard } from '@/features/cases/components/InvitationResultCard';
-import { SelectableCard } from '@/features/cases/components/SelectableCard';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import { casesService } from '@/services/cases.service';
 import type { TipoInvitacion } from '@/types/case';

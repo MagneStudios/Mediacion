@@ -2,12 +2,11 @@ import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
-import { Button } from '@/design-system';
+import { Button, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
-import { SelectableCard } from '@/features/cases/components/SelectableCard';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import type { MetodoCaso } from '@/types/case';
 

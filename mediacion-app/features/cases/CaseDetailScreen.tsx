@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,6 +19,7 @@ import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
 import { casesService } from '../../services/cases.service';
 import type { CaseInvitation } from '../../types/case';
+import { getPositionEligibility } from '../../utils/position-eligibility';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { PrivacyNotice } from './components/PrivacyNotice';
 import { useCaseDetail } from './hooks/useCaseDetail';
@@ -28,6 +30,7 @@ export type CaseDetailScreenProps = {
 
 export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const { status, detail, reload, aiStatus, proposal, accepted, generateAiProposal, acceptAiProposal } =
     useCaseDetail(caseId);
 
@@ -113,6 +116,38 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
         </View>
       ) : (
         <>
+          {(() => {
+            const eligibility = getPositionEligibility(detail.estado);
+            const canCreate = eligibility === 'editable';
+            return (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t('caseDetail.positions.title')}</Text>
+                <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
+                <View style={styles.positionsActions}>
+                  {canCreate ? (
+                    <Button
+                      variant="primary"
+                      fullWidth
+                      iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
+                      onPress={() =>
+                        router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } })
+                      }
+                    >
+                      {t('caseDetail.positions.createAction')}
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => router.push({ pathname: '/case/[id]/positions', params: { id: caseId } })}
+                  >
+                    {t('caseDetail.positions.viewAction')}
+                  </Button>
+                </View>
+              </View>
+            );
+          })()}
+
           {detail.sharedProposal ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{t('caseDetail.sharedProposal')}</Text>
@@ -186,6 +221,9 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  positionsActions: {
+    gap: spacing.xs,
+  },
   container: {
     flex: 1,
     backgroundColor: semanticColors.surface.canvas,

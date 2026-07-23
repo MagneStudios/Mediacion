@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Icon, type IconName } from '../../../design-system';
-import { semanticColors } from '../../../design-system/tokens/colors';
-import { spacing } from '../../../design-system/tokens/spacing';
-import { typography } from '../../../design-system/tokens/typography';
+import { semanticColors } from '../tokens/colors';
+import { spacing } from '../tokens/spacing';
+import { typography } from '../tokens/typography';
+import { Card } from './Card';
+import { Icon, type IconName } from './Icon';
 
 export type SelectableCardProps = {
   icon: IconName;
@@ -15,10 +16,10 @@ export type SelectableCardProps = {
 };
 
 /**
- * Single-select option card shared by the resolution-method step and the
- * invitation-method step — same shape (icon + title + description + a
- * selected state that never relies on color alone), so one primitive covers
- * both rather than two near-duplicate components.
+ * Single-select option card — icon + title + description + a selected state
+ * that never relies on color alone. Shared across features (case method,
+ * invitation method, position category, concession choice) rather than
+ * duplicated per feature.
  */
 export function SelectableCard({ icon, title, description, selected, selectedLabel, onPress }: SelectableCardProps) {
   return (

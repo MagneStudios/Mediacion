@@ -20,3 +20,5 @@ export { ErrorState } from './ErrorState';
 export type { ErrorStateProps } from './ErrorState';
 export { AIProcessingState } from './AIProcessingState';
 export type { AIProcessingStateProps } from './AIProcessingState';
+export { SelectableCard } from './SelectableCard';
+export type { SelectableCardProps } from './SelectableCard';

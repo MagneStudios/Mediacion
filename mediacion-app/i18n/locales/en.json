@@ -62,6 +62,12 @@
       "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
       "viewInvitation": "View invitation",
       "invitationError": "We couldn't load the invitation"
+    },
+    "positions": {
+      "title": "My private positions",
+      "supportingCopy": "Only you can see this information. The other party will not have access to your values or conditions.",
+      "createAction": "Add a position",
+      "viewAction": "View my positions"
     }
   },
   "caseCreation": {
@@ -144,6 +150,144 @@
       "status": "Waiting for the other party",
       "viewCase": "View case",
       "backToDashboard": "Back to my cases"
+    }
+  },
+  "positions": {
+    "dashboard": {
+      "title": "My private positions",
+      "supportingCopy": "Only you can see this information. The other party will not have access to your values or conditions.",
+      "summary_one": "You've added {{count}} private position.",
+      "summary_other": "You've added {{count}} private positions.",
+      "createAction": "Add a position",
+      "loading": "Looking for your positions…",
+      "error": {
+        "title": "We couldn't load your positions"
+      }
+    },
+    "ineligible": {
+      "title": "Not available yet",
+      "description": "You'll be able to add your private positions once the other party joins the case."
+    },
+    "empty": {
+      "title": "No positions yet",
+      "description": "Add the topics you want to resolve and privately define what agreement range you'd consider.",
+      "action": "Add your first position"
+    },
+    "card": {
+      "range": "Range: {{min}} to {{max}}",
+      "canConcedeYes": "Could concede",
+      "canConcedeNo": "Could not concede",
+      "editAccessibilityLabel": "Edit position: {{name}}",
+      "deleteAccessibilityLabel": "Delete position: {{name}}"
+    },
+    "category": {
+      "sectionTitle": "Topic",
+      "privacyHint": "The category is also private until a proposal is generated.",
+      "selected": "Selected",
+      "error": "Choose a topic to continue",
+      "cuidado_ninos": {
+        "label": "Care for children and adolescents",
+        "description": "Day-to-day care arrangements, with no identifying details about minors."
+      },
+      "cronogramas": {
+        "label": "Schedules and organization",
+        "description": "Shared days, times, and calendars."
+      },
+      "bienes": {
+        "label": "Assets",
+        "description": "Division or use of material assets."
+      },
+      "economico": {
+        "label": "Economic matters",
+        "description": "Amounts, payments, or other economic values."
+      },
+      "personalizado": {
+        "label": "Another topic",
+        "description": "Any other matter you'd like to resolve."
+      }
+    },
+    "basicInfo": {
+      "sectionTitle": "Describe your position",
+      "nameLabel": "Topic to resolve",
+      "namePlaceholder": "For example, weekday care days",
+      "nameError": "Enter a name for this position",
+      "descriptionLabel": "Private description",
+      "descriptionHint": "Avoid including unnecessary personal details."
+    },
+    "range": {
+      "economic": {
+        "sectionTitle": "Economic range",
+        "minLabel": "Minimum acceptable value",
+        "maxLabel": "Maximum acceptable value"
+      },
+      "descriptive": {
+        "sectionTitle": "Agreement range",
+        "minLabel": "Minimum limit you'd consider",
+        "maxLabel": "Maximum limit you'd consider"
+      },
+      "hint": "You can write an amount, frequency, or condition, depending on the topic.",
+      "privacyText": "Your range is private. The other party won't see these values.",
+      "requiredError": "Fill in this value",
+      "invalidNumberError": "Enter a valid numeric value",
+      "minExceedsMaxError": "The minimum can't be greater than the maximum"
+    },
+    "concession": {
+      "sectionTitle": "Could you concede on this topic?",
+      "canConcedeTitle": "Could concede on this topic",
+      "canConcedeDescription": "You're willing to move from your initial position.",
+      "cannotConcedeTitle": "Could not concede on this topic",
+      "cannotConcedeDescription": "This point has no room for negotiation for you.",
+      "error": "Choose an option to continue",
+      "conditionsLabel": "Under what conditions?",
+      "conditionsHint": "This information is private and helps generate proposals without revealing your limits."
+    },
+    "review": {
+      "title": "Review your position",
+      "categoryLabel": "Topic",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "rangeLabel": "Range",
+      "rangeValue": "{{min}} to {{max}}",
+      "concessionLabel": "Willingness to concede",
+      "conditionsLabel": "Conditions to concede",
+      "privacyTitle": "Private information",
+      "privacyBody": "Only you can review this data. The shared proposal will not show your original values.",
+      "save": "Save position",
+      "saving": "Saving…",
+      "edit": "Edit",
+      "saveError": {
+        "title": "We couldn't save the position",
+        "retry": "Try again"
+      },
+      "error": {
+        "title": "Missing information to review"
+      }
+    },
+    "edit": {
+      "title": "Edit your position",
+      "readOnlyTitle": "Your position's detail",
+      "readOnlyBadge": "Read-only",
+      "save": "Save changes",
+      "saveError": {
+        "title": "We couldn't save the changes"
+      },
+      "notFound": {
+        "title": "We couldn't find this position"
+      }
+    },
+    "delete": {
+      "title": "Delete position",
+      "body": "Do you want to delete \"{{name}}\"? This can't be undone in this test session.",
+      "confirm": "Delete position",
+      "cancel": "Cancel",
+      "error": {
+        "title": "We couldn't delete the position"
+      }
+    },
+    "create": {
+      "title": "Describe your position",
+      "subtitle": "Fill in each section with the information you'd like to share privately.",
+      "continue": "Continue"
     }
   },
   "placeholders": {
