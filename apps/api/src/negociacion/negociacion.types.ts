@@ -35,3 +35,7 @@ export type PropuestaContenido = {
   meetingPoint: MeetingPointEntry[];
   narrative: string | null;
 };
+
+export type RespuestaDto = {
+  decision: DecisionPropuesta;
+};

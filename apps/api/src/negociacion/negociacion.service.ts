@@ -12,6 +12,7 @@ import { ConfiguracionRepository } from "./configuracion.repository";
 import type { MeetingPointEntry, PositionInput } from "./meeting-point";
 import { computeMeetingPoints } from "./meeting-point";
 import type {
+  DecisionPropuesta,
   IaConfig,
   PropuestaContenido,
   PropuestaView,
@@ -19,6 +20,10 @@ import type {
 import type { EnginePosition } from "./propuestas.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RondasRepository } from "./rondas.repository";
+
+const rolMediador = "mediador" as const;
+const rn05MediadorDesdeRonda = 3;
+const validDecisiones: DecisionPropuesta[] = ["acepta", "rechaza"];
 
 function bothPartiesRequired(): HttpException {
   return new HttpException(
@@ -38,6 +43,25 @@ function propuestaAlreadyExists(): HttpException {
     },
     HttpStatus.CONFLICT,
   );
+}
+
+function casoNotFound(): HttpException {
+  return new HttpException(
+    { code: "caso_not_found", message: "Case not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
+function assertValidDecision(decision: DecisionPropuesta): void {
+  if (!validDecisiones.includes(decision)) {
+    throw new HttpException(
+      {
+        code: "invalid_input",
+        message: `decision must be one of ${validDecisiones.join(", ")}`,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }
 
 function groupPositionsByParty(
@@ -134,6 +158,49 @@ export class NegociacionService {
       },
     );
     return pending;
+  }
+
+  async responder(
+    propuestaId: string,
+    callerId: string,
+    decision: DecisionPropuesta,
+  ): Promise<PropuestaView> {
+    assertValidDecision(decision);
+    const casoId = await this.propuestasRepository.findCasoId(propuestaId);
+    if (!casoId) {
+      throw casoNotFound();
+    }
+    const membership = await this.membershipService.assertMembership(
+      casoId,
+      callerId,
+    );
+    if (membership.rol_en_caso === rolMediador) {
+      throw casoNotFound();
+    }
+    return this.propuestasRepository.resolveRespuesta(
+      casoId,
+      propuestaId,
+      callerId,
+      decision,
+    );
+  }
+
+  async listPropuestas(
+    casoId: string,
+    callerId: string,
+  ): Promise<PropuestaView[]> {
+    const membership = await this.membershipService.assertMembership(
+      casoId,
+      callerId,
+    );
+    if (membership.rol_en_caso === rolMediador) {
+      const rondaActual =
+        await this.rondasRepository.currentRondaActual(casoId);
+      if (rondaActual === undefined || rondaActual < rn05MediadorDesdeRonda) {
+        throw casoNotFound();
+      }
+    }
+    return this.propuestasRepository.findForCase(casoId);
   }
 
   private async ensureActiveRondaId(casoId: string): Promise<string> {
