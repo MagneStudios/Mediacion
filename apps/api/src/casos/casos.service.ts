@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { PlanLimitService } from "../pagos/plan-limit.service";
 import { CasosRepository } from "./casos.repository";
 import type {
   CaseCreated,
@@ -55,6 +56,8 @@ export class CasosService {
     @Inject(CasosRepository) private readonly casosRepository: CasosRepository,
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
+    @Inject(PlanLimitService)
+    private readonly planLimitService: PlanLimitService,
   ) {}
 
   async createCase(
@@ -62,6 +65,7 @@ export class CasosService {
     input: CreateCasoDto,
   ): Promise<CaseCreated> {
     assertValidCreateInput(input);
+    await this.planLimitService.assertCanCreateCase(callerId);
     const caso = await this.casosRepository.createCaseWithParteA(
       input,
       callerId,

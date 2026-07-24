@@ -9,10 +9,15 @@ import { TOKEN_VERIFIER } from "../auth/token-verifier";
 import { UsersRepository } from "../auth/users.repository";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
 import { KYSELY } from "../database/database.tokens";
+import { PlanLimitService } from "../pagos/plan-limit.service";
 import { CasosController } from "./casos.controller";
 import { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
 import { MembershipService } from "./membership.service";
+
+function allowAllPlanLimit() {
+  return { assertCanCreateCase: () => Promise.resolve(undefined) };
+}
 
 const parteA: AuthenticatedUser = {
   id: "user-a",
@@ -175,6 +180,7 @@ describe("POST/GET /casos end-to-end isolation", () => {
           },
         },
         { provide: UsersRepository, useValue: usersRepository },
+        { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         {
           provide: TOKEN_VERIFIER,
           useValue: {
@@ -337,6 +343,7 @@ describe("POST /casos pg-error mapping end-to-end", () => {
         MembershipService,
         { provide: KYSELY, useValue: fakeKysely },
         { provide: UsersRepository, useValue: usersRepository },
+        { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         {
           provide: TOKEN_VERIFIER,
           useValue: {
