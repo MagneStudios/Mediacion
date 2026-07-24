@@ -144,6 +144,11 @@ describe("loadConfig", () => {
       SUPABASE_JWT_SECRET: "my-secret",
       DATABASE_URL: "postgres://user:pass@host:5432/db",
       OPENROUTER_API_KEY: "sk-or-my-key",
+      DOCUSIGN_INTEGRATION_KEY: "ik-1",
+      DOCUSIGN_CLIENT_SECRET: "secret-1",
+      DOCUSIGN_ACCOUNT_ID: "account-1",
+      DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+      DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
     });
 
     expect(appConfig.supabaseJwtSecret).toBe("my-secret");
@@ -183,9 +188,136 @@ describe("loadConfig", () => {
       SUPABASE_JWT_SECRET: "my-secret",
       DATABASE_URL: "postgres://user:pass@host:5432/db",
       OPENROUTER_API_KEY: "sk-or-my-key",
+      DOCUSIGN_INTEGRATION_KEY: "ik-1",
+      DOCUSIGN_CLIENT_SECRET: "secret-1",
+      DOCUSIGN_ACCOUNT_ID: "account-1",
+      DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+      DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
     });
 
     expect(appConfig.openrouterApiKey).toBe("sk-or-my-key");
+  });
+
+  const docusignEnvVars = [
+    { key: "DOCUSIGN_INTEGRATION_KEY", field: "docusignIntegrationKey" },
+    { key: "DOCUSIGN_CLIENT_SECRET", field: "docusignClientSecret" },
+    { key: "DOCUSIGN_ACCOUNT_ID", field: "docusignAccountId" },
+    { key: "DOCUSIGN_WEBHOOK_SECRET", field: "docusignWebhookSecret" },
+    { key: "DOCUSIGN_USER_ID", field: "docusignUserId" },
+    { key: "DOCUSIGN_PRIVATE_KEY", field: "docusignPrivateKey" },
+  ] as const;
+
+  const validDocusignEnv = {
+    DOCUSIGN_INTEGRATION_KEY: "ik-1",
+    DOCUSIGN_CLIENT_SECRET: "secret-1",
+    DOCUSIGN_ACCOUNT_ID: "account-1",
+    DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+    DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+    DOCUSIGN_USER_ID: "user-1",
+    DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+    DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+  };
+
+  it.each(docusignEnvVars)(
+    "throws in production when $key is missing",
+    ({ key }) => {
+      const environment: Record<string, string | undefined> = {
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-test-key",
+        ...validDocusignEnv,
+      };
+      environment[key] = undefined;
+
+      expect(() => loadConfig(environment)).toThrow(
+        `${key} is required and must be non-empty`,
+      );
+    },
+  );
+
+  it.each(docusignEnvVars)(
+    "uses a safe placeholder for $field when NODE_ENV is test and unset",
+    ({ field }) => {
+      const appConfig = loadConfig({ NODE_ENV: "test" });
+
+      expect(appConfig[field]).toContain("dev-placeholder");
+    },
+  );
+
+  it("throws in production when DOCUSIGN_BASE_PATH is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-test-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_BASE_PATH: undefined,
+      }),
+    ).toThrow("DOCUSIGN_BASE_PATH is required and must be non-empty");
+  });
+
+  it("uses the real DocuSign sandbox host as the placeholder base path in test", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.docusignBasePath).toBe(
+      "https://demo.docusign.net/restapi",
+    );
+  });
+
+  it("accepts explicit DocuSign values outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      OPENROUTER_API_KEY: "sk-or-my-key",
+      DOCUSIGN_INTEGRATION_KEY: "ik-1",
+      DOCUSIGN_CLIENT_SECRET: "secret-1",
+      DOCUSIGN_ACCOUNT_ID: "account-1",
+      DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+      DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+      DOCUSIGN_USER_ID: "user-1",
+      DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+      DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+    });
+
+    expect(appConfig.docusignIntegrationKey).toBe("ik-1");
+    expect(appConfig.docusignClientSecret).toBe("secret-1");
+    expect(appConfig.docusignAccountId).toBe("account-1");
+    expect(appConfig.docusignBasePath).toBe("https://na1.docusign.net/restapi");
+    expect(appConfig.docusignWebhookSecret).toBe("whsec-1");
+    expect(appConfig.docusignUserId).toBe("user-1");
+    expect(appConfig.docusignOauthBase).toBe("account-d.docusign.com");
+    expect(appConfig.docusignPrivateKey).toBe("test-private-key-pem");
+  });
+
+  it("throws in production when DOCUSIGN_OAUTH_BASE is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-test-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        DOCUSIGN_OAUTH_BASE: undefined,
+      }),
+    ).toThrow("DOCUSIGN_OAUTH_BASE is required and must be non-empty");
+  });
+
+  it("uses the DocuSign sandbox host as the placeholder oauth base in test", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.docusignOauthBase).toBe("account-d.docusign.com");
   });
 
   it("defaults SMTP_PORT to 587 when unset", () => {
@@ -225,6 +357,14 @@ describe("loadConfig", () => {
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
         OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
         SMTP_USER: "user",
         SMTP_PASS: "pass",
         FCM_KEY: "fcm-key",
@@ -257,6 +397,14 @@ describe("loadConfig", () => {
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
         OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
         SMTP_HOST: "smtp.example.com",
         SMTP_PASS: "pass",
         FCM_KEY: "fcm-key",
@@ -289,6 +437,14 @@ describe("loadConfig", () => {
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
         OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         FCM_KEY: "fcm-key",
@@ -321,6 +477,14 @@ describe("loadConfig", () => {
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
         OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         SMTP_PASS: "pass",
@@ -353,6 +517,14 @@ describe("loadConfig", () => {
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
         OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         SMTP_PASS: "pass",

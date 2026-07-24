@@ -17,4 +17,12 @@ export class AcuerdosController {
   ): Promise<Acuerdo> {
     return this.acuerdosService.generateAgreement(casoId, caller.id);
   }
+
+  @Post("acuerdos/:id/firmar")
+  sendToSignature(
+    @Param("id") id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<Acuerdo> {
+    return this.acuerdosService.sendToSignature(id, caller.id);
+  }
 }
