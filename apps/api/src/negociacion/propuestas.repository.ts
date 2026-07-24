@@ -64,6 +64,19 @@ export function buildFindForCaseQuery(db: Kysely<Database>, casoId: string) {
     .where("caso_id", "=", casoId);
 }
 
+export function buildExistsForRondaQuery(
+  db: Kysely<Database>,
+  casoId: string,
+  rondaId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .select("id")
+    .where("caso_id", "=", casoId)
+    .where("ronda_id", "=", rondaId)
+    .limit(1);
+}
+
 @Injectable()
 export class PropuestasRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
@@ -122,6 +135,15 @@ export class PropuestasRepository {
     return buildFindForCaseQuery(this.kysely, casoId).execute();
   }
 
+  async existsForRonda(casoId: string, rondaId: string): Promise<boolean> {
+    const row = await buildExistsForRondaQuery(
+      this.kysely,
+      casoId,
+      rondaId,
+    ).executeTakeFirst();
+    return row !== undefined;
+  }
+
   readBothPartyPositionsForEngine(casoId: string) {
     return this.kysely
       .selectFrom("items")
@@ -130,3 +152,7 @@ export class PropuestasRepository {
       .execute();
   }
 }
+
+export type EnginePosition = Awaited<
+  ReturnType<PropuestasRepository["readBothPartyPositionsForEngine"]>
+>[number];

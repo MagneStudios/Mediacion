@@ -2,6 +2,7 @@ export type AppConfig = {
   port: number;
   supabaseJwtSecret: string;
   databaseUrl: string;
+  openrouterApiKey: string;
 };
 
 const defaultPort = 3000;
@@ -10,6 +11,7 @@ const maximumPort = 65535;
 const placeholderSupabaseJwtSecret = "dev-placeholder-secret";
 const placeholderDatabaseUrl =
   "postgresql://placeholder:placeholder@localhost:5432/placeholder";
+const placeholderOpenrouterApiKey = "dev-placeholder-openrouter-key";
 const postgresUrlPattern = /^postgres(ql)?:\/\/.+/;
 
 function parsePort(rawPort: string): number {
@@ -33,6 +35,19 @@ function parseSupabaseJwtSecret(
     return placeholderSupabaseJwtSecret;
   }
   throw new Error("SUPABASE_JWT_SECRET is required and must be non-empty");
+}
+
+function parseOpenrouterApiKey(
+  rawKey: string | undefined,
+  isTestEnv: boolean,
+): string {
+  if (rawKey && rawKey.trim().length > 0) {
+    return rawKey;
+  }
+  if (isTestEnv) {
+    return placeholderOpenrouterApiKey;
+  }
+  throw new Error("OPENROUTER_API_KEY is required and must be non-empty");
 }
 
 function parseDatabaseUrl(
@@ -63,5 +78,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
   );
   const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, isTestEnv);
-  return { port, supabaseJwtSecret, databaseUrl };
+  const openrouterApiKey = parseOpenrouterApiKey(
+    environment.OPENROUTER_API_KEY,
+    isTestEnv,
+  );
+  return { port, supabaseJwtSecret, databaseUrl, openrouterApiKey };
 }

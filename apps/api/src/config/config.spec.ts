@@ -142,9 +142,47 @@ describe("loadConfig", () => {
     const appConfig = loadConfig({
       SUPABASE_JWT_SECRET: "my-secret",
       DATABASE_URL: "postgres://user:pass@host:5432/db",
+      OPENROUTER_API_KEY: "sk-or-my-key",
     });
 
     expect(appConfig.supabaseJwtSecret).toBe("my-secret");
     expect(appConfig.databaseUrl).toBe("postgres://user:pass@host:5432/db");
+  });
+
+  it("uses a safe placeholder openrouterApiKey when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.openrouterApiKey).toBe("dev-placeholder-openrouter-key");
+  });
+
+  it("throws in production when OPENROUTER_API_KEY is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      }),
+    ).toThrow("OPENROUTER_API_KEY is required and must be non-empty");
+  });
+
+  it("throws in production when OPENROUTER_API_KEY is whitespace-only", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: " ",
+      }),
+    ).toThrow("OPENROUTER_API_KEY is required and must be non-empty");
+  });
+
+  it("accepts an explicit OPENROUTER_API_KEY outside production", () => {
+    const appConfig = loadConfig({
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      OPENROUTER_API_KEY: "sk-or-my-key",
+    });
+
+    expect(appConfig.openrouterApiKey).toBe("sk-or-my-key");
   });
 });

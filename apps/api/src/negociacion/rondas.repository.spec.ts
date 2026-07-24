@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { ConflictError } from "../common/errors/domain-errors";
 import {
   buildCurrentRondaActualQuery,
+  buildFindByNumeroQuery,
   buildInsertNextRondaQuery,
   RondasRepository,
 } from "./rondas.repository";
@@ -44,6 +45,19 @@ describe("buildCurrentRondaActualQuery", () => {
   });
 });
 
+describe("buildFindByNumeroQuery", () => {
+  it("reads a ronda by caso id and numero, read-only", () => {
+    const db = createCompileOnlyKysely();
+
+    const compiled = buildFindByNumeroQuery(db, "caso-1", 1).compile();
+
+    expect(compiled.sql).toMatch(/^select\s+\S+.*from\s+"rondas"/i);
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/where\s+.*"numero"\s*=\s*\$\d/i);
+    expect(compiled.parameters).toEqual(["caso-1", 1]);
+  });
+});
+
 function createFakeKysely() {
   const executeTakeFirstOrThrow = jest.fn();
   const executeTakeFirst = jest.fn();
@@ -55,6 +69,7 @@ function createFakeKysely() {
   builder.values = returnBuilder;
   builder.returningAll = returnBuilder;
   builder.select = returnBuilder;
+  builder.selectAll = returnBuilder;
   builder.where = returnBuilder;
   const kysely = {
     insertInto: jest.fn(() => builder),
@@ -104,6 +119,27 @@ describe("RondasRepository", () => {
     const repository = new RondasRepository(fake.kysely as never);
 
     const result = await repository.currentRondaActual("missing");
+
+    expect(result).toBeUndefined();
+  });
+
+  it("findByNumero returns the ronda matching caso id and numero", async () => {
+    const ronda = { id: "ronda-1", caso_id: "caso-1", numero: 1 };
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockResolvedValue(ronda);
+    const repository = new RondasRepository(fake.kysely as never);
+
+    const result = await repository.findByNumero("caso-1", 1);
+
+    expect(result).toBe(ronda);
+  });
+
+  it("findByNumero returns undefined when no ronda matches", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockResolvedValue(undefined);
+    const repository = new RondasRepository(fake.kysely as never);
+
+    const result = await repository.findByNumero("caso-1", 1);
 
     expect(result).toBeUndefined();
   });

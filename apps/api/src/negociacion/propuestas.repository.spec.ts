@@ -5,6 +5,7 @@ import { ConflictError } from "../common/errors/domain-errors";
 import { propuestaViewColumns } from "./negociacion.types";
 import {
   buildCreatePendingQuery,
+  buildExistsForRondaQuery,
   buildFindForCaseQuery,
   buildMarkEstadoQuery,
   buildPatchGeneratedQuery,
@@ -93,6 +94,22 @@ describe("PropuestasRepository query builders", () => {
     }
     expect(compiled.parameters).toEqual(["caso-1"]);
   });
+
+  it("buildExistsForRondaQuery selects a single row scoped by caso_id and ronda_id", () => {
+    const db = createCompileOnlyKysely();
+
+    const compiled = buildExistsForRondaQuery(
+      db,
+      "caso-1",
+      "ronda-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(/^select\s+\S+.*from\s+"propuestas"/i);
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/where\s+.*"ronda_id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/limit/i);
+    expect(compiled.parameters).toEqual(["caso-1", "ronda-1", 1]);
+  });
 });
 
 function createFakeKysely() {
@@ -110,6 +127,7 @@ function createFakeKysely() {
   builder.where = returnBuilder;
   builder.select = returnBuilder;
   builder.returning = returnBuilder;
+  builder.limit = returnBuilder;
   const kysely = {
     insertInto: jest.fn(() => builder),
     updateTable: jest.fn(() => builder),
@@ -197,6 +215,26 @@ describe("PropuestasRepository", () => {
     const result = await repository.findForCase("caso-1");
 
     expect(result).toBe(rows);
+  });
+
+  it("existsForRonda returns true when a propuesta already exists for the ronda", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockResolvedValue({ id: "prop-1" });
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.existsForRonda("caso-1", "ronda-1");
+
+    expect(result).toBe(true);
+  });
+
+  it("existsForRonda returns false when no propuesta exists for the ronda", async () => {
+    const fake = createFakeKysely();
+    fake.executeTakeFirst.mockResolvedValue(undefined);
+    const repository = new PropuestasRepository(fake.kysely as never);
+
+    const result = await repository.existsForRonda("caso-1", "ronda-1");
+
+    expect(result).toBe(false);
   });
 
   it("readBothPartyPositionsForEngine reads both parties' items scoped by caso", async () => {

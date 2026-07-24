@@ -1,5 +1,6 @@
 import type { Database } from "@mediacion/db-types";
 import type { Selectable } from "kysely";
+import type { MeetingPointEntry } from "./meeting-point";
 
 export type Ronda = Selectable<Database["rondas"]>;
 export type Propuesta = Selectable<Database["propuestas"]>;
@@ -28,4 +29,9 @@ export type IaConfig = {
   modelo: string;
   temperature: number;
   maxTokens: number;
+};
+
+export type PropuestaContenido = {
+  meetingPoint: MeetingPointEntry[];
+  narrative: string | null;
 };
