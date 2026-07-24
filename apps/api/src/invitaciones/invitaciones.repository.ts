@@ -56,6 +56,18 @@ export class InvitacionesRepository {
       });
   }
 
+  findUsuarioIdByEmail(email: string): Promise<string | undefined> {
+    return this.kysely
+      .selectFrom("usuarios")
+      .select("id")
+      .where("email", "=", email)
+      .executeTakeFirst()
+      .then((row) => row?.id)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   joinCase(
     token: string,
     callerId: string,

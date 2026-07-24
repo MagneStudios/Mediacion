@@ -588,4 +588,43 @@ describe("InvitacionesRepository", () => {
       expect(result).toEqual({ id: "caso-1", estado: "activo" });
     });
   });
+
+  describe("findUsuarioIdByEmail", () => {
+    it("returns the usuario id when the email belongs to a registered usuario", async () => {
+      const executeTakeFirst = jest
+        .fn()
+        .mockResolvedValue({ id: "user-invitee" });
+      const where = jest.fn().mockReturnValue({ executeTakeFirst });
+      const select = jest.fn().mockReturnValue({ where });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      const casosRepository = new CasosRepository({} as never);
+      const repository = new InvitacionesRepository(
+        { selectFrom } as never,
+        casosRepository,
+      );
+
+      const result = await repository.findUsuarioIdByEmail("target@test.com");
+
+      expect(selectFrom).toHaveBeenCalledWith("usuarios");
+      expect(select).toHaveBeenCalledWith("id");
+      expect(where).toHaveBeenCalledWith("email", "=", "target@test.com");
+      expect(result).toBe("user-invitee");
+    });
+
+    it("returns undefined when no usuario is registered with that email", async () => {
+      const executeTakeFirst = jest.fn().mockResolvedValue(undefined);
+      const where = jest.fn().mockReturnValue({ executeTakeFirst });
+      const select = jest.fn().mockReturnValue({ where });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      const casosRepository = new CasosRepository({} as never);
+      const repository = new InvitacionesRepository(
+        { selectFrom } as never,
+        casosRepository,
+      );
+
+      const result = await repository.findUsuarioIdByEmail("unknown@test.com");
+
+      expect(result).toBeUndefined();
+    });
+  });
 });
