@@ -1,0 +1,14 @@
+{
+  "name": "@mediacion/db-types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "kysely": "^0.28.17",
+    "typescript": "^7.0.2"
+  }
+}

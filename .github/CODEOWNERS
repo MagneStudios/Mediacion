@@ -1,11 +1,24 @@
 # CODEOWNERS — revisores por defecto de cada Pull Request.
 # Cuando un PR toca estos archivos, se pide review automáticamente a los owners listados.
+# Reglas de mayor alcance primero; las más específicas más abajo ganan sobre las de arriba.
 
-# Owners por defecto de todo el repo (equipo de desarrollo + Magne Studios)
-*                       @MagneStudios @franGhisoni @MarianooFernandezz @ValenCBgit @DonatoBruno00
+# Owners por defecto: todo el equipo (como el CODEOWNERS original)
+*                             @MagneStudios @franGhisoni @MarianooFernandezz @ValenCBgit @DonatoBruno00
 
-# Documentación técnica — cambios de alcance requieren revisión de Magne Studios
-/docs/                  @MagneStudios
+# Documentación del equipo
+/docs/                        @MagneStudios
 
-# Configuración de CI/repo
-/.github/               @MagneStudios
+# Backend: API, paquetes compartidos y CI
+/apps/api/                    @DonatoBruno00
+/packages/                    @DonatoBruno00
+/packages/db-types/           @MarianooFernandezz @DonatoBruno00
+/.github/workflows/           @DonatoBruno00 @MagneStudios
+
+# Frontend: panel web
+/apps/panel/                  @ValenCBgit
+
+# Supabase: owner por defecto es la DB, salvo Edge Functions (backend)
+/supabase/                    @MarianooFernandezz
+/supabase/migrations/         @MarianooFernandezz
+/supabase/config.toml         @MarianooFernandezz
+/supabase/functions/          @DonatoBruno00

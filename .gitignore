@@ -61,3 +61,14 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+
+# === Otros ===
+/docs/contextom
+/docs/mediacion_db_develop.md
+/docs/documentacion-oficial
+
+# === SDD / agent tooling cache ===
+.atl/
+
+# === Agent worktrees (transient) ===
+.claude/worktrees/

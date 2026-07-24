@@ -1,0 +1,5 @@
+# Dependencias para scripts de testing y seed (scripts/)
+# Instalar con: pip install -r requirements-dev.txt
+
+psycopg2-binary>=2.9
+faker>=40.0

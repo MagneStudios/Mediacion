@@ -67,3 +67,42 @@ foco en el aislamiento de posiciones (RN-01) y el motor de IA por rondas (RN-03/
 ## 🤝 Equipo
 
 **Desarrolla:** Magne Studios. Objetivo de publicación en tiendas: septiembre 2026.
+
+## 📦 Estructura del workspace
+
+Monorepo `pnpm` (`pnpm-workspace.yaml`: `apps/*`, `packages/*`; `supabase/` corre aparte, en Deno).
+
+```
+apps/
+├─ api/                  # NestJS — API REST — @DonatoBruno00
+└─ panel/                # Panel web de estudios (placeholder) — dev de frontend a asignar
+packages/
+├─ shared/                # DTOs compartidos, paquete compilado (tsc -b) — @DonatoBruno00
+└─ db-types/              # Tipos de la base derivados de las migraciones, sin build — @MarianooFernandezz + @DonatoBruno00
+supabase/
+└─ functions/             # Edge Functions (Deno) — @DonatoBruno00
+agents/                   # Definiciones/config de agentes de IA
+```
+
+- **apps/api**: API NestJS; expone el endpoint de salud y consumirá `packages/shared` y `packages/db-types`.
+- **apps/panel**: placeholder del panel web de estudios; sin lógica todavía.
+- **packages/shared**: DTOs e interfaces compartidas entre `apps/api` y futuros consumidores.
+- **packages/db-types**: tipos generados/derivados del esquema de Supabase, consumidos por `apps/api` vía Kysely.
+- **supabase/functions**: Edge Functions en Deno, con su propio `deno.json` y `deno test` por función.
+
+### Comandos esenciales
+
+```
+pnpm install       # instala dependencias del workspace
+pnpm -r test        # corre los tests de todos los paquetes/apps node
+pnpm tsc -b         # typecheck del grafo completo (referencias de proyecto)
+deno test --config supabase/functions/<función>/deno.json supabase/functions/<función>
+```
+
+### Notas de versiones
+
+- **TypeScript 6 vs 7**: `apps/api` fija `typescript@^6.0.3` porque el Nest CLI 11 aún no soporta TS 7; el resto del workspace (`packages/shared`, `packages/db-types`, raíz) usa `typescript@^7.0.2`.
+- **kysely fijado en `^0.28.17`**: usado en `apps/api` y `packages/db-types` porque kysely 0.29 es ESM-only y rompe Jest (@swc/jest, CommonJS) y el build del Nest CLI; se destraba al migrar el toolchain a ESM.
+- **`@Inject(ClassName)` explícito en constructores de NestJS**: el auto-fix `useImportType` de Biome baja de nivel a `import type` cualquier clase usada solo en posición de tipo (p. ej. `private readonly x: SomeClass`), lo que borra la metadata de DI en tiempo de ejecución que Nest necesita; `@Inject(ClassName)` fuerza un uso de valor y evita que Biome reescriba el import.
+- **`javascript.parser.unsafeParameterDecoratorsEnabled` en `biome.json`**: necesario para que Biome parsee decoradores de parámetro con modificadores de accesibilidad (p. ej. `@Inject(TOKEN) private readonly x: Foo`) usados por NestJS; sin esto Biome rechaza el archivo con "Decorators are not valid here".
+- **`transformIgnorePatterns` en `jest.config.ts` para `jose`**: igual que kysely, `jose` es ESM-only y Jest (CommonJS) necesita que `@swc/jest` lo transforme explícitamente, ya que por defecto ignora todo `node_modules`.
