@@ -9,6 +9,14 @@ import type { Estudio, MarcaConfig } from "./estudios.types";
 export class EstudiosRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
 
+  findOwn(estudioId: string): Promise<Estudio | undefined> {
+    return this.kysely
+      .selectFrom("estudios")
+      .selectAll()
+      .where("id", "=", estudioId)
+      .executeTakeFirst();
+  }
+
   updateMarcaConfig(
     estudioId: string,
     marcaConfig: MarcaConfig,
