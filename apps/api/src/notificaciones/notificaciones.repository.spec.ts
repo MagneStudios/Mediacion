@@ -135,4 +135,82 @@ describe("NotificacionesRepository", () => {
       expect(thrown).toBeInstanceOf(Error);
     });
   });
+
+  describe("existsEvento", () => {
+    function createFakeSelectKysely(row: unknown) {
+      const executeTakeFirst = jest.fn().mockResolvedValue(row);
+      const where3 = jest.fn().mockReturnValue({ executeTakeFirst });
+      const where2 = jest.fn().mockReturnValue({ where: where3 });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const select = jest.fn().mockReturnValue({ where: where1 });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      return { selectFrom, select, where1, where2, where3, executeTakeFirst };
+    }
+
+    it("returns true when a notificacion already exists for (caso_id, evento, usuario_id)", async () => {
+      const fakeKysely = createFakeSelectKysely({ id: "notif-1" });
+      const repository = new NotificacionesRepository(fakeKysely as never);
+
+      const result = await repository.existsEvento(
+        "caso-1",
+        "vencimiento",
+        "user-a",
+      );
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("notificaciones");
+      expect(fakeKysely.where1).toHaveBeenCalledWith("caso_id", "=", "caso-1");
+      expect(fakeKysely.where2).toHaveBeenCalledWith(
+        "evento",
+        "=",
+        "vencimiento",
+      );
+      expect(fakeKysely.where3).toHaveBeenCalledWith(
+        "usuario_id",
+        "=",
+        "user-a",
+      );
+      expect(result).toBe(true);
+    });
+
+    it("returns false when no notificacion exists for (caso_id, evento, usuario_id)", async () => {
+      const fakeKysely = createFakeSelectKysely(undefined);
+      const repository = new NotificacionesRepository(fakeKysely as never);
+
+      const result = await repository.existsEvento(
+        "caso-1",
+        "vencimiento",
+        "user-a",
+      );
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("findAceptadaParties", () => {
+    function createFakeSelectKysely(rows: unknown) {
+      const execute = jest.fn().mockResolvedValue(rows);
+      const where2 = jest.fn().mockReturnValue({ execute });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const select = jest.fn().mockReturnValue({ where: where1 });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      return { selectFrom, select, where1, where2, execute };
+    }
+
+    it("lists the accepted members of a caso", async () => {
+      const rows = [{ usuario_id: "user-a" }, { usuario_id: "user-b" }];
+      const fakeKysely = createFakeSelectKysely(rows);
+      const repository = new NotificacionesRepository(fakeKysely as never);
+
+      const result = await repository.findAceptadaParties("caso-1");
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("caso_partes");
+      expect(fakeKysely.where1).toHaveBeenCalledWith("caso_id", "=", "caso-1");
+      expect(fakeKysely.where2).toHaveBeenCalledWith(
+        "estado_invitacion",
+        "=",
+        "aceptada",
+      );
+      expect(result).toBe(rows);
+    });
+  });
 });

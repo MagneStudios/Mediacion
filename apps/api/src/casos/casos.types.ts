@@ -37,3 +37,15 @@ export type CaseDetail = Pick<
   | "created_at"
   | "updated_at"
 >;
+
+export type Semaforo = "verde" | "amarillo" | "rojo";
+
+export type PlazoDto = {
+  plazo: string;
+};
+
+export type PlazoState = {
+  id: Caso["id"];
+  plazo: Caso["plazo"];
+  semaforo: Semaforo | null;
+};

@@ -1,4 +1,5 @@
 import type { INestApplication } from "@nestjs/common";
+import { SchedulerRegistry } from "@nestjs/schedule";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "./app.module";
@@ -38,5 +39,11 @@ describe("AppModule health route wiring", () => {
         message: expect.stringContaining("Cannot GET"),
       },
     });
+  });
+
+  it("registers the vencimiento sweep cron job", () => {
+    const schedulerRegistry = app.get(SchedulerRegistry);
+
+    expect(schedulerRegistry.getCronJobs().size).toBeGreaterThanOrEqual(1);
   });
 });

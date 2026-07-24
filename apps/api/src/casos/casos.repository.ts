@@ -32,6 +32,12 @@ export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
     .returning(["id"]);
 }
 
+const estadosElegiblesVencimiento: Caso["estado"][] = [
+  "nuevo",
+  "activo",
+  "en_negociacion",
+];
+
 function casoNotAcordable(casoId: string): ConflictError {
   return new ConflictError(
     `Caso ${casoId} was not en_negociacion when marking acordado`,
@@ -126,6 +132,45 @@ export class CasosRepository {
         if (error instanceof ConflictError) {
           throw error;
         }
+        throw toDomainError(error);
+      });
+  }
+
+  updatePlazo(
+    casoId: string,
+    plazo: string,
+  ): Promise<Pick<Caso, "id" | "plazo">> {
+    return this.kysely
+      .updateTable("casos")
+      .set({ plazo })
+      .where("id", "=", casoId)
+      .returning(["id", "plazo"])
+      .executeTakeFirstOrThrow()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  findPlazo(casoId: string): Promise<Pick<Caso, "id" | "plazo"> | undefined> {
+    return this.kysely
+      .selectFrom("casos")
+      .select(["id", "plazo"])
+      .where("id", "=", casoId)
+      .executeTakeFirst()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  findOverdueCasos(now: Date): Promise<Pick<Caso, "id">[]> {
+    return this.kysely
+      .selectFrom("casos")
+      .select(["id"])
+      .where("plazo", "is not", null)
+      .where("plazo", "<=", now.toISOString())
+      .where("estado", "in", estadosElegiblesVencimiento)
+      .execute()
+      .catch((error: unknown) => {
         throw toDomainError(error);
       });
   }
