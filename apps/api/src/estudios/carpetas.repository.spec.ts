@@ -5,8 +5,9 @@ function createFakeSelectKysely(returned: unknown) {
   const execute = jest.fn().mockResolvedValue(returned);
   const where = jest.fn().mockReturnValue({ execute });
   const select = jest.fn().mockReturnValue({ where });
-  const selectFrom = jest.fn().mockReturnValue({ select });
-  return { selectFrom, select, where, execute };
+  const leftJoin = jest.fn().mockReturnValue({ select });
+  const selectFrom = jest.fn().mockReturnValue({ leftJoin });
+  return { selectFrom, leftJoin, select, where, execute };
 }
 
 function createFakeInsertKysely(returned: unknown, rejection?: unknown) {
@@ -21,16 +22,28 @@ function createFakeInsertKysely(returned: unknown, rejection?: unknown) {
 
 describe("CarpetasRepository", () => {
   describe("listCasosByCarpeta", () => {
-    it("returns the casos scoped to the given estudio", async () => {
-      const casos = [{ id: "caso-1", nombre: "Divorcio" }];
+    it("returns the casos scoped to the given estudio, joined with their carpeta", async () => {
+      const casos = [
+        {
+          id: "caso-1",
+          nombre: "Divorcio",
+          carpeta_id: "carpeta-1",
+          carpeta_nombre: "Familia",
+        },
+      ];
       const fakeKysely = createFakeSelectKysely(casos);
       const repository = new CarpetasRepository(fakeKysely as never);
 
       const result = await repository.listCasosByCarpeta("estudio-1");
 
       expect(fakeKysely.selectFrom).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.leftJoin).toHaveBeenCalledWith(
+        "carpetas",
+        "carpetas.id",
+        "casos.carpeta_id",
+      );
       expect(fakeKysely.where).toHaveBeenCalledWith(
-        "estudio_id",
+        "casos.estudio_id",
         "=",
         "estudio-1",
       );

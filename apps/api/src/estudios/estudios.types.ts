@@ -19,4 +19,11 @@ export type CasosByCarpeta = {
   casos: CasoResumen[];
 };
 
+export type CasoConCarpeta = CasoResumen & {
+  carpeta_id: string | null;
+  carpeta_nombre: string | null;
+};
+
+export type CarpetaCreated = Pick<Carpeta, "id">;
+
 export type PatchMarcaConfigDto = Record<string, unknown>;

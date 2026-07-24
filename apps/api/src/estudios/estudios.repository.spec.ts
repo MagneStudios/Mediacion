@@ -1,6 +1,14 @@
 import { ConflictError } from "../common/errors/domain-errors";
 import { EstudiosRepository } from "./estudios.repository";
 
+function createFakeSelectKysely(returned: unknown) {
+  const executeTakeFirst = jest.fn().mockResolvedValue(returned);
+  const where = jest.fn().mockReturnValue({ executeTakeFirst });
+  const selectAll = jest.fn().mockReturnValue({ where });
+  const selectFrom = jest.fn().mockReturnValue({ selectAll });
+  return { selectFrom, selectAll, where, executeTakeFirst };
+}
+
 function createFakeUpdateKysely(returned: unknown, rejection?: unknown) {
   const executeTakeFirst = rejection
     ? jest.fn().mockRejectedValue(rejection)
@@ -13,6 +21,29 @@ function createFakeUpdateKysely(returned: unknown, rejection?: unknown) {
 }
 
 describe("EstudiosRepository", () => {
+  describe("findOwn", () => {
+    it("returns the estudio row for the given id", async () => {
+      const estudio = { id: "estudio-1", marca_config: { color: "#fff" } };
+      const fakeKysely = createFakeSelectKysely(estudio);
+      const repository = new EstudiosRepository(fakeKysely as never);
+
+      const result = await repository.findOwn("estudio-1");
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("estudios");
+      expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", "estudio-1");
+      expect(result).toBe(estudio);
+    });
+
+    it("returns undefined when no estudio matches the given id", async () => {
+      const fakeKysely = createFakeSelectKysely(undefined);
+      const repository = new EstudiosRepository(fakeKysely as never);
+
+      const result = await repository.findOwn("estudio-missing");
+
+      expect(result).toBeUndefined();
+    });
+  });
+
   describe("updateMarcaConfig", () => {
     it("returns the updated estudio row on a successful update", async () => {
       const updated = { id: "estudio-1", marca_config: { color: "#fff" } };
