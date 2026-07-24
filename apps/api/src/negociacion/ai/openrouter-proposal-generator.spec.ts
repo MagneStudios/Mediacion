@@ -7,6 +7,12 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     supabaseJwtSecret: "secret",
     databaseUrl: "postgresql://placeholder",
     openrouterApiKey: "sk-or-test-key",
+    smtpHost: "smtp.example.com",
+    smtpPort: 587,
+    smtpUser: "smtp-user",
+    smtpPass: "smtp-pass",
+    fcmKey: "fcm-key",
+    apnsKey: "apns-key",
     ...overrides,
   };
 }

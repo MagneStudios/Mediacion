@@ -2,13 +2,12 @@ import { Global, Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
 import { NotificacionesRepository } from "./notificaciones.repository";
 import { NotificacionesService } from "./notificaciones.service";
+import { SmtpEmailProvider } from "./providers/email-provider";
 import {
   EMAIL_PROVIDER,
   PUSH_PROVIDER,
 } from "./providers/notificaciones.tokens";
-
-const noopEmailProvider = { send: async () => undefined };
-const noopPushProvider = { send: async () => undefined };
+import { FcmApnsPushProvider } from "./providers/push-provider";
 
 @Global()
 @Module({
@@ -16,8 +15,8 @@ const noopPushProvider = { send: async () => undefined };
   providers: [
     NotificacionesRepository,
     NotificacionesService,
-    { provide: EMAIL_PROVIDER, useValue: noopEmailProvider },
-    { provide: PUSH_PROVIDER, useValue: noopPushProvider },
+    { provide: EMAIL_PROVIDER, useClass: SmtpEmailProvider },
+    { provide: PUSH_PROVIDER, useClass: FcmApnsPushProvider },
   ],
   exports: [NotificacionesService],
 })

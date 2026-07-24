@@ -67,7 +67,7 @@ describe("NotificacionesService", () => {
       expect(result).toBeUndefined();
     });
 
-    it("logs without throwing when persisting the pendiente row rejects", async () => {
+    it("logs without throwing when persisting the pendiente row rejects, accurately reporting a pre-dispatch failure with no id", async () => {
       const loggerSpy = jest
         .spyOn(Logger.prototype, "error")
         .mockImplementation(() => undefined);
@@ -80,6 +80,12 @@ describe("NotificacionesService", () => {
       await new Promise((resolve) => setImmediate(resolve));
 
       expect(loggerSpy).toHaveBeenCalled();
+      expect(loggerSpy.mock.calls[0][0]).toEqual(
+        expect.stringContaining("before dispatch"),
+      );
+      expect(loggerSpy.mock.calls[0][0]).not.toEqual(
+        expect.stringContaining("id="),
+      );
       loggerSpy.mockRestore();
     });
   });
@@ -146,6 +152,67 @@ describe("NotificacionesService", () => {
       expect(loggerSpy.mock.calls[0][0]).toEqual(
         expect.stringContaining("notif-1"),
       );
+      loggerSpy.mockRestore();
+    });
+
+    it("logs the ORIGINAL provider error together with the notification id when marking 'fallida' also fails (double failure)", async () => {
+      const loggerSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation(() => undefined);
+      const providerError = new Error("smtp down");
+      const dbError = new Error("db unavailable");
+      const updateEstado = jest.fn().mockRejectedValue(dbError);
+      const emailProvider: EmailProvider = {
+        send: jest.fn().mockRejectedValue(providerError),
+      };
+      const { service } = buildService({ updateEstado, emailProvider });
+
+      await expect(service.deliver(input)).resolves.toBeUndefined();
+
+      expect(updateEstado).toHaveBeenCalledWith("notif-1", "fallida");
+      expect(loggerSpy.mock.calls[0][0]).toEqual(
+        expect.stringContaining("notif-1"),
+      );
+      expect(loggerSpy.mock.calls[0][1]).toBe(providerError);
+      expect(
+        loggerSpy.mock.calls.some(
+          (call) =>
+            typeof call[0] === "string" &&
+            call[0].includes("notif-1") &&
+            call[1] === dbError,
+        ),
+      ).toBe(true);
+      loggerSpy.mockRestore();
+    });
+
+    it("marks estado 'fallida' and logs the original error with the notification id, never claiming 'after dispatch', when resolving the recipient email fails after the pendiente row was created", async () => {
+      const loggerSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation(() => undefined);
+      const lookupError = new Error("recipient lookup failed");
+      const findRecipientEmail = jest.fn().mockRejectedValue(lookupError);
+      const updateEstado = jest.fn().mockResolvedValue(undefined);
+      const emailProvider: EmailProvider = { send: jest.fn() };
+      const { service } = buildService({
+        findRecipientEmail,
+        updateEstado,
+        emailProvider,
+      });
+
+      await expect(service.deliver(input)).resolves.toBeUndefined();
+
+      expect(emailProvider.send).not.toHaveBeenCalled();
+      expect(updateEstado).toHaveBeenCalledWith("notif-1", "fallida");
+      expect(loggerSpy.mock.calls[0][0]).toEqual(
+        "notificaciones.deliver failed id=notif-1 usuarioId=user-1 canal=email evento=invitacion_enviada",
+      );
+      expect(loggerSpy.mock.calls[0][0]).not.toEqual(
+        expect.stringContaining("after dispatch"),
+      );
+      expect(loggerSpy.mock.calls[0][0]).not.toEqual(
+        expect.stringContaining("before dispatch"),
+      );
+      expect(loggerSpy.mock.calls[0][1]).toBe(lookupError);
       loggerSpy.mockRestore();
     });
 

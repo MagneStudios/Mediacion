@@ -140,6 +140,7 @@ describe("loadConfig", () => {
 
   it("accepts explicit values outside production", () => {
     const appConfig = loadConfig({
+      NODE_ENV: "test",
       SUPABASE_JWT_SECRET: "my-secret",
       DATABASE_URL: "postgres://user:pass@host:5432/db",
       OPENROUTER_API_KEY: "sk-or-my-key",
@@ -178,11 +179,196 @@ describe("loadConfig", () => {
 
   it("accepts an explicit OPENROUTER_API_KEY outside production", () => {
     const appConfig = loadConfig({
+      NODE_ENV: "test",
       SUPABASE_JWT_SECRET: "my-secret",
       DATABASE_URL: "postgres://user:pass@host:5432/db",
       OPENROUTER_API_KEY: "sk-or-my-key",
     });
 
     expect(appConfig.openrouterApiKey).toBe("sk-or-my-key");
+  });
+
+  it("defaults SMTP_PORT to 587 when unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.smtpPort).toBe(587);
+  });
+
+  it("uses the SMTP_PORT environment variable when set", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test", SMTP_PORT: "2525" });
+
+    expect(appConfig.smtpPort).toBe(2525);
+  });
+
+  it("throws when SMTP_PORT is not a valid number", () => {
+    expect(() => loadConfig({ SMTP_PORT: "not-a-number" })).toThrow(
+      "SMTP_PORT must be a valid port number between 1 and 65535, received: not-a-number",
+    );
+  });
+
+  it("throws when SMTP_PORT is out of range", () => {
+    expect(() => loadConfig({ SMTP_PORT: "70000" })).toThrow(
+      "SMTP_PORT must be a valid port number between 1 and 65535, received: 70000",
+    );
+  });
+
+  it("uses a safe placeholder smtpHost when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.smtpHost).toBe("dev-placeholder-smtp-host");
+  });
+
+  it("throws in production when SMTP_HOST is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_USER: "user",
+        SMTP_PASS: "pass",
+        FCM_KEY: "fcm-key",
+        APNS_KEY: "apns-key",
+      }),
+    ).toThrow("SMTP_HOST is required and must be non-empty");
+  });
+
+  it("accepts an explicit SMTP_HOST outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      SMTP_HOST: "smtp.example.com",
+    });
+
+    expect(appConfig.smtpHost).toBe("smtp.example.com");
+  });
+
+  it("uses a safe placeholder smtpUser when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.smtpUser).toBe("dev-placeholder-smtp-user");
+  });
+
+  it("throws in production when SMTP_USER is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_PASS: "pass",
+        FCM_KEY: "fcm-key",
+        APNS_KEY: "apns-key",
+      }),
+    ).toThrow("SMTP_USER is required and must be non-empty");
+  });
+
+  it("accepts an explicit SMTP_USER outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      SMTP_USER: "smtp-user",
+    });
+
+    expect(appConfig.smtpUser).toBe("smtp-user");
+  });
+
+  it("uses a safe placeholder smtpPass when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.smtpPass).toBe("dev-placeholder-smtp-pass");
+  });
+
+  it("throws in production when SMTP_PASS is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "user",
+        FCM_KEY: "fcm-key",
+        APNS_KEY: "apns-key",
+      }),
+    ).toThrow("SMTP_PASS is required and must be non-empty");
+  });
+
+  it("accepts an explicit SMTP_PASS outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      SMTP_PASS: "smtp-pass",
+    });
+
+    expect(appConfig.smtpPass).toBe("smtp-pass");
+  });
+
+  it("uses a safe placeholder fcmKey when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.fcmKey).toBe("dev-placeholder-fcm-key");
+  });
+
+  it("throws in production when FCM_KEY is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "user",
+        SMTP_PASS: "pass",
+        APNS_KEY: "apns-key",
+      }),
+    ).toThrow("FCM_KEY is required and must be non-empty");
+  });
+
+  it("accepts an explicit FCM_KEY outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      FCM_KEY: "fcm-key-value",
+    });
+
+    expect(appConfig.fcmKey).toBe("fcm-key-value");
+  });
+
+  it("uses a safe placeholder apnsKey when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.apnsKey).toBe("dev-placeholder-apns-key");
+  });
+
+  it("throws in production when APNS_KEY is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "user",
+        SMTP_PASS: "pass",
+        FCM_KEY: "fcm-key",
+      }),
+    ).toThrow("APNS_KEY is required and must be non-empty");
+  });
+
+  it("accepts an explicit APNS_KEY outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      APNS_KEY: "apns-key-value",
+    });
+
+    expect(appConfig.apnsKey).toBe("apns-key-value");
   });
 });
