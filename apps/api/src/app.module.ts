@@ -8,6 +8,7 @@ import { CasosModule } from "./casos/casos.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ConfigModule } from "./config/config.module";
 import { DatabaseModule } from "./database/database.module";
+import { EstudiosModule } from "./estudios/estudios.module";
 import { HealthModule } from "./health/health.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
@@ -26,6 +27,7 @@ import { PagosModule } from "./pagos/pagos.module";
     InvitacionesModule,
     ItemsModule,
     AcuerdosModule,
+    EstudiosModule,
     NegociacionModule,
     PagosModule,
   ],
