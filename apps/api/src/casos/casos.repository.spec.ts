@@ -446,4 +446,122 @@ describe("CasosRepository", () => {
       );
     });
   });
+
+  describe("updatePlazo", () => {
+    function createFakeUpdateKysely(returnedRow: unknown) {
+      const executeTakeFirstOrThrow = jest.fn().mockResolvedValue(returnedRow);
+      const returning = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+      const where = jest.fn().mockReturnValue({ returning });
+      const set = jest.fn().mockReturnValue({ where });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      return {
+        updateTable,
+        set,
+        where,
+        returning,
+        executeTakeFirstOrThrow,
+      };
+    }
+
+    it("sets casos.plazo and returns the updated row, never touching estado", async () => {
+      const returnedRow = { id: "caso-1", plazo: "2026-08-01T00:00:00.000Z" };
+      const fakeKysely = createFakeUpdateKysely(returnedRow);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.updatePlazo(
+        "caso-1",
+        "2026-08-01T00:00:00.000Z",
+      );
+
+      expect(fakeKysely.updateTable).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.set).toHaveBeenCalledWith({
+        plazo: "2026-08-01T00:00:00.000Z",
+      });
+      const updatedValues = fakeKysely.set.mock.calls[0][0];
+      expect(updatedValues).not.toHaveProperty("estado");
+      expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(fakeKysely.returning).toHaveBeenCalledWith(["id", "plazo"]);
+      expect(result).toBe(returnedRow);
+    });
+
+    it("wraps a raw query rejection into a domain error", async () => {
+      const fakeKysely = createFakeUpdateKysely(undefined);
+      fakeKysely.executeTakeFirstOrThrow.mockRejectedValue({
+        code: "08006",
+        message: "connection reset",
+      });
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await expect(
+        repository.updatePlazo("caso-1", "2026-08-01T00:00:00.000Z"),
+      ).rejects.toBeInstanceOf(Error);
+    });
+  });
+
+  describe("findPlazo", () => {
+    function createFakeSelectKysely(row: unknown) {
+      const executeTakeFirst = jest.fn().mockResolvedValue(row);
+      const where = jest.fn().mockReturnValue({ executeTakeFirst });
+      const select = jest.fn().mockReturnValue({ where });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      return { selectFrom, select, where, executeTakeFirst };
+    }
+
+    it("returns the caso's id and plazo", async () => {
+      const row = { id: "caso-1", plazo: "2026-08-01T00:00:00.000Z" };
+      const fakeKysely = createFakeSelectKysely(row);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.findPlazo("caso-1");
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.select).toHaveBeenCalledWith(["id", "plazo"]);
+      expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(result).toBe(row);
+    });
+
+    it("returns undefined when the caso does not exist", async () => {
+      const fakeKysely = createFakeSelectKysely(undefined);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.findPlazo("stranger-caso");
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("findOverdueCasos", () => {
+    function createFakeSelectKysely(rows: unknown) {
+      const execute = jest.fn().mockResolvedValue(rows);
+      const where3 = jest.fn().mockReturnValue({ execute });
+      const where2 = jest.fn().mockReturnValue({ where: where3 });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const select = jest.fn().mockReturnValue({ where: where1 });
+      const selectFrom = jest.fn().mockReturnValue({ select });
+      return { selectFrom, select, where1, where2, where3, execute };
+    }
+
+    it("returns casos whose plazo has passed", async () => {
+      const rows = [{ id: "caso-1" }];
+      const fakeKysely = createFakeSelectKysely(rows);
+      const repository = new CasosRepository(fakeKysely as never);
+      const now = new Date("2026-07-24T12:00:00.000Z");
+
+      const result = await repository.findOverdueCasos(now);
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.where1).toHaveBeenCalledWith("plazo", "is not", null);
+      expect(fakeKysely.where2).toHaveBeenCalledWith(
+        "plazo",
+        "<=",
+        now.toISOString(),
+      );
+      expect(fakeKysely.where3).toHaveBeenCalledWith("estado", "in", [
+        "nuevo",
+        "activo",
+        "en_negociacion",
+      ]);
+      expect(result).toBe(rows);
+    });
+  });
 });

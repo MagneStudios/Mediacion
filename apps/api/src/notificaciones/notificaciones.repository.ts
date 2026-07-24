@@ -1,6 +1,7 @@
 import type { Database } from "@mediacion/db-types";
 import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
+import { estadoInvitacionAceptada } from "../casos/casos.types";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
 import type { EmitNotificacionInput, Estado } from "./notificaciones.types";
@@ -47,6 +48,36 @@ export class NotificacionesRepository {
       .where("id", "=", usuarioId)
       .executeTakeFirst()
       .then((row) => row?.email)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  existsEvento(
+    casoId: string,
+    evento: string,
+    usuarioId: string,
+  ): Promise<boolean> {
+    return this.kysely
+      .selectFrom("notificaciones")
+      .select("id")
+      .where("caso_id", "=", casoId)
+      .where("evento", "=", evento)
+      .where("usuario_id", "=", usuarioId)
+      .executeTakeFirst()
+      .then((row) => row !== undefined)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  findAceptadaParties(casoId: string): Promise<{ usuario_id: string }[]> {
+    return this.kysely
+      .selectFrom("caso_partes")
+      .select(["usuario_id"])
+      .where("caso_id", "=", casoId)
+      .where("estado_invitacion", "=", estadoInvitacionAceptada)
+      .execute()
       .catch((error: unknown) => {
         throw toDomainError(error);
       });

@@ -34,6 +34,8 @@ describe("CasosController unit", () => {
       createCase,
       listOwnCases: jest.fn(),
       getCaseDetail: jest.fn(),
+      setPlazo: jest.fn(),
+      getPlazo: jest.fn(),
     } as unknown as CasosService);
 
     const result = await controller.createCase(parteA, {
@@ -46,6 +48,58 @@ describe("CasosController unit", () => {
       metodo: "mediacion",
     });
     expect(result).toEqual({ id: "caso-1", estado: "nuevo" });
+  });
+
+  it("sets the plazo for the authenticated caller's caso", async () => {
+    const setPlazo = jest.fn().mockResolvedValue({
+      id: "caso-1",
+      plazo: "2026-08-24T12:00:00.000Z",
+      semaforo: "verde",
+    });
+    const controller = new CasosController({
+      createCase: jest.fn(),
+      listOwnCases: jest.fn(),
+      getCaseDetail: jest.fn(),
+      setPlazo,
+      getPlazo: jest.fn(),
+    } as unknown as CasosService);
+
+    const result = await controller.setPlazo("caso-1", parteA, {
+      plazo: "2026-08-24T12:00:00.000Z",
+    });
+
+    expect(setPlazo).toHaveBeenCalledWith("caso-1", "user-a", {
+      plazo: "2026-08-24T12:00:00.000Z",
+    });
+    expect(result).toEqual({
+      id: "caso-1",
+      plazo: "2026-08-24T12:00:00.000Z",
+      semaforo: "verde",
+    });
+  });
+
+  it("reads the plazo for the authenticated caller's caso", async () => {
+    const getPlazo = jest.fn().mockResolvedValue({
+      id: "caso-1",
+      plazo: "2026-07-24T00:00:00.000Z",
+      semaforo: "rojo",
+    });
+    const controller = new CasosController({
+      createCase: jest.fn(),
+      listOwnCases: jest.fn(),
+      getCaseDetail: jest.fn(),
+      setPlazo: jest.fn(),
+      getPlazo,
+    } as unknown as CasosService);
+
+    const result = await controller.getPlazo("caso-1", parteA);
+
+    expect(getPlazo).toHaveBeenCalledWith("caso-1", "user-a");
+    expect(result).toEqual({
+      id: "caso-1",
+      plazo: "2026-07-24T00:00:00.000Z",
+      semaforo: "rojo",
+    });
   });
 });
 
@@ -77,6 +131,24 @@ describe("POST/GET /casos end-to-end isolation", () => {
         Promise.resolve(
           casoPartesByCase[casoId]?.has(callerId)
             ? casesById[casoId]
+            : undefined,
+        ),
+      updatePlazo: jest.fn((casoId: string, plazo: string) => {
+        casesById[casoId] = {
+          ...casesById[casoId],
+          plazo,
+        } as (typeof casesById)[string] & { plazo: string };
+        return Promise.resolve({ id: casoId, plazo });
+      }),
+      findPlazo: (casoId: string) =>
+        Promise.resolve(
+          casesById[casoId]
+            ? {
+                id: casoId,
+                plazo:
+                  (casesById[casoId] as { plazo?: string | null }).plazo ??
+                  null,
+              }
             : undefined,
         ),
     };
@@ -154,6 +226,64 @@ describe("POST/GET /casos end-to-end isolation", () => {
       .send({ nombre: "Divorcio", metodo: "mediacion" });
 
     expect(response.status).toBe(401);
+    await app.close();
+  });
+
+  it("lets an accepted member set the plazo via PATCH /casos/:id/plazo", async () => {
+    const app = await bootstrapApp();
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const response = await request(app.getHttpServer())
+      .patch("/casos/caso-x/plazo")
+      .set("Authorization", "Bearer user-a")
+      .send({ plazo: future.toISOString() });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({ id: "caso-x", plazo: future.toISOString() }),
+    );
+    await app.close();
+  });
+
+  it("returns 404 (not 403) when a non-member PATCHes /casos/:id/plazo", async () => {
+    const app = await bootstrapApp();
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const response = await request(app.getHttpServer())
+      .patch("/casos/caso-x/plazo")
+      .set("Authorization", "Bearer user-c")
+      .send({ plazo: future.toISOString() });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: { code: "caso_not_found", message: "Case not found" },
+    });
+    await app.close();
+  });
+
+  it("lets an accepted member read the plazo via GET /casos/:id/plazo", async () => {
+    const app = await bootstrapApp();
+
+    const response = await request(app.getHttpServer())
+      .get("/casos/caso-x/plazo")
+      .set("Authorization", "Bearer user-a");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(expect.objectContaining({ id: "caso-x" }));
+    await app.close();
+  });
+
+  it("returns 404 (not 403) when a non-member GETs /casos/:id/plazo", async () => {
+    const app = await bootstrapApp();
+
+    const response = await request(app.getHttpServer())
+      .get("/casos/caso-x/plazo")
+      .set("Authorization", "Bearer user-c");
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: { code: "caso_not_found", message: "Case not found" },
+    });
     await app.close();
   });
 });

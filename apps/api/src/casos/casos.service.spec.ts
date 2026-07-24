@@ -10,12 +10,16 @@ describe("CasosService", () => {
     createCaseWithParteA?: jest.Mock;
     findOwnCases?: jest.Mock;
     findDetailForMember?: jest.Mock;
+    updatePlazo?: jest.Mock;
+    findPlazo?: jest.Mock;
     assertMembership?: jest.Mock;
   }) {
     const casosRepository = {
       createCaseWithParteA: overrides?.createCaseWithParteA ?? jest.fn(),
       findOwnCases: overrides?.findOwnCases ?? jest.fn(),
       findDetailForMember: overrides?.findDetailForMember ?? jest.fn(),
+      updatePlazo: overrides?.updatePlazo ?? jest.fn(),
+      findPlazo: overrides?.findPlazo ?? jest.fn(),
     } as unknown as CasosRepository;
     const membershipService = {
       assertMembership: overrides?.assertMembership ?? jest.fn(),
@@ -162,6 +166,208 @@ describe("CasosService", () => {
       let thrown: unknown;
       try {
         await service.getCaseDetail("caso-1", "user-1");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(404);
+    });
+  });
+
+  describe("setPlazo", () => {
+    const now = new Date("2026-07-24T12:00:00.000Z");
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("updates plazo for an accepted party and returns the computed semaforo", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const updatePlazo = jest.fn().mockResolvedValue({
+        id: "caso-1",
+        plazo: "2026-08-24T12:00:00.000Z",
+      });
+      const { service } = buildService({ assertMembership, updatePlazo });
+
+      const result = await service.setPlazo("caso-1", "user-a", {
+        plazo: "2026-08-24T12:00:00.000Z",
+      });
+
+      expect(assertMembership).toHaveBeenCalledWith("caso-1", "user-a");
+      expect(updatePlazo).toHaveBeenCalledWith(
+        "caso-1",
+        "2026-08-24T12:00:00.000Z",
+      );
+      expect(result).toEqual({
+        id: "caso-1",
+        plazo: "2026-08-24T12:00:00.000Z",
+        semaforo: "verde",
+      });
+    });
+
+    it("rejects a non-member with 404, disclosing nothing about the case", async () => {
+      const notFound = new HttpException(
+        { code: "caso_not_found", message: "Case not found" },
+        404,
+      );
+      const assertMembership = jest.fn().mockRejectedValue(notFound);
+      const updatePlazo = jest.fn();
+      const { service } = buildService({ assertMembership, updatePlazo });
+
+      let thrown: unknown;
+      try {
+        await service.setPlazo("caso-1", "stranger", {
+          plazo: "2026-08-24T12:00:00.000Z",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBe(notFound);
+      expect(updatePlazo).not.toHaveBeenCalled();
+    });
+
+    it("rejects a plazo that is not a valid ISO date before touching membership or the repository", async () => {
+      const assertMembership = jest.fn();
+      const updatePlazo = jest.fn();
+      const { service } = buildService({ assertMembership, updatePlazo });
+
+      let thrown: unknown;
+      try {
+        await service.setPlazo("caso-1", "user-a", {
+          plazo: "not-a-date",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(400);
+      expect(assertMembership).not.toHaveBeenCalled();
+      expect(updatePlazo).not.toHaveBeenCalled();
+    });
+
+    it("rejects a plazo that is not in the future before touching membership or the repository", async () => {
+      const assertMembership = jest.fn();
+      const updatePlazo = jest.fn();
+      const { service } = buildService({ assertMembership, updatePlazo });
+
+      let thrown: unknown;
+      try {
+        await service.setPlazo("caso-1", "user-a", {
+          plazo: "2026-07-24T00:00:00.000Z",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(400);
+      expect(assertMembership).not.toHaveBeenCalled();
+      expect(updatePlazo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getPlazo", () => {
+    const now = new Date("2026-07-24T12:00:00.000Z");
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("returns plazo and the computed semaforo for an accepted member", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const findPlazo = jest.fn().mockResolvedValue({
+        id: "caso-1",
+        plazo: "2026-07-24T00:00:00.000Z",
+      });
+      const { service } = buildService({ assertMembership, findPlazo });
+
+      const result = await service.getPlazo("caso-1", "user-a");
+
+      expect(assertMembership).toHaveBeenCalledWith("caso-1", "user-a");
+      expect(findPlazo).toHaveBeenCalledWith("caso-1");
+      expect(result).toEqual({
+        id: "caso-1",
+        plazo: "2026-07-24T00:00:00.000Z",
+        semaforo: "rojo",
+      });
+    });
+
+    it("returns a null semaforo when plazo has not been set", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const findPlazo = jest.fn().mockResolvedValue({
+        id: "caso-1",
+        plazo: null,
+      });
+      const { service } = buildService({ assertMembership, findPlazo });
+
+      const result = await service.getPlazo("caso-1", "user-a");
+
+      expect(result).toEqual({ id: "caso-1", plazo: null, semaforo: null });
+    });
+
+    it("rejects a non-member with 404 without querying plazo", async () => {
+      const notFound = new HttpException(
+        { code: "caso_not_found", message: "Case not found" },
+        404,
+      );
+      const assertMembership = jest.fn().mockRejectedValue(notFound);
+      const findPlazo = jest.fn();
+      const { service } = buildService({ assertMembership, findPlazo });
+
+      let thrown: unknown;
+      try {
+        await service.getPlazo("caso-1", "stranger");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBe(notFound);
+      expect(findPlazo).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when the caso itself no longer exists", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const findPlazo = jest.fn().mockResolvedValue(undefined);
+      const { service } = buildService({ assertMembership, findPlazo });
+
+      let thrown: unknown;
+      try {
+        await service.getPlazo("caso-1", "user-a");
       } catch (error) {
         thrown = error;
       }

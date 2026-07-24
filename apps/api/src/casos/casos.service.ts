@@ -6,8 +6,11 @@ import type {
   CaseSummary,
   CreateCasoDto,
   MetodoCaso,
+  PlazoDto,
+  PlazoState,
 } from "./casos.types";
 import { MembershipService } from "./membership.service";
+import { computeSemaforo } from "./semaforo";
 
 const validMetodos: MetodoCaso[] = ["negociacion", "conciliacion", "mediacion"];
 
@@ -27,6 +30,23 @@ function assertValidCreateInput(input: CreateCasoDto): void {
       HttpStatus.BAD_REQUEST,
     );
   }
+}
+
+function assertValidPlazo(input: PlazoDto, now: Date): Date {
+  const plazo = typeof input?.plazo === "string" ? new Date(input.plazo) : null;
+  if (plazo === null || Number.isNaN(plazo.getTime())) {
+    throw new HttpException(
+      { code: "invalid_input", message: "plazo must be a valid ISO date" },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  if (plazo.getTime() <= now.getTime()) {
+    throw new HttpException(
+      { code: "invalid_input", message: "plazo must be in the future" },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  return plazo;
 }
 
 @Injectable()
@@ -66,5 +86,47 @@ export class CasosService {
       );
     }
     return detail;
+  }
+
+  async setPlazo(
+    casoId: string,
+    callerId: string,
+    input: PlazoDto,
+  ): Promise<PlazoState> {
+    const now = new Date();
+    const plazo = assertValidPlazo(input, now);
+    await this.membershipService.assertMembership(casoId, callerId);
+    const updated = await this.casosRepository.updatePlazo(
+      casoId,
+      plazo.toISOString(),
+    );
+    return {
+      id: updated.id,
+      plazo: updated.plazo,
+      semaforo: computeSemaforo(
+        updated.plazo === null ? null : new Date(updated.plazo),
+        now,
+      ),
+    };
+  }
+
+  async getPlazo(casoId: string, callerId: string): Promise<PlazoState> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    const row = await this.casosRepository.findPlazo(casoId);
+    if (!row) {
+      throw new HttpException(
+        { code: "caso_not_found", message: "Case not found" },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    const now = new Date();
+    return {
+      id: row.id,
+      plazo: row.plazo,
+      semaforo: computeSemaforo(
+        row.plazo === null ? null : new Date(row.plazo),
+        now,
+      ),
+    };
   }
 }
