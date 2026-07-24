@@ -1,14 +1,59 @@
 import type { Database } from "@mediacion/db-types";
-import { Inject, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
+import { CasosRepository } from "../casos/casos.repository";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
 import type {
+  DecisionPropuesta,
   EstadoPropuesta,
   Propuesta,
+  PropuestaContenido,
   PropuestaView,
 } from "./negociacion.types";
 import { propuestaViewColumns } from "./negociacion.types";
+import { buildPropuestaLockQuery } from "./propuesta-lock-query";
+import {
+  buildFindByPropuestaQuery,
+  buildInsertRespuestaQuery,
+} from "./respuestas.repository";
+import {
+  buildCurrentRondaActualQuery,
+  buildInsertNextRondaQuery,
+} from "./rondas.repository";
+
+const estadoPendiente: EstadoPropuesta = "pendiente";
+const estadoAceptada: EstadoPropuesta = "aceptada";
+const estadoRechazada: EstadoPropuesta = "rechazada";
+const decisionAcepta: DecisionPropuesta = "acepta";
+const decisionRechaza: DecisionPropuesta = "rechaza";
+
+function propuestaNotFound(): HttpException {
+  return new HttpException(
+    { code: "propuesta_not_found", message: "Propuesta not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
+function propuestaNotPendiente(): HttpException {
+  return new HttpException(
+    {
+      code: "propuesta_not_pendiente",
+      message: "Propuesta is not pending a response",
+    },
+    HttpStatus.CONFLICT,
+  );
+}
+
+function propuestaNotReady(): HttpException {
+  return new HttpException(
+    {
+      code: "propuesta_not_ready",
+      message: "Propuesta narrative generation has not completed yet",
+    },
+    HttpStatus.CONFLICT,
+  );
+}
 
 export function buildCreatePendingQuery(
   db: Kysely<Database>,
@@ -77,9 +122,34 @@ export function buildExistsForRondaQuery(
     .limit(1);
 }
 
+export function buildFindCasoIdQuery(
+  db: Kysely<Database>,
+  propuestaId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .select("caso_id")
+    .where("id", "=", propuestaId);
+}
+
+export function buildFindByIdQuery(
+  db: Kysely<Database>,
+  casoId: string,
+  propuestaId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .select([...propuestaViewColumns])
+    .where("id", "=", propuestaId)
+    .where("caso_id", "=", casoId);
+}
+
 @Injectable()
 export class PropuestasRepository {
-  constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY) private readonly kysely: Kysely<Database>,
+    @Inject(CasosRepository) private readonly casosRepository: CasosRepository,
+  ) {}
 
   createPending(
     casoId: string,
@@ -150,6 +220,96 @@ export class PropuestasRepository {
       .select(["parte_id", "categoria", "nombre", "valor_min", "valor_max"])
       .where("caso_id", "=", casoId)
       .execute();
+  }
+
+  async findCasoId(propuestaId: string): Promise<string | undefined> {
+    const row = await buildFindCasoIdQuery(
+      this.kysely,
+      propuestaId,
+    ).executeTakeFirst();
+    return row?.caso_id;
+  }
+
+  resolveRespuesta(
+    casoId: string,
+    propuestaId: string,
+    parteId: string,
+    decision: DecisionPropuesta,
+  ): Promise<PropuestaView> {
+    return this.kysely
+      .transaction()
+      .execute(async (trx) => {
+        const locked = await buildPropuestaLockQuery(
+          trx,
+          casoId,
+          propuestaId,
+        ).executeTakeFirst();
+        if (!locked) {
+          throw propuestaNotFound();
+        }
+        const current = await buildFindByIdQuery(
+          trx,
+          casoId,
+          propuestaId,
+        ).executeTakeFirstOrThrow();
+        if (current.estado !== estadoPendiente) {
+          throw propuestaNotPendiente();
+        }
+        if ((current.contenido as PropuestaContenido).narrative === null) {
+          throw propuestaNotReady();
+        }
+        await buildInsertRespuestaQuery(
+          trx,
+          propuestaId,
+          parteId,
+          decision,
+        ).executeTakeFirstOrThrow();
+
+        if (decision === decisionRechaza) {
+          const rechazada = await buildMarkEstadoQuery(
+            trx,
+            casoId,
+            propuestaId,
+            estadoRechazada,
+          ).executeTakeFirstOrThrow();
+          const { ronda_actual: numeroActual } =
+            await buildCurrentRondaActualQuery(
+              trx,
+              casoId,
+            ).executeTakeFirstOrThrow();
+          await buildInsertNextRondaQuery(
+            trx,
+            casoId,
+            numeroActual + 1,
+          ).executeTakeFirstOrThrow();
+          return rechazada;
+        }
+
+        const responses = await buildFindByPropuestaQuery(
+          trx,
+          propuestaId,
+        ).execute();
+        const bothAccepted =
+          responses.length === 2 &&
+          responses.every((response) => response.decision === decisionAcepta);
+        if (!bothAccepted) {
+          return current;
+        }
+        const aceptada = await buildMarkEstadoQuery(
+          trx,
+          casoId,
+          propuestaId,
+          estadoAceptada,
+        ).executeTakeFirstOrThrow();
+        await this.casosRepository.markAcordado(casoId, trx);
+        return aceptada;
+      })
+      .catch((error: unknown) => {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        throw toDomainError(error);
+      });
   }
 }
 

@@ -2,6 +2,7 @@ import type { Database } from "@mediacion/db-types";
 import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
+import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
 import type {
   CaseDetail,
@@ -21,6 +22,21 @@ const caseDetailColumns = [
   "casos.created_at",
   "casos.updated_at",
 ] as const;
+
+export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
+  return db
+    .updateTable("casos")
+    .set({ estado: "acordado" })
+    .where("id", "=", casoId)
+    .where("estado", "=", "en_negociacion")
+    .returning(["id"]);
+}
+
+function casoNotAcordable(casoId: string): ConflictError {
+  return new ConflictError(
+    `Caso ${casoId} was not en_negociacion when marking acordado`,
+  );
+}
 
 @Injectable()
 export class CasosRepository {
@@ -98,6 +114,18 @@ export class CasosRepository {
       .execute()
       .then(() => undefined)
       .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  markAcordado(casoId: string, trx: Kysely<Database>): Promise<void> {
+    return buildMarkAcordadoQuery(trx, casoId)
+      .executeTakeFirstOrThrow(() => casoNotAcordable(casoId))
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        if (error instanceof ConflictError) {
+          throw error;
+        }
         throw toDomainError(error);
       });
   }

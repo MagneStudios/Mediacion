@@ -36,10 +36,14 @@ function buildService(overrides?: {
   insertNextRonda?: jest.Mock;
   readIaConfig?: jest.Mock;
   generateProposal?: jest.Mock;
+  findCasoId?: jest.Mock;
+  resolveRespuesta?: jest.Mock;
+  findForCase?: jest.Mock;
 }) {
   const membershipService = {
     assertMembership:
-      overrides?.assertMembership ?? jest.fn().mockResolvedValue({}),
+      overrides?.assertMembership ??
+      jest.fn().mockResolvedValue({ rol_en_caso: "parte_a" }),
   };
   const propuestasRepository = {
     readBothPartyPositionsForEngine:
@@ -49,6 +53,9 @@ function buildService(overrides?: {
     patchGenerated: overrides?.patchGenerated ?? jest.fn(),
     existsForRonda:
       overrides?.existsForRonda ?? jest.fn().mockResolvedValue(false),
+    findCasoId: overrides?.findCasoId ?? jest.fn().mockResolvedValue("caso-1"),
+    resolveRespuesta: overrides?.resolveRespuesta ?? jest.fn(),
+    findForCase: overrides?.findForCase ?? jest.fn().mockResolvedValue([]),
   } as unknown as PropuestasRepository;
   const rondasRepository = {
     currentRondaActual:
@@ -415,5 +422,178 @@ describe("NegociacionService.generatePropuesta", () => {
     expect(existsForRonda).toHaveBeenCalledWith("caso-1", "ronda-1");
     expect(createPending).not.toHaveBeenCalled();
     expect(generateProposal).not.toHaveBeenCalled();
+  });
+});
+
+describe("NegociacionService.responder", () => {
+  it("rejects with 400 when decision is not acepta or rechaza", async () => {
+    const findCasoId = jest.fn();
+    const { service } = buildService({ findCasoId });
+
+    let thrown: unknown;
+    try {
+      await service.responder("prop-1", "user-a", "maybe" as never);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(400);
+    expect(findCasoId).not.toHaveBeenCalled();
+  });
+
+  it("returns a uniform 404 when the propuesta does not exist", async () => {
+    const findCasoId = jest.fn().mockResolvedValue(undefined);
+    const assertMembership = jest.fn();
+    const { service } = buildService({ findCasoId, assertMembership });
+
+    let thrown: unknown;
+    try {
+      await service.responder("missing", "user-a", "acepta");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(404);
+    expect((thrown as HttpException).getResponse()).toMatchObject({
+      code: "caso_not_found",
+    });
+    expect(assertMembership).not.toHaveBeenCalled();
+  });
+
+  it("propagates the 404 thrown by the membership guard for non-members", async () => {
+    const notFound = new HttpException(
+      { code: "caso_not_found", message: "Case not found" },
+      404,
+    );
+    const assertMembership = jest.fn().mockRejectedValue(notFound);
+    const resolveRespuesta = jest.fn();
+    const { service } = buildService({ assertMembership, resolveRespuesta });
+
+    await expect(
+      service.responder("prop-1", "stranger", "acepta"),
+    ).rejects.toBe(notFound);
+    expect(resolveRespuesta).not.toHaveBeenCalled();
+  });
+
+  it("returns a uniform 404 for a mediador, who cannot respond to a propuesta", async () => {
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "mediador" });
+    const resolveRespuesta = jest.fn();
+    const { service } = buildService({ assertMembership, resolveRespuesta });
+
+    let thrown: unknown;
+    try {
+      await service.responder("prop-1", "user-mediador", "acepta");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(404);
+    expect(resolveRespuesta).not.toHaveBeenCalled();
+  });
+
+  it("delegates to the repository for a parte, returning its result", async () => {
+    const aceptada: PropuestaView = {
+      id: "prop-1",
+      caso_id: "caso-1",
+      ronda_id: "ronda-1",
+      contenido: { meetingPoint: [], narrative: "texto" },
+      fundamentacion: null,
+      estado: "aceptada",
+      modelo_ia: "openai/gpt-4",
+      fecha: "now",
+    };
+    const resolveRespuesta = jest.fn().mockResolvedValue(aceptada);
+    const { service } = buildService({ resolveRespuesta });
+
+    const result = await service.responder("prop-1", "user-a", "acepta");
+
+    expect(resolveRespuesta).toHaveBeenCalledWith(
+      "caso-1",
+      "prop-1",
+      "user-a",
+      "acepta",
+    );
+    expect(result).toBe(aceptada);
+  });
+});
+
+describe("NegociacionService.listPropuestas", () => {
+  it("propagates the 404 thrown by the membership guard for non-members", async () => {
+    const notFound = new HttpException(
+      { code: "caso_not_found", message: "Case not found" },
+      404,
+    );
+    const assertMembership = jest.fn().mockRejectedValue(notFound);
+    const { service } = buildService({ assertMembership });
+
+    await expect(service.listPropuestas("caso-1", "stranger")).rejects.toBe(
+      notFound,
+    );
+  });
+
+  it("returns the propuestas for a parte regardless of round", async () => {
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "parte_a" });
+    const currentRondaActual = jest.fn();
+    const propuestas: PropuestaView[] = [];
+    const findForCase = jest.fn().mockResolvedValue(propuestas);
+    const { service } = buildService({
+      assertMembership,
+      currentRondaActual,
+      findForCase,
+    });
+
+    const result = await service.listPropuestas("caso-1", "user-a");
+
+    expect(result).toBe(propuestas);
+    expect(currentRondaActual).not.toHaveBeenCalled();
+  });
+
+  it("returns a uniform 404 for a mediador before round 3", async () => {
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "mediador" });
+    const currentRondaActual = jest.fn().mockResolvedValue(2);
+    const findForCase = jest.fn();
+    const { service } = buildService({
+      assertMembership,
+      currentRondaActual,
+      findForCase,
+    });
+
+    let thrown: unknown;
+    try {
+      await service.listPropuestas("caso-1", "user-mediador");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(404);
+    expect(findForCase).not.toHaveBeenCalled();
+  });
+
+  it("returns the propuestas for a mediador from round 3 onward", async () => {
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "mediador" });
+    const currentRondaActual = jest.fn().mockResolvedValue(3);
+    const propuestas: PropuestaView[] = [];
+    const findForCase = jest.fn().mockResolvedValue(propuestas);
+    const { service } = buildService({
+      assertMembership,
+      currentRondaActual,
+      findForCase,
+    });
+
+    const result = await service.listPropuestas("caso-1", "user-mediador");
+
+    expect(result).toBe(propuestas);
   });
 });

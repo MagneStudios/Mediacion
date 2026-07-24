@@ -364,4 +364,86 @@ describe("CasosRepository", () => {
       expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
     });
   });
+
+  describe("markAcordado", () => {
+    function createFakeTrx(executeTakeFirstOrThrow: jest.Mock) {
+      const returning = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+      const where2 = jest.fn().mockReturnValue({ returning });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const set = jest.fn().mockReturnValue({ where: where1 });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      return {
+        updateTable,
+        set,
+        where1,
+        where2,
+        returning,
+        executeTakeFirstOrThrow,
+      };
+    }
+
+    it("moves a case from en_negociacion to acordado using the provided trx, never touching ronda_actual", async () => {
+      const executeTakeFirstOrThrow = jest
+        .fn()
+        .mockResolvedValue({ id: "caso-1" });
+      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
+      const repository = new CasosRepository({} as never);
+
+      await repository.markAcordado("caso-1", fakeTrx as never);
+
+      expect(fakeTrx.updateTable).toHaveBeenCalledWith("casos");
+      expect(fakeTrx.set).toHaveBeenCalledWith({ estado: "acordado" });
+      expect(fakeTrx.where1).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(fakeTrx.where2).toHaveBeenCalledWith(
+        "estado",
+        "=",
+        "en_negociacion",
+      );
+      expect(fakeTrx.returning).toHaveBeenCalledWith(["id"]);
+      const updatedValues = fakeTrx.set.mock.calls[0][0];
+      expect(updatedValues).not.toHaveProperty("ronda_actual");
+    });
+
+    it("maps a trigger-raised invalid-transition exception to a uniform 409 via the shared pg-error guard", async () => {
+      const triggerError = {
+        code: "P0001",
+        message: "invalid caso estado transition",
+      };
+      const executeTakeFirstOrThrow = jest.fn().mockRejectedValue(triggerError);
+      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
+      const repository = new CasosRepository({} as never);
+
+      let thrown: unknown;
+      try {
+        await repository.markAcordado("caso-1", fakeTrx as never);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(ConflictError);
+      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
+    });
+
+    it("throws a 409 inside the trx when zero rows match en_negociacion, rolling back instead of silently no-opping", async () => {
+      const executeTakeFirstOrThrow = jest.fn(
+        (errorConstructor: (node: unknown) => Error) =>
+          Promise.reject(errorConstructor(undefined)),
+      );
+      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
+      const repository = new CasosRepository({} as never);
+
+      let thrown: unknown;
+      try {
+        await repository.markAcordado("caso-1", fakeTrx as never);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(ConflictError);
+      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
+      expect(executeTakeFirstOrThrow).toHaveBeenCalledWith(
+        expect.any(Function),
+      );
+    });
+  });
 });
