@@ -27,7 +27,7 @@ export class NotificacionesService {
   emit(input: EmitNotificacionInput): void {
     void this.deliver(input).catch((error: unknown) => {
       this.logger.error(
-        `notificaciones.emit failed before dispatch usuarioId=${input.usuarioId} canal=${input.canal} evento=${input.evento}`,
+        `notificaciones.emit failed before dispatch ${this.formatContext(input)}`,
         error,
       );
     });
@@ -37,16 +37,7 @@ export class NotificacionesService {
     const { id } = await this.notificacionesRepository.createPendiente(input);
 
     if (input.canal === "email") {
-      const to = await this.notificacionesRepository.findRecipientEmail(
-        input.usuarioId,
-      );
-      if (to === undefined) {
-        await this.markFallida(id, input);
-        return;
-      }
-      await this.dispatch(id, input, () =>
-        this.providers.email.send({ to, evento: input.evento }),
-      );
+      await this.deliverEmail(id, input);
       return;
     }
 
@@ -55,6 +46,30 @@ export class NotificacionesService {
         usuarioId: input.usuarioId,
         evento: input.evento,
       }),
+    );
+  }
+
+  private async deliverEmail(
+    id: string,
+    input: EmitNotificacionInput,
+  ): Promise<void> {
+    let to: string | undefined;
+    try {
+      to = await this.notificacionesRepository.findRecipientEmail(
+        input.usuarioId,
+      );
+    } catch (error) {
+      await this.markFallida(id, input, error);
+      return;
+    }
+
+    if (to === undefined) {
+      await this.markFallida(id, input);
+      return;
+    }
+
+    await this.dispatch(id, input, () =>
+      this.providers.email.send({ to, evento: input.evento }),
     );
   }
 
@@ -74,7 +89,7 @@ export class NotificacionesService {
       await this.notificacionesRepository.updateEstado(id, "enviada");
     } catch (error) {
       this.logger.error(
-        `notificaciones.deliver failed to mark enviada id=${id} usuarioId=${input.usuarioId} canal=${input.canal} evento=${input.evento}`,
+        `notificaciones.deliver failed to mark enviada ${this.formatContext(input, id)}`,
         error,
       );
     }
@@ -85,8 +100,21 @@ export class NotificacionesService {
     input: EmitNotificacionInput,
     error?: unknown,
   ): Promise<void> {
-    await this.notificacionesRepository.updateEstado(id, "fallida");
-    const context = `id=${id} usuarioId=${input.usuarioId} canal=${input.canal} evento=${input.evento}`;
+    const context = this.formatContext(input, id);
+    try {
+      await this.notificacionesRepository.updateEstado(id, "fallida");
+    } catch (dbError) {
+      this.logOriginalFailure(context, error);
+      this.logger.error(
+        `notificaciones.deliver failed to mark fallida ${context}`,
+        dbError,
+      );
+      return;
+    }
+    this.logOriginalFailure(context, error);
+  }
+
+  private logOriginalFailure(context: string, error: unknown): void {
     if (error === undefined) {
       this.logger.error(
         `notificaciones.deliver missing recipient email ${context}`,
@@ -94,5 +122,10 @@ export class NotificacionesService {
       return;
     }
     this.logger.error(`notificaciones.deliver failed ${context}`, error);
+  }
+
+  private formatContext(input: EmitNotificacionInput, id?: string): string {
+    const idPart = id === undefined ? "" : `id=${id} `;
+    return `${idPart}usuarioId=${input.usuarioId} canal=${input.canal} evento=${input.evento}`;
   }
 }

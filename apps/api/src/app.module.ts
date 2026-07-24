@@ -18,6 +18,7 @@ import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
 import { MetricasModule } from "./metricas/metricas.module";
 import { NegociacionModule } from "./negociacion/negociacion.module";
+import { NotificacionesModule } from "./notificaciones/notificaciones.module";
 import { PagosModule } from "./pagos/pagos.module";
 
 @Module({
@@ -35,6 +36,7 @@ import { PagosModule } from "./pagos/pagos.module";
     EstudiosModule,
     InversoresModule,
     NegociacionModule,
+    NotificacionesModule,
     PagosModule,
     MetricasModule,
     AuditoriaModule,

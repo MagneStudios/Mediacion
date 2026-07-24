@@ -14,6 +14,12 @@ describe("kyselyProvider", () => {
       supabaseJwtSecret: "secret",
       databaseUrl: "postgresql://user:pass@localhost:5432/db",
       openrouterApiKey: "sk-or-test-key",
+      smtpHost: "smtp.example.com",
+      smtpPort: 587,
+      smtpUser: "smtp-user",
+      smtpPass: "smtp-pass",
+      fcmKey: "fcm-key",
+      apnsKey: "apns-key",
     };
 
     const factory = kyselyProvider.useFactory as (config: AppConfig) => unknown;
