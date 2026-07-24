@@ -1,5 +1,12 @@
-import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { MembershipService } from "../casos/membership.service";
+import { NotificacionesService } from "../notificaciones/notificaciones.service";
 import { InvitacionesRepository } from "./invitaciones.repository";
 import type {
   CreateInvitacionDto,
@@ -11,6 +18,8 @@ import { generateToken } from "./token";
 
 const validTipos: TipoInvitacion[] = ["link", "codigo", "email"];
 const tipoInvitacionEmail = "email" as const;
+const canalEmail = "email" as const;
+const eventoInvitacionEnviada = "invitacion_enviada";
 
 function assertValidTipo(tipo: TipoInvitacion): void {
   if (!validTipos.includes(tipo)) {
@@ -41,11 +50,15 @@ function assertValidEmailDestino(dto: CreateInvitacionDto): void {
 
 @Injectable()
 export class InvitacionesService {
+  private readonly logger = new Logger(InvitacionesService.name);
+
   constructor(
     @Inject(InvitacionesRepository)
     private readonly invitacionesRepository: InvitacionesRepository,
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
+    @Inject(NotificacionesService)
+    private readonly notificacionesService: NotificacionesService,
   ) {}
 
   async createInvitation(
@@ -66,12 +79,41 @@ export class InvitacionesService {
       );
     }
     const token = generateToken();
-    return this.invitacionesRepository.createInvite(
+    const invitation = await this.invitacionesRepository.createInvite(
       casoId,
       dto.tipo,
       token,
       dto.email_destino ?? null,
     );
+    try {
+      await this.notifyInvitedUsuario(casoId, dto.email_destino);
+    } catch (error) {
+      this.logger.error(
+        `invitacion notification failed after invite persisted for caso ${casoId}`,
+        error,
+      );
+    }
+    return invitation;
+  }
+
+  private async notifyInvitedUsuario(
+    casoId: string,
+    emailDestino: string | undefined,
+  ): Promise<void> {
+    if (!emailDestino) {
+      return;
+    }
+    const usuarioId =
+      await this.invitacionesRepository.findUsuarioIdByEmail(emailDestino);
+    if (!usuarioId) {
+      return;
+    }
+    this.notificacionesService.emit({
+      usuarioId,
+      casoId,
+      canal: canalEmail,
+      evento: eventoInvitacionEnviada,
+    });
   }
 
   joinCase(

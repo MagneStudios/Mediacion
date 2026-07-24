@@ -9,6 +9,7 @@ import { TOKEN_VERIFIER } from "../auth/token-verifier";
 import { UsersRepository } from "../auth/users.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
+import { NotificacionesService } from "../notificaciones/notificaciones.service";
 import { InvitacionesController } from "./invitaciones.controller";
 import { InvitacionesRepository } from "./invitaciones.repository";
 import { InvitacionesService } from "./invitaciones.service";
@@ -88,11 +89,16 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
           useValue: {
             createInvite: overrides.createInvite ?? jest.fn(),
             joinCase: overrides.joinCase ?? jest.fn(),
+            findUsuarioIdByEmail: jest.fn(),
           },
         },
         {
           provide: MembershipService,
           useValue: { assertMembership: overrides.assertMembership },
+        },
+        {
+          provide: NotificacionesService,
+          useValue: { emit: jest.fn() },
         },
         { provide: UsersRepository, useValue: usersRepository },
         {

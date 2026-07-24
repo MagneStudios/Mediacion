@@ -1,6 +1,7 @@
 import { HttpException } from "@nestjs/common";
 import { estadoInvitacionAceptada } from "../casos/casos.types";
 import type { MembershipService } from "../casos/membership.service";
+import type { NotificacionesService } from "../notificaciones/notificaciones.service";
 import type { InvitacionesRepository } from "./invitaciones.repository";
 import { InvitacionesService } from "./invitaciones.service";
 import { generateToken } from "./token";
@@ -12,21 +13,29 @@ describe("InvitacionesService", () => {
     createInvite?: jest.Mock;
     joinCase?: jest.Mock;
     assertMembership?: jest.Mock;
+    findUsuarioIdByEmail?: jest.Mock;
+    emit?: jest.Mock;
   }) {
     const invitacionesRepository = {
       createInvite: overrides?.createInvite ?? jest.fn(),
       joinCase: overrides?.joinCase ?? jest.fn(),
+      findUsuarioIdByEmail: overrides?.findUsuarioIdByEmail ?? jest.fn(),
     } as unknown as InvitacionesRepository;
     const membershipService = {
       assertMembership: overrides?.assertMembership ?? jest.fn(),
     } as unknown as MembershipService;
+    const notificacionesService = {
+      emit: overrides?.emit ?? jest.fn(),
+    } as unknown as NotificacionesService;
     return {
       service: new InvitacionesService(
         invitacionesRepository,
         membershipService,
+        notificacionesService,
       ),
       invitacionesRepository,
       membershipService,
+      notificacionesService,
     };
   }
 
@@ -154,6 +163,133 @@ describe("InvitacionesService", () => {
         "tok-abc",
         "target@test.com",
       );
+    });
+
+    it("emits an invitacion_enviada notification when the invited email belongs to a registered usuario", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const createInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+      });
+      const findUsuarioIdByEmail = jest.fn().mockResolvedValue("user-invitee");
+      const emit = jest.fn();
+      const { service } = buildService({
+        assertMembership,
+        createInvite,
+        findUsuarioIdByEmail,
+        emit,
+      });
+
+      await service.createInvitation("caso-1", "user-a", {
+        tipo: "email",
+        email_destino: "target@test.com",
+      });
+
+      expect(findUsuarioIdByEmail).toHaveBeenCalledWith("target@test.com");
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emit).toHaveBeenCalledWith({
+        usuarioId: "user-invitee",
+        casoId: "caso-1",
+        canal: "email",
+        evento: "invitacion_enviada",
+      });
+    });
+
+    it("does not emit when the invited email does not belong to a registered usuario", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const createInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+      });
+      const findUsuarioIdByEmail = jest.fn().mockResolvedValue(undefined);
+      const emit = jest.fn();
+      const { service } = buildService({
+        assertMembership,
+        createInvite,
+        findUsuarioIdByEmail,
+        emit,
+      });
+
+      await service.createInvitation("caso-1", "user-a", {
+        tipo: "email",
+        email_destino: "unknown@test.com",
+      });
+
+      expect(findUsuarioIdByEmail).toHaveBeenCalledWith("unknown@test.com");
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it("still returns the created invitation when the invitee lookup rejects after persistence", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const invitation = {
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+      };
+      const createInvite = jest.fn().mockResolvedValue(invitation);
+      const findUsuarioIdByEmail = jest
+        .fn()
+        .mockRejectedValue(new Error("connection lost"));
+      const emit = jest.fn();
+      const { service } = buildService({
+        assertMembership,
+        createInvite,
+        findUsuarioIdByEmail,
+        emit,
+      });
+      const loggerErrorSpy = jest.spyOn(
+        (service as unknown as { logger: { error: jest.Mock } }).logger,
+        "error",
+      );
+
+      const result = await service.createInvitation("caso-1", "user-a", {
+        tipo: "email",
+        email_destino: "target@test.com",
+      });
+
+      expect(result).toBe(invitation);
+      expect(emit).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("invitacion notification failed"),
+        expect.any(Error),
+      );
+    });
+
+    it("does not look up an invitee or emit for a link invitation", async () => {
+      (generateToken as jest.Mock).mockReturnValue("tok-abc");
+      const assertMembership = jest.fn().mockResolvedValue({
+        rol_en_caso: "parte_a",
+      });
+      const createInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "link",
+        token: "tok-abc",
+        estado: "pendiente",
+      });
+      const findUsuarioIdByEmail = jest.fn();
+      const emit = jest.fn();
+      const { service } = buildService({
+        assertMembership,
+        createInvite,
+        findUsuarioIdByEmail,
+        emit,
+      });
+
+      await service.createInvitation("caso-1", "user-a", { tipo: "link" });
+
+      expect(findUsuarioIdByEmail).not.toHaveBeenCalled();
+      expect(emit).not.toHaveBeenCalled();
     });
 
     it("rejects an email invitation without an email_destino, never creating an invite", async () => {
