@@ -37,6 +37,7 @@ EXPECTED_FUNCTIONS = [
     "handle_new_user",
     "sync_ronda_actual",
     "validate_caso_estado_transition",
+    "validate_propuesta_estado_transition",
     "audit_trigger_func",
     "is_part_of_case",
     "is_mediator_of_case",
@@ -169,6 +170,33 @@ def main():
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",
               9, "9 audit trigger names")
+
+        check("Propuesta state machine trigger installed", cur,
+              "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trigger_validate_propuesta_estado'",
+              1, "propuesta estado trigger")
+
+        # 7. UNIQUE constraints
+        print()
+        print("=== UNIQUE Constraints ===")
+        cur.execute("""
+            SELECT conname FROM pg_constraint
+            WHERE connamespace = 'public'::regnamespace
+            AND contype = 'u'
+            ORDER BY conname
+        """)
+        existing_uniques = {row[0] for row in cur.fetchall()}
+        expected_uniques = [
+            "caso_partes_caso_usuario_unique",
+            "rondas_caso_numero_unique",
+            "respuestas_propuesta_unique",
+            "acuerdos_caso_unique",
+            "propuestas_caso_ronda_unique",
+        ]
+        for uq in expected_uniques:
+            found = uq in existing_uniques
+            status = "PASS" if found else "FAIL"
+            RESULTS.append({"name": f"unique:{uq}", "status": status, "expected": True, "actual": found})
+            print(f"  [{status}] UNIQUE constraint '{uq}'")
 
         # --- Summary ---
         print()

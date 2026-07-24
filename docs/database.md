@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-07-22
+> Última actualización: 2026-07-24
 
 ## Objetivo
 
@@ -32,7 +32,11 @@ supabase/migrations/
 ├── 20260721191655_constraints_indexes.sql  # CHECK XOR, UNIQUE, 16 índices
 ├── 20260721191658_functions_triggers.sql   # 11 funciones, 45 triggers
 ├── 20260721191704_rls_policie.sql   # 41 policies en 22 tablas
-└── 20260721191707_seed_catalog.sql  # 4 planes + 5 configs
+├── 20260721191707_seed_catalog.sql  # 4 planes + 5 configs
+├── 20260723210000_acuerdos_caso_unique.sql          # UNIQUE acuerdos.caso_id
+├── 20260724011737_propuestas_ronda_unique.sql       # UNIQUE propuestas(caso_id, ronda_id)
+├── 20260724130000_propuesta_estado_trigger.sql      # validate_propuesta_estado_transition()
+└── 20260724150000_mediaciones_write_rls.sql         # INSERT/UPDATE RLS mediaciones
 ```
 
 ## Modelo de datos (22 tablas)

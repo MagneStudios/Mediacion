@@ -64,6 +64,7 @@ temp/
 
 # === Otros ===
 /docs/contextom
+/docs/mediacion_db_develop.md
 /docs/documentacion-oficial
 
 # === SDD / agent tooling cache ===
