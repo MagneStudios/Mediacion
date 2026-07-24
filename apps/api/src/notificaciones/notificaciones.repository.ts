@@ -53,19 +53,19 @@ export class NotificacionesRepository {
       });
   }
 
-  existsEvento(
+  findEventoEstado(
     casoId: string,
     evento: string,
     usuarioId: string,
-  ): Promise<boolean> {
+  ): Promise<{ id: string; estado: Estado } | undefined> {
     return this.kysely
       .selectFrom("notificaciones")
-      .select("id")
+      .select(["id", "estado"])
       .where("caso_id", "=", casoId)
       .where("evento", "=", evento)
       .where("usuario_id", "=", usuarioId)
       .executeTakeFirst()
-      .then((row) => row !== undefined)
+      .then((row) => row as { id: string; estado: Estado } | undefined)
       .catch((error: unknown) => {
         throw toDomainError(error);
       });

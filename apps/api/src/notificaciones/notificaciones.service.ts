@@ -25,17 +25,36 @@ export class NotificacionesService {
   }
 
   emit(input: EmitNotificacionInput): void {
-    void this.deliver(input).catch((error: unknown) => {
+    void this.emitAwaited(input);
+  }
+
+  async emitAwaited(input: EmitNotificacionInput): Promise<void> {
+    try {
+      await this.deliver(input);
+    } catch (error) {
       this.logger.error(
         `notificaciones.emit failed before dispatch ${this.formatContext(input)}`,
         error,
       );
-    });
+    }
   }
 
   async deliver(input: EmitNotificacionInput): Promise<void> {
     const { id } = await this.notificacionesRepository.createPendiente(input);
+    await this.deliverById(id, input);
+  }
 
+  async redeliverAwaited(
+    notificacionId: string,
+    input: EmitNotificacionInput,
+  ): Promise<void> {
+    await this.deliverById(notificacionId, input);
+  }
+
+  private async deliverById(
+    id: string,
+    input: EmitNotificacionInput,
+  ): Promise<void> {
     if (input.canal === "email") {
       await this.deliverEmail(id, input);
       return;

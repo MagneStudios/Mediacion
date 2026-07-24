@@ -19,6 +19,7 @@ export type AppConfig = {
   smtpPass: string;
   fcmKey: string;
   apnsKey: string;
+  cronSecret: string;
 };
 
 const defaultPort = 3000;
@@ -44,6 +45,7 @@ const placeholderSmtpUser = "dev-placeholder-smtp-user";
 const placeholderSmtpPass = "dev-placeholder-smtp-pass";
 const placeholderFcmKey = "dev-placeholder-fcm-key";
 const placeholderApnsKey = "dev-placeholder-apns-key";
+const placeholderCronSecret = "dev-placeholder-cron-secret";
 const postgresUrlPattern = /^postgres(ql)?:\/\/.+/;
 
 function parsePortNumber(envVarName: string, rawPort: string): number {
@@ -222,6 +224,12 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
     placeholderApnsKey,
   );
+  const cronSecret = parseRequiredNonEmpty(
+    "CRON_SECRET",
+    environment.CRON_SECRET,
+    isTestEnv,
+    placeholderCronSecret,
+  );
   return {
     port,
     supabaseJwtSecret,
@@ -243,5 +251,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     smtpPass,
     fcmKey,
     apnsKey,
+    cronSecret,
   };
 }

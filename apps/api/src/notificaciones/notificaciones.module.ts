@@ -9,11 +9,13 @@ import {
   PUSH_PROVIDER,
 } from "./providers/notificaciones.tokens";
 import { FcmApnsPushProvider } from "./providers/push-provider";
+import { VencimientoController } from "./vencimiento.controller";
 import { VencimientoScheduler } from "./vencimiento.scheduler";
 
 @Global()
 @Module({
   imports: [DatabaseModule, CasosModule],
+  controllers: [VencimientoController],
   providers: [
     NotificacionesRepository,
     NotificacionesService,

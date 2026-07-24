@@ -22,6 +22,7 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     docusignPrivateKey: "test-private-key-pem",
     mpAccessToken: "mp-access-token",
     mpWebhookSecret: secret,
+    cronSecret: "cron-secret",
     smtpHost: "smtp.example.com",
     smtpPort: 587,
     smtpUser: "smtp-user",

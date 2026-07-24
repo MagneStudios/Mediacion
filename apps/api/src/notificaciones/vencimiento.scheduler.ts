@@ -37,24 +37,47 @@ export class VencimientoScheduler {
       const parties = await this.notificacionesRepository.findAceptadaParties(
         caso.id,
       );
-      for (const parte of parties) {
-        const alreadyNotified =
-          await this.notificacionesRepository.existsEvento(
-            caso.id,
-            eventoVencimiento,
-            parte.usuario_id,
+      const results = await Promise.allSettled(
+        parties.map((parte) => this.deliverToParty(caso.id, parte.usuario_id)),
+      );
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          this.logger.error(
+            `vencimiento.sweep delivery failed for caso ${caso.id} usuario ${parties[index].usuario_id}`,
+            result.reason,
           );
-        if (alreadyNotified) {
-          continue;
         }
+      });
+    }
+  }
 
-        this.notificacionesService.emit({
-          usuarioId: parte.usuario_id,
-          casoId: caso.id,
-          canal: canalVencimiento,
-          evento: eventoVencimiento,
-        });
-      }
+  private async deliverToParty(
+    casoId: string,
+    usuarioId: string,
+  ): Promise<void> {
+    const evento = await this.notificacionesRepository.findEventoEstado(
+      casoId,
+      eventoVencimiento,
+      usuarioId,
+    );
+
+    if (evento === undefined) {
+      await this.notificacionesService.emitAwaited({
+        usuarioId,
+        casoId,
+        canal: canalVencimiento,
+        evento: eventoVencimiento,
+      });
+      return;
+    }
+
+    if (evento.estado === "pendiente") {
+      await this.notificacionesService.redeliverAwaited(evento.id, {
+        usuarioId,
+        casoId,
+        canal: canalVencimiento,
+        evento: eventoVencimiento,
+      });
     }
   }
 }
