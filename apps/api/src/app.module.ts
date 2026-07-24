@@ -7,9 +7,11 @@ import { RolesGuard } from "./auth/roles.guard";
 import { CasosModule } from "./casos/casos.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ConfigModule } from "./config/config.module";
+import { ConfiguracionModule } from "./configuracion/configuracion.module";
 import { DatabaseModule } from "./database/database.module";
 import { EstudiosModule } from "./estudios/estudios.module";
 import { HealthModule } from "./health/health.module";
+import { InversoresModule } from "./inversores/inversores.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
@@ -27,7 +29,9 @@ import { PagosModule } from "./pagos/pagos.module";
     InvitacionesModule,
     ItemsModule,
     AcuerdosModule,
+    ConfiguracionModule,
     EstudiosModule,
+    InversoresModule,
     NegociacionModule,
     PagosModule,
   ],
