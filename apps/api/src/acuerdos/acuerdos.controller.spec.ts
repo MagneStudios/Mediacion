@@ -21,4 +21,21 @@ describe("AcuerdosController unit", () => {
     expect(generateAgreement).toHaveBeenCalledWith("caso-1", "user-a");
     expect(result).toBe(acuerdo);
   });
+
+  it("sends an agreement to signature for the authenticated caller", async () => {
+    const acuerdo = {
+      id: "acuerdo-1",
+      caso_id: "caso-1",
+      estado: "enviado_a_firma",
+    };
+    const sendToSignature = jest.fn().mockResolvedValue(acuerdo);
+    const controller = new AcuerdosController({
+      sendToSignature,
+    } as unknown as AcuerdosService);
+
+    const result = await controller.sendToSignature("acuerdo-1", parteA);
+
+    expect(sendToSignature).toHaveBeenCalledWith("acuerdo-1", "user-a");
+    expect(result).toBe(acuerdo);
+  });
 });

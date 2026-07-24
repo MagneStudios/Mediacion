@@ -7,11 +7,32 @@ import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AcuerdosRepository } from "./acuerdos.repository";
 import { AcuerdosService } from "./acuerdos.service";
-import { FakeDocusignClient } from "./docusign/fake-docusign-client";
+import type {
+  CreateEnvelopeInput,
+  CreateEnvelopeOutput,
+  DocusignClient,
+} from "./docusign/docusign-client";
 import { FirmasRepository } from "./firmas.repository";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 const instanceId = "00000000-0000-0000-0000-000000000000";
+
+class RejectingDocusignClient implements DocusignClient {
+  createEnvelope(): Promise<CreateEnvelopeOutput> {
+    return Promise.reject(
+      new Error("DocuSign envelope creation failed with status 502"),
+    );
+  }
+}
+
+class RecordingDocusignClient implements DocusignClient {
+  readonly calls: CreateEnvelopeInput[] = [];
+
+  createEnvelope(input: CreateEnvelopeInput): Promise<CreateEnvelopeOutput> {
+    this.calls.push(input);
+    return Promise.resolve({ envelopeId: randomUUID() });
+  }
+}
 
 async function insertAuthUser(
   kysely: Kysely<Database>,
@@ -46,10 +67,10 @@ async function runCleanupSteps(
   }
 }
 
-describeDb("Agreement generation against a real database", () => {
+describeDb("Firmar flow against a real database", () => {
   let kysely: Kysely<Database>;
-  let service: AcuerdosService;
   let casoId: string;
+  let acuerdoId: string;
   const parteAId = randomUUID();
   const parteBId = randomUUID();
   const strangerId = randomUUID();
@@ -60,39 +81,28 @@ describeDb("Agreement generation against a real database", () => {
         pool: new Pool({ connectionString: process.env.DATABASE_URL }),
       }),
     });
-    const casosRepository = new CasosRepository(kysely);
-    const membershipService = new MembershipService(kysely);
-    const firmasRepository = new FirmasRepository(kysely);
-    const acuerdosRepository = new AcuerdosRepository(kysely, firmasRepository);
-    service = new AcuerdosService(
-      membershipService,
-      casosRepository,
-      acuerdosRepository,
-      kysely,
-      new FakeDocusignClient(),
-    );
 
     await insertAuthUser(
       kysely,
       parteAId,
-      `acuerdos-a-${randomUUID()}@integration.test`,
+      `firmar-a-${randomUUID()}@integration.test`,
     );
     await insertAuthUser(
       kysely,
       parteBId,
-      `acuerdos-b-${randomUUID()}@integration.test`,
+      `firmar-b-${randomUUID()}@integration.test`,
     );
     await insertAuthUser(
       kysely,
       strangerId,
-      `acuerdos-c-${randomUUID()}@integration.test`,
+      `firmar-c-${randomUUID()}@integration.test`,
     );
 
     const caso = await kysely
       .insertInto("casos")
       .values({
         creador_id: parteAId,
-        nombre: `Caso integracion acuerdos ${randomUUID()}`,
+        nombre: `Caso integracion firmar ${randomUUID()}`,
         metodo: "mediacion",
         estado: "acordado",
       })
@@ -120,59 +130,28 @@ describeDb("Agreement generation against a real database", () => {
       ])
       .execute();
 
-    const ronda = await kysely
-      .insertInto("rondas")
-      .values({ caso_id: casoId, numero: 1, estado: "completada" })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const propuesta = await kysely
-      .insertInto("propuestas")
+    const acuerdo = await kysely
+      .insertInto("acuerdos")
       .values({
         caso_id: casoId,
-        ronda_id: ronda.id,
         contenido: { split: "50/50" },
-        estado: "aceptada",
+        estado: "borrador",
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-
-    await kysely
-      .insertInto("respuestas_propuesta")
-      .values([
-        { propuesta_id: propuesta.id, parte_id: parteAId, decision: "acepta" },
-        { propuesta_id: propuesta.id, parte_id: parteBId, decision: "acepta" },
-      ])
-      .execute();
+    acuerdoId = acuerdo.id;
   });
 
   afterAll(async () => {
     await runCleanupSteps([
       () =>
         kysely
+          .deleteFrom("firmas")
+          .where("acuerdo_id", "=", acuerdoId ?? "")
+          .execute(),
+      () =>
+        kysely
           .deleteFrom("acuerdos")
-          .where("caso_id", "=", casoId ?? "")
-          .execute(),
-      () =>
-        kysely
-          .deleteFrom("respuestas_propuesta")
-          .where(
-            "propuesta_id",
-            "in",
-            kysely
-              .selectFrom("propuestas")
-              .select("id")
-              .where("caso_id", "=", casoId ?? ""),
-          )
-          .execute(),
-      () =>
-        kysely
-          .deleteFrom("propuestas")
-          .where("caso_id", "=", casoId ?? "")
-          .execute(),
-      () =>
-        kysely
-          .deleteFrom("rondas")
           .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>
@@ -192,29 +171,26 @@ describeDb("Agreement generation against a real database", () => {
     ]);
   });
 
-  it("generates a draft agreement for a party when the caso is acordado with an accepted propuesta", async () => {
-    const acuerdo = await service.generateAgreement(casoId, parteAId);
+  function buildService(docusignClient: DocusignClient): AcuerdosService {
+    const casosRepository = new CasosRepository(kysely);
+    const membershipService = new MembershipService(kysely);
+    const firmasRepository = new FirmasRepository(kysely);
+    const acuerdosRepository = new AcuerdosRepository(kysely, firmasRepository);
+    return new AcuerdosService(
+      membershipService,
+      casosRepository,
+      acuerdosRepository,
+      kysely,
+      docusignClient,
+    );
+  }
 
-    expect(acuerdo.estado).toBe("borrador");
-    expect(acuerdo.caso_id).toBe(casoId);
-  });
+  it("returns 404 for a caller who is not a party of the acuerdo's caso", async () => {
+    const service = buildService(new RecordingDocusignClient());
 
-  it("rejects a second generation for the same caso with 409 acuerdo_already_exists", async () => {
     let thrown: unknown;
     try {
-      await service.generateAgreement(casoId, parteBId);
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(HttpException);
-    expect((thrown as HttpException).getStatus()).toBe(409);
-  });
-
-  it("returns 404 for a caller who is not a party of the caso", async () => {
-    let thrown: unknown;
-    try {
-      await service.generateAgreement(casoId, strangerId);
+      await service.sendToSignature(acuerdoId, strangerId);
     } catch (error) {
       thrown = error;
     }
@@ -223,45 +199,60 @@ describeDb("Agreement generation against a real database", () => {
     expect((thrown as HttpException).getStatus()).toBe(404);
   });
 
-  it("rejects generation with 422 when the caso is not in acordado state", async () => {
-    const otherCaso = await kysely
-      .insertInto("casos")
-      .values({
-        creador_id: parteAId,
-        nombre: `Caso en negociacion ${randomUUID()}`,
-        metodo: "mediacion",
-        estado: "en_negociacion",
-      })
-      .returningAll()
+  it("leaves no DB mutation when DocuSign envelope creation fails", async () => {
+    const service = buildService(new RejectingDocusignClient());
+
+    await expect(service.sendToSignature(acuerdoId, parteAId)).rejects.toThrow(
+      "DocuSign envelope creation failed with status 502",
+    );
+
+    const acuerdo = await kysely
+      .selectFrom("acuerdos")
+      .selectAll()
+      .where("id", "=", acuerdoId)
       .executeTakeFirstOrThrow();
-    await kysely
-      .insertInto("caso_partes")
-      .values({
-        caso_id: otherCaso.id,
-        usuario_id: parteAId,
-        rol_en_caso: "parte_a",
-        estado_invitacion: "aceptada",
-        fecha_union: new Date().toISOString(),
-      })
+    expect(acuerdo.estado).toBe("borrador");
+    expect(acuerdo.docusign_envelope_id).toBeNull();
+    const firmas = await kysely
+      .selectFrom("firmas")
+      .selectAll()
+      .where("acuerdo_id", "=", acuerdoId)
       .execute();
+    expect(firmas).toHaveLength(0);
+  });
+
+  it("creates an envelope, moves the acuerdo to enviado_a_firma, and inserts one pending firma per party", async () => {
+    const docusignClient = new RecordingDocusignClient();
+    const service = buildService(docusignClient);
+
+    const result = await service.sendToSignature(acuerdoId, parteAId);
+
+    expect(result.estado).toBe("enviado_a_firma");
+    expect(result.docusign_envelope_id).toBeTruthy();
+    expect(docusignClient.calls).toHaveLength(1);
+    expect(docusignClient.calls[0].signers).toHaveLength(2);
+    const firmas = await kysely
+      .selectFrom("firmas")
+      .selectAll()
+      .where("acuerdo_id", "=", acuerdoId)
+      .execute();
+    expect(firmas).toHaveLength(2);
+    expect(firmas.every((firma) => firma.docusign_status === "pending")).toBe(
+      true,
+    );
+  });
+
+  it("rejects a second firmar attempt with a conflict once the acuerdo already left borrador", async () => {
+    const service = buildService(new RecordingDocusignClient());
 
     let thrown: unknown;
     try {
-      await service.generateAgreement(otherCaso.id, parteAId);
+      await service.sendToSignature(acuerdoId, parteAId);
     } catch (error) {
       thrown = error;
     }
 
     expect(thrown).toBeInstanceOf(HttpException);
-    expect((thrown as HttpException).getStatus()).toBe(422);
-
-    await runCleanupSteps([
-      () =>
-        kysely
-          .deleteFrom("caso_partes")
-          .where("caso_id", "=", otherCaso.id)
-          .execute(),
-      () => kysely.deleteFrom("casos").where("id", "=", otherCaso.id).execute(),
-    ]);
+    expect((thrown as HttpException).getStatus()).toBe(409);
   });
 });

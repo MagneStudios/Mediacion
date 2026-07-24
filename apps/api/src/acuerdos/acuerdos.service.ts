@@ -1,5 +1,11 @@
 import type { Database } from "@mediacion/db-types";
-import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { CasosRepository } from "../casos/casos.repository";
 import type { CaseDetail } from "../casos/casos.types";
@@ -8,6 +14,9 @@ import { KYSELY } from "../database/database.tokens";
 import { AcuerdosRepository } from "./acuerdos.repository";
 import type { Acuerdo } from "./acuerdos.types";
 import { buildAgreementContent } from "./agreement-content";
+import type { DocusignClient } from "./docusign/docusign-client";
+import { DOCUSIGN_CLIENT } from "./docusign/docusign-client";
+import { readAcceptedFirmantes } from "./firmantes-read.query";
 import { readAcceptedPropuesta } from "./propuesta-read.query";
 
 const estadoCasoAcordado: CaseDetail["estado"] = "acordado";
@@ -26,8 +35,17 @@ function casoNotAcordado(): HttpException {
   );
 }
 
+function acuerdoNotFound(): HttpException {
+  return new HttpException(
+    { code: "acuerdo_not_found", message: "Agreement not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
 @Injectable()
 export class AcuerdosService {
+  private readonly logger = new Logger(AcuerdosService.name);
+
   constructor(
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
@@ -35,6 +53,8 @@ export class AcuerdosService {
     @Inject(AcuerdosRepository)
     private readonly acuerdosRepository: AcuerdosRepository,
     @Inject(KYSELY) private readonly kysely: Kysely<Database>,
+    @Inject(DOCUSIGN_CLIENT)
+    private readonly docusignClient: DocusignClient,
   ) {}
 
   async generateAgreement(casoId: string, callerId: string): Promise<Acuerdo> {
@@ -52,5 +72,60 @@ export class AcuerdosService {
     const accepted = await readAcceptedPropuesta(this.kysely, casoId);
     const contenido = buildAgreementContent(accepted);
     return this.acuerdosRepository.insertDraft(casoId, contenido);
+  }
+
+  async sendToSignature(acuerdoId: string, callerId: string): Promise<Acuerdo> {
+    const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+    if (!acuerdo) {
+      throw acuerdoNotFound();
+    }
+    await this.membershipService.assertMembership(acuerdo.caso_id, callerId);
+    await this.acuerdosRepository.claimForSignature(acuerdoId);
+    let envelopeId: string | null = null;
+    try {
+      const firmantes = await readAcceptedFirmantes(
+        this.kysely,
+        acuerdo.caso_id,
+      );
+      const signers = firmantes.map((firmante) => ({
+        usuarioId: firmante.usuario_id,
+        email: firmante.email,
+        name: `${firmante.nombre} ${firmante.apellido}`,
+      }));
+      const envelope = await this.docusignClient.createEnvelope({
+        acuerdoId,
+        signers,
+      });
+      envelopeId = envelope.envelopeId;
+      return await this.acuerdosRepository.persistSignatureEnvelope(
+        acuerdoId,
+        envelopeId,
+        signers.map((signer) => signer.usuarioId),
+      );
+    } catch (error) {
+      await this.compensateFailedSignature(acuerdoId, envelopeId, error);
+      throw error;
+    }
+  }
+
+  private async compensateFailedSignature(
+    acuerdoId: string,
+    envelopeId: string | null,
+    originalError: unknown,
+  ): Promise<void> {
+    try {
+      await this.acuerdosRepository.revertClaimToBorrador(acuerdoId);
+    } catch (revertError) {
+      this.logger.error(
+        `revert claim failed for acuerdo ${acuerdoId}`,
+        revertError,
+      );
+    }
+    if (envelopeId !== null) {
+      this.logger.error(
+        `DocuSign envelope ${envelopeId} created but not persisted for acuerdo ${acuerdoId}`,
+        originalError,
+      );
+    }
   }
 }
