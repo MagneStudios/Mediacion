@@ -23,6 +23,18 @@ export function buildCurrentRondaActualQuery(
   return db.selectFrom("casos").select("ronda_actual").where("id", "=", casoId);
 }
 
+export function buildFindByNumeroQuery(
+  db: Kysely<Database>,
+  casoId: string,
+  numero: number,
+) {
+  return db
+    .selectFrom("rondas")
+    .selectAll()
+    .where("caso_id", "=", casoId)
+    .where("numero", "=", numero);
+}
+
 @Injectable()
 export class RondasRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
@@ -41,5 +53,13 @@ export class RondasRepository {
       casoId,
     ).executeTakeFirst();
     return row?.ronda_actual;
+  }
+
+  findByNumero(casoId: string, numero: number): Promise<Ronda | undefined> {
+    return buildFindByNumeroQuery(
+      this.kysely,
+      casoId,
+      numero,
+    ).executeTakeFirst();
   }
 }

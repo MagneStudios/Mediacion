@@ -13,6 +13,7 @@ describe("kyselyProvider", () => {
       port: 3000,
       supabaseJwtSecret: "secret",
       databaseUrl: "postgresql://user:pass@localhost:5432/db",
+      openrouterApiKey: "sk-or-test-key",
     };
 
     const factory = kyselyProvider.useFactory as (config: AppConfig) => unknown;
