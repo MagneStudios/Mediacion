@@ -136,7 +136,7 @@ describe("NotificacionesRepository", () => {
     });
   });
 
-  describe("existsEvento", () => {
+  describe("findEventoEstado", () => {
     function createFakeSelectKysely(row: unknown) {
       const executeTakeFirst = jest.fn().mockResolvedValue(row);
       const where3 = jest.fn().mockReturnValue({ executeTakeFirst });
@@ -147,17 +147,21 @@ describe("NotificacionesRepository", () => {
       return { selectFrom, select, where1, where2, where3, executeTakeFirst };
     }
 
-    it("returns true when a notificacion already exists for (caso_id, evento, usuario_id)", async () => {
-      const fakeKysely = createFakeSelectKysely({ id: "notif-1" });
+    it("returns the id and estado of the matching notificacion for (caso_id, evento, usuario_id)", async () => {
+      const fakeKysely = createFakeSelectKysely({
+        id: "notif-1",
+        estado: "pendiente",
+      });
       const repository = new NotificacionesRepository(fakeKysely as never);
 
-      const result = await repository.existsEvento(
+      const result = await repository.findEventoEstado(
         "caso-1",
         "vencimiento",
         "user-a",
       );
 
       expect(fakeKysely.selectFrom).toHaveBeenCalledWith("notificaciones");
+      expect(fakeKysely.select).toHaveBeenCalledWith(["id", "estado"]);
       expect(fakeKysely.where1).toHaveBeenCalledWith("caso_id", "=", "caso-1");
       expect(fakeKysely.where2).toHaveBeenCalledWith(
         "evento",
@@ -169,20 +173,20 @@ describe("NotificacionesRepository", () => {
         "=",
         "user-a",
       );
-      expect(result).toBe(true);
+      expect(result).toEqual({ id: "notif-1", estado: "pendiente" });
     });
 
-    it("returns false when no notificacion exists for (caso_id, evento, usuario_id)", async () => {
+    it("returns undefined when no notificacion exists for (caso_id, evento, usuario_id)", async () => {
       const fakeKysely = createFakeSelectKysely(undefined);
       const repository = new NotificacionesRepository(fakeKysely as never);
 
-      const result = await repository.existsEvento(
+      const result = await repository.findEventoEstado(
         "caso-1",
         "vencimiento",
         "user-a",
       );
 
-      expect(result).toBe(false);
+      expect(result).toBeUndefined();
     });
   });
 

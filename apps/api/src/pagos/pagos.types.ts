@@ -1,4 +1,4 @@
-import type { Database } from "@mediacion/db-types";
+import type { Database, Json } from "@mediacion/db-types";
 import type { Selectable } from "kysely";
 
 export const planColumns = [
@@ -17,6 +17,8 @@ export type Plan = Pick<
 
 export type Suscripcion = Selectable<Database["suscripciones"]>;
 
+export const estadoSuscripcionActiva: Suscripcion["estado"] = "activa";
+
 export type CreateSuscripcionDto = {
   plan_id: string;
   estudio_id?: string | null;
@@ -29,3 +31,34 @@ export type CreateSuscripcionInput = {
 };
 
 export type SuscripcionCreated = Pick<Suscripcion, "id" | "estado">;
+
+export type Pago = Selectable<Database["pagos"]>;
+
+export type EstadoPago = Pago["estado"];
+
+export type SuscripcionForPreference = {
+  id: Suscripcion["id"];
+  plan_nombre: Plan["nombre"];
+  plan_precio: Plan["precio"];
+};
+
+export type SuscripcionOwnerFilter = {
+  usuarioId: string;
+  estudioId: string | null;
+};
+
+export type PreferenceResult = {
+  init_point: string;
+};
+
+export type ApplyPagoInput = {
+  suscripcionId: string;
+  mpPaymentId: string;
+  estadoPago: EstadoPago;
+  monto: number;
+  rawWebhook: Json;
+};
+
+export type ApplyPagoResult = {
+  applied: boolean;
+};

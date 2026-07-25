@@ -23,12 +23,15 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     docusignUserId: "user-test",
     docusignOauthBase: "account-d.docusign.com",
     docusignPrivateKey: privateKey as string,
+    mpAccessToken: "mp-access-token",
+    mpWebhookSecret: "mp-webhook-secret",
     smtpHost: "smtp.example.com",
     smtpPort: 587,
     smtpUser: "smtp-user",
     smtpPass: "smtp-pass",
     fcmKey: "fcm-key",
     apnsKey: "apns-key",
+    cronSecret: "cron-secret",
     ...overrides,
   };
 }

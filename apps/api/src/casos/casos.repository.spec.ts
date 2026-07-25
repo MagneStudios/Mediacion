@@ -531,17 +531,65 @@ describe("CasosRepository", () => {
   });
 
   describe("findOverdueCasos", () => {
-    function createFakeSelectKysely(rows: unknown) {
-      const execute = jest.fn().mockResolvedValue(rows);
-      const where3 = jest.fn().mockReturnValue({ execute });
-      const where2 = jest.fn().mockReturnValue({ where: where3 });
-      const where1 = jest.fn().mockReturnValue({ where: where2 });
-      const select = jest.fn().mockReturnValue({ where: where1 });
-      const selectFrom = jest.fn().mockReturnValue({ select });
-      return { selectFrom, select, where1, where2, where3, execute };
+    function createFakeSubqueryChain() {
+      const chain: {
+        selectFrom: jest.Mock;
+        select: jest.Mock;
+        whereRef: jest.Mock;
+        where: jest.Mock;
+      } = {
+        selectFrom: jest.fn(),
+        select: jest.fn(),
+        whereRef: jest.fn(),
+        where: jest.fn(),
+      };
+      chain.selectFrom.mockReturnValue(chain);
+      chain.select.mockReturnValue(chain);
+      chain.whereRef.mockReturnValue(chain);
+      chain.where.mockImplementation((...args: unknown[]) => {
+        if (typeof args[0] === "function") {
+          (args[0] as (eb: unknown) => unknown)(fakeExpressionBuilder);
+        }
+        return chain;
+      });
+      const fakeExpressionBuilder = {
+        selectFrom: jest.fn().mockReturnValue(chain),
+        exists: jest.fn((subquery: unknown) => ({ subquery, kind: "exists" })),
+        not: jest.fn((expression: unknown) => ({ expression, kind: "not" })),
+      };
+      return { chain, fakeExpressionBuilder };
     }
 
-    it("returns casos whose plazo has passed", async () => {
+    function createFakeSelectKysely(rows: unknown) {
+      const wherePredicates: unknown[][] = [];
+      const chain: {
+        selectFrom: jest.Mock;
+        select: jest.Mock;
+        where: jest.Mock;
+        orderBy: jest.Mock;
+        limit: jest.Mock;
+        execute: jest.Mock;
+      } = {
+        selectFrom: jest.fn(),
+        select: jest.fn(),
+        where: jest.fn(),
+        orderBy: jest.fn(),
+        limit: jest.fn(),
+        execute: jest.fn(),
+      };
+      chain.selectFrom.mockReturnValue(chain);
+      chain.select.mockReturnValue(chain);
+      chain.where.mockImplementation((...args: unknown[]) => {
+        wherePredicates.push(args);
+        return chain;
+      });
+      chain.orderBy.mockReturnValue(chain);
+      chain.limit.mockReturnValue(chain);
+      chain.execute.mockResolvedValue(rows);
+      return { ...chain, wherePredicates };
+    }
+
+    it("returns casos whose plazo has passed, ordered deterministically by plazo", async () => {
       const rows = [{ id: "caso-1" }];
       const fakeKysely = createFakeSelectKysely(rows);
       const repository = new CasosRepository(fakeKysely as never);
@@ -550,18 +598,90 @@ describe("CasosRepository", () => {
       const result = await repository.findOverdueCasos(now);
 
       expect(fakeKysely.selectFrom).toHaveBeenCalledWith("casos");
-      expect(fakeKysely.where1).toHaveBeenCalledWith("plazo", "is not", null);
-      expect(fakeKysely.where2).toHaveBeenCalledWith(
+      expect(fakeKysely.wherePredicates).toContainEqual([
+        "plazo",
+        "is not",
+        null,
+      ]);
+      expect(fakeKysely.wherePredicates).toContainEqual([
         "plazo",
         "<=",
         now.toISOString(),
-      );
-      expect(fakeKysely.where3).toHaveBeenCalledWith("estado", "in", [
-        "nuevo",
-        "activo",
-        "en_negociacion",
       ]);
+      expect(fakeKysely.wherePredicates).toContainEqual([
+        "estado",
+        "in",
+        ["nuevo", "activo", "en_negociacion"],
+      ]);
+      expect(fakeKysely.orderBy).toHaveBeenCalledWith("plazo", "asc");
       expect(result).toBe(rows);
+    });
+
+    it("bounds the per-tick workload to sweepBatchSize", async () => {
+      const fakeKysely = createFakeSelectKysely([]);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await repository.findOverdueCasos(new Date("2026-07-24T12:00:00.000Z"));
+
+      expect(fakeKysely.limit).toHaveBeenCalledWith(25);
+    });
+
+    it("scopes the scan to casos with an accepted party lacking a terminal vencimiento notification", async () => {
+      const fakeKysely = createFakeSelectKysely([]);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await repository.findOverdueCasos(new Date("2026-07-24T12:00:00.000Z"));
+
+      const existsPredicate = fakeKysely.wherePredicates.find(
+        ([argument]) => typeof argument === "function",
+      );
+      expect(existsPredicate).toBeDefined();
+      if (existsPredicate === undefined) {
+        throw new Error("expected an exists predicate in the where chain");
+      }
+
+      const { chain: parteChain, fakeExpressionBuilder } =
+        createFakeSubqueryChain();
+      (existsPredicate[0] as (eb: unknown) => unknown)(fakeExpressionBuilder);
+
+      expect(fakeExpressionBuilder.selectFrom).toHaveBeenCalledWith(
+        "caso_partes as cp",
+      );
+      expect(fakeExpressionBuilder.exists).toHaveBeenCalledTimes(2);
+      expect(parteChain.whereRef).toHaveBeenCalledWith(
+        "cp.caso_id",
+        "=",
+        "casos.id",
+      );
+      expect(parteChain.where).toHaveBeenCalledWith(
+        "cp.estado_invitacion",
+        "=",
+        estadoInvitacionAceptada,
+      );
+
+      expect(fakeExpressionBuilder.not).toHaveBeenCalledTimes(1);
+      expect(fakeExpressionBuilder.selectFrom).toHaveBeenCalledWith(
+        "notificaciones as n",
+      );
+      expect(parteChain.whereRef).toHaveBeenCalledWith(
+        "n.caso_id",
+        "=",
+        "casos.id",
+      );
+      expect(parteChain.whereRef).toHaveBeenCalledWith(
+        "n.usuario_id",
+        "=",
+        "cp.usuario_id",
+      );
+      expect(parteChain.where).toHaveBeenCalledWith(
+        "n.evento",
+        "=",
+        "vencimiento",
+      );
+      expect(parteChain.where).toHaveBeenCalledWith("n.estado", "in", [
+        "enviada",
+        "fallida",
+      ]);
     });
   });
 });
