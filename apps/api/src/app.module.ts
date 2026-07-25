@@ -17,6 +17,7 @@ import { InversoresModule } from "./inversores/inversores.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
 import { MeModule } from "./me/me.module";
+import { MediacionModule } from "./mediacion/mediacion.module";
 import { MetricasModule } from "./metricas/metricas.module";
 import { NegociacionModule } from "./negociacion/negociacion.module";
 import { NotificacionesModule } from "./notificaciones/notificaciones.module";
@@ -37,6 +38,7 @@ import { PagosModule } from "./pagos/pagos.module";
     ConfiguracionModule,
     EstudiosModule,
     InversoresModule,
+    MediacionModule,
     NegociacionModule,
     NotificacionesModule,
     PagosModule,
