@@ -24,4 +24,4 @@ jobs:
         run: |
           curl --fail-with-body --silent --show-error --max-time 90 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${API_BASE_URL}/internal/vencimiento/sweep"
+            "${API_BASE_URL}/api/internal/vencimiento/sweep"
