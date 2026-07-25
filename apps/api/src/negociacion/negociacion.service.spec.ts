@@ -1,4 +1,4 @@
-import { HttpException, Logger } from "@nestjs/common";
+import { HttpException, HttpStatus, Logger } from "@nestjs/common";
 import type { CasosRepository } from "../casos/casos.repository";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import type { ConfiguracionRepository } from "./configuracion.repository";
@@ -37,6 +37,7 @@ function buildService(overrides?: {
   insertNextRonda?: jest.Mock;
   readIaConfig?: jest.Mock;
   generateProposal?: jest.Mock;
+  isConfigured?: jest.Mock;
   findCasoId?: jest.Mock;
   resolveRespuesta?: jest.Mock;
   findForCase?: jest.Mock;
@@ -76,6 +77,7 @@ function buildService(overrides?: {
     generateProposal:
       overrides?.generateProposal ??
       jest.fn().mockResolvedValue({ text: "Propuesta generada." }),
+    isConfigured: overrides?.isConfigured ?? jest.fn().mockReturnValue(true),
   } as unknown as AiProposalGenerator;
   const casosRepository = {
     activateNegotiation: jest.fn().mockResolvedValue(undefined),
@@ -337,6 +339,38 @@ describe("NegociacionService.generatePropuesta", () => {
     expect(message).toEqual(expect.stringContaining("caso-1"));
     expect(message).toEqual(expect.stringContaining("ronda-1"));
     loggerSpy.mockRestore();
+  });
+
+  it("rejects with 503 ia_not_configured and never creates a pending propuesta when the generator has no credentials", async () => {
+    const readBothPartyPositionsForEngine = jest
+      .fn()
+      .mockResolvedValue(bothPartyPositions);
+    const createPending = jest.fn();
+    const generateProposal = jest.fn();
+    const { service } = buildService({
+      readBothPartyPositionsForEngine,
+      createPending,
+      generateProposal,
+      isConfigured: jest.fn().mockReturnValue(false),
+    });
+
+    let thrown: unknown;
+    try {
+      await service.generatePropuesta("caso-1", "user-a");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+    expect((thrown as HttpException).getResponse()).toEqual({
+      code: "ia_not_configured",
+      message: expect.any(String),
+    });
+    expect(createPending).not.toHaveBeenCalled();
+    expect(generateProposal).not.toHaveBeenCalled();
   });
 
   it("rejects with 422 both_parties_required and never resolves/creates a ronda when positions are incomplete", async () => {

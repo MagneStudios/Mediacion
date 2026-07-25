@@ -72,3 +72,5 @@ temp/
 
 # === Agent worktrees (transient) ===
 .claude/worktrees/
+.vercel
+.env*
