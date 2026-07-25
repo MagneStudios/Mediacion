@@ -1,0 +1,27 @@
+name: vencimiento-sweep
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Warn when the sweep trigger is not configured
+        if: ${{ vars.API_BASE_URL == '' }}
+        run: echo "::warning::API_BASE_URL repository variable is not set; vencimiento sweep trigger skipped"
+      - name: Trigger vencimiento sweep
+        if: ${{ vars.API_BASE_URL != '' }}
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${API_BASE_URL}/internal/vencimiento/sweep"
