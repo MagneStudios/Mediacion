@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @mediacion/shared build && pnpm --filter @mediacion/api build && mkdir -p public",
+  "buildCommand": "pnpm --filter @mediacion/shared build && pnpm --filter @mediacion/api build && mkdir -p public && touch public/.keep",
   "outputDirectory": "public",
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "crons": [{ "path": "/internal/vencimiento/sweep", "schedule": "0 3 * * *" }],
