@@ -11,6 +11,8 @@ export type AppConfig = {
   docusignUserId: string;
   docusignOauthBase: string;
   docusignPrivateKey: string;
+  mpAccessToken: string;
+  mpWebhookSecret: string;
   smtpHost: string;
   smtpPort: number;
   smtpUser: string;
@@ -35,6 +37,8 @@ const placeholderDocusignWebhookSecret = "dev-placeholder-docusign-webhook";
 const placeholderDocusignUserId = "dev-placeholder-docusign-user-id";
 const placeholderDocusignOauthBase = "account-d.docusign.com";
 const placeholderDocusignPrivateKey = "dev-placeholder-docusign-private-key";
+const placeholderMpAccessToken = "dev-placeholder-mp-access-token";
+const placeholderMpWebhookSecret = "dev-placeholder-mp-webhook-secret";
 const placeholderSmtpHost = "dev-placeholder-smtp-host";
 const placeholderSmtpUser = "dev-placeholder-smtp-user";
 const placeholderSmtpPass = "dev-placeholder-smtp-pass";
@@ -176,6 +180,18 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
     placeholderDocusignPrivateKey,
   );
+  const mpAccessToken = parseRequiredNonEmpty(
+    "MP_ACCESS_TOKEN",
+    environment.MP_ACCESS_TOKEN,
+    isTestEnv,
+    placeholderMpAccessToken,
+  );
+  const mpWebhookSecret = parseRequiredNonEmpty(
+    "MP_WEBHOOK_SECRET",
+    environment.MP_WEBHOOK_SECRET,
+    isTestEnv,
+    placeholderMpWebhookSecret,
+  );
   const smtpHost = parseRequiredNonEmpty(
     "SMTP_HOST",
     environment.SMTP_HOST,
@@ -219,6 +235,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     docusignUserId,
     docusignOauthBase,
     docusignPrivateKey,
+    mpAccessToken,
+    mpWebhookSecret,
     smtpHost,
     smtpPort,
     smtpUser,

@@ -1,4 +1,5 @@
 import { HttpException } from "@nestjs/common";
+import type { PlanLimitService } from "../pagos/plan-limit.service";
 import type { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
 import type { CreateCasoDto } from "./casos.types";
@@ -13,6 +14,7 @@ describe("CasosService", () => {
     updatePlazo?: jest.Mock;
     findPlazo?: jest.Mock;
     assertMembership?: jest.Mock;
+    assertCanCreateCase?: jest.Mock;
   }) {
     const casosRepository = {
       createCaseWithParteA: overrides?.createCaseWithParteA ?? jest.fn(),
@@ -24,10 +26,20 @@ describe("CasosService", () => {
     const membershipService = {
       assertMembership: overrides?.assertMembership ?? jest.fn(),
     } as unknown as MembershipService;
+    const planLimitService = {
+      assertCanCreateCase:
+        overrides?.assertCanCreateCase ??
+        jest.fn().mockResolvedValue(undefined),
+    } as unknown as PlanLimitService;
     return {
-      service: new CasosService(casosRepository, membershipService),
+      service: new CasosService(
+        casosRepository,
+        membershipService,
+        planLimitService,
+      ),
       casosRepository,
       membershipService,
+      planLimitService,
     };
   }
 
@@ -87,6 +99,51 @@ describe("CasosService", () => {
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(400);
       expect(createCaseWithParteA).not.toHaveBeenCalled();
+    });
+
+    it("rejects when the plan limit service denies case creation, without touching the repository", async () => {
+      const planLimitExceeded = new HttpException(
+        { code: "plan_limit_exceeded", message: "Plan case limit reached" },
+        403,
+      );
+      const assertCanCreateCase = jest
+        .fn()
+        .mockRejectedValue(planLimitExceeded);
+      const createCaseWithParteA = jest.fn();
+      const { service } = buildService({
+        assertCanCreateCase,
+        createCaseWithParteA,
+      });
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      let thrown: unknown;
+      try {
+        await service.createCase("user-1", dto);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBe(planLimitExceeded);
+      expect(assertCanCreateCase).toHaveBeenCalledWith("user-1");
+      expect(createCaseWithParteA).not.toHaveBeenCalled();
+    });
+
+    it("checks the plan limit before creating the case when under the limit", async () => {
+      const assertCanCreateCase = jest.fn().mockResolvedValue(undefined);
+      const createCaseWithParteA = jest.fn().mockResolvedValue({
+        id: "caso-1",
+        estado: "nuevo",
+      });
+      const { service } = buildService({
+        assertCanCreateCase,
+        createCaseWithParteA,
+      });
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      await service.createCase("user-1", dto);
+
+      expect(assertCanCreateCase).toHaveBeenCalledWith("user-1");
+      expect(createCaseWithParteA).toHaveBeenCalledWith(dto, "user-1");
     });
   });
 

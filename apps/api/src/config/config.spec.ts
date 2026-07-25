@@ -365,6 +365,8 @@ describe("loadConfig", () => {
         DOCUSIGN_USER_ID: "user-1",
         DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
         DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        MP_ACCESS_TOKEN: "mp-access-token",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
         SMTP_USER: "user",
         SMTP_PASS: "pass",
         FCM_KEY: "fcm-key",
@@ -405,6 +407,8 @@ describe("loadConfig", () => {
         DOCUSIGN_USER_ID: "user-1",
         DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
         DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        MP_ACCESS_TOKEN: "mp-access-token",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
         SMTP_HOST: "smtp.example.com",
         SMTP_PASS: "pass",
         FCM_KEY: "fcm-key",
@@ -445,6 +449,8 @@ describe("loadConfig", () => {
         DOCUSIGN_USER_ID: "user-1",
         DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
         DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        MP_ACCESS_TOKEN: "mp-access-token",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         FCM_KEY: "fcm-key",
@@ -485,6 +491,8 @@ describe("loadConfig", () => {
         DOCUSIGN_USER_ID: "user-1",
         DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
         DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        MP_ACCESS_TOKEN: "mp-access-token",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         SMTP_PASS: "pass",
@@ -525,6 +533,8 @@ describe("loadConfig", () => {
         DOCUSIGN_USER_ID: "user-1",
         DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
         DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        MP_ACCESS_TOKEN: "mp-access-token",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
         SMTP_HOST: "smtp.example.com",
         SMTP_USER: "user",
         SMTP_PASS: "pass",
@@ -542,5 +552,89 @@ describe("loadConfig", () => {
     });
 
     expect(appConfig.apnsKey).toBe("apns-key-value");
+  });
+
+  it("uses a safe placeholder mpAccessToken when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.mpAccessToken).toBe("dev-placeholder-mp-access-token");
+  });
+
+  it("throws in production when MP_ACCESS_TOKEN is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "user",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        SMTP_PASS: "pass",
+        FCM_KEY: "fcm-key",
+        APNS_KEY: "apns-key",
+        MP_WEBHOOK_SECRET: "mp-webhook-secret",
+      }),
+    ).toThrow("MP_ACCESS_TOKEN is required and must be non-empty");
+  });
+
+  it("accepts an explicit MP_ACCESS_TOKEN outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      MP_ACCESS_TOKEN: "mp-access-token-value",
+    });
+
+    expect(appConfig.mpAccessToken).toBe("mp-access-token-value");
+  });
+
+  it("uses a safe placeholder mpWebhookSecret when NODE_ENV is test and unset", () => {
+    const appConfig = loadConfig({ NODE_ENV: "test" });
+
+    expect(appConfig.mpWebhookSecret).toBe("dev-placeholder-mp-webhook-secret");
+  });
+
+  it("throws in production when MP_WEBHOOK_SECRET is missing", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        OPENROUTER_API_KEY: "sk-or-key",
+        DOCUSIGN_INTEGRATION_KEY: "ik-1",
+        DOCUSIGN_CLIENT_SECRET: "secret-1",
+        DOCUSIGN_ACCOUNT_ID: "account-1",
+        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
+        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
+        DOCUSIGN_USER_ID: "user-1",
+        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
+        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "user",
+        SMTP_PASS: "pass",
+        FCM_KEY: "fcm-key",
+        APNS_KEY: "apns-key",
+        MP_ACCESS_TOKEN: "mp-access-token",
+      }),
+    ).toThrow("MP_WEBHOOK_SECRET is required and must be non-empty");
+  });
+
+  it("accepts an explicit MP_WEBHOOK_SECRET outside production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SUPABASE_JWT_SECRET: "my-secret",
+      DATABASE_URL: "postgres://user:pass@host:5432/db",
+      MP_WEBHOOK_SECRET: "mp-webhook-secret-value",
+    });
+
+    expect(appConfig.mpWebhookSecret).toBe("mp-webhook-secret-value");
   });
 });
