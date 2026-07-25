@@ -13,6 +13,7 @@ async function bootstrapServerlessApp(): Promise<ExpressRequestListener> {
   const app: INestApplication = await NestFactory.create(AppModule, {
     rawBody: true,
   });
+  app.setGlobalPrefix("api");
   await app.init();
   return app.getHttpAdapter().getInstance() as ExpressRequestListener;
 }

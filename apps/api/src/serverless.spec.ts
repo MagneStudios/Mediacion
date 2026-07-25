@@ -10,12 +10,14 @@ const createMock = NestFactory.create as jest.Mock;
 
 type FakeApp = {
   init: jest.Mock;
+  setGlobalPrefix: jest.Mock;
   getHttpAdapter: () => { getInstance: () => unknown };
 };
 
 function buildFakeApp(expressInstance: unknown): FakeApp {
   return {
     init: jest.fn().mockResolvedValue(undefined),
+    setGlobalPrefix: jest.fn(),
     getHttpAdapter: () => ({ getInstance: () => expressInstance }),
   };
 }
@@ -39,13 +41,17 @@ describe("getServerlessApp", () => {
     expect(createMock).toHaveBeenCalledTimes(2);
   });
 
-  it("bootstraps the AppModule with rawBody enabled, initializes it, and returns the express instance", async () => {
+  it("bootstraps the AppModule with rawBody enabled, sets the api global prefix, initializes it, and returns the express instance", async () => {
     const fakeApp = buildFakeApp(expressInstance);
     createMock.mockResolvedValue(fakeApp);
 
     const app = await getServerlessApp();
 
     expect(createMock).toHaveBeenCalledWith(AppModule, { rawBody: true });
+    expect(fakeApp.setGlobalPrefix).toHaveBeenCalledWith("api");
+    expect(fakeApp.setGlobalPrefix.mock.invocationCallOrder[0]).toBeLessThan(
+      fakeApp.init.mock.invocationCallOrder[0],
+    );
     expect(fakeApp.init).toHaveBeenCalledTimes(1);
     expect(app).toBe(expressInstance);
   });
