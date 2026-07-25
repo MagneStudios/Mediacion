@@ -30,6 +30,7 @@ describe("kyselyProvider", () => {
       smtpPass: "smtp-pass",
       fcmKey: "fcm-key",
       apnsKey: "apns-key",
+      cronSecret: "cron-secret",
     };
 
     const factory = kyselyProvider.useFactory as (config: AppConfig) => unknown;

@@ -26,6 +26,7 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     smtpPass: "smtp-pass",
     fcmKey: "fcm-key",
     apnsKey: "apns-key",
+    cronSecret: "cron-secret",
     ...overrides,
   };
 }

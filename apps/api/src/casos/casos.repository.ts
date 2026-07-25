@@ -38,6 +38,11 @@ const estadosElegiblesVencimiento: Caso["estado"][] = [
   "en_negociacion",
 ];
 
+const eventoVencimiento = "vencimiento";
+const estadosNotificacionTerminales = ["enviada", "fallida"] as const;
+
+const sweepBatchSize = 25;
+
 function casoNotAcordable(casoId: string): ConflictError {
   return new ConflictError(
     `Caso ${casoId} was not en_negociacion when marking acordado`,
@@ -169,6 +174,30 @@ export class CasosRepository {
       .where("plazo", "is not", null)
       .where("plazo", "<=", now.toISOString())
       .where("estado", "in", estadosElegiblesVencimiento)
+      .where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom("caso_partes as cp")
+            .select("cp.usuario_id")
+            .whereRef("cp.caso_id", "=", "casos.id")
+            .where("cp.estado_invitacion", "=", estadoInvitacionAceptada)
+            .where((ebParte) =>
+              ebParte.not(
+                ebParte.exists(
+                  ebParte
+                    .selectFrom("notificaciones as n")
+                    .select("n.id")
+                    .whereRef("n.caso_id", "=", "casos.id")
+                    .where("n.evento", "=", eventoVencimiento)
+                    .whereRef("n.usuario_id", "=", "cp.usuario_id")
+                    .where("n.estado", "in", estadosNotificacionTerminales),
+                ),
+              ),
+            ),
+        ),
+      )
+      .orderBy("plazo", "asc")
+      .limit(sweepBatchSize)
       .execute()
       .catch((error: unknown) => {
         throw toDomainError(error);

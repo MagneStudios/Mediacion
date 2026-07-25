@@ -7,6 +7,20 @@ import type {
   PushProvider,
 } from "./notificaciones.types";
 
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("NotificacionesService", () => {
   function buildService(overrides?: {
     createPendiente?: jest.Mock;
@@ -85,6 +99,59 @@ describe("NotificacionesService", () => {
       );
       expect(loggerSpy.mock.calls[0][0]).not.toEqual(
         expect.stringContaining("id="),
+      );
+      loggerSpy.mockRestore();
+    });
+  });
+
+  describe("emitAwaited", () => {
+    it("resolves only after a slow provider settles", async () => {
+      const deferred = createDeferred<void>();
+      const send = jest.fn().mockReturnValue(deferred.promise);
+      const { service } = buildService({ emailProvider: { send } });
+
+      let settled = false;
+      const result = service.emitAwaited(input).then(() => {
+        settled = true;
+      });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      deferred.resolve();
+      await result;
+
+      expect(settled).toBe(true);
+    });
+
+    it("never rejects when the provider throws", async () => {
+      const loggerSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation(() => undefined);
+      const emailProvider: EmailProvider = {
+        send: jest.fn().mockRejectedValue(new Error("smtp down")),
+      };
+      const { service } = buildService({ emailProvider });
+
+      await expect(service.emitAwaited(input)).resolves.toBeUndefined();
+
+      loggerSpy.mockRestore();
+    });
+
+    it("logs with the same context formatting as emit when persisting the pendiente row rejects", async () => {
+      const loggerSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation(() => undefined);
+      const createPendiente = jest
+        .fn()
+        .mockRejectedValue(new Error("insert failed"));
+      const { service } = buildService({ createPendiente });
+
+      await expect(service.emitAwaited(input)).resolves.toBeUndefined();
+
+      expect(loggerSpy.mock.calls[0][0]).toEqual(
+        expect.stringContaining("before dispatch"),
       );
       loggerSpy.mockRestore();
     });
@@ -298,6 +365,58 @@ describe("NotificacionesService", () => {
         usuarioId: "user-1",
         evento: "vencimiento",
       });
+    });
+  });
+
+  describe("redeliverAwaited", () => {
+    it("dispatches via the existing notificacion row without inserting a new pendiente row", async () => {
+      const createPendiente = jest.fn().mockResolvedValue({ id: "notif-2" });
+      const send = jest.fn().mockResolvedValue(undefined);
+      const updateEstado = jest.fn().mockResolvedValue(undefined);
+      const { service } = buildService({
+        createPendiente,
+        updateEstado,
+        emailProvider: { send },
+      });
+
+      await service.redeliverAwaited("notif-1", input);
+
+      expect(createPendiente).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith({
+        to: "party@example.com",
+        evento: "invitacion_enviada",
+      });
+      expect(updateEstado).toHaveBeenCalledWith("notif-1", "enviada");
+    });
+
+    it("marks estado 'fallida' and logs when the provider rejects, never rejecting the caller", async () => {
+      const loggerSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation(() => undefined);
+      const updateEstado = jest.fn().mockResolvedValue(undefined);
+      const emailProvider: EmailProvider = {
+        send: jest.fn().mockRejectedValue(new Error("smtp down")),
+      };
+      const { service } = buildService({ updateEstado, emailProvider });
+
+      await expect(
+        service.redeliverAwaited("notif-1", input),
+      ).resolves.toBeUndefined();
+
+      expect(updateEstado).toHaveBeenCalledWith("notif-1", "fallida");
+      expect(loggerSpy).toHaveBeenCalled();
+      loggerSpy.mockRestore();
+    });
+
+    it("resolves the recipient email using the provided input for canal 'email'", async () => {
+      const findRecipientEmail = jest
+        .fn()
+        .mockResolvedValue("party@example.com");
+      const { service } = buildService({ findRecipientEmail });
+
+      await service.redeliverAwaited("notif-1", input);
+
+      expect(findRecipientEmail).toHaveBeenCalledWith("user-1");
     });
   });
 });
