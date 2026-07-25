@@ -1,12 +1,17 @@
 import type { Json } from "@mediacion/db-types";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { UsersRepository } from "../auth/users.repository";
 import type {
   MercadoPagoClient,
   MercadoPagoPayment,
 } from "./mercadopago/mercado-pago-client";
 import { MERCADO_PAGO_CLIENT } from "./mercadopago/mercado-pago-client";
 import { PagosRepository } from "./pagos.repository";
-import type { EstadoPago, PreferenceResult } from "./pagos.types";
+import type {
+  EstadoPago,
+  PreferenceResult,
+  SuscripcionOwnerFilter,
+} from "./pagos.types";
 
 const approvedStatus = "approved";
 const rejectedStatus = "rejected";
@@ -34,11 +39,18 @@ export class PagosService {
     @Inject(PagosRepository) private readonly pagosRepository: PagosRepository,
     @Inject(MERCADO_PAGO_CLIENT)
     private readonly mercadoPagoClient: MercadoPagoClient,
+    @Inject(UsersRepository) private readonly usersRepository: UsersRepository,
   ) {}
 
-  async createPreference(suscripcionId: string): Promise<PreferenceResult> {
-    const suscripcion =
-      await this.pagosRepository.findSuscripcionForPreference(suscripcionId);
+  async createPreference(
+    suscripcionId: string,
+    callerId: string,
+  ): Promise<PreferenceResult> {
+    const ownerFilter = await this.resolveOwnerFilter(callerId);
+    const suscripcion = await this.pagosRepository.findSuscripcionForPreference(
+      suscripcionId,
+      ownerFilter,
+    );
     if (!suscripcion) {
       throw suscripcionNotFound();
     }
@@ -62,6 +74,13 @@ export class PagosService {
       monto: payment.transactionAmount,
       rawWebhook: toRawWebhook(payment),
     });
+  }
+
+  private async resolveOwnerFilter(
+    callerId: string,
+  ): Promise<SuscripcionOwnerFilter> {
+    const profile = await this.usersRepository.findProfileById(callerId);
+    return { usuarioId: callerId, estudioId: profile?.estudio_id ?? null };
   }
 }
 

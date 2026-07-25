@@ -3,14 +3,15 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
-import type {
-  ApplyPagoInput,
-  ApplyPagoResult,
-  SuscripcionForPreference,
+import {
+  type ApplyPagoInput,
+  type ApplyPagoResult,
+  estadoSuscripcionActiva,
+  type SuscripcionForPreference,
+  type SuscripcionOwnerFilter,
 } from "./pagos.types";
 
 const estadoPagoAprobado = "aprobado";
-const estadoSuscripcionActiva = "activa";
 
 @Injectable()
 export class PagosRepository {
@@ -18,6 +19,7 @@ export class PagosRepository {
 
   findSuscripcionForPreference(
     suscripcionId: string,
+    ownerFilter: SuscripcionOwnerFilter,
   ): Promise<SuscripcionForPreference | undefined> {
     return this.kysely
       .selectFrom("suscripciones")
@@ -28,6 +30,17 @@ export class PagosRepository {
         "planes.precio as plan_precio",
       ])
       .where("suscripciones.id", "=", suscripcionId)
+      .where((eb) => {
+        const conditions = [
+          eb("suscripciones.usuario_id", "=", ownerFilter.usuarioId),
+        ];
+        if (ownerFilter.estudioId !== null) {
+          conditions.push(
+            eb("suscripciones.estudio_id", "=", ownerFilter.estudioId),
+          );
+        }
+        return eb.or(conditions);
+      })
       .executeTakeFirst();
   }
 
@@ -35,7 +48,7 @@ export class PagosRepository {
     return this.kysely
       .transaction()
       .execute(async (trx) => {
-        const insertedRows = await trx
+        const upsertedRows = await trx
           .insertInto("pagos")
           .values({
             suscripcion_id: input.suscripcionId,
@@ -44,13 +57,21 @@ export class PagosRepository {
             monto: input.monto,
             raw_webhook: input.rawWebhook,
           })
-          .onConflict((oc) => oc.column("mp_payment_id").doNothing())
-          .returning(["id"])
+          .onConflict((oc) =>
+            oc
+              .column("mp_payment_id")
+              .doUpdateSet({
+                estado: input.estadoPago,
+                raw_webhook: input.rawWebhook,
+              })
+              .where("pagos.estado", "!=", estadoPagoAprobado),
+          )
+          .returning(["id", "estado"])
           .execute();
-        if (insertedRows.length === 0) {
+        if (upsertedRows.length === 0) {
           return { applied: false };
         }
-        if (input.estadoPago === estadoPagoAprobado) {
+        if (upsertedRows[0].estado === estadoPagoAprobado) {
           await trx
             .updateTable("suscripciones")
             .set({

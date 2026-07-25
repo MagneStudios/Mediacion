@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Database } from "@mediacion/db-types";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { UsersRepository } from "../auth/users.repository";
 import type {
   CreatePreferenceOutput,
   MercadoPagoClient,
@@ -62,6 +63,7 @@ describeDb(
   "Mercado Pago webhook payment application against a real database",
   () => {
     let kysely: Kysely<Database>;
+    let usersRepository: UsersRepository;
     let usuarioId: string;
     let planId: string;
     let suscripcionId: string;
@@ -72,6 +74,7 @@ describeDb(
           pool: new Pool({ connectionString: process.env.DATABASE_URL }),
         }),
       });
+      usersRepository = new UsersRepository(kysely);
 
       usuarioId = randomUUID();
       await insertAuthUser(
@@ -127,7 +130,11 @@ describeDb(
         externalReference: suscripcionId,
         transactionAmount: 19.99,
       });
-      const service = new PagosService(new PagosRepository(kysely), client);
+      const service = new PagosService(
+        new PagosRepository(kysely),
+        client,
+        usersRepository,
+      );
 
       await service.processWebhookPayment(mpPaymentId);
 
@@ -155,7 +162,11 @@ describeDb(
         externalReference: suscripcionId,
         transactionAmount: 19.99,
       });
-      const service = new PagosService(new PagosRepository(kysely), client);
+      const service = new PagosService(
+        new PagosRepository(kysely),
+        client,
+        usersRepository,
+      );
 
       await service.processWebhookPayment(mpPaymentId);
       await service.processWebhookPayment(mpPaymentId);
@@ -166,6 +177,56 @@ describeDb(
         .where("mp_payment_id", "=", mpPaymentId)
         .execute();
       expect(pagos).toHaveLength(1);
+    });
+
+    it("activates the suscripcion when a later approved webhook transitions a previously pendiente payment", async () => {
+      const mpPaymentId = `mp-${randomUUID()}`;
+      const pendingClient = new FixedMercadoPagoClient({
+        id: mpPaymentId,
+        status: "in_process",
+        externalReference: suscripcionId,
+        transactionAmount: 19.99,
+      });
+      const approvedClient = new FixedMercadoPagoClient({
+        id: mpPaymentId,
+        status: "approved",
+        externalReference: suscripcionId,
+        transactionAmount: 19.99,
+      });
+      const repository = new PagosRepository(kysely);
+
+      await new PagosService(
+        repository,
+        pendingClient,
+        usersRepository,
+      ).processWebhookPayment(mpPaymentId);
+      const suscripcionAfterPending = await kysely
+        .selectFrom("suscripciones")
+        .selectAll()
+        .where("id", "=", suscripcionId)
+        .executeTakeFirstOrThrow();
+      expect(suscripcionAfterPending.estado).not.toBe("activa");
+
+      await new PagosService(
+        repository,
+        approvedClient,
+        usersRepository,
+      ).processWebhookPayment(mpPaymentId);
+
+      const suscripcion = await kysely
+        .selectFrom("suscripciones")
+        .selectAll()
+        .where("id", "=", suscripcionId)
+        .executeTakeFirstOrThrow();
+      expect(suscripcion.estado).toBe("activa");
+
+      const pagos = await kysely
+        .selectFrom("pagos")
+        .selectAll()
+        .where("mp_payment_id", "=", mpPaymentId)
+        .execute();
+      expect(pagos).toHaveLength(1);
+      expect(pagos[0].estado).toBe("aprobado");
     });
   },
 );

@@ -1,10 +1,17 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+const signatureFreshnessToleranceSeconds = 600;
+
+function defaultNowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
 export type VerifyMercadoPagoSignatureInput = {
   xSignature: string | undefined;
   xRequestId: string | undefined;
   dataId: string | undefined;
   secret: string;
+  now?: () => number;
 };
 
 type ParsedSignatureHeader = {
@@ -70,5 +77,16 @@ export function verifyMercadoPagoSignature(
   if (providedSignature.length !== expectedSignature.length) {
     return false;
   }
-  return timingSafeEqual(providedSignature, expectedSignature);
+  if (!timingSafeEqual(providedSignature, expectedSignature)) {
+    return false;
+  }
+  return isFresh(parsed.ts, input.now ?? defaultNowSeconds);
+}
+
+function isFresh(ts: string, now: () => number): boolean {
+  const tsSeconds = Number(ts);
+  if (!Number.isFinite(tsSeconds)) {
+    return false;
+  }
+  return Math.abs(now() - tsSeconds) <= signatureFreshnessToleranceSeconds;
 }

@@ -29,6 +29,7 @@ describe("verifyMercadoPagoSignature", () => {
       xRequestId: requestId,
       dataId,
       secret,
+      now: () => Number(ts),
     });
 
     expect(isValid).toBe(true);
@@ -45,6 +46,7 @@ describe("verifyMercadoPagoSignature", () => {
       xRequestId: undefined,
       dataId,
       secret,
+      now: () => Number(ts),
     });
 
     expect(isValid).toBe(true);
@@ -71,6 +73,7 @@ describe("verifyMercadoPagoSignature", () => {
       xRequestId: "req-1",
       dataId: undefined,
       secret,
+      now: () => Number(ts),
     });
 
     expect(isValid).toBe(false);
@@ -100,6 +103,7 @@ describe("verifyMercadoPagoSignature", () => {
       xRequestId: "req-1",
       dataId,
       secret,
+      now: () => Number(ts),
     });
 
     expect(isValid).toBe(false);
@@ -115,6 +119,7 @@ describe("verifyMercadoPagoSignature", () => {
       xRequestId: "req-1",
       dataId: "999999",
       secret,
+      now: () => Number(ts),
     });
 
     expect(isValid).toBe(false);
@@ -148,5 +153,94 @@ describe("verifyMercadoPagoSignature", () => {
         secret,
       }),
     ).toBe(false);
+  });
+
+  describe("ts freshness tolerance", () => {
+    const dataId = "123456";
+    const requestId = "req-1";
+
+    function signAt(ts: string): string {
+      return signManifest(buildManifest(dataId, requestId, ts), secret);
+    }
+
+    it("rejects a signature whose ts is older than the 600s tolerance", () => {
+      const nowSeconds = 1704908010;
+      const ts = String(nowSeconds - 601);
+      const v1 = signAt(ts);
+
+      const isValid = verifyMercadoPagoSignature({
+        xSignature: `ts=${ts},v1=${v1}`,
+        xRequestId: requestId,
+        dataId,
+        secret,
+        now: () => nowSeconds,
+      });
+
+      expect(isValid).toBe(false);
+    });
+
+    it("accepts a signature whose ts is within the 600s tolerance", () => {
+      const nowSeconds = 1704908010;
+      const ts = String(nowSeconds - 300);
+      const v1 = signAt(ts);
+
+      const isValid = verifyMercadoPagoSignature({
+        xSignature: `ts=${ts},v1=${v1}`,
+        xRequestId: requestId,
+        dataId,
+        secret,
+        now: () => nowSeconds,
+      });
+
+      expect(isValid).toBe(true);
+    });
+
+    it("accepts a signature exactly at the 600s tolerance boundary", () => {
+      const nowSeconds = 1704908010;
+      const ts = String(nowSeconds - 600);
+      const v1 = signAt(ts);
+
+      const isValid = verifyMercadoPagoSignature({
+        xSignature: `ts=${ts},v1=${v1}`,
+        xRequestId: requestId,
+        dataId,
+        secret,
+        now: () => nowSeconds,
+      });
+
+      expect(isValid).toBe(true);
+    });
+
+    it("rejects a signature one second past the 600s tolerance boundary", () => {
+      const nowSeconds = 1704908010;
+      const ts = String(nowSeconds - 601);
+      const v1 = signAt(ts);
+
+      const isValid = verifyMercadoPagoSignature({
+        xSignature: `ts=${ts},v1=${v1}`,
+        xRequestId: requestId,
+        dataId,
+        secret,
+        now: () => nowSeconds,
+      });
+
+      expect(isValid).toBe(false);
+    });
+
+    it("rejects a ts from the future beyond the tolerance", () => {
+      const nowSeconds = 1704908010;
+      const ts = String(nowSeconds + 601);
+      const v1 = signAt(ts);
+
+      const isValid = verifyMercadoPagoSignature({
+        xSignature: `ts=${ts},v1=${v1}`,
+        xRequestId: requestId,
+        dataId,
+        secret,
+        now: () => nowSeconds,
+      });
+
+      expect(isValid).toBe(false);
+    });
   });
 });

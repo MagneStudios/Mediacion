@@ -1,4 +1,5 @@
 import { HttpException } from "@nestjs/common";
+import type { UsersRepository } from "../auth/users.repository";
 import type { MercadoPagoClient } from "./mercadopago/mercado-pago-client";
 import type { PagosRepository } from "./pagos.repository";
 import { PagosService } from "./pagos.service";
@@ -9,6 +10,7 @@ describe("PagosService", () => {
     applyPayment?: jest.Mock;
     createPreference?: jest.Mock;
     getPayment?: jest.Mock;
+    findProfileById?: jest.Mock;
   }) {
     const pagosRepository = {
       findSuscripcionForPreference:
@@ -19,10 +21,20 @@ describe("PagosService", () => {
       createPreference: overrides?.createPreference ?? jest.fn(),
       getPayment: overrides?.getPayment ?? jest.fn(),
     } as unknown as MercadoPagoClient;
+    const usersRepository = {
+      findProfileById:
+        overrides?.findProfileById ??
+        jest.fn().mockResolvedValue({ estudio_id: null }),
+    } as unknown as UsersRepository;
     return {
-      service: new PagosService(pagosRepository, mercadoPagoClient),
+      service: new PagosService(
+        pagosRepository,
+        mercadoPagoClient,
+        usersRepository,
+      ),
       pagosRepository,
       mercadoPagoClient,
+      usersRepository,
     };
   }
 
@@ -42,8 +54,12 @@ describe("PagosService", () => {
         createPreference,
       });
 
-      const result = await service.createPreference("sus-1");
+      const result = await service.createPreference("sus-1", "user-a");
 
+      expect(findSuscripcionForPreference).toHaveBeenCalledWith("sus-1", {
+        usuarioId: "user-a",
+        estudioId: null,
+      });
       expect(createPreference).toHaveBeenCalledWith({
         suscripcionId: "sus-1",
         planNombre: "plus",
@@ -53,6 +69,34 @@ describe("PagosService", () => {
         init_point: "https://mp.example.com/checkout/pref-1",
       });
       expect(pagosRepository.applyPayment).not.toHaveBeenCalled();
+    });
+
+    it("resolves the caller's estudio_id from their profile to build the owner filter", async () => {
+      const findSuscripcionForPreference = jest.fn().mockResolvedValue({
+        id: "sus-1",
+        plan_nombre: "plus",
+        plan_precio: 19.99,
+      });
+      const findProfileById = jest
+        .fn()
+        .mockResolvedValue({ estudio_id: "estudio-1" });
+      const createPreference = jest.fn().mockResolvedValue({
+        id: "pref-1",
+        initPoint: "https://mp.example.com/checkout/pref-1",
+      });
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        findProfileById,
+        createPreference,
+      });
+
+      await service.createPreference("sus-1", "user-a");
+
+      expect(findProfileById).toHaveBeenCalledWith("user-a");
+      expect(findSuscripcionForPreference).toHaveBeenCalledWith("sus-1", {
+        usuarioId: "user-a",
+        estudioId: "estudio-1",
+      });
     });
 
     it("rejects with 404 when the suscripcion does not exist, without calling Mercado Pago", async () => {
@@ -67,13 +111,39 @@ describe("PagosService", () => {
 
       let thrown: unknown;
       try {
-        await service.createPreference("missing");
+        await service.createPreference("missing", "user-a");
       } catch (error) {
         thrown = error;
       }
 
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(404);
+      expect(createPreference).not.toHaveBeenCalled();
+    });
+
+    it("rejects with 404 when the caller does not own the suscripcion, without disclosing its existence", async () => {
+      const findSuscripcionForPreference = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      const createPreference = jest.fn();
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        createPreference,
+      });
+
+      let thrown: unknown;
+      try {
+        await service.createPreference("sus-1", "intruder");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(404);
+      expect((thrown as HttpException).getResponse()).toEqual({
+        code: "suscripcion_not_found",
+        message: "Suscripcion not found",
+      });
       expect(createPreference).not.toHaveBeenCalled();
     });
   });

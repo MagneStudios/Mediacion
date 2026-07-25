@@ -49,7 +49,7 @@ describe("MercadoPagoWebhookController", () => {
       { processWebhookPayment } as unknown as PagosService,
       buildAppConfig(),
     );
-    const ts = "1704908010";
+    const ts = String(Math.floor(Date.now() / 1000));
     const requestId = "req-1";
     const v1 = signManifest("123456", requestId, ts, secret);
     const rawBody = Buffer.from(
@@ -75,7 +75,7 @@ describe("MercadoPagoWebhookController", () => {
       { processWebhookPayment } as unknown as PagosService,
       buildAppConfig(),
     );
-    const ts = "1704908010";
+    const ts = String(Math.floor(Date.now() / 1000));
     const requestId = "req-1";
     const v1 = signManifest("123456", requestId, ts, secret);
     const rawBody = Buffer.from(

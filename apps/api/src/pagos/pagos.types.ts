@@ -17,6 +17,8 @@ export type Plan = Pick<
 
 export type Suscripcion = Selectable<Database["suscripciones"]>;
 
+export const estadoSuscripcionActiva: Suscripcion["estado"] = "activa";
+
 export type CreateSuscripcionDto = {
   plan_id: string;
   estudio_id?: string | null;
@@ -38,6 +40,11 @@ export type SuscripcionForPreference = {
   id: Suscripcion["id"];
   plan_nombre: Plan["nombre"];
   plan_precio: Plan["precio"];
+};
+
+export type SuscripcionOwnerFilter = {
+  usuarioId: string;
+  estudioId: string | null;
 };
 
 export type PreferenceResult = {

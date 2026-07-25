@@ -3,9 +3,9 @@ import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { UsersRepository } from "../auth/users.repository";
 import { KYSELY } from "../database/database.tokens";
+import { estadoSuscripcionActiva } from "./pagos.types";
 
 const unlimitedLimit = -1;
-const estadoSuscripcionActiva = "activa";
 
 type CaseLimitScope =
   | { type: "usuario"; id: string }

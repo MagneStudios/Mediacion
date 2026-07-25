@@ -1,4 +1,5 @@
 import type { INestApplication } from "@nestjs/common";
+import { HttpException, HttpStatus } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
@@ -17,7 +18,7 @@ const parteA: AuthenticatedUser = {
 };
 
 describe("PagosController unit", () => {
-  it("delegates to the service using the suscripcion id from the route", async () => {
+  it("delegates to the service using the suscripcion id from the route and the caller id", async () => {
     const createPreference = jest
       .fn()
       .mockResolvedValue({ init_point: "https://mp.example.com/x" });
@@ -25,9 +26,9 @@ describe("PagosController unit", () => {
       createPreference,
     } as unknown as PagosService);
 
-    const result = await controller.createPreference("sus-1");
+    const result = await controller.createPreference(parteA, "sus-1");
 
-    expect(createPreference).toHaveBeenCalledWith("sus-1");
+    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
     expect(result).toEqual({ init_point: "https://mp.example.com/x" });
   });
 
@@ -71,7 +72,7 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
     return app;
   }
 
-  it("creates a preference and returns init_point for an authenticated caller", async () => {
+  it("creates a preference and returns init_point for the owning caller", async () => {
     const createPreference = jest
       .fn()
       .mockResolvedValue({ init_point: "https://mp.example.com/pref-1" });
@@ -86,7 +87,7 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
     expect(response.body).toEqual({
       init_point: "https://mp.example.com/pref-1",
     });
-    expect(createPreference).toHaveBeenCalledWith("sus-1");
+    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
     await app.close();
   });
 
@@ -100,6 +101,27 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
 
     expect(response.status).toBe(401);
     expect(createPreference).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("rejects a non-owning caller with 404, without calling Mercado Pago", async () => {
+    const createPreference = jest
+      .fn()
+      .mockRejectedValue(
+        new HttpException(
+          { code: "suscripcion_not_found", message: "Suscripcion not found" },
+          HttpStatus.NOT_FOUND,
+        ),
+      );
+    const app = await bootstrapApp(createPreference);
+
+    const response = await request(app.getHttpServer())
+      .post("/suscripciones/sus-1/pago")
+      .set("Authorization", "Bearer user-a")
+      .send();
+
+    expect(response.status).toBe(404);
+    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
     await app.close();
   });
 });
