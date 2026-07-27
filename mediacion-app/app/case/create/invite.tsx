@@ -156,8 +156,8 @@ export default function CaseCreateInviteScreen() {
             onRetry={handlePrepare}
           />
         ) : (
-          <Button variant="primary" fullWidth disabled={!tipo || status === 'submitting'} onPress={handlePrepare}>
-            {status === 'submitting' ? t('common.loading') : t('caseCreation.invite.sendInvitation')}
+          <Button variant="primary" fullWidth disabled={!tipo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
+            {t('caseCreation.invite.sendInvitation')}
           </Button>
         )}
       </ScrollView>

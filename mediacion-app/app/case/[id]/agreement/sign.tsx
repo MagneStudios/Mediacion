@@ -138,9 +138,11 @@ export default function AgreementSignScreen() {
               variant="primary"
               fullWidth
               onPress={handleConfirmSignature}
-              disabled={!confirmed || signStatus === 'pending'}
+              disabled={!confirmed}
+              loading={signStatus === 'pending'}
+              loadingLabel={t('common.loading')}
             >
-              {signStatus === 'pending' ? t('common.loading') : t('agreement.sign.action')}
+              {t('agreement.sign.action')}
             </Button>
           )}
         </>

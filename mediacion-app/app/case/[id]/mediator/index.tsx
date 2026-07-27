@@ -83,8 +83,8 @@ export default function MediatorDashboardScreen() {
       </View>
 
       {state.eligibility === 'available' ? (
-        <Button variant="secondary" fullWidth onPress={openConfirm} disabled={requestStatus === 'pending'}>
-          {requestStatus === 'pending' ? t('common.loading') : t('mediator.summary.requestAction')}
+        <Button variant="secondary" fullWidth onPress={openConfirm} loading={requestStatus === 'pending'} loadingLabel={t('common.loading')}>
+          {t('mediator.summary.requestAction')}
         </Button>
       ) : null}
     </>

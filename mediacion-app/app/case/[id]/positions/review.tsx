@@ -101,8 +101,8 @@ export default function ReviewPositionScreen() {
           onRetry={handleSave}
         />
       ) : (
-        <Button variant="primary" fullWidth onPress={handleSave} disabled={status === 'submitting'}>
-          {status === 'submitting' ? t('positions.review.saving') : t('positions.review.save')}
+        <Button variant="primary" fullWidth onPress={handleSave} loading={status === 'submitting'} loadingLabel={t('positions.review.saving')}>
+          {t('positions.review.save')}
         </Button>
       )}
       <Button
