@@ -83,7 +83,7 @@ export default function ReviewPositionScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}>
       <Stack.Screen options={{ title: '' }} />
 
       <Text style={styles.title} accessibilityRole="header">

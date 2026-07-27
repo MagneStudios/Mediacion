@@ -65,7 +65,7 @@ export function DeletePositionDialog({
             <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />
           ) : (
             <View style={styles.actions}>
-              <Button variant="destructive" fullWidth onPress={onConfirm} disabled={status === 'deleting'}>
+              <Button variant="destructive" fullWidth onPress={onConfirm} loading={status === 'deleting'}>
                 {confirmLabel}
               </Button>
               <Button variant="tertiary" fullWidth onPress={onCancel} disabled={status === 'deleting'}>
