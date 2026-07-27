@@ -1,3 +1,4 @@
+import { ScrollViewStyleReset } from 'expo-router/html';
 import React from 'react';
 
 export default function RootHtml({ children }: { children: React.ReactNode }) {
@@ -7,7 +8,7 @@ export default function RootHtml({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <style id="expo-reset" />
+        <ScrollViewStyleReset />
       </head>
       <body>{children}</body>
     </html>
