@@ -47,6 +47,14 @@ export class AcuerdosRepository {
       .executeTakeFirst();
   }
 
+  findByCasoId(casoId: string): Promise<Acuerdo | undefined> {
+    return this.kysely
+      .selectFrom("acuerdos")
+      .selectAll()
+      .where("caso_id", "=", casoId)
+      .executeTakeFirst();
+  }
+
   claimForSignature(acuerdoId: string): Promise<Acuerdo> {
     return this.kysely
       .updateTable("acuerdos")

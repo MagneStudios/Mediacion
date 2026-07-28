@@ -13,6 +13,7 @@ import { ConfiguracionModule } from "./configuracion/configuracion.module";
 import { DatabaseModule } from "./database/database.module";
 import { EstudiosModule } from "./estudios/estudios.module";
 import { HealthModule } from "./health/health.module";
+import { IncumplimientosModule } from "./incumplimientos/incumplimientos.module";
 import { InversoresModule } from "./inversores/inversores.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
@@ -21,7 +22,9 @@ import { MediacionModule } from "./mediacion/mediacion.module";
 import { MetricasModule } from "./metricas/metricas.module";
 import { NegociacionModule } from "./negociacion/negociacion.module";
 import { NotificacionesModule } from "./notificaciones/notificaciones.module";
+import { OnboardingModule } from "./onboarding/onboarding.module";
 import { PagosModule } from "./pagos/pagos.module";
+import { TareasModule } from "./tareas/tareas.module";
 
 @Module({
   imports: [
@@ -44,6 +47,9 @@ import { PagosModule } from "./pagos/pagos.module";
     PagosModule,
     MetricasModule,
     AuditoriaModule,
+    TareasModule,
+    IncumplimientosModule,
+    OnboardingModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

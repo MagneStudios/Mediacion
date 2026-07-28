@@ -1,9 +1,11 @@
 import { HttpException } from "@nestjs/common";
 import type { CasosRepository } from "../casos/casos.repository";
 import type { MembershipService } from "../casos/membership.service";
+import type { AcuerdoAccessService } from "./acuerdo-access.service";
 import type { AcuerdosRepository } from "./acuerdos.repository";
 import { AcuerdosService } from "./acuerdos.service";
 import type { DocusignClient } from "./docusign/docusign-client";
+import type { FirmasRepository } from "./firmas.repository";
 
 function createFakeKyselyWithFirmantes(rows: unknown[]) {
   const execute = jest.fn().mockResolvedValue(rows);
@@ -66,6 +68,9 @@ describe("AcuerdosService", () => {
     revertClaimToBorrador?: jest.Mock;
     kysely?: unknown;
     createEnvelope?: jest.Mock;
+    findByCasoId?: jest.Mock;
+    assertReadAccess?: jest.Mock;
+    listByAcuerdo?: jest.Mock;
   }) {
     const membershipService = {
       assertMembership:
@@ -83,18 +88,31 @@ describe("AcuerdosService", () => {
       persistSignatureEnvelope:
         overrides?.persistSignatureEnvelope ?? jest.fn(),
       revertClaimToBorrador: overrides?.revertClaimToBorrador ?? jest.fn(),
+      findByCasoId: overrides?.findByCasoId ?? jest.fn(),
     } as unknown as AcuerdosRepository;
     const kysely = overrides?.kysely ?? {};
     const docusignClient = {
       createEnvelope: overrides?.createEnvelope ?? jest.fn(),
     } as unknown as DocusignClient;
+    const acuerdoAccessService = {
+      assertReadAccess:
+        overrides?.assertReadAccess ?? jest.fn().mockResolvedValue(undefined),
+    } as unknown as AcuerdoAccessService;
+    const firmasRepository = {
+      listByAcuerdo:
+        overrides?.listByAcuerdo ?? jest.fn().mockResolvedValue([]),
+    } as unknown as FirmasRepository;
     return {
+      acuerdoAccessService,
+      firmasRepository,
       service: new AcuerdosService(
         membershipService,
         casosRepository,
         acuerdosRepository,
         kysely as never,
         docusignClient,
+        acuerdoAccessService,
+        firmasRepository,
       ),
     };
   }
@@ -528,6 +546,151 @@ describe("AcuerdosService", () => {
         expect.stringContaining("revert claim failed"),
         expect.any(Error),
       );
+    });
+  });
+
+  describe("getForCaso", () => {
+    const acuerdo = {
+      id: "acuerdo-1",
+      caso_id: "caso-1",
+      estado: "enviado_a_firma",
+      contenido: {},
+      documento_url: null,
+      fecha: null,
+    };
+
+    it("returns the agreement with its signature statuses for an authorized reader", async () => {
+      const listByAcuerdo = jest
+        .fn()
+        .mockResolvedValue([
+          { id: "firma-1", usuario_id: "user-a", docusign_status: "signed" },
+        ]);
+      const { service, acuerdoAccessService } = buildService({
+        findByCasoId: jest.fn().mockResolvedValue(acuerdo),
+        listByAcuerdo,
+      });
+
+      const result = await service.getForCaso("caso-1", "user-a");
+
+      expect(acuerdoAccessService.assertReadAccess).toHaveBeenCalledWith(
+        "caso-1",
+        "user-a",
+      );
+      expect(listByAcuerdo).toHaveBeenCalledWith("acuerdo-1");
+      expect(result.acuerdo).toBe(acuerdo);
+      expect(result.firmas).toHaveLength(1);
+    });
+
+    it("returns acuerdo_not_found when the case has no agreement yet", async () => {
+      const { service } = buildService({
+        findByCasoId: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        service.getForCaso("caso-1", "user-a"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "acuerdo_not_found" },
+      });
+    });
+
+    it("propagates the access rejection without reading the agreement", async () => {
+      const findByCasoId = jest.fn();
+      const { service } = buildService({
+        findByCasoId,
+        assertReadAccess: jest
+          .fn()
+          .mockRejectedValue(
+            new HttpException(
+              { code: "caso_not_found", message: "Case not found" },
+              404,
+            ),
+          ),
+      });
+
+      await expect(
+        service.getForCaso("caso-1", "outsider"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "caso_not_found" },
+      });
+      expect(findByCasoId).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("exportAgreement", () => {
+    const acuerdo = {
+      id: "acuerdo-1",
+      caso_id: "caso-1",
+      estado: "firmado",
+      fecha: "2026-07-28T10:00:00.000Z",
+      documento_url: null,
+      contenido: {
+        contenido: { meetingPoint: [{ categoria: "bienes", punto: 100 }] },
+      },
+    };
+
+    it("renders a named text document for an authorized reader", async () => {
+      const { service, acuerdoAccessService } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+      });
+
+      const result = await service.exportAgreement("acuerdo-1", "user-a");
+
+      expect(acuerdoAccessService.assertReadAccess).toHaveBeenCalledWith(
+        "caso-1",
+        "user-a",
+      );
+      expect(result.filename).toBe("acuerdo-acuerdo-1.txt");
+      expect(result.document).toContain("ACUERDO DE MEDIACIÓN");
+      expect(result.document).toContain("- Bienes: 100");
+    });
+
+    it("returns acuerdo_not_found for an unknown agreement", async () => {
+      const { service } = buildService({
+        findById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        service.exportAgreement("missing", "user-a"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "acuerdo_not_found" },
+      });
+    });
+
+    it("hides an inaccessible agreement behind the same acuerdo_not_found as an unknown id", async () => {
+      const { service } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+        assertReadAccess: jest
+          .fn()
+          .mockRejectedValue(
+            new HttpException(
+              { code: "caso_not_found", message: "Case not found" },
+              404,
+            ),
+          ),
+      });
+
+      await expect(
+        service.exportAgreement("acuerdo-1", "outsider"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "acuerdo_not_found" },
+      });
+    });
+
+    it("does not swallow a non-404 access failure into acuerdo_not_found", async () => {
+      const { service } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+        assertReadAccess: jest
+          .fn()
+          .mockRejectedValue(new Error("connection lost")),
+      });
+
+      await expect(
+        service.exportAgreement("acuerdo-1", "user-a"),
+      ).rejects.toThrow("connection lost");
     });
   });
 });
