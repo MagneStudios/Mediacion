@@ -144,6 +144,8 @@ export type Database = {
             | null;
           estudio_id: string | null;
           activo: boolean;
+          consentimiento_fecha: string | null;
+          consentimiento_envelope_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -161,6 +163,8 @@ export type Database = {
             | null;
           estudio_id?: string | null;
           activo?: boolean;
+          consentimiento_fecha?: string | null;
+          consentimiento_envelope_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -178,6 +182,8 @@ export type Database = {
             | null;
           estudio_id?: string | null;
           activo?: boolean;
+          consentimiento_fecha?: string | null;
+          consentimiento_envelope_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

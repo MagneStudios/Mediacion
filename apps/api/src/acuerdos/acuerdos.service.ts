@@ -11,12 +11,19 @@ import { CasosRepository } from "../casos/casos.repository";
 import type { CaseDetail } from "../casos/casos.types";
 import { MembershipService } from "../casos/membership.service";
 import { KYSELY } from "../database/database.tokens";
+import { AcuerdoAccessService } from "./acuerdo-access.service";
+import {
+  agreementDocumentFilename,
+  buildAgreementDocument,
+} from "./acuerdo-export";
 import { AcuerdosRepository } from "./acuerdos.repository";
-import type { Acuerdo } from "./acuerdos.types";
+import type { Acuerdo, AcuerdoExport } from "./acuerdos.types";
 import { buildAgreementContent } from "./agreement-content";
 import type { DocusignClient } from "./docusign/docusign-client";
 import { DOCUSIGN_CLIENT } from "./docusign/docusign-client";
 import { readAcceptedFirmantes } from "./firmantes-read.query";
+import type { FirmaStatus } from "./firmas.repository";
+import { FirmasRepository } from "./firmas.repository";
 import { readAcceptedPropuesta } from "./propuesta-read.query";
 
 const estadoCasoAcordado: CaseDetail["estado"] = "acordado";
@@ -55,7 +62,52 @@ export class AcuerdosService {
     @Inject(KYSELY) private readonly kysely: Kysely<Database>,
     @Inject(DOCUSIGN_CLIENT)
     private readonly docusignClient: DocusignClient,
+    @Inject(AcuerdoAccessService)
+    private readonly acuerdoAccessService: AcuerdoAccessService,
+    @Inject(FirmasRepository)
+    private readonly firmasRepository: FirmasRepository,
   ) {}
+
+  async getForCaso(
+    casoId: string,
+    callerId: string,
+  ): Promise<{ acuerdo: Acuerdo; firmas: FirmaStatus[] }> {
+    await this.acuerdoAccessService.assertReadAccess(casoId, callerId);
+    const acuerdo = await this.acuerdosRepository.findByCasoId(casoId);
+    if (!acuerdo) {
+      throw acuerdoNotFound();
+    }
+    const firmas = await this.firmasRepository.listByAcuerdo(acuerdo.id);
+    return { acuerdo, firmas };
+  }
+
+  async exportAgreement(
+    acuerdoId: string,
+    callerId: string,
+  ): Promise<AcuerdoExport> {
+    const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+    if (!acuerdo) {
+      throw acuerdoNotFound();
+    }
+    try {
+      await this.acuerdoAccessService.assertReadAccess(
+        acuerdo.caso_id,
+        callerId,
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof HttpException &&
+        error.getStatus() === HttpStatus.NOT_FOUND
+      ) {
+        throw acuerdoNotFound();
+      }
+      throw error;
+    }
+    return {
+      filename: agreementDocumentFilename(acuerdo.id),
+      document: buildAgreementDocument(acuerdo),
+    };
+  }
 
   async generateAgreement(casoId: string, callerId: string): Promise<Acuerdo> {
     await this.membershipService.assertMembership(casoId, callerId);
