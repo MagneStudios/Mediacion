@@ -5,6 +5,7 @@ import { NegociacionService } from "./negociacion.service";
 import type { PropuestaView } from "./negociacion.types";
 import type { PropuestasRepository } from "./propuestas.repository";
 import type { RondasRepository } from "./rondas.repository";
+import type { CasosRepository } from "../casos/casos.repository";
 
 const iaConfig = { modelo: "openai/gpt-4", temperature: 0.7, maxTokens: 500 };
 
@@ -76,9 +77,13 @@ function buildService(overrides?: {
       overrides?.generateProposal ??
       jest.fn().mockResolvedValue({ text: "Propuesta generada." }),
   } as unknown as AiProposalGenerator;
+  const casosRepository = {
+    activateNegotiation: jest.fn().mockResolvedValue(undefined),
+  } as unknown as CasosRepository;
   return {
     service: new NegociacionService(
       membershipService as never,
+      casosRepository as never,
       propuestasRepository,
       rondasRepository,
       configuracionRepository,

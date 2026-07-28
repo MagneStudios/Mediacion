@@ -6,6 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { MembershipService } from "../casos/membership.service";
+import { CasosRepository } from "../casos/casos.repository";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { AI_PROPOSAL_GENERATOR } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
@@ -114,6 +115,8 @@ export class NegociacionService {
   constructor(
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
+    @Inject(CasosRepository)
+    private readonly casosRepository: CasosRepository,
     @Inject(PropuestasRepository)
     private readonly propuestasRepository: PropuestasRepository,
     @Inject(RondasRepository)
@@ -132,6 +135,7 @@ export class NegociacionService {
     const positions =
       await this.propuestasRepository.readBothPartyPositionsForEngine(casoId);
     const [positionsA, positionsB] = assertBothPartiesSubmitted(positions);
+    await this.casosRepository.activateNegotiation(casoId);
     const rondaId = await this.ensureActiveRondaId(casoId);
     const alreadyExists = await this.propuestasRepository.existsForRonda(
       casoId,

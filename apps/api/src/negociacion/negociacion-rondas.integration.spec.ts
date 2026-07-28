@@ -220,6 +220,7 @@ describeDb(
       );
       service = new NegociacionService(
         membershipService,
+        casosRepository,
         propuestasRepository,
         rondasRepository,
         configuracionRepository,

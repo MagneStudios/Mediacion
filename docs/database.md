@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-07-24
+> Última actualización: 2026-07-28
 
 ## Objetivo
 
@@ -27,16 +27,20 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 ```
 supabase/migrations/
 ├── 20260721191631_extensions.sql    # pgcrypto
-├── 20260721191644_enums.sql         # 18 tipos enum
+├── 20260721191644_enums.sql         # 19 tipos enum
 ├── 20260721191651_tables.sql        # 22 tablas + grants
 ├── 20260721191655_constraints_indexes.sql  # CHECK XOR, UNIQUE, 16 índices
-├── 20260721191658_functions_triggers.sql   # 11 funciones, 45 triggers
+├── 20260721191658_functions_triggers.sql   # 12 funciones, 47 triggers
 ├── 20260721191704_rls_policie.sql   # 41 policies en 22 tablas
 ├── 20260721191707_seed_catalog.sql  # 4 planes + 5 configs
 ├── 20260723210000_acuerdos_caso_unique.sql          # UNIQUE acuerdos.caso_id
 ├── 20260724011737_propuestas_ronda_unique.sql       # UNIQUE propuestas(caso_id, ronda_id)
 ├── 20260724130000_propuesta_estado_trigger.sql      # validate_propuesta_estado_transition()
-└── 20260724150000_mediaciones_write_rls.sql         # INSERT/UPDATE RLS mediaciones
+├── 20260724150000_mediaciones_write_rls.sql         # INSERT/UPDATE RLS mediaciones
+├── 20260724160000_mediaciones_caso_activa_unique.sql # partial unique mediaciones
+├── 20260724170000_notificaciones_vencimiento_unique.sql  # partial unique notif vencimiento
+├── 20260728000000_notificaciones_estado_enum.sql    # notificaciones.estado TEXT → enum
+└── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
 ```
 
 ## Modelo de datos (22 tablas)
@@ -154,8 +158,8 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 ### Resultados de testing (2026-07-22)
 
-**Schema validation (smoke_migrations.py):** 56/56 PASS
-- 22 tablas, 11 funciones, 18 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
+**Schema validation (smoke_migrations.py):** 64/64 PASS
+- 22 tablas, 12 funciones, 19 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
 
 **RLS validation (validate_rls.py):** 13/13 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
@@ -175,7 +179,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 18 enums, relaciones y notas |
+| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 19 enums, relaciones y notas |
 | Fase 2 — Migraciones | ✅ Cerrada | 7 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
 | Fase 4 — QA/E2E | ⏳ Pendiente | Esperando backend listo para tests de integración |

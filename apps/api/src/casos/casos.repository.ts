@@ -129,6 +129,19 @@ export class CasosRepository {
       });
   }
 
+  activateNegotiation(casoId: string): Promise<void> {
+    return this.kysely
+      .updateTable("casos")
+      .set({ estado: "en_negociacion" })
+      .where("id", "=", casoId)
+      .where("estado", "=", "activo")
+      .execute()
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   markAcordado(casoId: string, trx: Kysely<Database>): Promise<void> {
     return buildMarkAcordadoQuery(trx, casoId)
       .executeTakeFirstOrThrow(() => casoNotAcordable(casoId))
