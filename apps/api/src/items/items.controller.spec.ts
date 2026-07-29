@@ -45,6 +45,7 @@ describe("ItemsController unit", () => {
       listOwnItems: jest.fn(),
       getOwnItem: jest.fn(),
       updateOwnItem: jest.fn(),
+      deleteOwnItem: jest.fn(),
     } as unknown as ItemsService);
     const dto: CreateItemDto = { categoria: "bienes", nombre: "Auto" };
 
@@ -66,6 +67,7 @@ describe("ItemsController unit", () => {
       listOwnItems,
       getOwnItem: jest.fn(),
       updateOwnItem: jest.fn(),
+      deleteOwnItem: jest.fn(),
     } as unknown as ItemsService);
 
     const result = await controller.listItems("caso-1", parteA);
@@ -82,6 +84,7 @@ describe("ItemsController unit", () => {
       listOwnItems: jest.fn(),
       getOwnItem,
       updateOwnItem: jest.fn(),
+      deleteOwnItem: jest.fn(),
     } as unknown as ItemsService);
 
     const result = await controller.getItem("item-1", parteA);

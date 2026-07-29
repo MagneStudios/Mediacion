@@ -25,6 +25,18 @@ export type PropuestaView = Pick<
   (typeof propuestaViewColumns)[number]
 >;
 
+/**
+ * `ronda_id` alone tells a client nothing it can render. The round number, the
+ * round state and the caller's own decision are what the negotiation screen
+ * needs to know whose turn it is, so they travel with each propuesta instead of
+ * requiring a separate snapshot endpoint.
+ */
+export type PropuestaDetail = PropuestaView & {
+  ronda_numero: Ronda["numero"];
+  ronda_estado: Ronda["estado"];
+  own_decision: DecisionPropuesta | null;
+};
+
 export type IaConfig = {
   modelo: string;
   temperature: number;

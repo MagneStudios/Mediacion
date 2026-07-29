@@ -62,6 +62,23 @@ describe("MeController", () => {
       message: "Profile not found",
     });
   });
+
+  it("patches the caller's own profile, never taking a target id from the body", async () => {
+    const updateOwnProfile = jest.fn().mockResolvedValue({ id: "user-1" });
+    const controller = new MeController({
+      updateOwnProfile,
+    } as unknown as MeService);
+
+    await controller.updateOwnProfile(caller, {
+      nombre: "Ana Maria",
+      id: "someone-else",
+    } as never);
+
+    expect(updateOwnProfile).toHaveBeenCalledWith("user-1", {
+      nombre: "Ana Maria",
+      id: "someone-else",
+    });
+  });
 });
 
 describe("GET /me end-to-end isolation", () => {

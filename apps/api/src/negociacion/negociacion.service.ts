@@ -16,6 +16,7 @@ import type {
   DecisionPropuesta,
   IaConfig,
   PropuestaContenido,
+  PropuestaDetail,
   PropuestaView,
 } from "./negociacion.types";
 import type { EnginePosition } from "./propuestas.repository";
@@ -206,7 +207,7 @@ export class NegociacionService {
   async listPropuestas(
     casoId: string,
     callerId: string,
-  ): Promise<PropuestaView[]> {
+  ): Promise<PropuestaDetail[]> {
     const membership = await this.membershipService.assertMembership(
       casoId,
       callerId,
@@ -218,7 +219,7 @@ export class NegociacionService {
         throw casoNotFound();
       }
     }
-    return this.propuestasRepository.findForCase(casoId);
+    return this.propuestasRepository.findDetailForCase(casoId, callerId);
   }
 
   private async ensureActiveRondaId(casoId: string): Promise<string> {

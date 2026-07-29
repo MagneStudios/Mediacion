@@ -13,6 +13,13 @@ import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { negotiationService } from './negotiation.service';
 
 /**
+ * The engine produces no agreement title, so the round it came from is the
+ * only honest label. Not localized here: the real agreements service will read
+ * `acuerdos.contenido` from the API instead of building this string.
+ */
+const agreementTitlePrefix = 'Acuerdo — Ronda';
+
+/**
  * Replaceable service boundary for shared agreements and mock signatures.
  *
  * PRIVACY / SOURCE BOUNDARY: an agreement is created only from a
@@ -122,9 +129,15 @@ async function ensureAgreementFromAcceptedProposal(caseId: string): Promise<Shar
       caseId,
       sourceProposalId: accepted.id,
       sourceRoundNumber: accepted.roundNumber,
-      title: accepted.title,
-      summary: accepted.summary,
-      terms: accepted.terms.map((term) => ({ ...term })),
+      title: `${agreementTitlePrefix} ${accepted.roundNumber}`,
+      // The agreed content IS the meeting point the parties accepted — the
+      // agreement invents nothing the proposal did not already contain.
+      summary: accepted.narrative ?? '',
+      terms: accepted.meetingPoint.map((entry) => ({
+        id: `${accepted.id}-${entry.categoria}`,
+        title: entry.categoria,
+        description: entry.punto === null ? entry.estado : String(entry.punto),
+      })),
       rationale: accepted.rationale,
       estado: 'borrador',
       createdAt: now,

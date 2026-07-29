@@ -10,6 +10,7 @@ import {
   buildExistsForRondaQuery,
   buildFindByIdQuery,
   buildFindCasoIdQuery,
+  buildFindDetailForCaseQuery,
   buildFindForCaseQuery,
   buildMarkEstadoQuery,
   buildPatchGeneratedQuery,
@@ -97,6 +98,64 @@ describe("PropuestasRepository query builders", () => {
       expect(compiled.sql).toContain(`"${column}"`);
     }
     expect(compiled.parameters).toEqual(["caso-1"]);
+  });
+
+  describe("buildFindDetailForCaseQuery", () => {
+    it("joins the ronda so the client gets numero and estado, not only ronda_id", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForCaseQuery(
+        db,
+        "caso-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/inner join\s+"rondas"/i);
+      expect(compiled.sql).toContain('"numero" as "ronda_numero"');
+      expect(compiled.sql).toContain('"estado" as "ronda_estado"');
+    });
+
+    it("left-joins the caller's own respuesta so a pending decision stays null", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForCaseQuery(
+        db,
+        "caso-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/left join\s+"respuestas_propuesta"/i);
+      expect(compiled.sql).toContain('"decision" as "own_decision"');
+    });
+
+    it("scopes the respuesta join to the caller, so one parte never reads the other's decision", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForCaseQuery(
+        db,
+        "caso-1",
+        "user-a",
+      ).compile();
+      const joinClause = compiled.sql.slice(
+        compiled.sql.search(/left join/i),
+        compiled.sql.search(/\swhere\s/i),
+      );
+
+      expect(joinClause).toContain('"parte_id"');
+      expect(compiled.parameters).toEqual(["user-a", "caso-1"]);
+    });
+
+    it("orders by ronda numero so round history reads chronologically", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForCaseQuery(
+        db,
+        "caso-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/order by\s+"rondas"\."numero"\s+asc/i);
+    });
   });
 
   it("buildExistsForRondaQuery selects a single row scoped by caso_id and ronda_id", () => {

@@ -362,7 +362,14 @@
       "rationaleTitle": "Rationale",
       "statusPending": "Awaiting response",
       "statusAccepted": "Accepted",
-      "statusRejected": "Not accepted"
+      "statusRejected": "Not accepted",
+      "title": "Meeting point — Round {{round}}",
+      "generating": "Drafting the proposal…",
+      "emptyMeetingPoint": "There is no meeting point to show yet.",
+      "estadoAcordable": "Can be agreed",
+      "estadoNegociable": "To negotiate",
+      "valueNumeric": "Midpoint: {{value}}",
+      "valueNotNumeric": "No numeric midpoint"
     },
     "generate": {
       "action": "Generate proposal",

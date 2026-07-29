@@ -548,4 +548,39 @@ describe("loadConfig", () => {
 
     expect(appConfig.cronSecret).toBe("cron-secret-value");
   });
+
+  describe("CORS_ORIGINS", () => {
+    it("defaults to an empty list when CORS_ORIGINS is not set, leaving cors disabled", () => {
+      const appConfig = loadConfig({ NODE_ENV: "test" });
+
+      expect(appConfig.corsOrigins).toEqual([]);
+    });
+
+    it("splits a comma-separated list and trims each origin", () => {
+      const appConfig = loadConfig({
+        NODE_ENV: "test",
+        CORS_ORIGINS: "https://app.mediacion.io, http://localhost:8081",
+      });
+
+      expect(appConfig.corsOrigins).toEqual([
+        "https://app.mediacion.io",
+        "http://localhost:8081",
+      ]);
+    });
+
+    it("drops empty entries produced by stray commas", () => {
+      const appConfig = loadConfig({
+        NODE_ENV: "test",
+        CORS_ORIGINS: "https://app.mediacion.io,,  ,",
+      });
+
+      expect(appConfig.corsOrigins).toEqual(["https://app.mediacion.io"]);
+    });
+
+    it("keeps the wildcard as an explicit opt-in rather than a default", () => {
+      const appConfig = loadConfig({ NODE_ENV: "test", CORS_ORIGINS: "*" });
+
+      expect(appConfig.corsOrigins).toEqual(["*"]);
+    });
+  });
 });

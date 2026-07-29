@@ -21,12 +21,29 @@ export type CasoParteMembership = Pick<
 export const estadoInvitacionAceptada: CasoParte["estado_invitacion"] =
   "aceptada";
 
-export type CaseSummary = Pick<
+/** The other accepted parte of a caso, from the caller's point of view. */
+export type Contraparte = Pick<CasoParte, "usuario_id" | "rol_en_caso"> & {
+  nombre: string;
+  apellido: string;
+};
+
+export type ContraparteByCaso = Contraparte & Pick<CasoParte, "caso_id">;
+
+export const rolesParte: CasoParte["rol_en_caso"][] = ["parte_a", "parte_b"];
+
+export type CaseSummaryRow = Pick<
   Caso,
-  "id" | "nombre" | "estado" | "metodo" | "created_at"
+  | "id"
+  | "nombre"
+  | "estado"
+  | "metodo"
+  | "created_at"
+  | "plazo"
+  | "sla_tipo"
+  | "ronda_actual"
 >;
 
-export type CaseDetail = Pick<
+export type CaseDetailRow = Pick<
   Caso,
   | "id"
   | "nombre"
@@ -36,7 +53,24 @@ export type CaseDetail = Pick<
   | "creador_id"
   | "created_at"
   | "updated_at"
+  | "plazo"
+  | "sla_tipo"
+  | "ronda_actual"
 >;
+
+/**
+ * The dashboard renders the semaforo and the counterparty label from these, so
+ * they travel with the caso instead of forcing a request per card.
+ */
+export type CaseSummary = CaseSummaryRow & {
+  semaforo: Semaforo | null;
+  contraparte: Contraparte | null;
+};
+
+export type CaseDetail = CaseDetailRow & {
+  semaforo: Semaforo | null;
+  contraparte: Contraparte | null;
+};
 
 export type EstadoCaso = Caso["estado"];
 

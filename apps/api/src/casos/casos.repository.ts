@@ -5,12 +5,13 @@ import { toDomainError } from "../common/db/pg-error";
 import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
 import type {
-  CaseDetail,
-  CaseSummary,
+  CaseDetailRow,
+  CaseSummaryRow,
   Caso,
+  ContraparteByCaso,
   CreateCasoDto,
 } from "./casos.types";
-import { estadoInvitacionAceptada } from "./casos.types";
+import { estadoInvitacionAceptada, rolesParte } from "./casos.types";
 
 const caseDetailColumns = [
   "casos.id",
@@ -21,6 +22,20 @@ const caseDetailColumns = [
   "casos.creador_id",
   "casos.created_at",
   "casos.updated_at",
+  "casos.plazo",
+  "casos.sla_tipo",
+  "casos.ronda_actual",
+] as const;
+
+const caseSummaryColumns = [
+  "casos.id",
+  "casos.nombre",
+  "casos.estado",
+  "casos.metodo",
+  "casos.created_at",
+  "casos.plazo",
+  "casos.sla_tipo",
+  "casos.ronda_actual",
 ] as const;
 
 export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
@@ -86,26 +101,51 @@ export class CasosRepository {
       });
   }
 
-  findOwnCases(callerId: string): Promise<CaseSummary[]> {
+  findOwnCases(callerId: string): Promise<CaseSummaryRow[]> {
     return this.kysely
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")
-      .select([
-        "casos.id",
-        "casos.nombre",
-        "casos.estado",
-        "casos.metodo",
-        "casos.created_at",
-      ])
+      .select([...caseSummaryColumns])
       .where("caso_partes.usuario_id", "=", callerId)
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
       .execute();
   }
 
+  /**
+   * Resolved in a single round trip for every caso on screen. Mediadores are
+   * excluded on purpose: the dashboard labels the opposing parte, not the staff.
+   */
+  findContrapartes(
+    casoIds: string[],
+    callerId: string,
+  ): Promise<ContraparteByCaso[]> {
+    if (casoIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.kysely
+      .selectFrom("caso_partes")
+      .innerJoin("usuarios", "usuarios.id", "caso_partes.usuario_id")
+      .select([
+        "caso_partes.caso_id",
+        "caso_partes.usuario_id",
+        "caso_partes.rol_en_caso",
+        "usuarios.nombre",
+        "usuarios.apellido",
+      ])
+      .where("caso_partes.caso_id", "in", casoIds)
+      .where("caso_partes.usuario_id", "!=", callerId)
+      .where("caso_partes.rol_en_caso", "in", rolesParte)
+      .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
+      .execute()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   findDetailForMember(
     casoId: string,
     callerId: string,
-  ): Promise<CaseDetail | undefined> {
+  ): Promise<CaseDetailRow | undefined> {
     return this.kysely
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")

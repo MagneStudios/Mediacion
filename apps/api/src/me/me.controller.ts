@@ -1,13 +1,16 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
   Inject,
+  Patch,
 } from "@nestjs/common";
 import type { AuthenticatedUser, MeProfile } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { MeService } from "./me.service";
+import type { UpdateProfileDto } from "./me.types";
 
 @Controller("me")
 export class MeController {
@@ -25,5 +28,13 @@ export class MeController {
       );
     }
     return profile;
+  }
+
+  @Patch()
+  updateOwnProfile(
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() body: UpdateProfileDto,
+  ): Promise<MeProfile> {
+    return this.meService.updateOwnProfile(caller.id, body);
   }
 }
