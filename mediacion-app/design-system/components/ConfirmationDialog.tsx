@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
@@ -60,6 +60,75 @@ export function ConfirmationDialog({
   onDismiss,
 }: ConfirmationDialogProps) {
   const { isWide } = useResponsiveLayout();
+  const panelRef = useRef<View>(null);
+
+  // Web-only: focus trap, focus management, background aria-hidden isolation.
+  // RN's Modal onRequestClose handles Escape natively; this effect only traps Tab.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visible) return;
+
+    const previousFocus = document.activeElement;
+
+    const appRoot = document.getElementById('root');
+    const previousRootAriaHidden = appRoot?.getAttribute('aria-hidden') ?? null;
+    if (appRoot) appRoot.setAttribute('aria-hidden', 'true');
+
+    const panelQuery = '[data-testid="mediacion-dialog-panel"]';
+    const focusableQuery =
+      'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled])';
+
+    const initialFocusFrame = requestAnimationFrame(() => {
+      const panel = document.querySelector(panelQuery);
+      if (!panel) return;
+      const firstControl = panel.querySelector<HTMLElement>(focusableQuery);
+      firstControl?.focus();
+    });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const panel = document.querySelector(panelQuery);
+      if (!panel) return;
+
+      if (!panel.contains(document.activeElement)) {
+        e.preventDefault();
+        const first = panel.querySelector<HTMLElement>(focusableQuery);
+        first?.focus();
+        return;
+      }
+
+      const focusable = panel.querySelectorAll<HTMLElement>(focusableQuery);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      cancelAnimationFrame(initialFocusFrame);
+      if (appRoot) {
+        if (previousRootAriaHidden === null) {
+          appRoot.removeAttribute('aria-hidden');
+        } else {
+          appRoot.setAttribute('aria-hidden', previousRootAriaHidden);
+        }
+      }
+      if (previousFocus instanceof HTMLElement) {
+        previousFocus.focus();
+      }
+    };
+  }, [visible]);
 
   return (
     <Modal
@@ -71,7 +140,13 @@ export function ConfirmationDialog({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.panel, { maxWidth: getModalMaxWidth(isWide) }]} accessibilityRole="alert">
+        <View
+          ref={panelRef}
+          style={[styles.panel, { maxWidth: getModalMaxWidth(isWide) }]}
+          accessibilityRole="alert"
+          accessibilityLabel={title}
+          testID="mediacion-dialog-panel"
+        >
           <View style={[styles.iconCircle, destructive && styles.iconCircleDestructive]}>
             <Icon name={icon} size={22} color={destructive ? semanticColors.status.errorFg : semanticColors.text.secondary} />
           </View>
