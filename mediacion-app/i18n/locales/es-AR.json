@@ -423,7 +423,11 @@
   "agreement": {
     "sectionTitle": "Acuerdo",
     "dashboard": {
-      "title": "Acuerdo"
+      "title": "Acuerdo",
+      "empty": {
+        "title": "Todavía no hay un acuerdo",
+        "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
+      }
     },
     "sharedMarker": {
       "title": "Acuerdo compartido",
