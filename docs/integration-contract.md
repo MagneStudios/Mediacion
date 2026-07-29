@@ -210,3 +210,9 @@ Legend: **MATCH** (wire directly, mapping trivial) / **MISMATCH** (exists, shape
 ### Deployment prerequisite
 
 17. **CORS.** `apps/api/src/main.ts` does not call `app.enableCors()`. Irrelevant for native RN, required for Expo Web.
+
+## 6. `/case/join` UI shell — intentionally unwired
+
+The frontend route `app/case/join.tsx` renders a presentational UI shell (a `JoinCaseForm` component with a token-input field and a submit button). It does **not** call the real `POST /casos/unirse` endpoint. It does **not** navigate to a case detail on success. It does **not** display any fabricated success or failure result.
+
+This is deliberate: the join flow is blocked on the API client + Supabase auth work (items 1–3 in section 5). The UI shell exists as a placeholder so the route is registered and the form structure is ready, but it is **not integrated** with the backend. Any suggestion that the join feature is complete or wired would be inaccurate.

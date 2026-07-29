@@ -63,8 +63,10 @@ function buildAgreementState(agreement: SharedAgreement, signers?: SharedSignerS
   const currentSigners = signers ?? getSigners(agreement.id);
   const own = currentSigners.find((signer) => signer.role === 'authenticated_party');
   const ownSignatureComplete = own?.status === 'firmado';
-  const allSignaturesComplete = currentSigners.length > 0 && currentSigners.every((signer) => signer.status === 'firmado');
-  const readOnly = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  const agreementIsComplete = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  const allSignersFirmado = currentSigners.length > 0 && currentSigners.every((signer) => signer.status === 'firmado');
+  const allSignaturesComplete = agreementIsComplete || allSignersFirmado;
+  const readOnly = agreementIsComplete;
 
   return {
     agreement,

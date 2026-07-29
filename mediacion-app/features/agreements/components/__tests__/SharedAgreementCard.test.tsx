@@ -70,18 +70,20 @@ describe('SharedAgreementCard', () => {
       return screen.getByText('Cuota de alimentos acordada').props.style;
     }
 
-    it('uses flexGrow and flexShrink without a fixed flex basis that forces clipping', async () => {
+    it('uses flexShrink without flexGrow so the header can wrap on narrow widths', async () => {
       await render(<SharedAgreementCard {...baseProps} />);
       const style = titleStyle();
-      expect(style.flexGrow).toBe(1);
       expect(style.flexShrink).toBe(1);
-      expect(style.flexBasis).toBeUndefined();
+      expect(style.flexGrow).toBeUndefined();
+      expect(style.flex).toBeUndefined();
     });
 
-    it('does not force the title into a single-line container via flex:1', async () => {
+    it('allows the title to take two lines if needed', async () => {
       await render(<SharedAgreementCard {...baseProps} />);
-      const style = titleStyle();
-      expect(style.flex).toBeUndefined();
+      expect(titleStyle().numberOfLines).toBeUndefined();
+      // numberOfLines is a Text prop, not in the style object — check the element prop directly
+      const titleEl = screen.getByText('Cuota de alimentos acordada');
+      expect(titleEl.props.numberOfLines).toBe(2);
     });
 
     it('status pill is a sibling of the title in the header row', async () => {

@@ -61,11 +61,11 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
     gap: spacing.xs,
   },
   title: {
-    flexGrow: 1,
     flexShrink: 1,
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
