@@ -139,9 +139,29 @@ export default function NegotiationDashboardScreen() {
 
       {currentProposal ? (
         <SharedProposalCard
-          title={currentProposal.title}
-          summary={currentProposal.summary}
-          terms={currentProposal.terms}
+          title={t('negotiation.proposal.title', {
+            round: currentProposal.roundNumber,
+          })}
+          meetingPoint={currentProposal.meetingPoint}
+          narrative={currentProposal.narrative}
+          pendingLabel={t('negotiation.proposal.generating')}
+          emptyMeetingPointLabel={t('negotiation.proposal.emptyMeetingPoint')}
+          renderEntryLabels={(entry) => ({
+            // Categories are shared with the positions feature, so their copy
+            // lives there. An unknown key falls back to the raw value rather
+            // than rendering an i18n path at the user.
+            categoryLabel: t(`positions.category.${entry.categoria}.label`, {
+              defaultValue: entry.categoria,
+            }),
+            valueLabel:
+              entry.punto === null
+                ? t('negotiation.proposal.valueNotNumeric')
+                : t('negotiation.proposal.valueNumeric', { value: entry.punto }),
+            estadoLabel:
+              entry.estado === 'acordable'
+                ? t('negotiation.proposal.estadoAcordable')
+                : t('negotiation.proposal.estadoNegociable'),
+          })}
           rationale={currentProposal.rationale}
           rationaleLabel={t('negotiation.proposal.rationaleTitle')}
           statusLabel={proposalStatusLabel}

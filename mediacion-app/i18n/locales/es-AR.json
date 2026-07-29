@@ -362,7 +362,14 @@
       "rationaleTitle": "Fundamento",
       "statusPending": "Pendiente de respuesta",
       "statusAccepted": "Aceptada",
-      "statusRejected": "No aceptada"
+      "statusRejected": "No aceptada",
+      "title": "Punto de encuentro — Ronda {{round}}",
+      "generating": "Redactando la propuesta…",
+      "emptyMeetingPoint": "Todavía no hay un punto de encuentro para mostrar.",
+      "estadoAcordable": "Acordable",
+      "estadoNegociable": "A negociar",
+      "valueNumeric": "Punto medio: {{value}}",
+      "valueNotNumeric": "Sin punto medio numérico"
     },
     "generate": {
       "action": "Generar propuesta",

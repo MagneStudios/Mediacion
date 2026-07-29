@@ -32,8 +32,12 @@ export default function NegotiationHistoryScreen() {
         renderItem={({ item }) => (
           <RoundHistoryCard
             roundLabel={t('negotiation.round.label', { number: item.roundNumber })}
-            proposalTitle={item.proposalTitle}
-            proposalSummary={item.proposalSummary}
+            proposalTitle={t('negotiation.proposal.title', {
+              round: item.roundNumber,
+            })}
+            proposalSummary={
+              item.proposalSummary ?? t('negotiation.proposal.generating')
+            }
             statusLabel={
               item.agreementReached ? t('negotiation.history.item.agreementReached') : t('negotiation.history.item.notAccepted')
             }
