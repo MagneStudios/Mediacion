@@ -423,7 +423,11 @@
   "agreement": {
     "sectionTitle": "Agreement",
     "dashboard": {
-      "title": "Agreement"
+      "title": "Agreement",
+      "empty": {
+        "title": "There is no agreement yet",
+        "description": "When both parties reach a shared proposal, the agreement will appear here."
+      }
     },
     "sharedMarker": {
       "title": "Shared agreement",

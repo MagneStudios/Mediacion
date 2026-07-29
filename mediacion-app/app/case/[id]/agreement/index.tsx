@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
+import { Button, EmptyState, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
@@ -45,7 +45,10 @@ export default function AgreementDashboardScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
-        <ErrorState title={t('states.error.title')} retryLabel={t('states.error.retry')} onRetry={reload} />
+        <EmptyState
+          title={t('agreement.dashboard.empty.title')}
+          description={t('agreement.dashboard.empty.description')}
+        />
       </View>
     );
   }
