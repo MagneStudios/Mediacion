@@ -1,11 +1,11 @@
 import { HttpException, Logger } from "@nestjs/common";
+import type { CasosRepository } from "../casos/casos.repository";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import type { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
 import type { PropuestaView } from "./negociacion.types";
 import type { PropuestasRepository } from "./propuestas.repository";
 import type { RondasRepository } from "./rondas.repository";
-import type { CasosRepository } from "../casos/casos.repository";
 
 const iaConfig = { modelo: "openai/gpt-4", temperature: 0.7, maxTokens: 500 };
 

@@ -5,8 +5,8 @@ import {
   Injectable,
   Logger,
 } from "@nestjs/common";
-import { MembershipService } from "../casos/membership.service";
 import { CasosRepository } from "../casos/casos.repository";
+import { MembershipService } from "../casos/membership.service";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { AI_PROPOSAL_GENERATOR } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
