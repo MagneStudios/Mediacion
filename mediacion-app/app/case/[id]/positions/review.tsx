@@ -83,7 +83,7 @@ export default function ReviewPositionScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}>
       <Stack.Screen options={{ title: '' }} />
 
       <Text style={styles.title} accessibilityRole="header">
@@ -101,8 +101,8 @@ export default function ReviewPositionScreen() {
           onRetry={handleSave}
         />
       ) : (
-        <Button variant="primary" fullWidth onPress={handleSave} disabled={status === 'submitting'}>
-          {status === 'submitting' ? t('positions.review.saving') : t('positions.review.save')}
+        <Button variant="primary" fullWidth onPress={handleSave} loading={status === 'submitting'} loadingLabel={t('positions.review.saving')}>
+          {t('positions.review.save')}
         </Button>
       )}
       <Button

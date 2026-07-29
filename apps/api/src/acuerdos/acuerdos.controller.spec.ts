@@ -38,4 +38,39 @@ describe("AcuerdosController unit", () => {
     expect(sendToSignature).toHaveBeenCalledWith("acuerdo-1", "user-a");
     expect(result).toBe(acuerdo);
   });
+
+  it("reads the case agreement with its signature statuses", async () => {
+    const payload = { acuerdo: { id: "acuerdo-1" }, firmas: [] };
+    const getForCaso = jest.fn().mockResolvedValue(payload);
+    const controller = new AcuerdosController({
+      getForCaso,
+    } as unknown as AcuerdosService);
+
+    const result = await controller.getForCaso("caso-1", parteA);
+
+    expect(getForCaso).toHaveBeenCalledWith("caso-1", "user-a");
+    expect(result).toBe(payload);
+  });
+
+  it("returns the export body and sets the attachment filename header", async () => {
+    const exportAgreement = jest.fn().mockResolvedValue({
+      filename: "acuerdo-acuerdo-1.txt",
+      document: "ACUERDO DE MEDIACIÓN",
+    });
+    const controller = new AcuerdosController({
+      exportAgreement,
+    } as unknown as AcuerdosService);
+    const setHeader = jest.fn();
+
+    const result = await controller.exportAgreement("acuerdo-1", parteA, {
+      setHeader,
+    });
+
+    expect(exportAgreement).toHaveBeenCalledWith("acuerdo-1", "user-a");
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      'attachment; filename="acuerdo-acuerdo-1.txt"',
+    );
+    expect(result).toBe("ACUERDO DE MEDIACIÓN");
+  });
 });

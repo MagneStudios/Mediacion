@@ -11,6 +11,11 @@ export type FirmaByEnvelope = Pick<
   "id" | "acuerdo_id" | "docusign_status"
 >;
 
+export type FirmaStatus = Pick<
+  Firma,
+  "id" | "usuario_id" | "docusign_status" | "fecha_firma"
+>;
+
 @Injectable()
 export class FirmasRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
@@ -68,6 +73,15 @@ export class FirmasRepository {
       .where("acuerdos.docusign_envelope_id", "=", envelopeId)
       .where("usuarios.email", "=", email)
       .executeTakeFirst();
+  }
+
+  listByAcuerdo(acuerdoId: string): Promise<FirmaStatus[]> {
+    return this.kysely
+      .selectFrom("firmas")
+      .select(["id", "usuario_id", "docusign_status", "fecha_firma"])
+      .where("acuerdo_id", "=", acuerdoId)
+      .orderBy("id", "asc")
+      .execute();
   }
 
   async allSignedForAcuerdo(acuerdoId: string): Promise<boolean> {

@@ -89,7 +89,7 @@ export function DeactivationDialog({
                 <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />
               ) : (
                 <View style={styles.actions}>
-                  <Button variant="destructive" fullWidth onPress={onConfirm} disabled={status === 'pending'}>
+                  <Button variant="destructive" fullWidth onPress={onConfirm} loading={status === 'pending'}>
                     {confirmLabel}
                   </Button>
                   <Button variant="tertiary" fullWidth onPress={onCancel} disabled={status === 'pending'}>

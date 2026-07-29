@@ -58,7 +58,7 @@ export function SimulateInvitationAcceptanceDialog({
             <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />
           ) : (
             <View style={styles.actions}>
-              <Button variant="secondary" fullWidth onPress={onConfirm} disabled={status === 'submitting'}>
+              <Button variant="secondary" fullWidth onPress={onConfirm} loading={status === 'submitting'}>
                 {confirmLabel}
               </Button>
               <Button variant="tertiary" fullWidth onPress={onCancel} disabled={status === 'submitting'}>

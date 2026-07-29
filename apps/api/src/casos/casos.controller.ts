@@ -9,12 +9,15 @@ import {
 } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
+import type { CategoriaItem } from "../items/items.types";
 import { CasosService } from "./casos.service";
 import type {
   CaseCreated,
   CaseDetail,
+  CaseEstado,
   CaseSummary,
   CreateCasoDto,
+  EstadoCasoDto,
   PlazoDto,
   PlazoState,
 } from "./casos.types";
@@ -63,5 +66,22 @@ export class CasosController {
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PlazoState> {
     return this.casosService.getPlazo(id, caller.id);
+  }
+
+  @Patch(":id/estado")
+  setEstado(
+    @Param("id") id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() body: EstadoCasoDto,
+  ): Promise<CaseEstado> {
+    return this.casosService.setEstado(id, caller.id, body);
+  }
+
+  @Get(":id/categorias")
+  listCategorias(
+    @Param("id") id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<CategoriaItem[]> {
+    return this.casosService.listCategorias(id, caller.id);
   }
 }

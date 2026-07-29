@@ -284,15 +284,53 @@ app/notices/{_layout,activity}.tsx                      Actividad del proceso �
 ```
 `*` The route filename is still `messages.tsx` (kept deliberately per the phase-7 instructions) but it renders the Notice Center directly — the visible tab label is "Avisos", i18n key `tabs.notices`. No tab or screen is a placeholder anymore. Only stable IDs (`id`, `positionId`) ever appear in route params — no draft text, decisions, values, timestamps, notice/activity payload data, mediator request state, or profile data. No profile, notices, or mediator route needs anything beyond the case `id` in its params. Phase 9 added **zero new routes** — the invitation-acceptance simulation is a same-screen action on the existing `/case/[id]` route, and the unknown-negotiation-case fix reuses the existing `/case/[id]/negotiation` route's own `ErrorState`.
 
+## Dependency installation
+
+This project is part of a pnpm workspace. Dependencies must be installed from the **repository root**, not from `mediacion-app/`.
+
+```bash
+# Repository root: C:\Users\Usuario\Documents\GitHub\Mediacion
+pnpm install
+```
+
+The root `pnpm-lock.yaml` is the single lockfile for the entire workspace. There is no separate lockfile inside `mediacion-app/`.
+
+### When to run `pnpm install`
+
+- After pulling, switching branches, or merging when `package.json` or `pnpm-lock.yaml` changed.
+- When `pnpm test`, `pnpm start`, or `npx expo export` fail with missing-module errors.
+- Do **not** run install before every command when dependencies are already present and package metadata is unchanged.
+
+### CI, clean clones, temporary worktrees, and merge audits
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+This must **fail** rather than silently rewrite the lockfile when `package.json` metadata and the lockfile are inconsistent.
+
+### Rules
+
+- **Never** use `npm` or `yarn` in this repository — always `pnpm`.
+- **Never** manually edit `pnpm-lock.yaml`.
+- **Never** use a non-frozen install to bypass a lockfile validation failure — investigate and resolve the discrepancy.
+- After installing, verify `git status --short` and ensure package files were not unexpectedly modified.
+
 ## Validation commands (run every phase)
 
 ```
+pnpm test                       # Jest unit tests (5 suites, 40 tests)
 pnpm exec tsc --noEmit
-pnpm exec expo lint            # project's own eslint-config-expo, not root biome
-npx expo-doctor                # not a project devDependency — always via npx
-npx expo export --platform ios --output-dir <tmp>
-npx expo export --platform web --output-dir <tmp>
+pnpm exec expo lint             # project's own eslint-config-expo, not root biome
+pnpm start --clear              # Metro cache clear + web dev server — required for runtime smoke test
 ```
+
+`pnpm test`, `npx tsc --noEmit`, and `npx expo lint` are automated checks — they must pass. `pnpm start --clear` is required for runtime and browser verification: open the web app and inspect layout, navigation, responsive breakpoints, and dialog behavior at representative viewport widths (390, 768, 1024, 1440 px). Production-build smoke test (`npx expo export --platform web`) is an additional check, not a substitute for `pnpm start`.
+
+The file `app/+html.tsx` must preserve `<ScrollViewStyleReset />` from `expo-router/html`. Removing it will break full-viewport height on web.
+
+Optionally also run: `npx expo-doctor` (not a project devDependency — always via `npx`), and `npx expo export --platform ios --output-dir <tmp>` / `npx expo export --platform web --output-dir <tmp>`.
+
 If `tsc` reports garbled/duplicated content in `.expo/types/router.d.ts`, that's a stale or corrupted **gitignored** typegen cache (seen after route restructuring, and once after two concurrent export runs raced writing the same file) — `rm -rf mediacion-app/.expo/types` and re-run an export to regenerate it cleanly; never hand-edit it.
 
 This sandbox mounts the repo at a lowercase-`documents` path while the real path is capitalized (`Documents`) — Metro's file-watcher hashing fails ("Failed to get the SHA-1 for...") when commands run from the lowercase path. Always `cd` to the `C:/Users/Usuario/Documents/...` (capital D) form before running `expo export`/`expo start`.

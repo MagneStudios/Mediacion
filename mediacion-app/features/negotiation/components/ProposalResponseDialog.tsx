@@ -60,7 +60,7 @@ export function ProposalResponseDialog({
             <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={onConfirm} />
           ) : (
             <View style={styles.actions}>
-              <Button variant={confirmVariant} fullWidth onPress={onConfirm} disabled={status === 'submitting'}>
+              <Button variant={confirmVariant} fullWidth onPress={onConfirm} loading={status === 'submitting'}>
                 {confirmLabel}
               </Button>
               <Button variant="tertiary" fullWidth onPress={onCancel} disabled={status === 'submitting'}>

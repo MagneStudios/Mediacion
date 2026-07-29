@@ -22,9 +22,10 @@ export default function CaseCreateSuccessScreen() {
   const handleViewCase = () => {
     reset();
     blurActiveElement();
-    router.dismissTo('/(tabs)');
     if (caseId) {
-      router.push({ pathname: '/case/[id]', params: { id: caseId } });
+      router.replace({ pathname: '/case/[id]', params: { id: caseId } });
+    } else {
+      router.dismissTo('/(tabs)');
     }
   };
 

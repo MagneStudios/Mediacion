@@ -106,6 +106,36 @@ describe("CasosController unit", () => {
       semaforo: "rojo",
     });
   });
+
+  it("declares the autonomous end of the negotiation for the caller", async () => {
+    const setEstado = jest
+      .fn()
+      .mockResolvedValue({ id: "caso-1", estado: "terminado" });
+    const controller = new CasosController({
+      setEstado,
+    } as unknown as CasosService);
+
+    const result = await controller.setEstado("caso-1", parteA, {
+      estado: "terminado",
+    });
+
+    expect(setEstado).toHaveBeenCalledWith("caso-1", "user-a", {
+      estado: "terminado",
+    });
+    expect(result).toEqual({ id: "caso-1", estado: "terminado" });
+  });
+
+  it("lists the predefined base categories for the caller's case", async () => {
+    const listCategorias = jest.fn().mockResolvedValue(["bienes"]);
+    const controller = new CasosController({
+      listCategorias,
+    } as unknown as CasosService);
+
+    const result = await controller.listCategorias("caso-1", parteA);
+
+    expect(listCategorias).toHaveBeenCalledWith("caso-1", "user-a");
+    expect(result).toEqual(["bienes"]);
+  });
 });
 
 describe("POST/GET /casos end-to-end isolation", () => {

@@ -136,8 +136,8 @@ export default function ProfileEditScreen() {
       {updateStatus === 'error' ? (
         <ErrorState title={t('profile.edit.error.title')} retryLabel={t('profile.edit.error.retry')} onRetry={handleSave} />
       ) : (
-        <Button variant="primary" fullWidth onPress={handleSave} disabled={updateStatus === 'pending'}>
-          {updateStatus === 'pending' ? t('common.loading') : t('profile.edit.save')}
+        <Button variant="primary" fullWidth onPress={handleSave} loading={updateStatus === 'pending'} loadingLabel={t('common.loading')}>
+          {t('profile.edit.save')}
         </Button>
       )}
       {savedOnce && updateStatus === 'idle' ? <Text style={styles.savedText}>{t('profile.edit.saved')}</Text> : null}

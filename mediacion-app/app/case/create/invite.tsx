@@ -98,7 +98,10 @@ export default function CaseCreateInviteScreen() {
             description={t(`caseCreation.invite.method.${option}.description`)}
             selected={tipo === option}
             selectedLabel={t('caseCreation.method.selected')}
-            onPress={() => setTipo(option)}
+            onPress={() => {
+              setTipo(option);
+              setEmailTouched(false);
+            }}
           />
         ))}
 
@@ -109,7 +112,6 @@ export default function CaseCreateInviteScreen() {
             value={email}
             onChangeText={(value) => {
               setEmail(value);
-              if (emailTouched) setEmailTouched(false);
             }}
             error={emailError}
             keyboardType="email-address"
@@ -156,8 +158,8 @@ export default function CaseCreateInviteScreen() {
             onRetry={handlePrepare}
           />
         ) : (
-          <Button variant="primary" fullWidth disabled={!tipo || status === 'submitting'} onPress={handlePrepare}>
-            {status === 'submitting' ? t('common.loading') : t('caseCreation.invite.sendInvitation')}
+          <Button variant="primary" fullWidth disabled={!tipo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
+            {t('caseCreation.invite.sendInvitation')}
           </Button>
         )}
       </ScrollView>

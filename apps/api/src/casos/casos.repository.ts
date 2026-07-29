@@ -169,6 +169,21 @@ export class CasosRepository {
       });
   }
 
+  updateEstado(
+    casoId: string,
+    estado: Caso["estado"],
+  ): Promise<Pick<Caso, "id" | "estado">> {
+    return this.kysely
+      .updateTable("casos")
+      .set({ estado })
+      .where("id", "=", casoId)
+      .returning(["id", "estado"])
+      .executeTakeFirstOrThrow()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   findPlazo(casoId: string): Promise<Pick<Caso, "id" | "plazo"> | undefined> {
     return this.kysely
       .selectFrom("casos")

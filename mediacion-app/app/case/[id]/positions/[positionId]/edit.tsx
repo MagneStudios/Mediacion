@@ -212,8 +212,8 @@ export default function EditPositionScreen() {
               onRetry={handleSave}
             />
           ) : (
-            <Button variant="primary" fullWidth onPress={handleSave} disabled={saveStatus === 'submitting'}>
-              {saveStatus === 'submitting' ? t('positions.review.saving') : t('positions.edit.save')}
+            <Button variant="primary" fullWidth onPress={handleSave} loading={saveStatus === 'submitting'} loadingLabel={t('positions.review.saving')}>
+              {t('positions.edit.save')}
             </Button>
           )
         ) : null}

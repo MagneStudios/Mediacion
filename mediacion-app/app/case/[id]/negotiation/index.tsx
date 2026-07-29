@@ -189,8 +189,8 @@ export default function NegotiationDashboardScreen() {
         startRoundStatus === 'error' ? (
           <ErrorState title={t('negotiation.startRound.error.title')} retryLabel={t('common.retry')} onRetry={startNextRound} />
         ) : (
-          <Button variant="primary" fullWidth onPress={startNextRound} disabled={startRoundStatus === 'pending'}>
-            {startRoundStatus === 'pending' ? t('common.loading') : t('negotiation.startRound.action')}
+          <Button variant="primary" fullWidth onPress={startNextRound} loading={startRoundStatus === 'pending'} loadingLabel={t('common.loading')}>
+            {t('negotiation.startRound.action')}
           </Button>
         )
       ) : null}
