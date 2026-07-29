@@ -460,6 +460,18 @@
         "title": "We couldn't prepare the document"
       }
     },
+    "export": {
+      "action": "Export agreement (plain text)",
+      "exportingTitle": "Preparing the exported file",
+      "exportingBody": "The plain-text file will be ready in a moment.",
+      "success": {
+        "title": "Agreement exported",
+        "body": "A plain-text summary was generated in this test environment. It is not a signed or legally binding document."
+      },
+      "error": {
+        "title": "We couldn't export the agreement"
+      }
+    },
     "sign": {
       "title": "Sign agreement",
       "goToAction": "Go to sign",

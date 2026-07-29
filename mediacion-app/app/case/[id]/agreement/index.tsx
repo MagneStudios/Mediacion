@@ -8,6 +8,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
+import { AgreementExportAction } from '@/features/agreements/components/AgreementExportAction';
 import { DocumentPreparationState } from '@/features/agreements/components/DocumentPreparationState';
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
@@ -115,6 +116,22 @@ export default function AgreementDashboardScreen() {
           {t('agreement.sign.goToAction')}
         </Button>
       ) : null}
+
+      <AgreementExportAction
+        status="idle"
+        onExport={() => {
+          // Placeholder only — no export service exists yet in this phase.
+          // Intentionally a no-op: never fabricate a pending/success result
+          // without a real backend call behind it.
+        }}
+        actionLabel={t('agreement.export.action')}
+        exportingTitle={t('agreement.export.exportingTitle')}
+        exportingBody={t('agreement.export.exportingBody')}
+        successTitle={t('agreement.export.success.title')}
+        successBody={t('agreement.export.success.body')}
+        errorTitle={t('agreement.export.error.title')}
+        retryLabel={t('common.retry')}
+      />
 
       {waitingForOtherParty ? <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text> : null}
 

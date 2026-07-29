@@ -460,6 +460,18 @@
         "title": "No pudimos preparar el documento"
       }
     },
+    "export": {
+      "action": "Exportar acuerdo (texto plano)",
+      "exportingTitle": "Preparando el archivo exportado",
+      "exportingBody": "El archivo de texto plano estará listo en un instante.",
+      "success": {
+        "title": "Acuerdo exportado",
+        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
+      },
+      "error": {
+        "title": "No pudimos exportar el acuerdo"
+      }
+    },
     "sign": {
       "title": "Firmar acuerdo",
       "goToAction": "Ir a firmar",
