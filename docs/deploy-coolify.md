@@ -1,0 +1,104 @@
+# Deploying the API on Coolify
+
+The VPS at `169.58.88.64:8000` runs **Coolify**, and Supabase is already deployed
+through it. This describes how the NestJS API (`apps/api`) joins it.
+
+## 1. Create the resource
+
+New resource → **Private/Public Repository** → `github.com/MagneStudios/Mediacion`.
+
+| Setting | Value |
+|---|---|
+| Build pack | `Dockerfile` |
+| Dockerfile location | `apps/api/Dockerfile` |
+| Base directory | `/` (repo root — **not** `apps/api`) |
+| Port | `3000` |
+| Branch | `main` |
+
+The base directory must stay at the repo root: the API depends on
+`@mediacion/db-types` and `@mediacion/shared` through `workspace:*`, so the
+lockfile and both packages have to be inside the build context.
+
+## 2. `DATABASE_URL` — the one that bites
+
+Postgres is **not** reachable from outside the server. Verified:
+
+```
+$ psql postgresql://…@169.58.88.64:5432/postgres
+connect ECONNREFUSED 169.58.88.64:5432
+```
+
+Coolify keeps the database inside its Docker network, which is the correct
+posture — do not publish 5432 to fix this.
+
+So the `DATABASE_URL` that uses the public IP works from **nowhere**, including
+from another container on the same host unless they share a network. Attach the
+API to the same Docker network as the Supabase service and point
+`DATABASE_URL` at the **internal** hostname, which Coolify shows on the Supabase
+service page (it looks like `supabase-db-<id>`):
+
+```
+DATABASE_URL=postgresql://postgres:<password>@<internal-db-host>:5432/postgres
+```
+
+Same for `SUPABASE_URL`: the internal Kong hostname avoids a pointless round trip
+back out through nginx.
+
+## 3. Environment variables
+
+### Required — the API refuses to boot without these
+
+| Variable | Where it comes from |
+|---|---|
+| `SUPABASE_JWT_SECRET` | Coolify → Supabase service → the JWT secret. Must be the value the `anon`/`service_role` keys were signed with, or every request 401s. |
+| `DATABASE_URL` | See section 2 — internal host, not the public IP. |
+| `CRON_SECRET` | Any strong random string you choose. Guards `GET /sweep`. |
+
+### Recommended
+
+| Variable | Notes |
+|---|---|
+| `PORT` | Defaults to `3000`. |
+| `CORS_ORIGINS` | Comma-separated. **Leave unset and CORS stays off**, which breaks Expo Web but is safe for native. Set it to the web origin once there is one. |
+
+### Optional — features degrade gracefully when absent
+
+Since PR #44 these no longer block startup; the feature that needs them is
+simply inert.
+
+| Variable | Feature |
+|---|---|
+| `OPENROUTER_API_KEY` | AI proposal generation |
+| `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | MercadoPago checkout and webhook |
+| `DOCUSIGN_*` | Agreement signature flow |
+| `SMTP_*`, `FCM_KEY`, `APNS_KEY` | Notification delivery |
+
+**Never** set `SUPABASE_SERVICE_ROLE_KEY` on the API. It does not read it: the
+API connects with its own `DATABASE_URL` and enforces isolation in code.
+
+## 4. Verifying a deploy
+
+`GET /health` is public and needs no token — it is what the container
+healthcheck uses:
+
+```
+curl -s https://<api-host>/health          # {"status":"ok"}
+curl -s -o /dev/null -w '%{http_code}' https://<api-host>/casos   # 401
+```
+
+A `401 unauthorized` from `/casos` is the healthy answer: it proves the guard is
+active. A `500` there usually means `DATABASE_URL` is wrong — the guard loads
+the caller from `public.usuarios` on every request.
+
+Both were verified locally against the real Supabase credentials before this
+document was written.
+
+## 5. The frontend
+
+`mediacion-app` is an Expo app. It reads `EXPO_PUBLIC_SUPABASE_URL`,
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` and `EXPO_PUBLIC_API_URL` (see
+`mediacion-app/env.example`). Those are inlined into the bundle at build time,
+so they are set wherever the bundle is built, not on the API container.
+
+`config/env.ts` refuses to start if the anon slot holds a `service_role` key —
+that key bypasses RLS for every caller and must never ship to a client.

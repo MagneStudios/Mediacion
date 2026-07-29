@@ -28,6 +28,7 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     mpAccessToken: "mp-access-token",
     mpWebhookSecret: "mp-webhook-secret",
     cronSecret,
+    corsOrigins: [],
     ...overrides,
   };
 }

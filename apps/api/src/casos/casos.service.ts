@@ -7,11 +7,15 @@ import type {
   CaseDetail,
   CaseEstado,
   CaseSummary,
+  Caso,
+  Contraparte,
+  ContraparteByCaso,
   CreateCasoDto,
   EstadoCasoDto,
   MetodoCaso,
   PlazoDto,
   PlazoState,
+  Semaforo,
 } from "./casos.types";
 import { estadoCasoTerminado } from "./casos.types";
 import { categoriasBase } from "./categorias";
@@ -67,6 +71,36 @@ function assertValidPlazo(input: PlazoDto, now: Date): Date {
   return plazo;
 }
 
+/**
+ * TIMESTAMPTZ columns are typed as string but node-postgres hands back a Date at
+ * runtime, so both shapes have to survive this conversion.
+ */
+function semaforoOf(
+  plazo: Caso["plazo"] | undefined,
+  now: Date,
+): Semaforo | null {
+  if (plazo === null || plazo === undefined) {
+    return null;
+  }
+  return computeSemaforo(new Date(plazo), now);
+}
+
+function contraparteOf(
+  contrapartes: ContraparteByCaso[],
+  casoId: string,
+): Contraparte | null {
+  const match = contrapartes.find((row) => row.caso_id === casoId);
+  if (!match) {
+    return null;
+  }
+  return {
+    usuario_id: match.usuario_id,
+    rol_en_caso: match.rol_en_caso,
+    nombre: match.nombre,
+    apellido: match.apellido,
+  };
+}
+
 @Injectable()
 export class CasosService {
   constructor(
@@ -90,8 +124,21 @@ export class CasosService {
     return { id: caso.id, estado: caso.estado };
   }
 
-  listOwnCases(callerId: string): Promise<CaseSummary[]> {
-    return this.casosRepository.findOwnCases(callerId);
+  async listOwnCases(callerId: string): Promise<CaseSummary[]> {
+    const rows = await this.casosRepository.findOwnCases(callerId);
+    if (rows.length === 0) {
+      return [];
+    }
+    const contrapartes = await this.casosRepository.findContrapartes(
+      rows.map((row) => row.id),
+      callerId,
+    );
+    const now = new Date();
+    return rows.map((row) => ({
+      ...row,
+      semaforo: semaforoOf(row.plazo, now),
+      contraparte: contraparteOf(contrapartes, row.id),
+    }));
   }
 
   async getCaseDetail(casoId: string, callerId: string): Promise<CaseDetail> {
@@ -106,7 +153,15 @@ export class CasosService {
         HttpStatus.NOT_FOUND,
       );
     }
-    return detail;
+    const contrapartes = await this.casosRepository.findContrapartes(
+      [casoId],
+      callerId,
+    );
+    return {
+      ...detail,
+      semaforo: semaforoOf(detail.plazo, new Date()),
+      contraparte: contraparteOf(contrapartes, casoId),
+    };
   }
 
   async setPlazo(

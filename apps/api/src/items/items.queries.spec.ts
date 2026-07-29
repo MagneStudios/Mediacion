@@ -2,6 +2,7 @@ import type { Database } from "@mediacion/db-types";
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import {
+  buildDeleteOwnQuery,
   buildFindOwnByIdQuery,
   buildFindOwnQuery,
   buildUpdateOwnQuery,
@@ -77,5 +78,28 @@ describe("items query builders", () => {
     expect(setClause).not.toMatch(/"caso_id"/i);
     expect(compiled.parameters).not.toContain("user-b");
     expect(compiled.parameters).not.toContain("other-case");
+  });
+
+  it("buildDeleteOwnQuery compiles a DELETE scoped by id and parte_id, returning the deleted id", () => {
+    const db = createCompileOnlyKysely();
+
+    const compiled = buildDeleteOwnQuery(db, "item-1", "user-1").compile();
+
+    expect(compiled.sql).toMatch(/^delete\s+from\s+"items"/i);
+    expect(compiled.sql).toMatch(parteIdWherePredicate);
+    expect(compiled.sql).toMatch(/returning\s+"id"/i);
+    expect(compiled.parameters).toEqual(["item-1", "user-1"]);
+  });
+
+  it("buildDeleteOwnQuery never emits an unscoped DELETE, which would wipe another parte's item", () => {
+    const db = createCompileOnlyKysely();
+
+    const compiled = buildDeleteOwnQuery(db, "item-1", "user-1").compile();
+    const whereClause = compiled.sql.split(/where/i)[1] ?? "";
+
+    expect(whereClause).toContain('"parte_id"');
+    expect(compiled.sql).not.toMatch(
+      /delete\s+from\s+"items"\s*(returning|$)/i,
+    );
   });
 });

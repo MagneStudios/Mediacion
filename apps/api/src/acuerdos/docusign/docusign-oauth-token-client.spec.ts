@@ -32,6 +32,7 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     fcmKey: "fcm-key",
     apnsKey: "apns-key",
     cronSecret: "cron-secret",
+    corsOrigins: [],
     ...overrides,
   };
 }

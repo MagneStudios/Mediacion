@@ -1,0 +1,20 @@
+# Everything the image must never carry, and everything that would bust the
+# build cache without changing the build.
+node_modules
+**/node_modules
+**/dist
+**/.expo
+**/coverage
+.git
+.github
+.claude
+.vercel
+mediacion-app
+supabase
+docs
+agents
+**/*.log
+**/.DS_Store
+.env
+.env.*
+!env.example

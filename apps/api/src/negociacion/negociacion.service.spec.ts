@@ -41,6 +41,7 @@ function buildService(overrides?: {
   findCasoId?: jest.Mock;
   resolveRespuesta?: jest.Mock;
   findForCase?: jest.Mock;
+  findDetailForCase?: jest.Mock;
 }) {
   const membershipService = {
     assertMembership:
@@ -58,6 +59,8 @@ function buildService(overrides?: {
     findCasoId: overrides?.findCasoId ?? jest.fn().mockResolvedValue("caso-1"),
     resolveRespuesta: overrides?.resolveRespuesta ?? jest.fn(),
     findForCase: overrides?.findForCase ?? jest.fn().mockResolvedValue([]),
+    findDetailForCase:
+      overrides?.findDetailForCase ?? jest.fn().mockResolvedValue([]),
   } as unknown as PropuestasRepository;
   const rondasRepository = {
     currentRondaActual:
@@ -581,11 +584,11 @@ describe("NegociacionService.listPropuestas", () => {
       .mockResolvedValue({ rol_en_caso: "parte_a" });
     const currentRondaActual = jest.fn();
     const propuestas: PropuestaView[] = [];
-    const findForCase = jest.fn().mockResolvedValue(propuestas);
+    const findDetailForCase = jest.fn().mockResolvedValue(propuestas);
     const { service } = buildService({
       assertMembership,
       currentRondaActual,
-      findForCase,
+      findDetailForCase,
     });
 
     const result = await service.listPropuestas("caso-1", "user-a");
@@ -599,11 +602,11 @@ describe("NegociacionService.listPropuestas", () => {
       .fn()
       .mockResolvedValue({ rol_en_caso: "mediador" });
     const currentRondaActual = jest.fn().mockResolvedValue(2);
-    const findForCase = jest.fn();
+    const findDetailForCase = jest.fn();
     const { service } = buildService({
       assertMembership,
       currentRondaActual,
-      findForCase,
+      findDetailForCase,
     });
 
     let thrown: unknown;
@@ -615,7 +618,7 @@ describe("NegociacionService.listPropuestas", () => {
 
     expect(thrown).toBeInstanceOf(HttpException);
     expect((thrown as HttpException).getStatus()).toBe(404);
-    expect(findForCase).not.toHaveBeenCalled();
+    expect(findDetailForCase).not.toHaveBeenCalled();
   });
 
   it("returns the propuestas for a mediador from round 3 onward", async () => {
@@ -624,15 +627,27 @@ describe("NegociacionService.listPropuestas", () => {
       .mockResolvedValue({ rol_en_caso: "mediador" });
     const currentRondaActual = jest.fn().mockResolvedValue(3);
     const propuestas: PropuestaView[] = [];
-    const findForCase = jest.fn().mockResolvedValue(propuestas);
+    const findDetailForCase = jest.fn().mockResolvedValue(propuestas);
     const { service } = buildService({
       assertMembership,
       currentRondaActual,
-      findForCase,
+      findDetailForCase,
     });
 
     const result = await service.listPropuestas("caso-1", "user-mediador");
 
     expect(result).toBe(propuestas);
+  });
+
+  it("asks for the snapshot scoped to the caller, so own_decision is the caller's own", async () => {
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "parte_b" });
+    const findDetailForCase = jest.fn().mockResolvedValue([]);
+    const { service } = buildService({ assertMembership, findDetailForCase });
+
+    await service.listPropuestas("caso-1", "user-b");
+
+    expect(findDetailForCase).toHaveBeenCalledWith("caso-1", "user-b");
   });
 });

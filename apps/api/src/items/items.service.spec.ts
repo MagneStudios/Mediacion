@@ -8,12 +8,14 @@ function createService(overrides: {
   findOwn?: jest.Mock;
   findOwnById?: jest.Mock;
   updateOwnWithLock?: jest.Mock;
+  deleteOwn?: jest.Mock;
 }) {
   const itemsRepository = {
     createOwn: overrides.createOwn ?? jest.fn(),
     findOwn: overrides.findOwn ?? jest.fn(),
     findOwnById: overrides.findOwnById ?? jest.fn(),
     updateOwnWithLock: overrides.updateOwnWithLock ?? jest.fn(),
+    deleteOwn: overrides.deleteOwn ?? jest.fn(),
   };
   const membershipService = {
     assertMembership: overrides.assertMembership ?? jest.fn(),
@@ -422,6 +424,51 @@ describe("ItemsService", () => {
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(400);
       expect(updateOwnWithLock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteOwnItem", () => {
+    it("deletes the caller's own item, scoping the delete by the caller id", async () => {
+      const deleteOwn = jest.fn().mockResolvedValue({ id: "item-1" });
+      const service = createService({ deleteOwn });
+
+      await expect(
+        service.deleteOwnItem("item-1", "user-a"),
+      ).resolves.toBeUndefined();
+
+      expect(deleteOwn).toHaveBeenCalledWith("item-1", "user-a");
+    });
+
+    it("returns 404 item_not_found when the item belongs to the other parte, disclosing nothing", async () => {
+      const deleteOwn = jest.fn().mockResolvedValue(undefined);
+      const service = createService({ deleteOwn });
+
+      let thrown: unknown;
+      try {
+        await service.deleteOwnItem("item-of-parte-b", "user-a");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(404);
+      expect(JSON.stringify((thrown as HttpException).getResponse())).toContain(
+        "item_not_found",
+      );
+    });
+
+    it("returns the same 404 for an item that never existed", async () => {
+      const deleteOwn = jest.fn().mockResolvedValue(undefined);
+      const service = createService({ deleteOwn });
+
+      let thrown: unknown;
+      try {
+        await service.deleteOwnItem("missing", "user-a");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect((thrown as HttpException).getStatus()).toBe(404);
     });
   });
 });

@@ -13,6 +13,7 @@ describe("CasosService", () => {
     findDetailForMember?: jest.Mock;
     updatePlazo?: jest.Mock;
     findPlazo?: jest.Mock;
+    findContrapartes?: jest.Mock;
     assertMembership?: jest.Mock;
     assertCanCreateCase?: jest.Mock;
   }) {
@@ -22,6 +23,8 @@ describe("CasosService", () => {
       findDetailForMember: overrides?.findDetailForMember ?? jest.fn(),
       updatePlazo: overrides?.updatePlazo ?? jest.fn(),
       findPlazo: overrides?.findPlazo ?? jest.fn(),
+      findContrapartes:
+        overrides?.findContrapartes ?? jest.fn().mockResolvedValue([]),
     } as unknown as CasosRepository;
     const membershipService = {
       assertMembership: overrides?.assertMembership ?? jest.fn(),
@@ -148,15 +151,109 @@ describe("CasosService", () => {
   });
 
   describe("listOwnCases", () => {
+    const now = new Date("2026-07-24T12:00:00.000Z");
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    function summaryRow(overrides?: Record<string, unknown>) {
+      return {
+        id: "caso-1",
+        nombre: "Divorcio",
+        estado: "activo",
+        metodo: "mediacion",
+        created_at: "2026-07-01T00:00:00.000Z",
+        plazo: null,
+        sla_tipo: null,
+        ronda_actual: 1,
+        ...overrides,
+      };
+    }
+
     it("delegates to the repository using the caller's id", async () => {
-      const rows = [{ id: "caso-1" }];
-      const findOwnCases = jest.fn().mockResolvedValue(rows);
+      const findOwnCases = jest.fn().mockResolvedValue([summaryRow()]);
       const { service } = buildService({ findOwnCases });
+
+      await service.listOwnCases("user-1");
+
+      expect(findOwnCases).toHaveBeenCalledWith("user-1");
+    });
+
+    it("exposes the sla columns the dashboard needs and computes the semaforo", async () => {
+      const findOwnCases = jest.fn().mockResolvedValue([
+        summaryRow({
+          plazo: "2026-07-24T20:00:00.000Z",
+          sla_tipo: "negociacion",
+          ronda_actual: 3,
+        }),
+      ]);
+      const { service } = buildService({ findOwnCases });
+
+      const [summary] = await service.listOwnCases("user-1");
+
+      expect(summary.sla_tipo).toBe("negociacion");
+      expect(summary.ronda_actual).toBe(3);
+      expect(summary.plazo).toBe("2026-07-24T20:00:00.000Z");
+      expect(summary.semaforo).toBe("rojo");
+    });
+
+    it("returns a null semaforo when the caso has no plazo", async () => {
+      const findOwnCases = jest.fn().mockResolvedValue([summaryRow()]);
+      const { service } = buildService({ findOwnCases });
+
+      const [summary] = await service.listOwnCases("user-1");
+
+      expect(summary.semaforo).toBeNull();
+    });
+
+    it("attaches the counterparty of each caso, asking only once for every caso id", async () => {
+      const findOwnCases = jest
+        .fn()
+        .mockResolvedValue([
+          summaryRow({ id: "caso-1" }),
+          summaryRow({ id: "caso-2" }),
+        ]);
+      const findContrapartes = jest.fn().mockResolvedValue([
+        {
+          caso_id: "caso-2",
+          usuario_id: "user-2",
+          rol_en_caso: "parte_b",
+          nombre: "Ana",
+          apellido: "Perez",
+        },
+      ]);
+      const { service } = buildService({ findOwnCases, findContrapartes });
+
+      const [first, second] = await service.listOwnCases("user-1");
+
+      expect(findContrapartes).toHaveBeenCalledTimes(1);
+      expect(findContrapartes).toHaveBeenCalledWith(
+        ["caso-1", "caso-2"],
+        "user-1",
+      );
+      expect(first.contraparte).toBeNull();
+      expect(second.contraparte).toEqual({
+        usuario_id: "user-2",
+        rol_en_caso: "parte_b",
+        nombre: "Ana",
+        apellido: "Perez",
+      });
+    });
+
+    it("does not query counterparties at all when the caller has no cases", async () => {
+      const findOwnCases = jest.fn().mockResolvedValue([]);
+      const findContrapartes = jest.fn();
+      const { service } = buildService({ findOwnCases, findContrapartes });
 
       const result = await service.listOwnCases("user-1");
 
-      expect(findOwnCases).toHaveBeenCalledWith("user-1");
-      expect(result).toBe(rows);
+      expect(result).toEqual([]);
+      expect(findContrapartes).not.toHaveBeenCalled();
     });
   });
 
@@ -169,7 +266,7 @@ describe("CasosService", () => {
         rol_en_caso: "parte_a",
         estado_invitacion: estadoInvitacionAceptada,
       });
-      const detail = { id: "caso-1", nombre: "Divorcio" };
+      const detail = { id: "caso-1", nombre: "Divorcio", plazo: null };
       const findDetailForMember = jest.fn().mockResolvedValue(detail);
       const { service } = buildService({
         assertMembership,
@@ -180,7 +277,74 @@ describe("CasosService", () => {
 
       expect(assertMembership).toHaveBeenCalledWith("caso-1", "user-1");
       expect(findDetailForMember).toHaveBeenCalledWith("caso-1", "user-1");
-      expect(result).toBe(detail);
+      expect(result).toMatchObject({ id: "caso-1", nombre: "Divorcio" });
+    });
+
+    it("adds the semaforo and the counterparty to the detail payload", async () => {
+      jest.useFakeTimers().setSystemTime(new Date("2026-07-24T12:00:00.000Z"));
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-1",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const findDetailForMember = jest.fn().mockResolvedValue({
+        id: "caso-1",
+        nombre: "Divorcio",
+        plazo: "2026-07-26T12:00:00.000Z",
+        sla_tipo: "negociacion",
+        ronda_actual: 2,
+      });
+      const findContrapartes = jest.fn().mockResolvedValue([
+        {
+          caso_id: "caso-1",
+          usuario_id: "user-2",
+          rol_en_caso: "parte_b",
+          nombre: "Ana",
+          apellido: "Perez",
+        },
+      ]);
+      const { service } = buildService({
+        assertMembership,
+        findDetailForMember,
+        findContrapartes,
+      });
+
+      const result = await service.getCaseDetail("caso-1", "user-1");
+
+      expect(result.semaforo).toBe("amarillo");
+      expect(result.ronda_actual).toBe(2);
+      expect(result.contraparte).toEqual({
+        usuario_id: "user-2",
+        rol_en_caso: "parte_b",
+        nombre: "Ana",
+        apellido: "Perez",
+      });
+      jest.useRealTimers();
+    });
+
+    it("reports a null counterparty while the other party has not joined yet", async () => {
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-1",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const findDetailForMember = jest
+        .fn()
+        .mockResolvedValue({ id: "caso-1", nombre: "Divorcio", plazo: null });
+      const findContrapartes = jest.fn().mockResolvedValue([]);
+      const { service } = buildService({
+        assertMembership,
+        findDetailForMember,
+        findContrapartes,
+      });
+
+      const result = await service.getCaseDetail("caso-1", "user-1");
+
+      expect(result.contraparte).toBeNull();
     });
 
     it("propagates the 404 thrown by the membership guard for non-members", async () => {

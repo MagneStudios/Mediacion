@@ -36,4 +36,12 @@ describe("computeSemaforo", () => {
 
     expect(computeSemaforo(plazo, now)).toBe("amarillo");
   });
+
+  it("returns null for an invalid date instead of reporting a healthy 'verde'", () => {
+    expect(computeSemaforo(new Date("not-a-date"), now)).toBeNull();
+  });
+
+  it("returns null when plazo is undefined, which a partial row can produce", () => {
+    expect(computeSemaforo(undefined, now)).toBeNull();
+  });
 });
