@@ -17,8 +17,10 @@ export type DocumentPreparationStateProps = {
  */
 export function DocumentPreparationState({ title, description }: DocumentPreparationStateProps) {
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="small" color={semanticColors.text.secondary} />
+    <View style={styles.container} accessibilityLiveRegion="polite">
+      <View accessibilityRole="progressbar" accessibilityLabel={title}>
+        <ActivityIndicator size="small" color={semanticColors.text.secondary} />
+      </View>
       <View style={styles.textColumn}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
