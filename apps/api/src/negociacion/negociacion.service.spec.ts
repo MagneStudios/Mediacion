@@ -1,4 +1,5 @@
 import { HttpException, Logger } from "@nestjs/common";
+import type { CasosRepository } from "../casos/casos.repository";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import type { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
@@ -76,9 +77,13 @@ function buildService(overrides?: {
       overrides?.generateProposal ??
       jest.fn().mockResolvedValue({ text: "Propuesta generada." }),
   } as unknown as AiProposalGenerator;
+  const casosRepository = {
+    activateNegotiation: jest.fn().mockResolvedValue(undefined),
+  } as unknown as CasosRepository;
   return {
     service: new NegociacionService(
       membershipService as never,
+      casosRepository as never,
       propuestasRepository,
       rondasRepository,
       configuracionRepository,

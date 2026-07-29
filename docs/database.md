@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-07-24
+> Última actualización: 2026-07-28
 
 ## Objetivo
 
@@ -27,16 +27,22 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 ```
 supabase/migrations/
 ├── 20260721191631_extensions.sql    # pgcrypto
-├── 20260721191644_enums.sql         # 18 tipos enum
+├── 20260721191644_enums.sql         # 19 tipos enum
 ├── 20260721191651_tables.sql        # 22 tablas + grants
 ├── 20260721191655_constraints_indexes.sql  # CHECK XOR, UNIQUE, 16 índices
-├── 20260721191658_functions_triggers.sql   # 11 funciones, 45 triggers
+├── 20260721191658_functions_triggers.sql   # 12 funciones, 47 triggers
 ├── 20260721191704_rls_policie.sql   # 41 policies en 22 tablas
 ├── 20260721191707_seed_catalog.sql  # 4 planes + 5 configs
 ├── 20260723210000_acuerdos_caso_unique.sql          # UNIQUE acuerdos.caso_id
 ├── 20260724011737_propuestas_ronda_unique.sql       # UNIQUE propuestas(caso_id, ronda_id)
 ├── 20260724130000_propuesta_estado_trigger.sql      # validate_propuesta_estado_transition()
-└── 20260724150000_mediaciones_write_rls.sql         # INSERT/UPDATE RLS mediaciones
+├── 20260724150000_mediaciones_write_rls.sql         # INSERT/UPDATE RLS mediaciones
+├── 20260724160000_mediaciones_caso_activa_unique.sql # partial unique mediaciones
+├── 20260724170000_notificaciones_vencimiento_unique.sql  # partial unique notif vencimiento
+├── 20260728000000_notificaciones_estado_enum.sql    # notificaciones.estado TEXT → enum
+├── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
+├── 20260728120000_usuarios_consentimiento.sql       # consentimiento_fecha + consentimiento_envelope_id en usuarios
+└── 20260728130000_tareas_acuerdo_generation_unique.sql # UNIQUE tareas(acuerdo_id, descripcion)
 ```
 
 ## Modelo de datos (22 tablas)
@@ -151,21 +157,25 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_10_rls_deep.sql` | Mediator/admin/non-member vs RLS |
 | `test_11_helper_functions.sql` | is_part_of_case, is_admin, etc. |
 | `test_12_e2e_flow.sql` | Flujo completo: caso → rondas → propuestas → mediación → acuerdos → cierre |
+| `test_13_backend_migrations.sql` | UNIQUE acuerdos, propuestas, máquina de estados propuesta, mediaciones write RLS |
+| `test_14_bug41_regression.sql` | Regression bug #4.1: transición activo→en_negociacion + idempotencia |
+| `test_15_e2e_flow_full.sql` | E2E full: 17 pasos (A-Q) cubriendo toda la máquina de estados + auditoría |
 
-### Resultados de testing (2026-07-22)
+### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 56/56 PASS
-- 22 tablas, 11 funciones, 18 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
+**Schema validation (smoke_migrations.py):** 64/64 PASS
+- 22 tablas, 12 funciones, 19 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
 
 **RLS validation (validate_rls.py):** 13/13 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
 - Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos
 
-**SQL tests (A1-E4):** 24/24 PASS
-- RLS: items, casos, configuración, auditoría, notificaciones, suscripciones
-- Integrity: CHECK XOR, unique constraints, FK protection, state machine
+**SQL tests (15 tests — setup + 12 standalone + 2 E2E):**
+- RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
+- Integrity: CHECK XOR, unique constraints (caso_partes, rondas, acuerdos, propuestas, tareas), FK protection, state machine
 - Triggers: handle_new_user (rol default + explícito), sync_ronda_actual, audit trail, updated_at
 - Grants: authenticated/anon/service_role con CRUD completo
+- E2E: flujo completo caso→cierre + regression bug #4.1 (transición activo→en_negociacion + idempotencia)
 
 ### Hallazgo: FK sin CASCADE (D1)
 
@@ -175,16 +185,15 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 18 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 7 archivos SQL aplicados y testeados |
+| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 19 enums, relaciones y notas |
+| Fase 2 — Migraciones | ✅ Cerrada | 17 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ⏳ Pendiente | Esperando backend listo para tests de integración |
+| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 64/64 smoke + 13/13 RLS |
+| Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 
-### Pendiente del backend
-- Endpoint de webhooks (`/webhooks/docusign`, `/webhooks/mercadopago`): validación del secret/header
+### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
 
 ### Pendiente del cliente (a confirmar)
 - Precios y límites finales de los planes
-- Proveedor de biometría
 - Calendario nativo vs proveedor externo

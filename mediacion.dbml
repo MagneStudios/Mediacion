@@ -140,7 +140,6 @@ Table usuarios {
   documento text [unique, not null]
   telefono text
   idioma text [default: 'es', note: 'Idioma preferido (es / en)']
-  password_hash text
   verif_biometrica verif_biometrica [default: 'pendiente']
   estudio_id uuid
   activo bool [not null, default: true]

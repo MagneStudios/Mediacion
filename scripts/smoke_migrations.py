@@ -53,6 +53,7 @@ EXPECTED_ENUMS = [
     "estado_ronda", "estado_propuesta", "decision_propuesta",
     "estado_mediacion", "estado_acuerdo", "tipo_tarea", "estado_tarea",
     "estado_suscripcion", "estado_pago", "canal_notificacion",
+    "estado_notificacion",
 ]
 
 RLS_TABLES = [

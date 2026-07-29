@@ -117,6 +117,7 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
     );
     service = new NegociacionService(
       membershipService,
+      casosRepository,
       propuestasRepository,
       rondasRepository,
       configuracionRepository,
