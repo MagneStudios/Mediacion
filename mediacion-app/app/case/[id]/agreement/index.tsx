@@ -93,12 +93,12 @@ export default function AgreementDashboardScreen() {
     setBreachDialogVisible(false);
   };
 
-  const statusLabel = allSignaturesComplete
-    ? t('agreement.status.firmado')
-    : agreement.estado === 'enviado_a_firma'
-      ? t('agreement.status.enviado_a_firma')
-      : agreement.estado === 'con_aviso'
-        ? t('agreement.status.con_aviso')
+  const statusLabel = agreement.estado === 'con_aviso'
+    ? t('agreement.status.con_aviso')
+    : allSignaturesComplete
+      ? t('agreement.status.firmado')
+      : agreement.estado === 'enviado_a_firma'
+        ? t('agreement.status.enviado_a_firma')
         : t('agreement.status.borrador');
   const statusVisual = allSignaturesComplete ? 'success' : agreement.estado === 'enviado_a_firma' ? 'info' : 'neutral';
 

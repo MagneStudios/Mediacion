@@ -34,6 +34,7 @@ jest.mock('@/features/agreements/hooks/useAgreement', () => ({
 import AgreementDashboardScreen from '../index';
 
 function buildState(estado: EstadoAcuerdo) {
+  const isComplete = estado === 'firmado' || estado === 'con_aviso';
   return {
     agreement: {
       id: 'agr-1',
@@ -45,9 +46,17 @@ function buildState(estado: EstadoAcuerdo) {
       readyAt: null,
       completedAt: null,
     },
-    signers: [],
+    signers: isComplete
+      ? [
+          { role: 'authenticated_party' as const, status: 'firmado' as const },
+          { role: 'other_party' as const, status: 'firmado' as const },
+        ]
+      : [
+          { role: 'authenticated_party' as const, status: 'pendiente' as const },
+          { role: 'other_party' as const, status: 'pendiente' as const },
+        ],
     waitingForOtherParty: false,
-    allSignaturesComplete: estado === 'firmado',
+    allSignaturesComplete: isComplete,
     canPrepareDocument: estado === 'borrador',
     canSign: estado === 'enviado_a_firma',
     readOnly: estado === 'firmado' || estado === 'con_aviso',
@@ -231,5 +240,12 @@ describe('AgreementDashboardScreen — con_aviso copy no longer contradicts the 
     const noticeText = i18n.t('agreement.status.conAvisoNotice');
     expect(noticeText).not.toMatch(/doesn't accept new actions/i);
     expect(noticeText).not.toMatch(/no admite nuevas acciones/i);
+  });
+
+  it('does not render waiting-for-other-party copy for con_aviso', async () => {
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('con_aviso');
+    await renderScreen();
+    expect(screen.queryByText(i18n.t('agreement.response.waitingOther'))).toBeNull();
   });
 });
