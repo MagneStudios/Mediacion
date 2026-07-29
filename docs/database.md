@@ -40,7 +40,9 @@ supabase/migrations/
 ├── 20260724160000_mediaciones_caso_activa_unique.sql # partial unique mediaciones
 ├── 20260724170000_notificaciones_vencimiento_unique.sql  # partial unique notif vencimiento
 ├── 20260728000000_notificaciones_estado_enum.sql    # notificaciones.estado TEXT → enum
-└── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
+├── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
+├── 20260728120000_usuarios_consentimiento.sql       # consentimiento_fecha + consentimiento_envelope_id en usuarios
+└── 20260728130000_tareas_acuerdo_generation_unique.sql # UNIQUE tareas(acuerdo_id, descripcion)
 ```
 
 ## Modelo de datos (22 tablas)
@@ -155,8 +157,11 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_10_rls_deep.sql` | Mediator/admin/non-member vs RLS |
 | `test_11_helper_functions.sql` | is_part_of_case, is_admin, etc. |
 | `test_12_e2e_flow.sql` | Flujo completo: caso → rondas → propuestas → mediación → acuerdos → cierre |
+| `test_13_backend_migrations.sql` | UNIQUE acuerdos, propuestas, máquina de estados propuesta, mediaciones write RLS |
+| `test_14_bug41_regression.sql` | Regression bug #4.1: transición activo→en_negociacion + idempotencia |
+| `test_15_e2e_flow_full.sql` | E2E full: 17 pasos (A-Q) cubriendo toda la máquina de estados + auditoría |
 
-### Resultados de testing (2026-07-22)
+### Resultados de testing
 
 **Schema validation (smoke_migrations.py):** 64/64 PASS
 - 22 tablas, 12 funciones, 19 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
@@ -165,11 +170,12 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
 - Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos
 
-**SQL tests (A1-E4):** 24/24 PASS
-- RLS: items, casos, configuración, auditoría, notificaciones, suscripciones
-- Integrity: CHECK XOR, unique constraints, FK protection, state machine
+**SQL tests (15 tests — setup + 12 standalone + 2 E2E):**
+- RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
+- Integrity: CHECK XOR, unique constraints (caso_partes, rondas, acuerdos, propuestas, tareas), FK protection, state machine
 - Triggers: handle_new_user (rol default + explícito), sync_ronda_actual, audit trail, updated_at
 - Grants: authenticated/anon/service_role con CRUD completo
+- E2E: flujo completo caso→cierre + regression bug #4.1 (transición activo→en_negociacion + idempotencia)
 
 ### Hallazgo: FK sin CASCADE (D1)
 
@@ -180,15 +186,14 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 19 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 7 archivos SQL aplicados y testeados |
+| Fase 2 — Migraciones | ✅ Cerrada | 17 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ⏳ Pendiente | Esperando backend listo para tests de integración |
+| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 64/64 smoke + 13/13 RLS |
+| Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 
-### Pendiente del backend
-- Endpoint de webhooks (`/webhooks/docusign`, `/webhooks/mercadopago`): validación del secret/header
+### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
 
 ### Pendiente del cliente (a confirmar)
 - Precios y límites finales de los planes
-- Proveedor de biometría
 - Calendario nativo vs proveedor externo
