@@ -543,6 +543,13 @@
       }
     }
   },
+  "tasks": {
+    "status": {
+      "pendiente": "Pending",
+      "en_progreso": "In progress",
+      "completada": "Completed"
+    }
+  },
   "profile": {
     "demoNotice": {
       "title": "Demonstration environment",
