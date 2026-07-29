@@ -65,7 +65,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
     letterSpacing: -0.2,
