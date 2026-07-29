@@ -71,7 +71,7 @@ export function ConfirmationDialog({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.panel, { maxWidth: getModalMaxWidth(isWide) }]} accessibilityRole="alert" accessible>
+        <View style={[styles.panel, { maxWidth: getModalMaxWidth(isWide) }]} accessibilityRole="alert">
           <View style={[styles.iconCircle, destructive && styles.iconCircleDestructive]}>
             <Icon name={icon} size={22} color={destructive ? semanticColors.status.errorFg : semanticColors.text.secondary} />
           </View>
