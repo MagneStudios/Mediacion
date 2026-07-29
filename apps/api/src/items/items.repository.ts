@@ -4,6 +4,7 @@ import type { Kysely } from "kysely";
 import { KYSELY } from "../database/database.tokens";
 import { buildItemLockQuery } from "./item-lock-query";
 import {
+  buildDeleteOwnQuery,
   buildFindOwnByIdQuery,
   buildFindOwnQuery,
   buildUpdateOwnQuery,
@@ -43,6 +44,17 @@ export class ItemsRepository {
 
   findOwnById(itemId: string, callerId: string): Promise<OwnItem | undefined> {
     return buildFindOwnByIdQuery(
+      this.kysely,
+      itemId,
+      callerId,
+    ).executeTakeFirst();
+  }
+
+  deleteOwn(
+    itemId: string,
+    callerId: string,
+  ): Promise<{ id: string } | undefined> {
+    return buildDeleteOwnQuery(
       this.kysely,
       itemId,
       callerId,

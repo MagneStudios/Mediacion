@@ -104,6 +104,17 @@ export class ItemsService {
     return item;
   }
 
+  /**
+   * A missing row and another parte's row are indistinguishable on purpose: the
+   * delete is scoped by parte_id, so both collapse to the same 404.
+   */
+  async deleteOwnItem(itemId: string, callerId: string): Promise<void> {
+    const deleted = await this.itemsRepository.deleteOwn(itemId, callerId);
+    if (!deleted) {
+      throw itemNotFound();
+    }
+  }
+
   async updateOwnItem(
     itemId: string,
     callerId: string,

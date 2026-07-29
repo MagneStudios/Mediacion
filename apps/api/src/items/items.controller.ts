@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -50,5 +53,14 @@ export class ItemsController {
     @Body() body: UpdateItemDto,
   ): Promise<OwnItem> {
     return this.itemsService.updateOwnItem(id, caller.id, body);
+  }
+
+  @Delete("items/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteItem(
+    @Param("id") id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<void> {
+    return this.itemsService.deleteOwnItem(id, caller.id);
   }
 }

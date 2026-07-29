@@ -43,6 +43,22 @@ export function buildFindOwnByIdQuery(
     .where("parte_id", "=", callerId);
 }
 
+/**
+ * parte_id is part of the predicate, not just the lookup: RN-01 means a caller
+ * must never be able to delete an item belonging to the other parte.
+ */
+export function buildDeleteOwnQuery(
+  db: Kysely<Database>,
+  itemId: string,
+  callerId: string,
+) {
+  return db
+    .deleteFrom("items")
+    .where("id", "=", itemId)
+    .where("parte_id", "=", callerId)
+    .returning(["id"]);
+}
+
 export function buildUpdateOwnQuery(
   db: Kysely<Database>,
   itemId: string,
