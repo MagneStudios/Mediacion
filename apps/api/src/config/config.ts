@@ -20,6 +20,7 @@ export type AppConfig = {
   fcmKey: string;
   apnsKey: string;
   cronSecret: string;
+  corsOrigins: string[];
 };
 
 const defaultPort = 3000;
@@ -106,6 +107,18 @@ function parseWithFallback(
     return rawValue;
   }
   return fallback;
+}
+
+const originSeparator = ",";
+
+function parseCorsOrigins(rawValue: string | undefined): string[] {
+  if (!rawValue) {
+    return [];
+  }
+  return rawValue
+    .split(originSeparator)
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
 }
 
 function parseDatabaseUrl(
@@ -225,6 +238,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
     placeholderCronSecret,
   );
+  const corsOrigins = parseCorsOrigins(environment.CORS_ORIGINS);
   return {
     port,
     supabaseJwtSecret,
@@ -247,5 +261,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     fcmKey,
     apnsKey,
     cronSecret,
+    corsOrigins,
   };
 }

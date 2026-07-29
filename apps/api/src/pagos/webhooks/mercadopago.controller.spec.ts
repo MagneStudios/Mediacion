@@ -23,6 +23,7 @@ function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
     mpAccessToken: "mp-access-token",
     mpWebhookSecret: secret,
     cronSecret: "cron-secret",
+    corsOrigins: [],
     smtpHost: "smtp.example.com",
     smtpPort: 587,
     smtpUser: "smtp-user",

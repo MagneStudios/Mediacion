@@ -14,6 +14,7 @@ import { CasosController } from "./casos.controller";
 import { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
 import { MembershipService } from "./membership.service";
+import { computeSemaforo } from "./semaforo";
 
 function allowAllPlanLimit() {
   return { assertCanCreateCase: () => Promise.resolve(undefined) };
@@ -186,6 +187,7 @@ describe("POST/GET /casos end-to-end isolation", () => {
               }
             : undefined,
         ),
+      findContrapartes: jest.fn().mockResolvedValue([]),
     };
 
     const moduleReference = await Test.createTestingModule({
@@ -235,8 +237,16 @@ describe("POST/GET /casos end-to-end isolation", () => {
       .get("/casos/caso-x")
       .set("Authorization", "Bearer user-a");
 
+    const stored = casesById["caso-x"] as { plazo?: string | null };
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(casesById["caso-x"]);
+    expect(response.body).toEqual({
+      ...casesById["caso-x"],
+      semaforo: computeSemaforo(
+        stored.plazo ? new Date(stored.plazo) : null,
+        new Date(),
+      ),
+      contraparte: null,
+    });
     await app.close();
   });
 

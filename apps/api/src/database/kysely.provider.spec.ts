@@ -31,6 +31,7 @@ describe("kyselyProvider", () => {
       fcmKey: "fcm-key",
       apnsKey: "apns-key",
       cronSecret: "cron-secret",
+      corsOrigins: [],
     };
 
     const factory = kyselyProvider.useFactory as (config: AppConfig) => unknown;
