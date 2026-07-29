@@ -154,6 +154,17 @@
       "backToDashboard": "Volver a mis casos"
     }
   },
+  "caseJoin": {
+    "title": "Unirte a un caso",
+    "description": "Ingresá el enlace o código de invitación que recibiste para unirte a un caso.",
+    "inputLabel": "Enlace o código de invitación",
+    "inputPlaceholder": "Pegalo o escribilo acá",
+    "submitAction": "Unirme al caso",
+    "error": {
+      "title": "No pudimos completar esta acción por ahora",
+      "description": "Revisá el enlace o código e intentá de nuevo."
+    }
+  },
   "positions": {
     "dashboard": {
       "title": "Mis posiciones privadas",

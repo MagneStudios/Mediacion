@@ -154,6 +154,17 @@
       "backToDashboard": "Back to my cases"
     }
   },
+  "caseJoin": {
+    "title": "Join a case",
+    "description": "Enter the invitation link or code you received to join a case.",
+    "inputLabel": "Invitation link or code",
+    "inputPlaceholder": "Paste or type it here",
+    "submitAction": "Join case",
+    "error": {
+      "title": "We couldn't complete this action right now",
+      "description": "Check the link or code and try again."
+    }
+  },
   "positions": {
     "dashboard": {
       "title": "My private positions",
