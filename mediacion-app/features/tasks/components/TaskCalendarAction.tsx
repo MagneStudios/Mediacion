@@ -49,7 +49,7 @@ export function TaskCalendarAction({
   if (disabled) {
     return (
       <View style={styles.container}>
-        <Button variant="secondary" size="sm" disabled>
+        <Button variant="secondary" size="sm" disabled style={styles.taskButton}>
           {actionLabel}
         </Button>
         {disabledReason ? <Text style={styles.disabledReason}>{disabledReason}</Text> : null}
@@ -75,7 +75,7 @@ export function TaskCalendarAction({
   }
 
   return (
-    <Button variant="secondary" size="sm" onPress={onGenerate}>
+    <Button variant="secondary" size="sm" onPress={onGenerate} style={styles.taskButton}>
       {actionLabel}
     </Button>
   );
@@ -84,6 +84,10 @@ export function TaskCalendarAction({
 const styles = StyleSheet.create({
   container: {
     gap: spacing.xxs,
+  },
+  taskButton: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
   },
   disabledReason: {
     fontFamily: typography.bodySm.fontFamily,

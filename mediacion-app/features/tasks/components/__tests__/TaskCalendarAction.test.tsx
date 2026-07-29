@@ -149,4 +149,30 @@ describe('TaskCalendarAction', () => {
       expect(screen.queryByText(/\.ics/i)).toBeNull();
     });
   });
+
+  describe('touch target', () => {
+    function resolveMinHeight(style: unknown): number | undefined {
+      if (!style) return undefined;
+      const arr = Array.isArray(style) ? style : [style];
+      let value: number | undefined;
+      for (const s of arr) {
+        if (s && typeof s === 'object' && 'minHeight' in (s as Record<string, unknown>)) {
+          value = (s as Record<string, number>).minHeight;
+        }
+      }
+      return value;
+    }
+
+    it('renders the idle action button with at least 44px interactive height', async () => {
+      await render(<TaskCalendarAction {...baseProps} status="idle" />);
+      const button = screen.getByRole('button', { name: 'Prepare calendar event' });
+      expect(resolveMinHeight(button.props.style)).toBeGreaterThanOrEqual(44);
+    });
+
+    it('renders the disabled action button with at least 44px interactive height', async () => {
+      await render(<TaskCalendarAction {...baseProps} status="idle" disabled />);
+      const button = screen.getByRole('button', { name: 'Prepare calendar event' });
+      expect(resolveMinHeight(button.props.style)).toBeGreaterThanOrEqual(44);
+    });
+  });
 });

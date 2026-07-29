@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     color: semanticColors.text.tertiary,
   },
   actionButton: {
+    minHeight: 44,
     alignSelf: 'flex-start',
     marginTop: spacing.xxs,
   },

@@ -138,4 +138,38 @@ describe('TaskCard', () => {
       expect(screen.getByRole('button', { name: 'Mark complete' })).toBeTruthy();
     });
   });
+
+  describe('touch target', () => {
+    function resolveMinHeight(style: unknown): number | undefined {
+      if (!style) return undefined;
+      const arr = Array.isArray(style) ? style : [style];
+      let value: number | undefined;
+      for (const s of arr) {
+        if (s && typeof s === 'object' && 'minHeight' in (s as Record<string, unknown>)) {
+          value = (s as Record<string, number>).minHeight;
+        }
+      }
+      return value;
+    }
+
+    it('renders the action button with at least 44px interactive height', async () => {
+      await render(<TaskCard {...baseProps} actionLabel="Mark complete" onAction={jest.fn()} />);
+      const button = screen.getByRole('button', { name: 'Mark complete' });
+      expect(resolveMinHeight(button.props.style)).toBeGreaterThanOrEqual(44);
+    });
+
+    it('preserves the touch target while loading', async () => {
+      await render(
+        <TaskCard {...baseProps} actionLabel="Mark complete" onAction={jest.fn()} actionLoading actionLoadingLabel="Saving…" />,
+      );
+      const button = screen.getByRole('button', { name: 'Saving…' });
+      expect(resolveMinHeight(button.props.style)).toBeGreaterThanOrEqual(44);
+    });
+
+    it('preserves the touch target while disabled', async () => {
+      await render(<TaskCard {...baseProps} actionLabel="Mark complete" onAction={jest.fn()} actionDisabled />);
+      const button = screen.getByRole('button', { name: 'Mark complete' });
+      expect(resolveMinHeight(button.props.style)).toBeGreaterThanOrEqual(44);
+    });
+  });
 });
