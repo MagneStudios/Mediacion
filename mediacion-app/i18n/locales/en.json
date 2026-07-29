@@ -548,6 +548,13 @@
       "pendiente": "Pending",
       "en_progreso": "In progress",
       "completada": "Completed"
+    },
+    "section": {
+      "title": "Tasks",
+      "empty": {
+        "title": "No tasks yet",
+        "description": "Tasks will appear here once the agreement generates them."
+      }
     }
   },
   "profile": {

@@ -548,6 +548,13 @@
       "pendiente": "Pendiente",
       "en_progreso": "En curso",
       "completada": "Completada"
+    },
+    "section": {
+      "title": "Tareas",
+      "empty": {
+        "title": "Todavía no hay tareas",
+        "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
+      }
     }
   },
   "profile": {
