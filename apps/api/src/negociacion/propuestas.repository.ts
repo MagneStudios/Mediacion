@@ -9,6 +9,7 @@ import type {
   EstadoPropuesta,
   Propuesta,
   PropuestaContenido,
+  PropuestaDetail,
   PropuestaView,
 } from "./negociacion.types";
 import { propuestaViewColumns } from "./negociacion.types";
@@ -109,6 +110,40 @@ export function buildFindForCaseQuery(db: Kysely<Database>, casoId: string) {
     .where("caso_id", "=", casoId);
 }
 
+/**
+ * The respuestas join is scoped to the caller, so one parte can never read the
+ * other's decision through this projection — only its own.
+ */
+export function buildFindDetailForCaseQuery(
+  db: Kysely<Database>,
+  casoId: string,
+  callerId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .innerJoin("rondas", "rondas.id", "propuestas.ronda_id")
+    .leftJoin("respuestas_propuesta as propia", (join) =>
+      join
+        .onRef("propia.propuesta_id", "=", "propuestas.id")
+        .on("propia.parte_id", "=", callerId),
+    )
+    .select([
+      "propuestas.id",
+      "propuestas.caso_id",
+      "propuestas.ronda_id",
+      "propuestas.contenido",
+      "propuestas.fundamentacion",
+      "propuestas.estado",
+      "propuestas.modelo_ia",
+      "propuestas.fecha",
+      "rondas.numero as ronda_numero",
+      "rondas.estado as ronda_estado",
+      "propia.decision as own_decision",
+    ])
+    .where("propuestas.caso_id", "=", casoId)
+    .orderBy("rondas.numero", "asc");
+}
+
 export function buildExistsForRondaQuery(
   db: Kysely<Database>,
   casoId: string,
@@ -203,6 +238,17 @@ export class PropuestasRepository {
 
   findForCase(casoId: string): Promise<PropuestaView[]> {
     return buildFindForCaseQuery(this.kysely, casoId).execute();
+  }
+
+  findDetailForCase(
+    casoId: string,
+    callerId: string,
+  ): Promise<PropuestaDetail[]> {
+    return buildFindDetailForCaseQuery(this.kysely, casoId, callerId)
+      .execute()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
   }
 
   async existsForRonda(casoId: string, rondaId: string): Promise<boolean> {
