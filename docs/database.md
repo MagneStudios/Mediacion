@@ -42,7 +42,8 @@ supabase/migrations/
 ├── 20260728000000_notificaciones_estado_enum.sql    # notificaciones.estado TEXT → enum
 ├── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
 ├── 20260728120000_usuarios_consentimiento.sql       # consentimiento_fecha + consentimiento_envelope_id en usuarios
-└── 20260728130000_tareas_acuerdo_generation_unique.sql # UNIQUE tareas(acuerdo_id, descripcion)
+├── 20260728200000_function_search_path.sql     # SET search_path en 11 funciones
+└── 20260728210000_rls_auth_initplan.sql        # (SELECT auth.uid()) en RLS policies
 ```
 
 ## Modelo de datos (22 tablas)
