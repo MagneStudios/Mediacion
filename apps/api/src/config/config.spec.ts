@@ -161,25 +161,27 @@ describe("loadConfig", () => {
     expect(appConfig.openrouterApiKey).toBe("dev-placeholder-openrouter-key");
   });
 
-  it("throws in production when OPENROUTER_API_KEY is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-      }),
-    ).toThrow("OPENROUTER_API_KEY is required and must be non-empty");
+  it("leaves openrouterApiKey unconfigured in production when OPENROUTER_API_KEY is missing", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "test-secret",
+      DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      CRON_SECRET: "cron-secret",
+    });
+
+    expect(appConfig.openrouterApiKey).toBe("");
   });
 
-  it("throws in production when OPENROUTER_API_KEY is whitespace-only", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: " ",
-      }),
-    ).toThrow("OPENROUTER_API_KEY is required and must be non-empty");
+  it("leaves openrouterApiKey unconfigured in production when OPENROUTER_API_KEY is whitespace-only", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "test-secret",
+      DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      CRON_SECRET: "cron-secret",
+      OPENROUTER_API_KEY: " ",
+    });
+
+    expect(appConfig.openrouterApiKey).toBe("");
   });
 
   it("accepts an explicit OPENROUTER_API_KEY outside production", () => {
@@ -219,20 +221,19 @@ describe("loadConfig", () => {
   };
 
   it.each(docusignEnvVars)(
-    "throws in production when $key is missing",
-    ({ key }) => {
+    "leaves $field unconfigured in production when $key is missing",
+    ({ key, field }) => {
       const environment: Record<string, string | undefined> = {
         NODE_ENV: "production",
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        CRON_SECRET: "cron-secret",
         OPENROUTER_API_KEY: "sk-or-test-key",
         ...validDocusignEnv,
       };
       environment[key] = undefined;
 
-      expect(() => loadConfig(environment)).toThrow(
-        `${key} is required and must be non-empty`,
-      );
+      expect(loadConfig(environment)[field]).toBe("");
     },
   );
 
@@ -245,20 +246,18 @@ describe("loadConfig", () => {
     },
   );
 
-  it("throws in production when DOCUSIGN_BASE_PATH is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-test-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_BASE_PATH: undefined,
-      }),
-    ).toThrow("DOCUSIGN_BASE_PATH is required and must be non-empty");
+  it("defaults DOCUSIGN_BASE_PATH to the sandbox host in production when missing", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "test-secret",
+      DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      CRON_SECRET: "cron-secret",
+      DOCUSIGN_BASE_PATH: undefined,
+    });
+
+    expect(appConfig.docusignBasePath).toBe(
+      "https://demo.docusign.net/restapi",
+    );
   });
 
   it("uses the real DocuSign sandbox host as the placeholder base path in test", () => {
@@ -295,23 +294,16 @@ describe("loadConfig", () => {
     expect(appConfig.docusignPrivateKey).toBe("test-private-key-pem");
   });
 
-  it("throws in production when DOCUSIGN_OAUTH_BASE is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-test-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        DOCUSIGN_OAUTH_BASE: undefined,
-      }),
-    ).toThrow("DOCUSIGN_OAUTH_BASE is required and must be non-empty");
+  it("defaults DOCUSIGN_OAUTH_BASE to the sandbox host in production when missing", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "test-secret",
+      DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      CRON_SECRET: "cron-secret",
+      DOCUSIGN_OAUTH_BASE: undefined,
+    });
+
+    expect(appConfig.docusignOauthBase).toBe("account-d.docusign.com");
   });
 
   it("uses the DocuSign sandbox host as the placeholder oauth base in test", () => {
@@ -350,30 +342,29 @@ describe("loadConfig", () => {
     expect(appConfig.smtpHost).toBe("dev-placeholder-smtp-host");
   });
 
-  it("throws in production when SMTP_HOST is missing", () => {
-    expect(() =>
-      loadConfig({
+  const optionalCredentialEnvVars = [
+    { key: "SMTP_HOST", field: "smtpHost" },
+    { key: "SMTP_USER", field: "smtpUser" },
+    { key: "SMTP_PASS", field: "smtpPass" },
+    { key: "FCM_KEY", field: "fcmKey" },
+    { key: "APNS_KEY", field: "apnsKey" },
+    { key: "MP_ACCESS_TOKEN", field: "mpAccessToken" },
+    { key: "MP_WEBHOOK_SECRET", field: "mpWebhookSecret" },
+  ] as const;
+
+  it.each(optionalCredentialEnvVars)(
+    "leaves $field unconfigured in production when $key is missing",
+    ({ field }) => {
+      const appConfig = loadConfig({
         NODE_ENV: "production",
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        SMTP_USER: "user",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-      }),
-    ).toThrow("SMTP_HOST is required and must be non-empty");
-  });
+        CRON_SECRET: "cron-secret",
+      });
+
+      expect(appConfig[field]).toBe("");
+    },
+  );
 
   it("accepts an explicit SMTP_HOST outside production", () => {
     const appConfig = loadConfig({
@@ -390,31 +381,6 @@ describe("loadConfig", () => {
     const appConfig = loadConfig({ NODE_ENV: "test" });
 
     expect(appConfig.smtpUser).toBe("dev-placeholder-smtp-user");
-  });
-
-  it("throws in production when SMTP_USER is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-      }),
-    ).toThrow("SMTP_USER is required and must be non-empty");
   });
 
   it("accepts an explicit SMTP_USER outside production", () => {
@@ -434,31 +400,6 @@ describe("loadConfig", () => {
     expect(appConfig.smtpPass).toBe("dev-placeholder-smtp-pass");
   });
 
-  it("throws in production when SMTP_PASS is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-      }),
-    ).toThrow("SMTP_PASS is required and must be non-empty");
-  });
-
   it("accepts an explicit SMTP_PASS outside production", () => {
     const appConfig = loadConfig({
       NODE_ENV: "test",
@@ -474,31 +415,6 @@ describe("loadConfig", () => {
     const appConfig = loadConfig({ NODE_ENV: "test" });
 
     expect(appConfig.fcmKey).toBe("dev-placeholder-fcm-key");
-  });
-
-  it("throws in production when FCM_KEY is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        SMTP_PASS: "pass",
-        APNS_KEY: "apns-key",
-      }),
-    ).toThrow("FCM_KEY is required and must be non-empty");
   });
 
   it("accepts an explicit FCM_KEY outside production", () => {
@@ -518,31 +434,6 @@ describe("loadConfig", () => {
     expect(appConfig.apnsKey).toBe("dev-placeholder-apns-key");
   });
 
-  it("throws in production when APNS_KEY is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-      }),
-    ).toThrow("APNS_KEY is required and must be non-empty");
-  });
-
   it("accepts an explicit APNS_KEY outside production", () => {
     const appConfig = loadConfig({
       NODE_ENV: "test",
@@ -560,32 +451,6 @@ describe("loadConfig", () => {
     expect(appConfig.mpAccessToken).toBe("dev-placeholder-mp-access-token");
   });
 
-  it("throws in production when MP_ACCESS_TOKEN is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
-        CRON_SECRET: "cron-secret",
-      }),
-    ).toThrow("MP_ACCESS_TOKEN is required and must be non-empty");
-  });
-
   it("accepts an explicit MP_ACCESS_TOKEN outside production", () => {
     const appConfig = loadConfig({
       NODE_ENV: "test",
@@ -601,32 +466,6 @@ describe("loadConfig", () => {
     const appConfig = loadConfig({ NODE_ENV: "test" });
 
     expect(appConfig.mpWebhookSecret).toBe("dev-placeholder-mp-webhook-secret");
-  });
-
-  it("throws in production when MP_WEBHOOK_SECRET is missing", () => {
-    expect(() =>
-      loadConfig({
-        NODE_ENV: "production",
-        SUPABASE_JWT_SECRET: "test-secret",
-        DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        CRON_SECRET: "cron-secret",
-      }),
-    ).toThrow("MP_WEBHOOK_SECRET is required and must be non-empty");
   });
 
   it("accepts an explicit MP_WEBHOOK_SECRET outside production", () => {
@@ -652,24 +491,51 @@ describe("loadConfig", () => {
         NODE_ENV: "production",
         SUPABASE_JWT_SECRET: "test-secret",
         DATABASE_URL: "postgresql://user:pass@host:5432/db",
-        OPENROUTER_API_KEY: "sk-or-key",
-        DOCUSIGN_INTEGRATION_KEY: "ik-1",
-        DOCUSIGN_CLIENT_SECRET: "secret-1",
-        DOCUSIGN_ACCOUNT_ID: "account-1",
-        DOCUSIGN_BASE_PATH: "https://na1.docusign.net/restapi",
-        DOCUSIGN_WEBHOOK_SECRET: "whsec-1",
-        DOCUSIGN_USER_ID: "user-1",
-        DOCUSIGN_OAUTH_BASE: "account-d.docusign.com",
-        DOCUSIGN_PRIVATE_KEY: "test-private-key-pem",
-        SMTP_HOST: "smtp.example.com",
-        SMTP_USER: "user",
-        SMTP_PASS: "pass",
-        FCM_KEY: "fcm-key",
-        APNS_KEY: "apns-key",
-        MP_ACCESS_TOKEN: "mp-access-token",
-        MP_WEBHOOK_SECRET: "mp-webhook-secret",
       }),
     ).toThrow("CRON_SECRET is required and must be non-empty");
+  });
+
+  it("loads in production with only the three boot-critical credentials", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "prod-secret",
+      DATABASE_URL: "postgresql://user:pass@host:6543/db",
+      CRON_SECRET: "prod-cron-secret",
+    });
+
+    expect(appConfig.supabaseJwtSecret).toBe("prod-secret");
+    expect(appConfig.databaseUrl).toBe("postgresql://user:pass@host:6543/db");
+    expect(appConfig.cronSecret).toBe("prod-cron-secret");
+  });
+
+  it("never falls back to dev placeholders for unconfigured credentials in production", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "prod-secret",
+      DATABASE_URL: "postgresql://user:pass@host:6543/db",
+      CRON_SECRET: "prod-cron-secret",
+    });
+
+    const credentials = [
+      appConfig.openrouterApiKey,
+      appConfig.docusignIntegrationKey,
+      appConfig.docusignClientSecret,
+      appConfig.docusignAccountId,
+      appConfig.docusignWebhookSecret,
+      appConfig.docusignUserId,
+      appConfig.docusignPrivateKey,
+      appConfig.mpAccessToken,
+      appConfig.mpWebhookSecret,
+      appConfig.smtpHost,
+      appConfig.smtpUser,
+      appConfig.smtpPass,
+      appConfig.fcmKey,
+      appConfig.apnsKey,
+    ];
+
+    for (const credential of credentials) {
+      expect(credential).toBe("");
+    }
   });
 
   it("accepts an explicit CRON_SECRET outside production", () => {

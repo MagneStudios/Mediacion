@@ -85,16 +85,27 @@ function parseSupabaseJwtSecret(
   );
 }
 
-function parseOpenrouterApiKey(
-  rawKey: string | undefined,
+const unconfiguredCredential = "";
+
+function parseOptionalCredential(
+  rawValue: string | undefined,
   isTestEnv: boolean,
+  placeholder: string,
 ): string {
-  return parseRequiredNonEmpty(
-    "OPENROUTER_API_KEY",
-    rawKey,
-    isTestEnv,
-    placeholderOpenrouterApiKey,
-  );
+  if (rawValue && rawValue.trim().length > 0) {
+    return rawValue;
+  }
+  return isTestEnv ? placeholder : unconfiguredCredential;
+}
+
+function parseWithFallback(
+  rawValue: string | undefined,
+  fallback: string,
+): string {
+  if (rawValue && rawValue.trim().length > 0) {
+    return rawValue;
+  }
+  return fallback;
 }
 
 function parseDatabaseUrl(
@@ -130,96 +141,80 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
   );
   const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, isTestEnv);
-  const openrouterApiKey = parseOpenrouterApiKey(
+  const openrouterApiKey = parseOptionalCredential(
     environment.OPENROUTER_API_KEY,
     isTestEnv,
+    placeholderOpenrouterApiKey,
   );
-  const docusignIntegrationKey = parseRequiredNonEmpty(
-    "DOCUSIGN_INTEGRATION_KEY",
+  const docusignIntegrationKey = parseOptionalCredential(
     environment.DOCUSIGN_INTEGRATION_KEY,
     isTestEnv,
     placeholderDocusignIntegrationKey,
   );
-  const docusignClientSecret = parseRequiredNonEmpty(
-    "DOCUSIGN_CLIENT_SECRET",
+  const docusignClientSecret = parseOptionalCredential(
     environment.DOCUSIGN_CLIENT_SECRET,
     isTestEnv,
     placeholderDocusignClientSecret,
   );
-  const docusignAccountId = parseRequiredNonEmpty(
-    "DOCUSIGN_ACCOUNT_ID",
+  const docusignAccountId = parseOptionalCredential(
     environment.DOCUSIGN_ACCOUNT_ID,
     isTestEnv,
     placeholderDocusignAccountId,
   );
-  const docusignBasePath = parseRequiredNonEmpty(
-    "DOCUSIGN_BASE_PATH",
+  const docusignBasePath = parseWithFallback(
     environment.DOCUSIGN_BASE_PATH,
-    isTestEnv,
     placeholderDocusignBasePath,
   );
-  const docusignWebhookSecret = parseRequiredNonEmpty(
-    "DOCUSIGN_WEBHOOK_SECRET",
+  const docusignWebhookSecret = parseOptionalCredential(
     environment.DOCUSIGN_WEBHOOK_SECRET,
     isTestEnv,
     placeholderDocusignWebhookSecret,
   );
-  const docusignUserId = parseRequiredNonEmpty(
-    "DOCUSIGN_USER_ID",
+  const docusignUserId = parseOptionalCredential(
     environment.DOCUSIGN_USER_ID,
     isTestEnv,
     placeholderDocusignUserId,
   );
-  const docusignOauthBase = parseRequiredNonEmpty(
-    "DOCUSIGN_OAUTH_BASE",
+  const docusignOauthBase = parseWithFallback(
     environment.DOCUSIGN_OAUTH_BASE,
-    isTestEnv,
     placeholderDocusignOauthBase,
   );
-  const docusignPrivateKey = parseRequiredNonEmpty(
-    "DOCUSIGN_PRIVATE_KEY",
+  const docusignPrivateKey = parseOptionalCredential(
     environment.DOCUSIGN_PRIVATE_KEY,
     isTestEnv,
     placeholderDocusignPrivateKey,
   );
-  const mpAccessToken = parseRequiredNonEmpty(
-    "MP_ACCESS_TOKEN",
+  const mpAccessToken = parseOptionalCredential(
     environment.MP_ACCESS_TOKEN,
     isTestEnv,
     placeholderMpAccessToken,
   );
-  const mpWebhookSecret = parseRequiredNonEmpty(
-    "MP_WEBHOOK_SECRET",
+  const mpWebhookSecret = parseOptionalCredential(
     environment.MP_WEBHOOK_SECRET,
     isTestEnv,
     placeholderMpWebhookSecret,
   );
-  const smtpHost = parseRequiredNonEmpty(
-    "SMTP_HOST",
+  const smtpHost = parseOptionalCredential(
     environment.SMTP_HOST,
     isTestEnv,
     placeholderSmtpHost,
   );
-  const smtpUser = parseRequiredNonEmpty(
-    "SMTP_USER",
+  const smtpUser = parseOptionalCredential(
     environment.SMTP_USER,
     isTestEnv,
     placeholderSmtpUser,
   );
-  const smtpPass = parseRequiredNonEmpty(
-    "SMTP_PASS",
+  const smtpPass = parseOptionalCredential(
     environment.SMTP_PASS,
     isTestEnv,
     placeholderSmtpPass,
   );
-  const fcmKey = parseRequiredNonEmpty(
-    "FCM_KEY",
+  const fcmKey = parseOptionalCredential(
     environment.FCM_KEY,
     isTestEnv,
     placeholderFcmKey,
   );
-  const apnsKey = parseRequiredNonEmpty(
-    "APNS_KEY",
+  const apnsKey = parseOptionalCredential(
     environment.APNS_KEY,
     isTestEnv,
     placeholderApnsKey,

@@ -46,6 +46,17 @@ function propuestaAlreadyExists(): HttpException {
   );
 }
 
+function iaNotConfigured(): HttpException {
+  return new HttpException(
+    {
+      code: "ia_not_configured",
+      message:
+        "The AI proposal engine is not configured on this deployment (OPENROUTER_API_KEY)",
+    },
+    HttpStatus.SERVICE_UNAVAILABLE,
+  );
+}
+
 function casoNotFound(): HttpException {
   return new HttpException(
     { code: "caso_not_found", message: "Case not found" },
@@ -132,6 +143,9 @@ export class NegociacionService {
     callerId: string,
   ): Promise<PropuestaView> {
     await this.membershipService.assertMembership(casoId, callerId);
+    if (!this.aiProposalGenerator.isConfigured()) {
+      throw iaNotConfigured();
+    }
     const positions =
       await this.propuestasRepository.readBothPartyPositionsForEngine(casoId);
     const [positionsA, positionsB] = assertBothPartiesSubmitted(positions);

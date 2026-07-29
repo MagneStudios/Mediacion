@@ -57,6 +57,9 @@ function createFakeAiProposalGenerator(
   delayMs: number,
 ): AiProposalGenerator {
   return {
+    isConfigured() {
+      return true;
+    },
     async generateProposal() {
       await sleep(delayMs);
       return { text };

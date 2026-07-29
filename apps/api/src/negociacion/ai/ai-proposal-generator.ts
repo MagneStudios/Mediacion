@@ -10,6 +10,7 @@ export type ProposalGenerationOutput = {
 };
 
 export interface AiProposalGenerator {
+  isConfigured(): boolean;
   generateProposal(
     input: ProposalGenerationInput,
   ): Promise<ProposalGenerationOutput>;
