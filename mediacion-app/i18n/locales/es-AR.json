@@ -555,6 +555,18 @@
         "title": "Todavía no hay tareas",
         "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
       }
+    },
+    "calendar": {
+      "action": "Preparar evento de calendario",
+      "preparingTitle": "Preparando el evento de calendario",
+      "preparingBody": "Los detalles del evento van a estar listos en un instante.",
+      "success": {
+        "title": "Datos del evento listos",
+        "body": "Los detalles del evento se prepararon en este entorno de prueba. No se agregaron a Google Calendar, Apple Calendar ni al calendario de tu dispositivo."
+      },
+      "error": {
+        "title": "No pudimos preparar el evento de calendario"
+      }
     }
   },
   "profile": {

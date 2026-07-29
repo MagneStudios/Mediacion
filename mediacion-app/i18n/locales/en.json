@@ -555,6 +555,18 @@
         "title": "No tasks yet",
         "description": "Tasks will appear here once the agreement generates them."
       }
+    },
+    "calendar": {
+      "action": "Prepare calendar event",
+      "preparingTitle": "Preparing the calendar event",
+      "preparingBody": "The event details will be ready in a moment.",
+      "success": {
+        "title": "Event data ready",
+        "body": "The event details were prepared in this test environment. They were not added to Google Calendar, Apple Calendar, or your device's calendar."
+      },
+      "error": {
+        "title": "We couldn't prepare the calendar event"
+      }
     }
   },
   "profile": {
