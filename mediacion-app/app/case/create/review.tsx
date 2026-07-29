@@ -94,8 +94,8 @@ export default function CaseCreateReviewScreen() {
           onRetry={handleCreate}
         />
       ) : (
-        <Button variant="primary" fullWidth onPress={handleCreate} disabled={status === 'submitting'}>
-          {status === 'submitting' ? t('caseCreation.review.creating') : t('caseCreation.review.create')}
+        <Button variant="primary" fullWidth onPress={handleCreate} loading={status === 'submitting'} loadingLabel={t('caseCreation.review.creating')}>
+          {t('caseCreation.review.create')}
         </Button>
       )}
       <Button

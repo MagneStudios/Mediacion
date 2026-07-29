@@ -57,6 +57,9 @@ function createFakeAiProposalGenerator(
   delayMs: number,
 ): AiProposalGenerator {
   return {
+    isConfigured() {
+      return true;
+    },
     async generateProposal() {
       await sleep(delayMs);
       return { text };
@@ -117,6 +120,7 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
     );
     service = new NegociacionService(
       membershipService,
+      casosRepository,
       propuestasRepository,
       rondasRepository,
       configuracionRepository,

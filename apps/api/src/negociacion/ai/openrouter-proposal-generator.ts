@@ -19,6 +19,10 @@ type OpenrouterChatCompletionsResponse = {
 export class OpenrouterProposalGenerator implements AiProposalGenerator {
   constructor(@Inject(APP_CONFIG) private readonly appConfig: AppConfig) {}
 
+  isConfigured(): boolean {
+    return this.appConfig.openrouterApiKey.trim().length > 0;
+  }
+
   async generateProposal(
     input: ProposalGenerationInput,
   ): Promise<ProposalGenerationOutput> {

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { radii } from '../tokens/radii';
 import { semanticColors } from '../tokens/colors';
@@ -13,6 +13,8 @@ export type ButtonProps = {
   size?: ButtonSize;
   fullWidth?: boolean;
   disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
   children?: ReactNode;
@@ -62,6 +64,8 @@ export function Button({
   size = 'md',
   fullWidth = false,
   disabled = false,
+  loading = false,
+  loadingLabel,
   iconLeft,
   iconRight,
   children,
@@ -70,37 +74,50 @@ export function Button({
   style,
 }: ButtonProps) {
   const sizeStyle = SIZE_STYLE[size];
-  const bg = disabled ? semanticColors.action.disabledBg : VARIANT_BG[variant];
-  const fg = disabled ? semanticColors.action.disabledFg : VARIANT_FG[variant];
-  const border = variant === 'secondary' && !disabled ? semanticColors.action.secondaryBorder : 'transparent';
+  const isDisabled = disabled || loading;
+  const bg = isDisabled ? semanticColors.action.disabledBg : VARIANT_BG[variant];
+  const fg = isDisabled ? semanticColors.action.disabledFg : VARIANT_FG[variant];
+  const border = variant === 'secondary' && !isDisabled ? semanticColors.action.secondaryBorder : 'transparent';
+
+  const spinnerSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
 
   return (
     <Pressable
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
+      onPress={isDisabled ? undefined : onPress}
+      disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
+      accessibilityLabel={accessibilityLabel ?? loadingLabel}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         {
           minHeight: sizeStyle.minHeight,
           paddingHorizontal: sizeStyle.paddingHorizontal,
           gap: sizeStyle.gap,
-          backgroundColor: pressed && !disabled ? VARIANT_BG_PRESSED[variant] : bg,
+          backgroundColor: pressed && !isDisabled ? VARIANT_BG_PRESSED[variant] : bg,
           borderColor: border,
           width: fullWidth ? '100%' : undefined,
         },
         style,
       ]}
     >
-      {iconLeft ? <View>{iconLeft}</View> : null}
-      {children != null ? (
+      {loading ? (
+        <ActivityIndicator size={spinnerSize} color={semanticColors.action.disabledFg} />
+      ) : iconLeft ? (
+        <View>{iconLeft}</View>
+      ) : null}
+      {loading ? (
+        children != null ? (
+          <Text style={[styles.label, { color: semanticColors.action.disabledFg }]} numberOfLines={1}>
+            {loadingLabel ?? children}
+          </Text>
+        ) : null
+      ) : children != null ? (
         <Text style={[styles.label, { color: fg }]} numberOfLines={1}>
           {children}
         </Text>
       ) : null}
-      {iconRight ? <View>{iconRight}</View> : null}
+      {!loading && iconRight ? <View>{iconRight}</View> : null}
     </Pressable>
   );
 }

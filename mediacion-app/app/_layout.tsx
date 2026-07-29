@@ -2,14 +2,19 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } f
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono';
 import { ThemeProvider, type Theme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
+import { ErrorState } from '@/design-system';
 import { colors } from '@/design-system/tokens/colors';
+import { useDocumentLang } from '@/hooks/use-document-lang';
 import '@/i18n';
 
 export const unstable_settings = {
@@ -55,12 +60,15 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  useDocumentLang();
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
 
   return (
     <ThemeProvider value={mediacionNavigationTheme}>
+      <Head><title>Mediación</title></Head>
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -89,3 +97,30 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  const { t } = useTranslation();
+
+  return (
+    <View style={errorStyles.container}>
+      <ErrorState
+        title={t('states.error.title')}
+        description={t('states.error.description')}
+        retryLabel={t('states.error.retry')}
+        onRetry={() => {
+          void retry();
+        }}
+      />
+    </View>
+  );
+}
+
+const errorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: colors.canvas,
+  },
+});

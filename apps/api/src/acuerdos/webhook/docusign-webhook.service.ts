@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { TareasService } from "../../tareas/tareas.service";
 import { AcuerdosRepository } from "../acuerdos.repository";
 import { docusignStatusSigned } from "../acuerdos.types";
 import { FirmasRepository } from "../firmas.repository";
@@ -20,6 +21,8 @@ export class DocusignWebhookService {
     private readonly firmasRepository: FirmasRepository,
     @Inject(AcuerdosRepository)
     private readonly acuerdosRepository: AcuerdosRepository,
+    @Inject(TareasService)
+    private readonly tareasService: TareasService,
   ) {}
 
   async applyEvent(event: DocusignWebhookEvent): Promise<void> {
@@ -31,6 +34,9 @@ export class DocusignWebhookService {
       return;
     }
     if (firma.docusign_status === event.status) {
+      if (event.status === docusignStatusSigned) {
+        await this.reconcileSignedAcuerdo(firma.acuerdo_id);
+      }
       return;
     }
     if (isRegressiveStatusTransition(firma.docusign_status, event.status)) {
@@ -48,6 +54,34 @@ export class DocusignWebhookService {
     );
     if (allSigned) {
       await this.acuerdosRepository.markFirmado(firma.acuerdo_id);
+      await this.generateAccionables(firma.acuerdo_id);
+    }
+  }
+
+  private async reconcileSignedAcuerdo(acuerdoId: string): Promise<void> {
+    const allSigned =
+      await this.firmasRepository.allSignedForAcuerdo(acuerdoId);
+    if (allSigned) {
+      await this.generateAccionables(acuerdoId);
+    }
+  }
+
+  private async generateAccionables(acuerdoId: string): Promise<void> {
+    try {
+      const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+      if (!acuerdo) {
+        return;
+      }
+      await this.tareasService.generateForAcuerdo(
+        acuerdo.id,
+        acuerdo.caso_id,
+        acuerdo.contenido,
+      );
+    } catch (error) {
+      this.logger.error(
+        `RN-14 accionable generation failed for acuerdo ${acuerdoId}`,
+        error,
+      );
     }
   }
 }

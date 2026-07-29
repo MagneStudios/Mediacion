@@ -5,6 +5,7 @@ import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
 import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
+import { AcuerdoAccessService } from "./acuerdo-access.service";
 import { AcuerdosRepository } from "./acuerdos.repository";
 import { AcuerdosService } from "./acuerdos.service";
 import { FakeDocusignClient } from "./docusign/fake-docusign-client";
@@ -70,6 +71,8 @@ describeDb("Agreement generation against a real database", () => {
       acuerdosRepository,
       kysely,
       new FakeDocusignClient(),
+      new AcuerdoAccessService(membershipService, kysely),
+      firmasRepository,
     );
 
     await insertAuthUser(

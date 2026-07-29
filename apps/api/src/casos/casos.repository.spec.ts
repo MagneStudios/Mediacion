@@ -498,6 +498,45 @@ describe("CasosRepository", () => {
     });
   });
 
+  describe("updateEstado", () => {
+    function createFakeUpdateKysely(returnedRow: unknown) {
+      const executeTakeFirstOrThrow = jest.fn().mockResolvedValue(returnedRow);
+      const returning = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+      const where = jest.fn().mockReturnValue({ returning });
+      const set = jest.fn().mockReturnValue({ where });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      return { updateTable, set, where, returning, executeTakeFirstOrThrow };
+    }
+
+    it("sets casos.estado and returns the updated row, never touching plazo", async () => {
+      const returnedRow = { id: "caso-1", estado: "terminado" };
+      const fakeKysely = createFakeUpdateKysely(returnedRow);
+      const repository = new CasosRepository(fakeKysely as never);
+
+      const result = await repository.updateEstado("caso-1", "terminado");
+
+      expect(fakeKysely.updateTable).toHaveBeenCalledWith("casos");
+      expect(fakeKysely.set).toHaveBeenCalledWith({ estado: "terminado" });
+      expect(fakeKysely.set.mock.calls[0][0]).not.toHaveProperty("plazo");
+      expect(fakeKysely.where).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(fakeKysely.returning).toHaveBeenCalledWith(["id", "estado"]);
+      expect(result).toBe(returnedRow);
+    });
+
+    it("maps the state-machine trigger rejection to a conflict", async () => {
+      const fakeKysely = createFakeUpdateKysely(undefined);
+      fakeKysely.executeTakeFirstOrThrow.mockRejectedValue({
+        code: "P0001",
+        message: "Transición de estado inválida: acordado → terminado",
+      });
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await expect(
+        repository.updateEstado("caso-1", "terminado"),
+      ).rejects.toMatchObject({ status: 409, response: { code: "conflict" } });
+    });
+  });
+
   describe("findPlazo", () => {
     function createFakeSelectKysely(row: unknown) {
       const executeTakeFirst = jest.fn().mockResolvedValue(row);

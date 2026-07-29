@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
 } from "@nestjs/common";
+import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { AI_PROPOSAL_GENERATOR } from "./ai/ai-proposal-generator";
@@ -42,6 +43,17 @@ function propuestaAlreadyExists(): HttpException {
       message: "A propuesta already exists for the active ronda",
     },
     HttpStatus.CONFLICT,
+  );
+}
+
+function iaNotConfigured(): HttpException {
+  return new HttpException(
+    {
+      code: "ia_not_configured",
+      message:
+        "The AI proposal engine is not configured on this deployment (OPENROUTER_API_KEY)",
+    },
+    HttpStatus.SERVICE_UNAVAILABLE,
   );
 }
 
@@ -114,6 +126,8 @@ export class NegociacionService {
   constructor(
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
+    @Inject(CasosRepository)
+    private readonly casosRepository: CasosRepository,
     @Inject(PropuestasRepository)
     private readonly propuestasRepository: PropuestasRepository,
     @Inject(RondasRepository)
@@ -129,9 +143,13 @@ export class NegociacionService {
     callerId: string,
   ): Promise<PropuestaView> {
     await this.membershipService.assertMembership(casoId, callerId);
+    if (!this.aiProposalGenerator.isConfigured()) {
+      throw iaNotConfigured();
+    }
     const positions =
       await this.propuestasRepository.readBothPartyPositionsForEngine(casoId);
     const [positionsA, positionsB] = assertBothPartiesSubmitted(positions);
+    await this.casosRepository.activateNegotiation(casoId);
     const rondaId = await this.ensureActiveRondaId(casoId);
     const alreadyExists = await this.propuestasRepository.existsForRonda(
       casoId,

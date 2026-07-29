@@ -38,6 +38,16 @@ export type CaseDetail = Pick<
   | "updated_at"
 >;
 
+export type EstadoCaso = Caso["estado"];
+
+export const estadoCasoTerminado: EstadoCaso = "terminado";
+
+export type EstadoCasoDto = {
+  estado: EstadoCaso;
+};
+
+export type CaseEstado = Pick<Caso, "id" | "estado">;
+
 export type Semaforo = "verde" | "amarillo" | "rojo";
 
 export type PlazoDto = {

@@ -1,19 +1,36 @@
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import type { CategoriaItem } from "../items/items.types";
 import { PlanLimitService } from "../pagos/plan-limit.service";
 import { CasosRepository } from "./casos.repository";
 import type {
   CaseCreated,
   CaseDetail,
+  CaseEstado,
   CaseSummary,
   CreateCasoDto,
+  EstadoCasoDto,
   MetodoCaso,
   PlazoDto,
   PlazoState,
 } from "./casos.types";
+import { estadoCasoTerminado } from "./casos.types";
+import { categoriasBase } from "./categorias";
 import { MembershipService } from "./membership.service";
 import { computeSemaforo } from "./semaforo";
 
 const validMetodos: MetodoCaso[] = ["negociacion", "conciliacion", "mediacion"];
+
+function assertValidEstadoTransition(input: EstadoCasoDto): void {
+  if (input?.estado !== estadoCasoTerminado) {
+    throw new HttpException(
+      {
+        code: "invalid_input",
+        message: `estado must be ${estadoCasoTerminado}`,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
 
 function assertValidCreateInput(input: CreateCasoDto): void {
   if (typeof input?.nombre !== "string" || input.nombre.trim().length === 0) {
@@ -132,5 +149,23 @@ export class CasosService {
         now,
       ),
     };
+  }
+
+  async setEstado(
+    casoId: string,
+    callerId: string,
+    input: EstadoCasoDto,
+  ): Promise<CaseEstado> {
+    assertValidEstadoTransition(input);
+    await this.membershipService.assertMembership(casoId, callerId);
+    return this.casosRepository.updateEstado(casoId, input.estado);
+  }
+
+  async listCategorias(
+    casoId: string,
+    callerId: string,
+  ): Promise<CategoriaItem[]> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    return [...categoriasBase];
   }
 }
