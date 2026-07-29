@@ -541,6 +541,26 @@
         "completed": "Completed",
         "withNotice": "Under notice"
       }
+    },
+    "breachNotice": {
+      "form": {
+        "title": "Register a breach notice",
+        "descriptionLabel": "What happened",
+        "descriptionHint": "Describe what happened in your own words. This note stays visible to both parties and, if applicable, the mediator.",
+        "descriptionPlaceholder": "Describe what happened",
+        "descriptionError": "Enter a description before continuing.",
+        "submitAction": "Register notice",
+        "submittingAction": "Registering…"
+      },
+      "dialog": {
+        "title": "Register this notice?",
+        "body": "The agreement will be marked \"Under notice\" and this note stays visible to both parties and, if applicable, the mediator. This does not represent a legal determination.",
+        "confirmAction": "Register notice",
+        "cancel": "Cancel",
+        "error": {
+          "title": "We couldn't register the notice"
+        }
+      }
     }
   },
   "tasks": {

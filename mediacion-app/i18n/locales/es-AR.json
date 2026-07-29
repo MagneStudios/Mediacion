@@ -541,6 +541,26 @@
         "completed": "Completadas",
         "withNotice": "Con aviso"
       }
+    },
+    "breachNotice": {
+      "form": {
+        "title": "Registrar aviso de incumplimiento",
+        "descriptionLabel": "Qué pasó",
+        "descriptionHint": "Describí lo sucedido con tus palabras. Esta nota queda visible para ambas partes y, si corresponde, para el mediador.",
+        "descriptionPlaceholder": "Describí lo sucedido",
+        "descriptionError": "Ingresá una descripción antes de continuar.",
+        "submitAction": "Registrar aviso",
+        "submittingAction": "Registrando…"
+      },
+      "dialog": {
+        "title": "¿Registrar este aviso?",
+        "body": "El acuerdo va a quedar marcado como \"Con aviso\" y esta nota queda visible para ambas partes y, si corresponde, para el mediador. Esto no representa una determinación legal.",
+        "confirmAction": "Registrar aviso",
+        "cancel": "Cancelar",
+        "error": {
+          "title": "No pudimos registrar el aviso"
+        }
+      }
     }
   },
   "tasks": {
