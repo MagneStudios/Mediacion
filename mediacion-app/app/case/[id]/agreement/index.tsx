@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +10,8 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { AgreementExportAction } from '@/features/agreements/components/AgreementExportAction';
+import { BreachNoticeDialog } from '@/features/agreements/components/BreachNoticeDialog';
+import { BreachNoticeForm } from '@/features/agreements/components/BreachNoticeForm';
 import { DocumentPreparationState } from '@/features/agreements/components/DocumentPreparationState';
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
@@ -23,6 +26,10 @@ export default function AgreementDashboardScreen() {
   const router = useRouter();
   const { status, state, reload, prepareStatus, prepareDocument } = useAgreement(caseId);
   const { horizontalPadding } = useResponsiveLayout();
+
+  const [breachDescription, setBreachDescription] = useState('');
+  const [breachSubmitAttempted, setBreachSubmitAttempted] = useState(false);
+  const [breachDialogVisible, setBreachDialogVisible] = useState(false);
 
   if (status === 'loading') {
     return (
@@ -55,6 +62,36 @@ export default function AgreementDashboardScreen() {
   }
 
   const { agreement, signers, waitingForOtherParty, allSignaturesComplete, canPrepareDocument, canSign, readOnly } = state;
+
+  // Mirrors the backend's own gate on POST /acuerdos/:id/incumplimiento
+  // (only `firmado`/`con_aviso` agreements are breachable — anything else
+  // is a 422 `acuerdo_not_firmado`). Deliberately not derived from
+  // `readOnly`: that flag also covers unrecognized terminal states and, in
+  // this file, is otherwise used to mean "nothing left to do here" — an
+  // explicit `estado` check keeps this rule self-contained and correct
+  // even if `readOnly`'s definition changes later.
+  const canReportBreach = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  const breachDescriptionError =
+    breachSubmitAttempted && breachDescription.trim().length === 0 ? t('agreement.breachNotice.form.descriptionError') : undefined;
+
+  const handleBreachSubmit = () => {
+    if (breachDescription.trim().length === 0) {
+      setBreachSubmitAttempted(true);
+      return;
+    }
+    setBreachDialogVisible(true);
+  };
+
+  const handleBreachConfirm = () => {
+    // Placeholder only — no incumplimientos service exists yet in this
+    // phase. Intentionally just closes the dialog: never fabricate a
+    // registered/success result without a real backend call behind it.
+    setBreachDialogVisible(false);
+  };
+
+  const handleBreachCancel = () => {
+    setBreachDialogVisible(false);
+  };
 
   const statusLabel = allSignaturesComplete
     ? t('agreement.status.firmado')
@@ -139,6 +176,22 @@ export default function AgreementDashboardScreen() {
 
       {readOnly && agreement.estado === 'con_aviso' ? <Text style={styles.bodyText}>{t('agreement.status.conAvisoNotice')}</Text> : null}
 
+      {canReportBreach ? (
+        <BreachNoticeForm
+          description={breachDescription}
+          onChangeDescription={setBreachDescription}
+          descriptionError={breachDescriptionError}
+          status="idle"
+          onSubmit={handleBreachSubmit}
+          title={t('agreement.breachNotice.form.title')}
+          descriptionLabel={t('agreement.breachNotice.form.descriptionLabel')}
+          descriptionHint={t('agreement.breachNotice.form.descriptionHint')}
+          descriptionPlaceholder={t('agreement.breachNotice.form.descriptionPlaceholder')}
+          submitLabel={t('agreement.breachNotice.form.submitAction')}
+          submittingLabel={t('agreement.breachNotice.form.submittingAction')}
+        />
+      ) : null}
+
       <Button
         variant="tertiary"
         fullWidth
@@ -164,6 +217,19 @@ export default function AgreementDashboardScreen() {
       </Text>
 
       <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
+
+      <BreachNoticeDialog
+        visible={breachDialogVisible}
+        status="idle"
+        title={t('agreement.breachNotice.dialog.title')}
+        body={t('agreement.breachNotice.dialog.body')}
+        confirmLabel={t('agreement.breachNotice.dialog.confirmAction')}
+        cancelLabel={t('agreement.breachNotice.dialog.cancel')}
+        errorTitle={t('agreement.breachNotice.dialog.error.title')}
+        retryLabel={t('common.retry')}
+        onConfirm={handleBreachConfirm}
+        onCancel={handleBreachCancel}
+      />
     </ScrollView>
   );
 }

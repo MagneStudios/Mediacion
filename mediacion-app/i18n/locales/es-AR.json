@@ -452,7 +452,7 @@
       "enviado_a_firma": "Lista para firmar",
       "firmado": "Firmado (simulado)",
       "con_aviso": "Con aviso",
-      "conAvisoNotice": "Este acuerdo tiene un aviso registrado y no admite nuevas acciones."
+      "conAvisoNotice": "Este acuerdo tiene un aviso registrado. Las acciones de firma ya no están disponibles acá."
     },
     "progress": {
       "title": "Progreso de firma"
@@ -555,7 +555,7 @@
       "dialog": {
         "title": "¿Registrar este aviso?",
         "body": "El acuerdo va a quedar marcado como \"Con aviso\" y esta nota queda visible para ambas partes y, si corresponde, para el mediador. Esto no representa una determinación legal.",
-        "confirmAction": "Registrar aviso",
+        "confirmAction": "Sí, registrar aviso",
         "cancel": "Cancelar",
         "error": {
           "title": "No pudimos registrar el aviso"

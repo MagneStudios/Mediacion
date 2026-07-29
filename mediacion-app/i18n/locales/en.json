@@ -452,7 +452,7 @@
       "enviado_a_firma": "Ready to sign",
       "firmado": "Signed (simulated)",
       "con_aviso": "Under notice",
-      "conAvisoNotice": "This agreement has a notice on record and doesn't accept new actions."
+      "conAvisoNotice": "This agreement has a notice on record. Signature actions are no longer available for it here."
     },
     "progress": {
       "title": "Signature progress"
@@ -555,7 +555,7 @@
       "dialog": {
         "title": "Register this notice?",
         "body": "The agreement will be marked \"Under notice\" and this note stays visible to both parties and, if applicable, the mediator. This does not represent a legal determination.",
-        "confirmAction": "Register notice",
+        "confirmAction": "Yes, register notice",
         "cancel": "Cancel",
         "error": {
           "title": "We couldn't register the notice"
