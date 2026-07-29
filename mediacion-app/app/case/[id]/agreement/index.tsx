@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -206,35 +206,41 @@ export default function AgreementDashboardScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
-    >
-      <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
 
-      <Text style={styles.title} accessibilityRole="header">
-        {t('agreement.dashboard.title')}
-      </Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('agreement.dashboard.title')}
+        </Text>
 
-      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
+        <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
-      <BreachNoticeDialog
-        visible={breachDialogVisible}
-        status="idle"
-        title={t('agreement.breachNotice.dialog.title')}
-        body={t('agreement.breachNotice.dialog.body')}
-        confirmLabel={t('agreement.breachNotice.dialog.confirmAction')}
-        cancelLabel={t('agreement.breachNotice.dialog.cancel')}
-        errorTitle={t('agreement.breachNotice.dialog.error.title')}
-        retryLabel={t('common.retry')}
-        onConfirm={handleBreachConfirm}
-        onCancel={handleBreachCancel}
-      />
-    </ScrollView>
+        <BreachNoticeDialog
+          visible={breachDialogVisible}
+          status="idle"
+          title={t('agreement.breachNotice.dialog.title')}
+          body={t('agreement.breachNotice.dialog.body')}
+          confirmLabel={t('agreement.breachNotice.dialog.confirmAction')}
+          cancelLabel={t('agreement.breachNotice.dialog.cancel')}
+          errorTitle={t('agreement.breachNotice.dialog.error.title')}
+          retryLabel={t('common.retry')}
+          onConfirm={handleBreachConfirm}
+          onCancel={handleBreachCancel}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: semanticColors.surface.canvas,
