@@ -4,6 +4,19 @@ import type { Kysely } from "kysely";
 import { estadoInvitacionAceptada } from "../casos/casos.types";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
+import type { NotificacionView } from "./notificaciones.types";
+
+const notificacionViewColumns = [
+  "id",
+  "caso_id",
+  "canal",
+  "evento",
+  "estado",
+  "fecha",
+  "created_at",
+  "leido_at",
+] as const;
+
 import type { EmitNotificacionInput, Estado } from "./notificaciones.types";
 
 const estadoPendiente: Estado = "pendiente";
@@ -78,6 +91,62 @@ export class NotificacionesRepository {
       .where("caso_id", "=", casoId)
       .where("estado_invitacion", "=", estadoInvitacionAceptada)
       .execute()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  listForUsuario(usuarioId: string): Promise<NotificacionView[]> {
+    return this.kysely
+      .selectFrom("notificaciones")
+      .select(notificacionViewColumns)
+      .where("usuario_id", "=", usuarioId)
+      .orderBy("created_at", "desc")
+      .execute() as Promise<NotificacionView[]>;
+  }
+
+  countUnreadForUsuario(usuarioId: string): Promise<number> {
+    return this.kysely
+      .selectFrom("notificaciones")
+      .select((builder) => builder.fn.countAll<number>().as("unread"))
+      .where("usuario_id", "=", usuarioId)
+      .where("leido_at", "is", null)
+      .executeTakeFirstOrThrow()
+      .then((row) => Number(row.unread));
+  }
+
+  /**
+   * Scoped by usuario_id as well as id, so a caller cannot mark someone else's
+   * notification read by guessing an id. Returns undefined when nothing matched,
+   * which the service turns into a 404 — the same answer a non-existent id
+   * gets, so the two are indistinguishable from outside.
+   */
+  markRead(
+    id: string,
+    usuarioId: string,
+    readAt: string,
+  ): Promise<NotificacionView | undefined> {
+    return this.kysely
+      .updateTable("notificaciones")
+      .set({ leido_at: readAt })
+      .where("id", "=", id)
+      .where("usuario_id", "=", usuarioId)
+      .returning(notificacionViewColumns)
+      .executeTakeFirst()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      }) as Promise<NotificacionView | undefined>;
+  }
+
+  /** Only the unread ones, so an existing read timestamp is never moved. */
+  markAllRead(usuarioId: string, readAt: string): Promise<number> {
+    return this.kysely
+      .updateTable("notificaciones")
+      .set({ leido_at: readAt })
+      .where("usuario_id", "=", usuarioId)
+      .where("leido_at", "is", null)
+      .executeTakeFirst()
+      .then((result) => Number(result.numUpdatedRows))
       .catch((error: unknown) => {
         throw toDomainError(error);
       });

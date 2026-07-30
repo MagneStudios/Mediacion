@@ -26,5 +26,6 @@ import { DocusignWebhookService } from "./webhook/docusign-webhook.service";
     DocusignOauthTokenClient,
     { provide: DOCUSIGN_CLIENT, useClass: HttpDocusignClient },
   ],
+  exports: [AcuerdosRepository, AcuerdoAccessService, FirmasRepository],
 })
 export class AcuerdosModule {}
