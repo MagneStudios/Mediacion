@@ -83,15 +83,46 @@ healthcheck uses:
 
 ```
 curl -s https://<api-host>/health          # {"status":"ok"}
-curl -s -o /dev/null -w '%{http_code}' https://<api-host>/casos   # 401
 ```
 
-A `401 unauthorized` from `/casos` is the healthy answer: it proves the guard is
-active. A `500` there usually means `DATABASE_URL` is wrong — the guard loads
-the caller from `public.usuarios` on every request.
+`/health` does not touch the database, so it says nothing about `DATABASE_URL`.
 
-Both were verified locally against the real Supabase credentials before this
-document was written.
+**An unauthenticated `401` proves nothing either.** An earlier version of this
+document claimed a `401` from `/casos` showed the guard was reaching
+`public.usuarios`. It does not: with no token the guard rejects the request
+before any query runs, so a completely broken `DATABASE_URL` returns the same
+`401`. That claim cost real debugging time and is why the deploy looked healthy
+while nothing worked.
+
+To actually prove the API reaches the database, send a **valid** token and read
+the error code, not the status:
+
+```
+TOKEN=$(curl -s -X POST "https://<kong-host>/auth/v1/token?grant_type=password" \
+  -H "apikey: <anon-key>" -H 'Content-Type: application/json' \
+  -d '{"email":"...","password":"..."}' | jq -r .access_token)
+
+curl -s https://<api-host>/me -H "Authorization: Bearer $TOKEN"
+```
+
+| response | meaning |
+|---|---|
+| `200` with the user object | fully working |
+| `401 user_not_provisioned` | **the database is reachable** — the query ran and found no `public.usuarios` row. Usually the `on_auth_user_created` trigger is missing |
+| `401 unauthorized` / `Invalid or expired token` | the token is bad or `SUPABASE_JWT_SECRET` does not match. Says nothing about the database |
+| `500` | the database is unreachable, or a trigger on the read path is broken |
+
+For the write path, create a caso — that is the only thing that exercises the
+audit triggers, and a broken `audit_trigger_func` fails **only** on write:
+
+```
+curl -s -X POST https://<api-host>/casos -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"nombre":"probe","metodo":"negociacion"}'   # 201 {"id":"…","estado":"nuevo"}
+```
+
+CI now covers both paths against a real Postgres — see the `integration` job in
+`.github/workflows/ci-node.yml`.
 
 ## 5. The frontend
 
