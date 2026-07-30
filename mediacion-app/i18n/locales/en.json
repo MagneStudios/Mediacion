@@ -154,6 +154,17 @@
       "backToDashboard": "Back to my cases"
     }
   },
+  "caseJoin": {
+    "title": "Join a case",
+    "description": "Enter the invitation link or code you received to join a case.",
+    "inputLabel": "Invitation link or code",
+    "inputPlaceholder": "Paste or type it here",
+    "submitAction": "Join case",
+    "error": {
+      "title": "We couldn't complete this action right now",
+      "description": "Check the link or code and try again."
+    }
+  },
   "positions": {
     "dashboard": {
       "title": "My private positions",
@@ -448,7 +459,7 @@
       "enviado_a_firma": "Ready to sign",
       "firmado": "Signed (simulated)",
       "con_aviso": "Under notice",
-      "conAvisoNotice": "This agreement has a notice on record and doesn't accept new actions."
+      "conAvisoNotice": "This agreement has a notice on record. Signature actions are no longer available for it here."
     },
     "progress": {
       "title": "Signature progress"
@@ -465,6 +476,18 @@
       "preparingBody": "The test version will be ready in a moment.",
       "error": {
         "title": "We couldn't prepare the document"
+      }
+    },
+    "export": {
+      "action": "Export agreement (plain text)",
+      "exportingTitle": "Preparing the exported file",
+      "exportingBody": "The plain-text file will be ready in a moment.",
+      "success": {
+        "title": "Agreement exported",
+        "body": "A plain-text summary was generated in this test environment. It is not a signed or legally binding document."
+      },
+      "error": {
+        "title": "We couldn't export the agreement"
       }
     },
     "sign": {
@@ -524,6 +547,52 @@
         "waitingOther": "Waiting for the other party",
         "completed": "Completed",
         "withNotice": "Under notice"
+      }
+    },
+    "breachNotice": {
+      "form": {
+        "title": "Register a breach notice",
+        "descriptionLabel": "What happened",
+        "descriptionHint": "Describe what happened in your own words. This note stays visible to both parties and, if applicable, the mediator.",
+        "descriptionPlaceholder": "Describe what happened",
+        "descriptionError": "Enter a description before continuing.",
+        "submitAction": "Register notice",
+        "submittingAction": "Registering…"
+      },
+      "dialog": {
+        "title": "Register this notice?",
+        "body": "The agreement will be marked \"Under notice\" and this note stays visible to both parties and, if applicable, the mediator. This does not represent a legal determination.",
+        "confirmAction": "Yes, register notice",
+        "cancel": "Cancel",
+        "error": {
+          "title": "We couldn't register the notice"
+        }
+      }
+    }
+  },
+  "tasks": {
+    "status": {
+      "pendiente": "Pending",
+      "en_progreso": "In progress",
+      "completada": "Completed"
+    },
+    "section": {
+      "title": "Tasks",
+      "empty": {
+        "title": "No tasks yet",
+        "description": "Tasks will appear here once the agreement generates them."
+      }
+    },
+    "calendar": {
+      "action": "Prepare calendar event",
+      "preparingTitle": "Preparing the calendar event",
+      "preparingBody": "The event details will be ready in a moment.",
+      "success": {
+        "title": "Event data ready",
+        "body": "The event details were prepared in this test environment. They were not added to Google Calendar, Apple Calendar, or your device's calendar."
+      },
+      "error": {
+        "title": "We couldn't prepare the calendar event"
       }
     }
   },

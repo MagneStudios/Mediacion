@@ -66,16 +66,18 @@ function appendHistory(agreementId: string, eventKey: AgreementHistoryEventKey, 
   list.push({ id: generateMockHistoryId(), eventKey, timestamp: timestamp ?? new Date().toISOString(), status });
 }
 
-function buildAgreementState(agreement: SharedAgreement): AgreementState {
-  const signers = getSigners(agreement.id);
-  const own = signers.find((signer) => signer.role === 'authenticated_party');
+function buildAgreementState(agreement: SharedAgreement, signers?: SharedSignerStatus[]): AgreementState {
+  const currentSigners = signers ?? getSigners(agreement.id);
+  const own = currentSigners.find((signer) => signer.role === 'authenticated_party');
   const ownSignatureComplete = own?.status === 'firmado';
-  const allSignaturesComplete = agreement.estado === 'firmado';
-  const readOnly = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  const agreementIsComplete = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  const allSignersFirmado = currentSigners.length > 0 && currentSigners.every((signer) => signer.status === 'firmado');
+  const allSignaturesComplete = agreementIsComplete || allSignersFirmado;
+  const readOnly = agreementIsComplete;
 
   return {
     agreement,
-    signers,
+    signers: currentSigners,
     ownSignatureComplete,
     waitingForOtherParty: ownSignatureComplete && !allSignaturesComplete,
     allSignaturesComplete,
@@ -83,6 +85,11 @@ function buildAgreementState(agreement: SharedAgreement): AgreementState {
     canSign: agreement.estado === 'enviado_a_firma' && own?.status === 'pendiente' && !readOnly,
     readOnly,
   };
+}
+
+/** Exported only for regression tests — calls the real state derivation with explicit signers. */
+export function __testDeriveAgreementState(agreement: SharedAgreement, signers: SharedSignerStatus[]): AgreementState {
+  return buildAgreementState(agreement, signers);
 }
 
 /** Concurrent callers for the same caseId share one in-flight materialization, so two near-simultaneous reads can never create two agreements. */

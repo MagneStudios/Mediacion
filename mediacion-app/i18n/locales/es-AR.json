@@ -154,6 +154,17 @@
       "backToDashboard": "Volver a mis casos"
     }
   },
+  "caseJoin": {
+    "title": "Unirte a un caso",
+    "description": "Ingresá el enlace o código de invitación que recibiste para unirte a un caso.",
+    "inputLabel": "Enlace o código de invitación",
+    "inputPlaceholder": "Pegalo o escribilo acá",
+    "submitAction": "Unirme al caso",
+    "error": {
+      "title": "No pudimos completar esta acción por ahora",
+      "description": "Revisá el enlace o código e intentá de nuevo."
+    }
+  },
   "positions": {
     "dashboard": {
       "title": "Mis posiciones privadas",
@@ -448,7 +459,7 @@
       "enviado_a_firma": "Lista para firmar",
       "firmado": "Firmado (simulado)",
       "con_aviso": "Con aviso",
-      "conAvisoNotice": "Este acuerdo tiene un aviso registrado y no admite nuevas acciones."
+      "conAvisoNotice": "Este acuerdo tiene un aviso registrado. Las acciones de firma ya no están disponibles acá."
     },
     "progress": {
       "title": "Progreso de firma"
@@ -465,6 +476,18 @@
       "preparingBody": "La versión de prueba estará disponible en unos instantes.",
       "error": {
         "title": "No pudimos preparar el documento"
+      }
+    },
+    "export": {
+      "action": "Exportar acuerdo (texto plano)",
+      "exportingTitle": "Preparando el archivo exportado",
+      "exportingBody": "El archivo de texto plano estará listo en un instante.",
+      "success": {
+        "title": "Acuerdo exportado",
+        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
+      },
+      "error": {
+        "title": "No pudimos exportar el acuerdo"
       }
     },
     "sign": {
@@ -524,6 +547,52 @@
         "waitingOther": "Esperando a la otra parte",
         "completed": "Completadas",
         "withNotice": "Con aviso"
+      }
+    },
+    "breachNotice": {
+      "form": {
+        "title": "Registrar aviso de incumplimiento",
+        "descriptionLabel": "Qué pasó",
+        "descriptionHint": "Describí lo sucedido con tus palabras. Esta nota queda visible para ambas partes y, si corresponde, para el mediador.",
+        "descriptionPlaceholder": "Describí lo sucedido",
+        "descriptionError": "Ingresá una descripción antes de continuar.",
+        "submitAction": "Registrar aviso",
+        "submittingAction": "Registrando…"
+      },
+      "dialog": {
+        "title": "¿Registrar este aviso?",
+        "body": "El acuerdo va a quedar marcado como \"Con aviso\" y esta nota queda visible para ambas partes y, si corresponde, para el mediador. Esto no representa una determinación legal.",
+        "confirmAction": "Sí, registrar aviso",
+        "cancel": "Cancelar",
+        "error": {
+          "title": "No pudimos registrar el aviso"
+        }
+      }
+    }
+  },
+  "tasks": {
+    "status": {
+      "pendiente": "Pendiente",
+      "en_progreso": "En curso",
+      "completada": "Completada"
+    },
+    "section": {
+      "title": "Tareas",
+      "empty": {
+        "title": "Todavía no hay tareas",
+        "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
+      }
+    },
+    "calendar": {
+      "action": "Preparar evento de calendario",
+      "preparingTitle": "Preparando el evento de calendario",
+      "preparingBody": "Los detalles del evento van a estar listos en un instante.",
+      "success": {
+        "title": "Datos del evento listos",
+        "body": "Los detalles del evento se prepararon en este entorno de prueba. No se agregaron a Google Calendar, Apple Calendar ni al calendario de tu dispositivo."
+      },
+      "error": {
+        "title": "No pudimos preparar el evento de calendario"
       }
     }
   },
