@@ -17,8 +17,27 @@ ENV PATH=$PNPM_HOME:$PATH
 # purging node_modules, and pnpm asks for confirmation it can never get inside
 # a build. Purging is precisely what is wanted here, so let it through.
 ENV CI=true
+# The Coolify host prefers IPv6 for registry.npmjs.org and its v6 egress is
+# broken. Two consecutive web builds died fetching the pnpm tarball: once with
+# UND_ERR_SOCKET after 5.9 MB from source address 2a02:c207:2347:1126::1, once
+# with ECONNRESET. `runtime` is a separate stage and does not inherit this.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN corepack enable
 WORKDIR /app
+
+# Fetch the pnpm pinned by `packageManager` once, here, into corepack's cache.
+# `corepack enable` only installs a shim; the tarball is downloaded lazily on the
+# first pnpm call. Every stage below derives from `base` but caches its own
+# layers, so without this `deps` and `build` each fetch pnpm again over that
+# broken route — one flaky download became three chances to fail the build.
+COPY package.json ./
+RUN for attempt in 1 2 3; do \
+      corepack install && exit 0; \
+      echo "corepack install failed (attempt $attempt of 3), retrying" >&2; \
+      sleep 5; \
+    done; \
+    echo "ERROR: could not fetch the pinned pnpm after 3 attempts." >&2; \
+    exit 1
 
 # ---- dependencies -----------------------------------------------------------
 # Only manifests are copied first so this layer is reused whenever source
