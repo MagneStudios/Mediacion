@@ -17,6 +17,7 @@ export type ApiContraparte = {
 };
 
 export type ApiCaseSummary = {
+  codigo: string | null;
   id: string;
   nombre: string;
   estado: EstadoCaso;
@@ -106,9 +107,9 @@ export function toCaseSummary(row: ApiCaseSummary, now: Date): CaseSummary {
 }
 
 /**
- * `caseCode` has no column behind it; the API never invented one. It is derived
- * from the real id so two clients rendering the same case always show the same
- * code, instead of each fabricating its own.
+ * Fallback for a caso created before `casos.codigo` existed and never backfilled.
+ * Derived from the real id so two clients still agree, rather than each
+ * fabricating its own.
  */
 export function toCaseCode(id: string, createdAt: string): string {
   const year = new Date(createdAt).getFullYear();
@@ -119,7 +120,7 @@ export function toCaseCode(id: string, createdAt: string): string {
 export function toCaseDetail(row: ApiCaseDetail, now: Date): CaseDetail {
   return {
     ...toCaseSummary(row, now),
-    caseCode: toCaseCode(row.id, row.created_at),
+    caseCode: row.codigo ?? toCaseCode(row.id, row.created_at),
     descripcion: row.descripcion ?? undefined,
   };
 }

@@ -1,4 +1,10 @@
-import type { MockProfile, RolUsuario, UpdateProfileInput } from '@/types/profile';
+import type {
+  AccountActionResult,
+  MockProfile,
+  NotificationPreferences,
+  RolUsuario,
+  UpdateProfileInput,
+} from '@/types/profile';
 
 import type { HttpClient } from './http-client';
 
@@ -87,6 +93,9 @@ export function splitProfileUpdate(input: UpdateProfileInput): {
 export type ProfileApiService = {
   getProfile(): Promise<MockProfile>;
   updateProfile(input: UpdateProfileInput): Promise<MockProfile>;
+  getNotificationPreferences(): Promise<NotificationPreferences>;
+  updateNotificationPreferences(input: Partial<NotificationPreferences>): Promise<NotificationPreferences>;
+  requestAccountDeactivation(): Promise<AccountActionResult>;
 };
 
 export function createApiProfileService(http: HttpClient): ProfileApiService {
@@ -114,6 +123,23 @@ export function createApiProfileService(http: HttpClient): ProfileApiService {
         body: persistable,
       });
       return toMockProfile(row, local);
+    },
+
+    getNotificationPreferences(): Promise<NotificationPreferences> {
+      return http.request<NotificationPreferences>('/me/preferencias-notificacion');
+    },
+
+    updateNotificationPreferences(
+      input: Partial<NotificationPreferences>,
+    ): Promise<NotificationPreferences> {
+      return http.request<NotificationPreferences>('/me/preferencias-notificacion', {
+        method: 'PATCH',
+        body: input,
+      });
+    },
+
+    requestAccountDeactivation(): Promise<AccountActionResult> {
+      return http.request<AccountActionResult>('/me/desactivacion', { method: 'POST' });
     },
   };
 }

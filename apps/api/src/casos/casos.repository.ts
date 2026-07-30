@@ -15,6 +15,7 @@ import { estadoInvitacionAceptada, rolesParte } from "./casos.types";
 
 const caseDetailColumns = [
   "casos.id",
+  "casos.codigo",
   "casos.nombre",
   "casos.descripcion",
   "casos.metodo",
@@ -29,6 +30,7 @@ const caseDetailColumns = [
 
 const caseSummaryColumns = [
   "casos.id",
+  "casos.codigo",
   "casos.nombre",
   "casos.estado",
   "casos.metodo",
