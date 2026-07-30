@@ -74,3 +74,11 @@ temp/
 .claude/worktrees/
 .vercel
 .env*
+
+# === macOS duplicate files ===
+# Finder and iCloud/Dropbox-style sync create "<name> 2.ext" copies. Committing
+# one of these under supabase/migrations applies that migration twice and the
+# run dies on `type ... already exists`; it happened once and cost a CI cycle to
+# find. Ignored everywhere because a duplicate source file is never intended.
+* 2.*
+* 3.*

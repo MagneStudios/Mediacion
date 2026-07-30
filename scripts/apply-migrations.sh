@@ -29,6 +29,17 @@ run() { psql "$DATABASE_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 -f "$1"; }
 echo "==> Supabase shim"
 run supabase/ci/bootstrap.sql
 
+# A committed "<name> 2.sql" duplicate applies its migration a second time and
+# the run dies on `type ... already exists` — a confusing failure a long way from
+# its cause. Fail here instead, naming the files.
+duplicates=$(git ls-files 'supabase/migrations/*' | grep -E ' [0-9]+\.[a-z]+$' || true)
+if [ -n "$duplicates" ]; then
+  echo "ERROR: duplicate migration files are tracked:" >&2
+  echo "$duplicates" | sed 's/^/  /' >&2
+  echo "These are macOS copies. Remove them with: git rm --cached '<file>'" >&2
+  exit 1
+fi
+
 count=0
 while IFS= read -r file; do
   echo "==> $(basename "$file")"
