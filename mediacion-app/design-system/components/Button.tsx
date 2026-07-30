@@ -1,9 +1,24 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { radii } from '../tokens/radii';
 import { semanticColors } from '../tokens/colors';
 import { typography } from '../tokens/typography';
+
+// Keyboard focus-visible ring for web — CSS pseudo-class, not a JS event.
+// Injects once at module scope; `outline` draws outside the border box so
+// layout/spacing is unaffected. Native is a no-op.
+if (Platform.OS === 'web') {
+  try {
+    const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-mediacion', 'button-focus-visible');
+    styleTag.textContent =
+      `[data-testid="mediacion-button"]:focus-visible{outline:2px solid ${semanticColors.border.focus};outline-offset:2px}`;
+    document.head.appendChild(styleTag);
+  } catch {
+    /* SSR / non-browser — safe no-op */
+  }
+}
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'ai' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -88,6 +103,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? loadingLabel}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
+      testID="mediacion-button"
       style={({ pressed }) => [
         styles.base,
         {

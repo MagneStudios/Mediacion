@@ -50,12 +50,12 @@ export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
     );
   }
 
-  const statusLabel = state.allSignaturesComplete
-    ? t('agreement.status.firmado')
-    : state.agreement.estado === 'enviado_a_firma'
-      ? t('agreement.status.enviado_a_firma')
-      : state.agreement.estado === 'con_aviso'
-        ? t('agreement.status.con_aviso')
+  const statusLabel = state.agreement.estado === 'con_aviso'
+    ? t('agreement.status.con_aviso')
+    : state.allSignaturesComplete
+      ? t('agreement.status.firmado')
+      : state.agreement.estado === 'enviado_a_firma'
+        ? t('agreement.status.enviado_a_firma')
         : t('agreement.status.borrador');
 
   return (

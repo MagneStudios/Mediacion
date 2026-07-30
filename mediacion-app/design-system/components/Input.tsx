@@ -23,6 +23,10 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
   const reactId = useId();
   const isInvalid = Boolean(error);
 
+  const hintId = `${reactId}-hint`;
+  const errorId = `${reactId}-error`;
+  const describedById = error ? errorId : hint ? hintId : undefined;
+
   const borderColor = isInvalid
     ? semanticColors.status.errorFg
     : focused
@@ -53,7 +57,9 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
           placeholderTextColor={semanticColors.text.quaternary}
           style={styles.input}
           accessibilityLabelledBy={label ? `${reactId}-label` : undefined}
-          accessibilityHint={error}
+          accessibilityHint={error || hint || undefined}
+          {...({ 'aria-describedby': describedById } as Partial<TextInputProps>)}
+          {...(isInvalid ? ({ 'aria-invalid': true as const } as Partial<TextInputProps>) : {})}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -65,9 +71,13 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
         />
       </View>
       {error ? (
-        <Text style={styles.errorMsg}>{error}</Text>
+        <Text nativeID={errorId} style={styles.errorMsg} accessibilityLiveRegion="assertive">
+          {error}
+        </Text>
       ) : hint ? (
-        <Text style={styles.hintMsg}>{hint}</Text>
+        <Text nativeID={hintId} style={styles.hintMsg}>
+          {hint}
+        </Text>
       ) : null}
     </View>
   );

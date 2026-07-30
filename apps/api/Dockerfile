@@ -32,7 +32,14 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/db-types/node_modules ./packages/db-types/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
-RUN pnpm --filter @mediacion/api build
+
+# The trailing `...` selects the API *and its workspace dependencies*, built in
+# topological order. @mediacion/shared resolves to ./dist/index.js and has to be
+# compiled first; building only @mediacion/api fails with TS2307 because
+# packages/shared/dist is absent from a fresh clone (gitignored, and excluded
+# here by .dockerignore). @mediacion/db-types needs no build — it points
+# straight at ./src/index.ts — and pnpm simply skips packages without the script.
+RUN pnpm --filter "@mediacion/api..." build
 
 # Re-resolve with dev dependencies pruned. `--frozen-lockfile` keeps this
 # honest: it fails rather than silently resolving something the lockfile
