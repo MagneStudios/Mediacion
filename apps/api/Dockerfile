@@ -12,6 +12,11 @@
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# Without this the prod re-resolve below dies on
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY: pruning dev dependencies means
+# purging node_modules, and pnpm asks for confirmation it can never get inside
+# a build. Purging is precisely what is wanted here, so let it through.
+ENV CI=true
 RUN corepack enable
 WORKDIR /app
 
