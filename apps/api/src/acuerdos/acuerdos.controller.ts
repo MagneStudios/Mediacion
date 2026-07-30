@@ -10,7 +10,7 @@ import {
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AcuerdosService } from "./acuerdos.service";
-import type { Acuerdo } from "./acuerdos.types";
+import type { Acuerdo, FirmaView, SignatureInboxEntry } from "./acuerdos.types";
 import type { FirmaStatus } from "./firmas.repository";
 
 export type ExportResponse = {
@@ -60,5 +60,20 @@ export class AcuerdosController {
       `attachment; filename="${exported.filename}"`,
     );
     return exported.document;
+  }
+
+  @Get("acuerdos/:id/firmas")
+  listFirmas(
+    @Param("id") acuerdoId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<FirmaView[]> {
+    return this.acuerdosService.listFirmas(acuerdoId, caller.id);
+  }
+
+  @Get("firmas")
+  listSignatureInbox(
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<SignatureInboxEntry[]> {
+    return this.acuerdosService.listSignatureInbox(caller.id);
   }
 }

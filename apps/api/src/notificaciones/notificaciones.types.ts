@@ -29,3 +29,17 @@ export type EmailProvider = {
 export type PushProvider = {
   send(message: PushMessage): Promise<void>;
 };
+
+/**
+ * A notification as the owning user sees it.
+ *
+ * `leido_at` is null when unread. It is deliberately separate from `estado`,
+ * which is a delivery status: a notice can be delivered and unread, or read
+ * after a failed push.
+ */
+export type NotificacionView = Pick<
+  Notificacion,
+  "id" | "caso_id" | "canal" | "evento" | "estado" | "fecha" | "created_at"
+> & { leido_at: string | null };
+
+export type UnreadCount = { unread: number };

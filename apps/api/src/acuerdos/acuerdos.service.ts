@@ -10,6 +10,7 @@ import type { Kysely } from "kysely";
 import { CasosRepository } from "../casos/casos.repository";
 import type { CaseDetail } from "../casos/casos.types";
 import { MembershipService } from "../casos/membership.service";
+import { normalizeTimestamp } from "../common/db/timestamp";
 import { KYSELY } from "../database/database.tokens";
 import { AcuerdoAccessService } from "./acuerdo-access.service";
 import {
@@ -17,7 +18,12 @@ import {
   buildAgreementDocument,
 } from "./acuerdo-export";
 import { AcuerdosRepository } from "./acuerdos.repository";
-import type { Acuerdo, AcuerdoExport } from "./acuerdos.types";
+import type {
+  Acuerdo,
+  AcuerdoExport,
+  FirmaView,
+  SignatureInboxEntry,
+} from "./acuerdos.types";
 import { buildAgreementContent } from "./agreement-content";
 import type { DocusignClient } from "./docusign/docusign-client";
 import { DOCUSIGN_CLIENT } from "./docusign/docusign-client";
@@ -179,5 +185,36 @@ export class AcuerdosService {
         originalError,
       );
     }
+  }
+
+  /**
+   * Per-signer state for one acuerdo. Access is checked against the acuerdo's
+   * own caso, never an id the caller supplied.
+   */
+  async listFirmas(acuerdoId: string, callerId: string): Promise<FirmaView[]> {
+    const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+    if (!acuerdo) {
+      throw acuerdoNotFound();
+    }
+    await this.acuerdoAccessService.assertReadAccess(acuerdo.caso_id, callerId);
+    const rows = await this.firmasRepository.listViewByAcuerdo(acuerdoId);
+    return rows.map((row) => ({
+      ...row,
+      fecha_firma: normalizeTimestamp(row.fecha_firma),
+    }));
+  }
+
+  /**
+   * Every acuerdo the caller signs, across all their casos. Scoped by the
+   * caller's own firmas rows, so it needs no separate membership check — a row
+   * only exists for someone who is party to the acuerdo.
+   */
+  async listSignatureInbox(callerId: string): Promise<SignatureInboxEntry[]> {
+    const rows = await this.firmasRepository.listInboxForUsuario(callerId);
+    return rows.map((row) => ({
+      ...row,
+      own_fecha_firma: normalizeTimestamp(row.own_fecha_firma),
+      pending_signers: Number(row.pending_signers),
+    }));
   }
 }

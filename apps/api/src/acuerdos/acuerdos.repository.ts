@@ -31,6 +31,13 @@ export function acuerdoNotBorrador(): HttpException {
   );
 }
 
+export function acuerdoNotFound(): HttpException {
+  return new HttpException(
+    { code: "acuerdo_not_found", message: "Agreement not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
 @Injectable()
 export class AcuerdosRepository {
   constructor(
