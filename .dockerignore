@@ -10,9 +10,19 @@
 #
 # Keeping **/dist here matters for both: a local build artifact must never leak
 # into an image and get served or executed instead of a freshly built one.
+#
+# **/*.tsbuildinfo has to go with it. Excluding dist but not the buildinfo that
+# describes it is worse than excluding neither: `tsc -b` reads the buildinfo,
+# concludes "up to date because newest input src/index.ts is older than output
+# tsconfig.tsbuildinfo", and emits nothing — so packages/shared/dist never
+# exists and the API build dies on `TS2307: Cannot find module
+# '@mediacion/shared'`. It is gitignored, so a fresh clone (what Coolify builds
+# from) never had it; only local `docker build` runs after a local `pnpm build`
+# hit this, which is exactly the kind of divergence this file exists to prevent.
 node_modules
 **/node_modules
 **/dist
+**/*.tsbuildinfo
 **/.expo
 **/coverage
 .git
