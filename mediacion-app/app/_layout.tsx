@@ -13,6 +13,7 @@ import 'react-native-reanimated';
 
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
 import { ErrorState } from '@/design-system';
+import { AuthGate } from '@/features/auth/AuthGate';
 import { colors } from '@/design-system/tokens/colors';
 import { useDocumentLang } from '@/hooks/use-document-lang';
 import '@/i18n';
@@ -69,9 +70,18 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={mediacionNavigationTheme}>
       <Head><title>Mediación</title></Head>
+      {/*
+        AuthGate wraps the whole tree so a signed-out visitor cannot reach any
+        screen by URL. It is a pass-through when no backend is configured: the
+        app then runs on mocks, where there is nothing to sign in to and gating
+        would lock everything behind a form that cannot succeed.
+      */}
+      <AuthGate>
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
           {/*
             Every route below owns its own nested `<Stack>` (declared in its
             own `_layout.tsx`) — that inner Stack already renders the one
@@ -93,6 +103,7 @@ export default function RootLayout() {
           <Stack.Screen name="notices" options={{ headerShown: false }} />
         </Stack>
       </ResponsiveAppShell>
+      </AuthGate>
       <StatusBar style="dark" />
     </ThemeProvider>
   );

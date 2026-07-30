@@ -1,75 +1,197 @@
 {
-  "common": {
-    "back": "Atrás",
-    "retry": "Reintentar",
-    "loading": "Cargando…",
-    "mainNavigation": "Navegación principal"
-  },
-  "tabs": {
-    "cases": "Casos",
-    "notices": "Avisos",
-    "noticesAccessibleUnread_one": "Avisos, {{count}} sin leer",
-    "noticesAccessibleUnread_other": "Avisos, {{count}} sin leer",
-    "signatures": "Firmas",
-    "profile": "Perfil"
-  },
-  "methods": {
-    "negociacion": "Negociación",
-    "conciliacion": "Conciliación",
-    "mediacion": "Mediación"
-  },
-  "cases": {
-    "title": "Tus casos",
-    "createCase": "Crear un caso",
-    "loading": "Buscando tus casos…",
+  "activity": {
+    "title": "Actividad del proceso",
     "empty": {
-      "title": "Todavía no tenés casos",
-      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+      "title": "Todavía no hay actividad",
+      "description": "Las novedades compartidas del proceso van a aparecer acá."
     },
     "error": {
-      "title": "No pudimos cargar tus casos",
-      "description": "Revisá tu conexión e intentá de nuevo cuando quieras.",
+      "title": "No pudimos cargar la actividad",
       "retry": "Reintentar"
     },
-    "status": {
-      "inReview": "En revisión",
-      "proposalReady": "Propuesta lista",
-      "signed": "Firmado",
-      "awaitingCounterparty": "Esperando a la contraparte",
-      "sla": "SLA {{hours}} h"
-    },
-    "round": "Ronda {{number}}",
-    "noRound": "Sin ronda activa"
+    "caseLine": "Caso: {{title}}",
+    "event": {
+      "case_created": "Se creó el caso",
+      "invitation_sent": "Se envió una invitación",
+      "invitation_accepted": "La otra parte se unió al caso",
+      "negotiation_started": "Comenzó la negociación",
+      "proposal_ready": "Propuesta compartida lista (ronda {{number}})",
+      "own_response_registered": "Registraste tu respuesta",
+      "round_completed": "Se completó la ronda {{number}}",
+      "agreement_reached": "Llegaron a un acuerdo",
+      "signature_ready": "El documento quedó listo para firmar",
+      "own_mock_signature_registered": "Registraste tu firma",
+      "process_completed": "El proceso quedó completo",
+      "mediator_requested": "Se solicitó acompañamiento de mediador",
+      "mediator_assigned": "Se asignó un mediador",
+      "accompaniment_started": "Comenzó el acompañamiento del mediador"
+    }
   },
-  "caseDetail": {
-    "caseCode": "Caso {{code}}",
-    "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
-    "awaitingCounterparty": {
-      "title": "Esperando a la contraparte",
-      "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
-      "viewInvitation": "Ver invitación",
-      "invitationError": "No pudimos cargar la invitación",
-      "simulateAcceptance": {
-        "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
-        "action": "Simular aceptación de la invitación",
-        "dialog": {
-          "title": "¿Simular aceptación?",
-          "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
-          "confirm": "Simular aceptación",
-          "cancel": "Cancelar"
-        },
-        "error": { "title": "No pudimos simular la aceptación" },
-        "notice": {
-          "title": "Invitación aceptada (simulada)",
-          "body": "La aceptación fue simulada para continuar la demostración."
-        }
+  "agreement": {
+    "sectionTitle": "Acuerdo",
+    "dashboard": {
+      "title": "Acuerdo",
+      "empty": {
+        "title": "Todavía no hay un acuerdo",
+        "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
       }
     },
-    "positions": {
-      "title": "Mis posiciones privadas",
-      "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
-      "createAction": "Cargar posición",
-      "viewAction": "Ver mis posiciones"
+    "sharedMarker": {
+      "title": "Acuerdo compartido",
+      "body": "Este contenido es visible para ambas partes y no incluye posiciones privadas."
+    },
+    "detail": {
+      "rationaleTitle": "Fundamento"
+    },
+    "status": {
+      "borrador": "En preparación",
+      "enviado_a_firma": "Lista para firmar",
+      "firmado": "Firmado (simulado)",
+      "con_aviso": "Con aviso",
+      "conAvisoNotice": "Este acuerdo tiene un aviso registrado. Las acciones de firma ya no están disponibles acá."
+    },
+    "progress": {
+      "title": "Progreso de firma"
+    },
+    "signer": {
+      "own": "Vos",
+      "other": "La otra parte",
+      "signed": "Firma simulada",
+      "pending": "Pendiente"
+    },
+    "prepare": {
+      "action": "Preparar versión para firma",
+      "preparingTitle": "Preparando la versión para firma",
+      "preparingBody": "La versión de prueba estará disponible en unos instantes.",
+      "error": {
+        "title": "No pudimos preparar el documento"
+      }
+    },
+    "export": {
+      "action": "Exportar acuerdo (texto plano)",
+      "exportingTitle": "Preparando el archivo exportado",
+      "exportingBody": "El archivo de texto plano estará listo en un instante.",
+      "success": {
+        "title": "Acuerdo exportado",
+        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
+      },
+      "error": {
+        "title": "No pudimos exportar el acuerdo"
+      }
+    },
+    "sign": {
+      "title": "Firmar acuerdo",
+      "goToAction": "Ir a firmar",
+      "confirmationLabel": "Leí el acuerdo compartido y deseo registrar una firma simulada en este entorno de prueba.",
+      "action": "Registrar firma simulada",
+      "notReady": "Este acuerdo todavía no está listo para firma.",
+      "error": {
+        "title": "No pudimos registrar tu firma simulada"
+      },
+      "registered": {
+        "title": "Firma simulada registrada",
+        "body": "Tu confirmación quedó guardada en esta demostración. Esto no reemplaza una firma digital real."
+      },
+      "backToAgreement": "Volver al acuerdo"
+    },
+    "environment": {
+      "title": "Entorno de prueba",
+      "body": "Esta es una firma simulada dentro de un entorno de prueba. La integración de firma digital real se realizará en una etapa posterior."
+    },
+    "response": {
+      "waitingOther": "Esperando la firma de la otra parte",
+      "completed": "Ambas partes completaron la firma simulada"
+    },
+    "summary": {
+      "title": "Acuerdo alcanzado",
+      "body": "Ambas partes aceptaron la propuesta compartida. Podés revisar el acuerdo y su estado de firma.",
+      "viewAction": "Ver acuerdo",
+      "unavailable": "Todavía no hay un acuerdo disponible para este caso."
+    },
+    "history": {
+      "title": "Historial del acuerdo",
+      "viewAction": "Ver historial",
+      "empty": {
+        "title": "Todavía no hay eventos",
+        "description": "Los eventos del acuerdo van a aparecer acá."
+      },
+      "event": {
+        "agreement_created": "Se creó el acuerdo compartido",
+        "preparation_started": "Empezó la preparación de la versión para firma",
+        "document_ready": "La versión para firma quedó lista",
+        "own_signature_registered": "Registraste tu firma simulada",
+        "waiting_for_other_party": "Quedó esperando la firma de la otra parte",
+        "both_signatures_completed": "Ambas partes completaron la firma simulada"
+      }
+    },
+    "inbox": {
+      "title": "Firmas",
+      "reviewAction": "Ver acuerdo",
+      "empty": {
+        "title": "No tenés firmas pendientes",
+        "description": "Los acuerdos listos para firma aparecerán acá."
+      },
+      "groups": {
+        "pending": "Pendientes",
+        "waitingOther": "Esperando a la otra parte",
+        "completed": "Completadas",
+        "withNotice": "Con aviso"
+      }
+    },
+    "breachNotice": {
+      "form": {
+        "title": "Registrar aviso de incumplimiento",
+        "descriptionLabel": "Qué pasó",
+        "descriptionHint": "Describí lo sucedido con tus palabras. Esta nota queda visible para ambas partes y, si corresponde, para el mediador.",
+        "descriptionPlaceholder": "Describí lo sucedido",
+        "descriptionError": "Ingresá una descripción antes de continuar.",
+        "submitAction": "Registrar aviso",
+        "submittingAction": "Registrando…"
+      },
+      "dialog": {
+        "title": "¿Registrar este aviso?",
+        "body": "El acuerdo va a quedar marcado como \"Con aviso\" y esta nota queda visible para ambas partes y, si corresponde, para el mediador. Esto no representa una determinación legal.",
+        "confirmAction": "Sí, registrar aviso",
+        "cancel": "Cancelar",
+        "error": {
+          "title": "No pudimos registrar el aviso"
+        }
+      }
+    }
+  },
+  "auth": {
+    "apellidoLabel": "Apellido",
+    "apellidoPlaceholder": "Tu apellido",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tu@correo.com",
+    "newPasswordPlaceholder": "Elegí una contraseña",
+    "nombreLabel": "Nombre",
+    "nombrePlaceholder": "Tu nombre",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Tu contraseña",
+    "signIn": {
+      "title": "Iniciar sesión",
+      "description": "Ingresá con tu correo y contraseña para ver tus casos.",
+      "submitAction": "Iniciar sesión",
+      "noAccount": "¿No tenés cuenta?",
+      "genericError": "No pudimos iniciar tu sesión. Volvé a intentar.",
+      "error": {
+        "title": "No pudimos iniciar tu sesión"
+      }
+    },
+    "signUp": {
+      "title": "Crear cuenta",
+      "description": "Creá tu cuenta con tu correo y una contraseña.",
+      "submitAction": "Crear cuenta",
+      "hasAccount": "¿Ya tenés cuenta?",
+      "genericError": "No pudimos crear tu cuenta. Volvé a intentar.",
+      "error": {
+        "title": "No pudimos crear tu cuenta"
+      },
+      "checkEmail": {
+        "title": "Revisá tu correo",
+        "description": "Te enviamos un enlace para confirmar tu cuenta. Cuando lo confirmes, vas a poder iniciar sesión."
+      }
     }
   },
   "caseCreation": {
@@ -154,6 +276,39 @@
       "backToDashboard": "Volver a mis casos"
     }
   },
+  "caseDetail": {
+    "caseCode": "Caso {{code}}",
+    "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
+    "awaitingCounterparty": {
+      "title": "Esperando a la contraparte",
+      "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
+      "viewInvitation": "Ver invitación",
+      "invitationError": "No pudimos cargar la invitación",
+      "simulateAcceptance": {
+        "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
+        "action": "Simular aceptación de la invitación",
+        "dialog": {
+          "title": "¿Simular aceptación?",
+          "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
+          "confirm": "Simular aceptación",
+          "cancel": "Cancelar"
+        },
+        "error": {
+          "title": "No pudimos simular la aceptación"
+        },
+        "notice": {
+          "title": "Invitación aceptada (simulada)",
+          "body": "La aceptación fue simulada para continuar la demostración."
+        }
+      }
+    },
+    "positions": {
+      "title": "Mis posiciones privadas",
+      "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
+      "createAction": "Cargar posición",
+      "viewAction": "Ver mis posiciones"
+    }
+  },
   "caseJoin": {
     "title": "Unirte a un caso",
     "description": "Ingresá el enlace o código de invitación que recibiste para unirte a un caso.",
@@ -163,6 +318,390 @@
     "error": {
       "title": "No pudimos completar esta acción por ahora",
       "description": "Revisá el enlace o código e intentá de nuevo."
+    }
+  },
+  "cases": {
+    "title": "Tus casos",
+    "createCase": "Crear un caso",
+    "loading": "Buscando tus casos…",
+    "empty": {
+      "title": "Todavía no tenés casos",
+      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+    },
+    "error": {
+      "title": "No pudimos cargar tus casos",
+      "description": "Revisá tu conexión e intentá de nuevo cuando quieras.",
+      "retry": "Reintentar"
+    },
+    "status": {
+      "inReview": "En revisión",
+      "proposalReady": "Propuesta lista",
+      "signed": "Firmado",
+      "awaitingCounterparty": "Esperando a la contraparte",
+      "sla": "SLA {{hours}} h"
+    },
+    "round": "Ronda {{number}}",
+    "noRound": "Sin ronda activa"
+  },
+  "common": {
+    "back": "Atrás",
+    "retry": "Reintentar",
+    "loading": "Cargando…",
+    "mainNavigation": "Navegación principal"
+  },
+  "mediator": {
+    "sectionTitle": "Acompañamiento",
+    "summary": {
+      "learnMoreAction": "Conocer acompañamiento",
+      "requestAction": "Solicitar mediador",
+      "viewAction": "Ver acompañamiento",
+      "error": {
+        "title": "No pudimos cargar el acompañamiento"
+      },
+      "unavailableBeforeRound3": {
+        "title": "Acompañamiento no disponible todavía",
+        "description": "El acompañamiento de un mediador estará disponible desde la tercera ronda.",
+        "status": "No disponible"
+      },
+      "available": {
+        "title": "Podés solicitar acompañamiento",
+        "description": "Podés solicitar un mediador humano para acompañar el diálogo compartido.",
+        "status": "Disponible"
+      },
+      "pending": {
+        "title": "Solicitud pendiente",
+        "description": "Tu solicitud simulada está pendiente.",
+        "status": "Pendiente"
+      },
+      "assigned": {
+        "title": "Mediador asignado",
+        "description": "Se asignó un mediador en esta demostración.",
+        "status": "Asignado"
+      },
+      "unavailable": {
+        "title": "Sin mediador asignado",
+        "description": "En esta demostración no se asignó un mediador para tu solicitud.",
+        "status": "No disponible"
+      },
+      "readOnly": {
+        "title": "Acompañamiento cerrado",
+        "description": "El acompañamiento de mediador para este caso ya no admite nuevas acciones.",
+        "status": "Cerrado"
+      }
+    },
+    "dashboard": {
+      "title": "Acompañamiento de mediador",
+      "privacyNotice": "El acompañamiento se limita a la información compartida del proceso. Tus posiciones privadas no se muestran en esta pantalla."
+    },
+    "demoNotice": {
+      "title": "Entorno de demostración",
+      "body": "La solicitud y asignación son simuladas. No se contactó a un profesional real."
+    },
+    "explainer": {
+      "title": "¿Qué es el acompañamiento de un mediador?",
+      "helpsBody": "El mediador ayuda a organizar el diálogo compartido entre las partes.",
+      "decisionBody": "El mediador no decide por las partes ni reemplaza su criterio ni el de un profesional.",
+      "privacyBody": "El mediador acompaña el diálogo compartido del caso. Tus posiciones privadas no se muestran en esta pantalla.",
+      "demoBody": "Esta funcionalidad está en etapa de demostración: la solicitud y la asignación son simuladas y no se contactó a ningún profesional real. No implica representación legal, autoridad judicial, certificación de confidencialidad, disponibilidad inmediata, credenciales verificadas ni asesoramiento legal, y no garantiza un acuerdo."
+    },
+    "request": {
+      "dialog": {
+        "title": "¿Solicitar acompañamiento?",
+        "body": "Registraremos una solicitud simulada para este caso. La asignación no es real en esta demostración. El mediador no decide por las partes ni ve tus posiciones privadas.",
+        "confirm": "Confirmar solicitud",
+        "cancel": "Cancelar"
+      },
+      "error": {
+        "title": "No pudimos registrar tu solicitud"
+      }
+    },
+    "profile": {
+      "roleLabel": "Mediador/a",
+      "summaryText": "Acompaña procesos de diálogo familiar con foco en la comunicación y la organización de acuerdos.",
+      "demoLabel": "Perfil de demostración",
+      "notVerifiedNotice": "La identidad y disponibilidad profesional no fueron verificadas en esta maqueta.",
+      "languagesLabel": "Idiomas",
+      "languages": {
+        "es": "Español",
+        "en": "Inglés"
+      },
+      "assignedAtLabel": "Asignado el {{date}}"
+    },
+    "activity": {
+      "title": "Hitos del acompañamiento",
+      "viewAction": "Ver hitos del acompañamiento",
+      "empty": {
+        "title": "Todavía no hay hitos",
+        "description": "Los hitos del acompañamiento van a aparecer acá."
+      },
+      "error": {
+        "title": "No pudimos cargar los hitos",
+        "retry": "Reintentar"
+      },
+      "event": {
+        "request_submitted": "Se registró la solicitud",
+        "request_pending": "La solicitud quedó pendiente",
+        "mediator_assigned": "Se asignó un mediador",
+        "accompaniment_started": "Comenzó el acompañamiento",
+        "follow_up_expected": "Próxima actualización esperada",
+        "request_unavailable": "No se asignó un mediador"
+      }
+    },
+    "notices": {
+      "requestSubmitted": {
+        "title": "Solicitud de mediador registrada",
+        "body": "Registramos tu solicitud simulada de acompañamiento para este caso."
+      },
+      "requestPending": {
+        "title": "Solicitud pendiente",
+        "body": "Tu solicitud de acompañamiento sigue pendiente en esta demostración."
+      },
+      "assigned": {
+        "title": "Mediador asignado",
+        "body": "Se asignó un mediador simulado para acompañar este caso."
+      },
+      "unavailable": {
+        "title": "No se asignó un mediador",
+        "body": "En esta demostración no se asignó un mediador para tu solicitud."
+      }
+    }
+  },
+  "methods": {
+    "negociacion": "Negociación",
+    "conciliacion": "Conciliación",
+    "mediacion": "Mediación"
+  },
+  "negotiation": {
+    "sectionTitle": "Negociación",
+    "summary": {
+      "viewAction": "Ver negociación",
+      "error": {
+        "title": "No pudimos cargar la negociación"
+      },
+      "waitingCounterparty": {
+        "title": "Esperando a la contraparte",
+        "description": "Cuando la otra parte se una al caso, van a poder empezar a negociar.",
+        "status": "Esperando"
+      },
+      "positionsIncomplete": {
+        "title": "Faltan tus posiciones",
+        "description": "Completá tus posiciones privadas para participar en la próxima propuesta.",
+        "status": "Pendiente"
+      },
+      "waitingOtherParty": {
+        "title": "Esperando que la otra parte esté lista",
+        "description": "Todavía no pueden generar una propuesta compartida.",
+        "status": "Esperando"
+      },
+      "ready": {
+        "title": "Listo para negociar",
+        "description": "Ya pueden generar una propuesta compartida para esta ronda.",
+        "status": "Listo"
+      },
+      "inProgressPending": {
+        "title": "Propuesta esperando tu respuesta",
+        "description": "Hay una propuesta compartida lista para que la revises.",
+        "status": "Propuesta lista"
+      },
+      "inProgressWaiting": {
+        "title": "Esperando a la otra parte",
+        "description": "Ya respondiste. Falta la respuesta de la otra parte.",
+        "status": "En revisión"
+      },
+      "completedNoAgreement": {
+        "title": "Ronda completada sin acuerdo",
+        "description": "Pueden continuar en una nueva ronda con otra alternativa.",
+        "status": "Sin acuerdo"
+      },
+      "agreementReached": {
+        "title": "Llegaron a un acuerdo",
+        "description": "Ambas partes aceptaron la propuesta compartida.",
+        "status": "Acordado"
+      },
+      "readOnly": {
+        "title": "Negociación cerrada",
+        "description": "Este caso ya no admite nuevas propuestas ni respuestas.",
+        "status": "Cerrado"
+      }
+    },
+    "dashboard": {
+      "title": "Negociación",
+      "privacyNotice": "Tus posiciones privadas no se muestran en la negociación. La contraparte no verá tus valores."
+    },
+    "notFound": {
+      "title": "No encontramos este caso",
+      "description": "Es posible que el enlace ya no sea válido. Volvé al caso anterior para continuar."
+    },
+    "round": {
+      "label": "Ronda {{number}}",
+      "statusActive": "En curso",
+      "statusCompleted": "Completada"
+    },
+    "proposal": {
+      "rationaleTitle": "Fundamento",
+      "statusPending": "Pendiente de respuesta",
+      "statusAccepted": "Aceptada",
+      "statusRejected": "No aceptada",
+      "title": "Punto de encuentro — Ronda {{round}}",
+      "generating": "Redactando la propuesta…",
+      "emptyMeetingPoint": "Todavía no hay un punto de encuentro para mostrar.",
+      "estadoAcordable": "Acordable",
+      "estadoNegociable": "A negociar",
+      "valueNumeric": "Punto medio: {{value}}",
+      "valueNotNumeric": "Sin punto medio numérico"
+    },
+    "generate": {
+      "action": "Generar propuesta",
+      "badge": "Asistido por IA",
+      "generatingTitle": "Preparando una propuesta",
+      "generatingBody": "La IA está organizando una alternativa compartida a partir de la información disponible.",
+      "privacyNote": "Las posiciones privadas no se muestran en la propuesta.",
+      "error": {
+        "title": "No pudimos generar la propuesta"
+      }
+    },
+    "startRound": {
+      "action": "Iniciar nueva ronda",
+      "error": {
+        "title": "No pudimos iniciar la ronda"
+      }
+    },
+    "response": {
+      "accept": "Aceptar propuesta",
+      "reject": "No aceptar",
+      "waitingOtherTitle": "Esperando a la otra parte",
+      "waitingOther": "Tu respuesta ya quedó registrada. Vas a ver el resultado cuando la otra parte responda.",
+      "dialogs": {
+        "accept": {
+          "title": "¿Aceptar esta propuesta?",
+          "body": "Tu respuesta quedará registrada. El acuerdo solo avanza si ambas partes aceptan."
+        },
+        "reject": {
+          "title": "¿No aceptar esta propuesta?",
+          "body": "Podrán continuar en una nueva ronda con otra alternativa."
+        },
+        "confirmAccept": "Confirmar aceptación",
+        "confirmReject": "Confirmar rechazo",
+        "cancel": "Cancelar"
+      },
+      "error": {
+        "title": "No pudimos registrar tu respuesta"
+      }
+    },
+    "resolution": {
+      "agreementBody": "Ambas partes aceptaron la propuesta compartida.",
+      "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda.",
+      "reviewAgreementAction": "Revisar acuerdo"
+    },
+    "history": {
+      "title": "Historial de rondas",
+      "viewAction": "Ver historial",
+      "empty": {
+        "title": "Todavía no hay rondas completadas",
+        "description": "Cuando se complete una ronda, va a aparecer acá."
+      },
+      "item": {
+        "agreementReached": "Acuerdo alcanzado",
+        "notAccepted": "No aceptada"
+      }
+    }
+  },
+  "notices": {
+    "title": "Centro de avisos",
+    "demoNotice": {
+      "title": "Entorno de demostración",
+      "body": "Los avisos de esta demostración no se envían por correo ni al dispositivo."
+    },
+    "privacyNotice": {
+      "title": "Privacidad",
+      "body": "Los avisos muestran únicamente información compartida del proceso. Tus posiciones privadas no se incluyen."
+    },
+    "unreadSummary_one": "Tenés {{count}} aviso sin leer",
+    "unreadSummary_other": "Tenés {{count}} avisos sin leer",
+    "noUnread": "Estás al día",
+    "filters": {
+      "all": "Todas",
+      "unread": "No leídas"
+    },
+    "markAllAction": "Marcar todas como leídas",
+    "markAllPending": "Marcando…",
+    "markReadAction": "Marcar como leído",
+    "markReadError": "No pudimos marcar este aviso como leído. Volvé a intentar.",
+    "readLabel": "Leído",
+    "unreadLabel": "No leído",
+    "importantLabel": "Importante",
+    "caseLine": "Caso: {{title}}",
+    "viewActivityAction": "Ver actividad",
+    "empty": {
+      "title": "No hay avisos para mostrar",
+      "description": "Todavía no hay avisos en esta demostración."
+    },
+    "error": {
+      "title": "No pudimos cargar los avisos",
+      "retry": "Reintentar"
+    },
+    "category": {
+      "case": "Caso",
+      "invitation": "Invitación",
+      "proposal": "Propuesta",
+      "response": "Respuesta",
+      "round": "Ronda",
+      "agreement": "Acuerdo",
+      "signature": "Firma",
+      "mediator": "Mediador",
+      "deadline": "Seguimiento",
+      "institutional": "Institucional",
+      "system": "Sistema"
+    },
+    "fixtures": {
+      "invitationAccepted": {
+        "title": "La otra parte se unió al caso",
+        "body": "La contraparte aceptó la invitación y el caso ya está activo."
+      },
+      "proposalReady": {
+        "title": "Propuesta lista",
+        "body": "La IA generó una nueva propuesta compartida para revisar."
+      },
+      "ownResponseRegistered": {
+        "title": "Registramos tu respuesta",
+        "body": "Tu respuesta a la propuesta quedó registrada."
+      },
+      "waitingOtherParty": {
+        "title": "Esperando a la otra parte",
+        "body": "Ya respondiste la propuesta. Estamos esperando la respuesta de la otra parte."
+      },
+      "newRoundAvailable": {
+        "title": "Nueva ronda disponible",
+        "body": "Se abrió la ronda {{number}} de negociación para este caso."
+      },
+      "agreementReached": {
+        "title": "Llegaron a un acuerdo",
+        "body": "Ambas partes aceptaron la propuesta y el caso pasó a estado de acuerdo."
+      },
+      "signatureReady": {
+        "title": "Documento listo para firmar",
+        "body": "El acuerdo quedó listo para la firma de ambas partes."
+      },
+      "signaturePending": {
+        "title": "Firma pendiente",
+        "body": "Todavía faltaba tu firma simulada en este acuerdo."
+      },
+      "processCompleted": {
+        "title": "Proceso completado",
+        "body": "Ambas partes firmaron y el acuerdo quedó completo."
+      },
+      "deadline": {
+        "title": "Seguimiento esperado",
+        "body": "Se espera una actualización dentro de las próximas {{hours}} horas."
+      },
+      "institutionalMediator": {
+        "title": "Acompañamiento de mediador",
+        "body": "Desde la tercera ronda puede solicitarse acompañamiento de un mediador."
+      },
+      "personalPositionsReady": {
+        "title": "Tus posiciones privadas están listas",
+        "body": "Ya cargaste información privada para este caso. Solo vos podés verla."
+      }
     }
   },
   "positions": {
@@ -303,299 +842,6 @@
       "continue": "Continuar"
     }
   },
-  "negotiation": {
-    "sectionTitle": "Negociación",
-    "summary": {
-      "viewAction": "Ver negociación",
-      "error": {
-        "title": "No pudimos cargar la negociación"
-      },
-      "waitingCounterparty": {
-        "title": "Esperando a la contraparte",
-        "description": "Cuando la otra parte se una al caso, van a poder empezar a negociar.",
-        "status": "Esperando"
-      },
-      "positionsIncomplete": {
-        "title": "Faltan tus posiciones",
-        "description": "Completá tus posiciones privadas para participar en la próxima propuesta.",
-        "status": "Pendiente"
-      },
-      "waitingOtherParty": {
-        "title": "Esperando que la otra parte esté lista",
-        "description": "Todavía no pueden generar una propuesta compartida.",
-        "status": "Esperando"
-      },
-      "ready": {
-        "title": "Listo para negociar",
-        "description": "Ya pueden generar una propuesta compartida para esta ronda.",
-        "status": "Listo"
-      },
-      "inProgressPending": {
-        "title": "Propuesta esperando tu respuesta",
-        "description": "Hay una propuesta compartida lista para que la revises.",
-        "status": "Propuesta lista"
-      },
-      "inProgressWaiting": {
-        "title": "Esperando a la otra parte",
-        "description": "Ya respondiste. Falta la respuesta de la otra parte.",
-        "status": "En revisión"
-      },
-      "completedNoAgreement": {
-        "title": "Ronda completada sin acuerdo",
-        "description": "Pueden continuar en una nueva ronda con otra alternativa.",
-        "status": "Sin acuerdo"
-      },
-      "agreementReached": {
-        "title": "Llegaron a un acuerdo",
-        "description": "Ambas partes aceptaron la propuesta compartida.",
-        "status": "Acordado"
-      },
-      "readOnly": {
-        "title": "Negociación cerrada",
-        "description": "Este caso ya no admite nuevas propuestas ni respuestas.",
-        "status": "Cerrado"
-      }
-    },
-    "dashboard": {
-      "title": "Negociación",
-      "privacyNotice": "Tus posiciones privadas no se muestran en la negociación. La contraparte no verá tus valores."
-    },
-    "notFound": {
-      "title": "No encontramos este caso",
-      "description": "Es posible que el enlace ya no sea válido. Volvé al caso anterior para continuar."
-    },
-    "round": {
-      "label": "Ronda {{number}}",
-      "statusActive": "En curso",
-      "statusCompleted": "Completada"
-    },
-    "proposal": {
-      "rationaleTitle": "Fundamento",
-      "statusPending": "Pendiente de respuesta",
-      "statusAccepted": "Aceptada",
-      "statusRejected": "No aceptada",
-      "title": "Punto de encuentro — Ronda {{round}}",
-      "generating": "Redactando la propuesta…",
-      "emptyMeetingPoint": "Todavía no hay un punto de encuentro para mostrar.",
-      "estadoAcordable": "Acordable",
-      "estadoNegociable": "A negociar",
-      "valueNumeric": "Punto medio: {{value}}",
-      "valueNotNumeric": "Sin punto medio numérico"
-    },
-    "generate": {
-      "action": "Generar propuesta",
-      "badge": "Asistido por IA",
-      "generatingTitle": "Preparando una propuesta",
-      "generatingBody": "La IA está organizando una alternativa compartida a partir de la información disponible.",
-      "privacyNote": "Las posiciones privadas no se muestran en la propuesta.",
-      "error": {
-        "title": "No pudimos generar la propuesta"
-      }
-    },
-    "startRound": {
-      "action": "Iniciar nueva ronda",
-      "error": {
-        "title": "No pudimos iniciar la ronda"
-      }
-    },
-    "response": {
-      "accept": "Aceptar propuesta",
-      "reject": "No aceptar",
-      "waitingOtherTitle": "Esperando a la otra parte",
-      "waitingOther": "Tu respuesta ya quedó registrada. Vas a ver el resultado cuando la otra parte responda.",
-      "dialogs": {
-        "accept": {
-          "title": "¿Aceptar esta propuesta?",
-          "body": "Tu respuesta quedará registrada. El acuerdo solo avanza si ambas partes aceptan."
-        },
-        "reject": {
-          "title": "¿No aceptar esta propuesta?",
-          "body": "Podrán continuar en una nueva ronda con otra alternativa."
-        },
-        "confirmAccept": "Confirmar aceptación",
-        "confirmReject": "Confirmar rechazo",
-        "cancel": "Cancelar"
-      },
-      "error": {
-        "title": "No pudimos registrar tu respuesta"
-      }
-    },
-    "resolution": {
-      "agreementBody": "Ambas partes aceptaron la propuesta compartida.",
-      "notAcceptedBody": "La propuesta no fue aceptada por ambas partes. Pueden continuar en una nueva ronda.",
-      "reviewAgreementAction": "Revisar acuerdo"
-    },
-    "history": {
-      "title": "Historial de rondas",
-      "viewAction": "Ver historial",
-      "empty": {
-        "title": "Todavía no hay rondas completadas",
-        "description": "Cuando se complete una ronda, va a aparecer acá."
-      },
-      "item": {
-        "agreementReached": "Acuerdo alcanzado",
-        "notAccepted": "No aceptada"
-      }
-    }
-  },
-  "agreement": {
-    "sectionTitle": "Acuerdo",
-    "dashboard": {
-      "title": "Acuerdo",
-      "empty": {
-        "title": "Todavía no hay un acuerdo",
-        "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
-      }
-    },
-    "sharedMarker": {
-      "title": "Acuerdo compartido",
-      "body": "Este contenido es visible para ambas partes y no incluye posiciones privadas."
-    },
-    "detail": {
-      "rationaleTitle": "Fundamento"
-    },
-    "status": {
-      "borrador": "En preparación",
-      "enviado_a_firma": "Lista para firmar",
-      "firmado": "Firmado (simulado)",
-      "con_aviso": "Con aviso",
-      "conAvisoNotice": "Este acuerdo tiene un aviso registrado. Las acciones de firma ya no están disponibles acá."
-    },
-    "progress": {
-      "title": "Progreso de firma"
-    },
-    "signer": {
-      "own": "Vos",
-      "other": "La otra parte",
-      "signed": "Firma simulada",
-      "pending": "Pendiente"
-    },
-    "prepare": {
-      "action": "Preparar versión para firma",
-      "preparingTitle": "Preparando la versión para firma",
-      "preparingBody": "La versión de prueba estará disponible en unos instantes.",
-      "error": {
-        "title": "No pudimos preparar el documento"
-      }
-    },
-    "export": {
-      "action": "Exportar acuerdo (texto plano)",
-      "exportingTitle": "Preparando el archivo exportado",
-      "exportingBody": "El archivo de texto plano estará listo en un instante.",
-      "success": {
-        "title": "Acuerdo exportado",
-        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
-      },
-      "error": {
-        "title": "No pudimos exportar el acuerdo"
-      }
-    },
-    "sign": {
-      "title": "Firmar acuerdo",
-      "goToAction": "Ir a firmar",
-      "confirmationLabel": "Leí el acuerdo compartido y deseo registrar una firma simulada en este entorno de prueba.",
-      "action": "Registrar firma simulada",
-      "notReady": "Este acuerdo todavía no está listo para firma.",
-      "error": {
-        "title": "No pudimos registrar tu firma simulada"
-      },
-      "registered": {
-        "title": "Firma simulada registrada",
-        "body": "Tu confirmación quedó guardada en esta demostración. Esto no reemplaza una firma digital real."
-      },
-      "backToAgreement": "Volver al acuerdo"
-    },
-    "environment": {
-      "title": "Entorno de prueba",
-      "body": "Esta es una firma simulada dentro de un entorno de prueba. La integración de firma digital real se realizará en una etapa posterior."
-    },
-    "response": {
-      "waitingOther": "Esperando la firma de la otra parte",
-      "completed": "Ambas partes completaron la firma simulada"
-    },
-    "summary": {
-      "title": "Acuerdo alcanzado",
-      "body": "Ambas partes aceptaron la propuesta compartida. Podés revisar el acuerdo y su estado de firma.",
-      "viewAction": "Ver acuerdo",
-      "unavailable": "Todavía no hay un acuerdo disponible para este caso."
-    },
-    "history": {
-      "title": "Historial del acuerdo",
-      "viewAction": "Ver historial",
-      "empty": {
-        "title": "Todavía no hay eventos",
-        "description": "Los eventos del acuerdo van a aparecer acá."
-      },
-      "event": {
-        "agreement_created": "Se creó el acuerdo compartido",
-        "preparation_started": "Empezó la preparación de la versión para firma",
-        "document_ready": "La versión para firma quedó lista",
-        "own_signature_registered": "Registraste tu firma simulada",
-        "waiting_for_other_party": "Quedó esperando la firma de la otra parte",
-        "both_signatures_completed": "Ambas partes completaron la firma simulada"
-      }
-    },
-    "inbox": {
-      "title": "Firmas",
-      "reviewAction": "Ver acuerdo",
-      "empty": {
-        "title": "No tenés firmas pendientes",
-        "description": "Los acuerdos listos para firma aparecerán acá."
-      },
-      "groups": {
-        "pending": "Pendientes",
-        "waitingOther": "Esperando a la otra parte",
-        "completed": "Completadas",
-        "withNotice": "Con aviso"
-      }
-    },
-    "breachNotice": {
-      "form": {
-        "title": "Registrar aviso de incumplimiento",
-        "descriptionLabel": "Qué pasó",
-        "descriptionHint": "Describí lo sucedido con tus palabras. Esta nota queda visible para ambas partes y, si corresponde, para el mediador.",
-        "descriptionPlaceholder": "Describí lo sucedido",
-        "descriptionError": "Ingresá una descripción antes de continuar.",
-        "submitAction": "Registrar aviso",
-        "submittingAction": "Registrando…"
-      },
-      "dialog": {
-        "title": "¿Registrar este aviso?",
-        "body": "El acuerdo va a quedar marcado como \"Con aviso\" y esta nota queda visible para ambas partes y, si corresponde, para el mediador. Esto no representa una determinación legal.",
-        "confirmAction": "Sí, registrar aviso",
-        "cancel": "Cancelar",
-        "error": {
-          "title": "No pudimos registrar el aviso"
-        }
-      }
-    }
-  },
-  "tasks": {
-    "status": {
-      "pendiente": "Pendiente",
-      "en_progreso": "En curso",
-      "completada": "Completada"
-    },
-    "section": {
-      "title": "Tareas",
-      "empty": {
-        "title": "Todavía no hay tareas",
-        "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
-      }
-    },
-    "calendar": {
-      "action": "Preparar evento de calendario",
-      "preparingTitle": "Preparando el evento de calendario",
-      "preparingBody": "Los detalles del evento van a estar listos en un instante.",
-      "success": {
-        "title": "Datos del evento listos",
-        "body": "Los detalles del evento se prepararon en este entorno de prueba. No se agregaron a Google Calendar, Apple Calendar ni al calendario de tu dispositivo."
-      },
-      "error": {
-        "title": "No pudimos preparar el evento de calendario"
-      }
-    }
-  },
   "profile": {
     "demoNotice": {
       "title": "Entorno de demostración",
@@ -603,7 +849,9 @@
       "notifications": "Los avisos que activés acá todavía no están conectados a notificaciones reales: no se envían emails ni push en esta demostración.",
       "account": "Las acciones de esta pantalla son solo demostrativas. No hay autenticación real ni se elimina información."
     },
-    "header": { "title": "Perfil" },
+    "header": {
+      "title": "Perfil"
+    },
     "role": {
       "admin": "Administración",
       "parte": "Parte en mediación",
@@ -615,12 +863,30 @@
       "inactive": "Cuenta desactivada"
     },
     "menu": {
-      "edit": { "label": "Editar perfil", "description": "Nombre, idioma y preferencias" },
-      "notifications": { "label": "Notificaciones", "description": "Activá o desactivá avisos por categoría" },
-      "privacy": { "label": "Privacidad y datos", "description": "Cómo protegemos tu información" },
-      "help": { "label": "Ayuda y soporte", "description": "Preguntas frecuentes y contacto" },
-      "legal": { "label": "Legales", "description": "Términos, avisos e información general" },
-      "account": { "label": "Cuenta", "description": "Sesión y baja de cuenta" }
+      "edit": {
+        "label": "Editar perfil",
+        "description": "Nombre, idioma y preferencias"
+      },
+      "notifications": {
+        "label": "Notificaciones",
+        "description": "Activá o desactivá avisos por categoría"
+      },
+      "privacy": {
+        "label": "Privacidad y datos",
+        "description": "Cómo protegemos tu información"
+      },
+      "help": {
+        "label": "Ayuda y soporte",
+        "description": "Preguntas frecuentes y contacto"
+      },
+      "legal": {
+        "label": "Legales",
+        "description": "Términos, avisos e información general"
+      },
+      "account": {
+        "label": "Cuenta",
+        "description": "Sesión y baja de cuenta"
+      }
     },
     "summary": {
       "sectionTitle": "Resumen",
@@ -654,48 +920,123 @@
       "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
       "save": "Guardar cambios",
       "saved": "Los cambios se guardaron en esta demostración.",
-      "error": { "title": "No pudimos guardar los cambios", "retry": "Reintentar" }
+      "error": {
+        "title": "No pudimos guardar los cambios",
+        "retry": "Reintentar"
+      }
     },
     "notifications": {
       "title": "Notificaciones",
       "categories": {
-        "caseUpdates": { "label": "Novedades del caso", "description": "Cambios de estado en tus casos activos" },
-        "proposalReady": { "label": "Propuesta lista", "description": "Cuando la IA genera una nueva propuesta compartida" },
-        "responseReceived": { "label": "Respuesta recibida", "description": "Cuando la otra parte responde a una propuesta" },
-        "signatureReady": { "label": "Firma disponible", "description": "Cuando un acuerdo está listo para firmar" },
-        "agreementCompleted": { "label": "Acuerdo completado", "description": "Cuando ambas partes firmaron el acuerdo" },
-        "mediatorAvailability": { "label": "Disponibilidad de mediador/a", "description": "Cuando un mediador queda disponible para tu caso" },
-        "productUpdates": { "label": "Novedades de la aplicación", "description": "Anuncios generales del producto" }
+        "caseUpdates": {
+          "label": "Novedades del caso",
+          "description": "Cambios de estado en tus casos activos"
+        },
+        "proposalReady": {
+          "label": "Propuesta lista",
+          "description": "Cuando la IA genera una nueva propuesta compartida"
+        },
+        "responseReceived": {
+          "label": "Respuesta recibida",
+          "description": "Cuando la otra parte responde a una propuesta"
+        },
+        "signatureReady": {
+          "label": "Firma disponible",
+          "description": "Cuando un acuerdo está listo para firmar"
+        },
+        "agreementCompleted": {
+          "label": "Acuerdo completado",
+          "description": "Cuando ambas partes firmaron el acuerdo"
+        },
+        "mediatorAvailability": {
+          "label": "Disponibilidad de mediador/a",
+          "description": "Cuando un mediador queda disponible para tu caso"
+        },
+        "productUpdates": {
+          "label": "Novedades de la aplicación",
+          "description": "Anuncios generales del producto"
+        }
       },
-      "error": { "title": "No pudimos actualizar la preferencia", "retry": "Reintentar" }
+      "error": {
+        "title": "No pudimos actualizar la preferencia",
+        "retry": "Reintentar"
+      }
     },
     "privacy": {
       "title": "Privacidad y datos",
-      "isolation": { "title": "Tus posiciones privadas", "body": "Las posiciones privadas que cargás en cada caso solo las ves vos. La otra parte nunca accede a tus valores, condiciones o descripciones." },
-      "sharedProposals": { "title": "Propuestas compartidas", "body": "Las propuestas de la IA muestran un punto medio ya sanitizado: nunca revelan las posiciones privadas originales de ninguna parte." },
-      "signatures": { "title": "Firmas en este entorno", "body": "Las firmas de esta demostración son simuladas. No se realiza ninguna firma legal ni criptográfica." },
-      "future": { "title": "Próximamente", "body": "La integración con el backend real y la autenticación llegarán en una etapa posterior del proyecto." },
-      "links": { "deactivation": "Solicitar baja de cuenta", "support": "Contactar a soporte" }
+      "isolation": {
+        "title": "Tus posiciones privadas",
+        "body": "Las posiciones privadas que cargás en cada caso solo las ves vos. La otra parte nunca accede a tus valores, condiciones o descripciones."
+      },
+      "sharedProposals": {
+        "title": "Propuestas compartidas",
+        "body": "Las propuestas de la IA muestran un punto medio ya sanitizado: nunca revelan las posiciones privadas originales de ninguna parte."
+      },
+      "signatures": {
+        "title": "Firmas en este entorno",
+        "body": "Las firmas de esta demostración son simuladas. No se realiza ninguna firma legal ni criptográfica."
+      },
+      "future": {
+        "title": "Próximamente",
+        "body": "La integración con el backend real y la autenticación llegarán en una etapa posterior del proyecto."
+      },
+      "links": {
+        "deactivation": "Solicitar baja de cuenta",
+        "support": "Contactar a soporte"
+      }
     },
     "help": {
       "title": "Ayuda y soporte",
       "topics": {
-        "flow": { "question": "¿Cómo funciona el proceso de mediación?", "answer": "Cada parte carga sus posiciones privadas, la IA sugiere una propuesta intermedia y ambas partes la aceptan o la rechazan en rondas sucesivas." },
-        "privacy": { "question": "¿Cómo se protegen mis posiciones privadas?", "answer": "Solo vos podés ver tus posiciones. La otra parte nunca accede a esa información; solo ve las propuestas ya sanitizadas." },
-        "afterAgreement": { "question": "¿Qué pasa después de llegar a un acuerdo?", "answer": "El acuerdo queda disponible para revisión y firma de ambas partes antes de darse por completado." },
-        "signatureSimulation": { "question": "¿Las firmas son legalmente válidas?", "answer": "Todavía no. En esta demostración, la firma es una confirmación simulada dentro de la app, sin validez legal ni certificación criptográfica." },
-        "mediator": { "question": "¿Cuándo interviene un mediador?", "answer": "Si una negociación no llega a un acuerdo después de dos rondas, se habilita la posibilidad de solicitar un mediador desde la tercera ronda." }
+        "flow": {
+          "question": "¿Cómo funciona el proceso de mediación?",
+          "answer": "Cada parte carga sus posiciones privadas, la IA sugiere una propuesta intermedia y ambas partes la aceptan o la rechazan en rondas sucesivas."
+        },
+        "privacy": {
+          "question": "¿Cómo se protegen mis posiciones privadas?",
+          "answer": "Solo vos podés ver tus posiciones. La otra parte nunca accede a esa información; solo ve las propuestas ya sanitizadas."
+        },
+        "afterAgreement": {
+          "question": "¿Qué pasa después de llegar a un acuerdo?",
+          "answer": "El acuerdo queda disponible para revisión y firma de ambas partes antes de darse por completado."
+        },
+        "signatureSimulation": {
+          "question": "¿Las firmas son legalmente válidas?",
+          "answer": "Todavía no. En esta demostración, la firma es una confirmación simulada dentro de la app, sin validez legal ni certificación criptográfica."
+        },
+        "mediator": {
+          "question": "¿Cuándo interviene un mediador?",
+          "answer": "Si una negociación no llega a un acuerdo después de dos rondas, se habilita la posibilidad de solicitar un mediador desde la tercera ronda."
+        }
       },
-      "contact": { "action": "Contactar a soporte", "notice": "En esta demostración no se envía ningún mensaje real a soporte. Todavía no hay un canal de contacto activo." }
+      "contact": {
+        "action": "Contactar a soporte",
+        "notice": "En esta demostración no se envía ningún mensaje real a soporte. Todavía no hay un canal de contacto activo."
+      }
     },
     "legal": {
       "title": "Legales",
       "generalInfoBadge": "Información general",
-      "terms": { "title": "Términos de uso", "body": "Información general sobre el uso de la aplicación durante esta etapa de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal." },
-      "privacyNotice": { "title": "Aviso de privacidad", "body": "Descripción general de cómo se maneja la información dentro de este entorno de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal." },
-      "aiNotice": { "title": "Aviso sobre asistencia de IA", "body": "La inteligencia artificial sugiere propuestas de acuerdo, pero nunca decide ni reemplaza el criterio de las partes ni de un mediador. Este contenido no constituye asesoramiento legal." },
-      "signatureNotice": { "title": "Aviso sobre firma simulada", "body": "Las firmas registradas en esta demostración son simuladas: no tienen validez legal ni utilizan un proveedor de firma certificada. Este contenido no constituye asesoramiento legal." },
-      "noAdvice": { "title": "Sin asesoramiento legal", "body": "Nada de lo mostrado en esta aplicación constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal antes de su publicación." }
+      "terms": {
+        "title": "Términos de uso",
+        "body": "Información general sobre el uso de la aplicación durante esta etapa de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal."
+      },
+      "privacyNotice": {
+        "title": "Aviso de privacidad",
+        "body": "Descripción general de cómo se maneja la información dentro de este entorno de demostración. Este contenido no constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal."
+      },
+      "aiNotice": {
+        "title": "Aviso sobre asistencia de IA",
+        "body": "La inteligencia artificial sugiere propuestas de acuerdo, pero nunca decide ni reemplaza el criterio de las partes ni de un mediador. Este contenido no constituye asesoramiento legal."
+      },
+      "signatureNotice": {
+        "title": "Aviso sobre firma simulada",
+        "body": "Las firmas registradas en esta demostración son simuladas: no tienen validez legal ni utilizan un proveedor de firma certificada. Este contenido no constituye asesoramiento legal."
+      },
+      "noAdvice": {
+        "title": "Sin asesoramiento legal",
+        "body": "Nada de lo mostrado en esta aplicación constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal antes de su publicación."
+      }
     },
     "account": {
       "title": "Cuenta",
@@ -708,7 +1049,10 @@
         "dialogBody": "Vas a salir de esta demostración. Tus casos, posiciones y demás datos simulados no se eliminan.",
         "confirm": "Cerrar sesión",
         "cancel": "Cancelar",
-        "error": { "title": "No pudimos cerrar la sesión", "retry": "Reintentar" }
+        "error": {
+          "title": "No pudimos cerrar la sesión",
+          "retry": "Reintentar"
+        }
       },
       "deactivation": {
         "cardTitle": "Solicitar baja de cuenta",
@@ -723,205 +1067,60 @@
         "requestedNotice": "La solicitud quedó registrada en esta demostración el {{date}}.",
         "alreadyRequestedTitle": "Ya registramos tu solicitud",
         "alreadyRequestedBody": "La solicitud quedó registrada en esta demostración el {{date}}. No se generó una nueva solicitud.",
-        "error": { "title": "No pudimos registrar la solicitud", "retry": "Reintentar" }
+        "error": {
+          "title": "No pudimos registrar la solicitud",
+          "retry": "Reintentar"
+        }
       }
     },
     "signedOut": {
       "title": "Sesión finalizada (demo)",
       "body": "Esta es una sesión simulada: no hay autenticación real todavía. Tus casos y datos de la demostración siguen disponibles.",
       "returnAction": "Volver a la demo",
-      "error": { "title": "No pudimos restaurar la sesión", "retry": "Reintentar" }
-    }
-  },
-  "notices": {
-    "title": "Centro de avisos",
-    "demoNotice": {
-      "title": "Entorno de demostración",
-      "body": "Los avisos de esta demostración no se envían por correo ni al dispositivo."
-    },
-    "privacyNotice": {
-      "title": "Privacidad",
-      "body": "Los avisos muestran únicamente información compartida del proceso. Tus posiciones privadas no se incluyen."
-    },
-    "unreadSummary_one": "Tenés {{count}} aviso sin leer",
-    "unreadSummary_other": "Tenés {{count}} avisos sin leer",
-    "noUnread": "Estás al día",
-    "filters": {
-      "all": "Todas",
-      "unread": "No leídas"
-    },
-    "markAllAction": "Marcar todas como leídas",
-    "markAllPending": "Marcando…",
-    "markReadAction": "Marcar como leído",
-    "markReadError": "No pudimos marcar este aviso como leído. Volvé a intentar.",
-    "readLabel": "Leído",
-    "unreadLabel": "No leído",
-    "importantLabel": "Importante",
-    "caseLine": "Caso: {{title}}",
-    "viewActivityAction": "Ver actividad",
-    "empty": {
-      "title": "No hay avisos para mostrar",
-      "description": "Todavía no hay avisos en esta demostración."
-    },
-    "error": {
-      "title": "No pudimos cargar los avisos",
-      "retry": "Reintentar"
-    },
-    "category": {
-      "case": "Caso",
-      "invitation": "Invitación",
-      "proposal": "Propuesta",
-      "response": "Respuesta",
-      "round": "Ronda",
-      "agreement": "Acuerdo",
-      "signature": "Firma",
-      "mediator": "Mediador",
-      "deadline": "Seguimiento",
-      "institutional": "Institucional",
-      "system": "Sistema"
-    },
-    "fixtures": {
-      "invitationAccepted": { "title": "La otra parte se unió al caso", "body": "La contraparte aceptó la invitación y el caso ya está activo." },
-      "proposalReady": { "title": "Propuesta lista", "body": "La IA generó una nueva propuesta compartida para revisar." },
-      "ownResponseRegistered": { "title": "Registramos tu respuesta", "body": "Tu respuesta a la propuesta quedó registrada." },
-      "waitingOtherParty": { "title": "Esperando a la otra parte", "body": "Ya respondiste la propuesta. Estamos esperando la respuesta de la otra parte." },
-      "newRoundAvailable": { "title": "Nueva ronda disponible", "body": "Se abrió la ronda {{number}} de negociación para este caso." },
-      "agreementReached": { "title": "Llegaron a un acuerdo", "body": "Ambas partes aceptaron la propuesta y el caso pasó a estado de acuerdo." },
-      "signatureReady": { "title": "Documento listo para firmar", "body": "El acuerdo quedó listo para la firma de ambas partes." },
-      "signaturePending": { "title": "Firma pendiente", "body": "Todavía faltaba tu firma simulada en este acuerdo." },
-      "processCompleted": { "title": "Proceso completado", "body": "Ambas partes firmaron y el acuerdo quedó completo." },
-      "deadline": { "title": "Seguimiento esperado", "body": "Se espera una actualización dentro de las próximas {{hours}} horas." },
-      "institutionalMediator": { "title": "Acompañamiento de mediador", "body": "Desde la tercera ronda puede solicitarse acompañamiento de un mediador." },
-      "personalPositionsReady": { "title": "Tus posiciones privadas están listas", "body": "Ya cargaste información privada para este caso. Solo vos podés verla." }
-    }
-  },
-  "activity": {
-    "title": "Actividad del proceso",
-    "empty": {
-      "title": "Todavía no hay actividad",
-      "description": "Las novedades compartidas del proceso van a aparecer acá."
-    },
-    "error": {
-      "title": "No pudimos cargar la actividad",
-      "retry": "Reintentar"
-    },
-    "caseLine": "Caso: {{title}}",
-    "event": {
-      "case_created": "Se creó el caso",
-      "invitation_sent": "Se envió una invitación",
-      "invitation_accepted": "La otra parte se unió al caso",
-      "negotiation_started": "Comenzó la negociación",
-      "proposal_ready": "Propuesta compartida lista (ronda {{number}})",
-      "own_response_registered": "Registraste tu respuesta",
-      "round_completed": "Se completó la ronda {{number}}",
-      "agreement_reached": "Llegaron a un acuerdo",
-      "signature_ready": "El documento quedó listo para firmar",
-      "own_mock_signature_registered": "Registraste tu firma",
-      "process_completed": "El proceso quedó completo",
-      "mediator_requested": "Se solicitó acompañamiento de mediador",
-      "mediator_assigned": "Se asignó un mediador",
-      "accompaniment_started": "Comenzó el acompañamiento del mediador"
-    }
-  },
-  "mediator": {
-    "sectionTitle": "Acompañamiento",
-    "summary": {
-      "learnMoreAction": "Conocer acompañamiento",
-      "requestAction": "Solicitar mediador",
-      "viewAction": "Ver acompañamiento",
-      "error": { "title": "No pudimos cargar el acompañamiento" },
-      "unavailableBeforeRound3": {
-        "title": "Acompañamiento no disponible todavía",
-        "description": "El acompañamiento de un mediador estará disponible desde la tercera ronda.",
-        "status": "No disponible"
-      },
-      "available": {
-        "title": "Podés solicitar acompañamiento",
-        "description": "Podés solicitar un mediador humano para acompañar el diálogo compartido.",
-        "status": "Disponible"
-      },
-      "pending": {
-        "title": "Solicitud pendiente",
-        "description": "Tu solicitud simulada está pendiente.",
-        "status": "Pendiente"
-      },
-      "assigned": {
-        "title": "Mediador asignado",
-        "description": "Se asignó un mediador en esta demostración.",
-        "status": "Asignado"
-      },
-      "unavailable": {
-        "title": "Sin mediador asignado",
-        "description": "En esta demostración no se asignó un mediador para tu solicitud.",
-        "status": "No disponible"
-      },
-      "readOnly": {
-        "title": "Acompañamiento cerrado",
-        "description": "El acompañamiento de mediador para este caso ya no admite nuevas acciones.",
-        "status": "Cerrado"
+      "error": {
+        "title": "No pudimos restaurar la sesión",
+        "retry": "Reintentar"
       }
-    },
-    "dashboard": {
-      "title": "Acompañamiento de mediador",
-      "privacyNotice": "El acompañamiento se limita a la información compartida del proceso. Tus posiciones privadas no se muestran en esta pantalla."
-    },
-    "demoNotice": {
-      "title": "Entorno de demostración",
-      "body": "La solicitud y asignación son simuladas. No se contactó a un profesional real."
-    },
-    "explainer": {
-      "title": "¿Qué es el acompañamiento de un mediador?",
-      "helpsBody": "El mediador ayuda a organizar el diálogo compartido entre las partes.",
-      "decisionBody": "El mediador no decide por las partes ni reemplaza su criterio ni el de un profesional.",
-      "privacyBody": "El mediador acompaña el diálogo compartido del caso. Tus posiciones privadas no se muestran en esta pantalla.",
-      "demoBody": "Esta funcionalidad está en etapa de demostración: la solicitud y la asignación son simuladas y no se contactó a ningún profesional real. No implica representación legal, autoridad judicial, certificación de confidencialidad, disponibilidad inmediata, credenciales verificadas ni asesoramiento legal, y no garantiza un acuerdo."
-    },
-    "request": {
-      "dialog": {
-        "title": "¿Solicitar acompañamiento?",
-        "body": "Registraremos una solicitud simulada para este caso. La asignación no es real en esta demostración. El mediador no decide por las partes ni ve tus posiciones privadas.",
-        "confirm": "Confirmar solicitud",
-        "cancel": "Cancelar"
-      },
-      "error": { "title": "No pudimos registrar tu solicitud" }
-    },
-    "profile": {
-      "roleLabel": "Mediador/a",
-      "summaryText": "Acompaña procesos de diálogo familiar con foco en la comunicación y la organización de acuerdos.",
-      "demoLabel": "Perfil de demostración",
-      "notVerifiedNotice": "La identidad y disponibilidad profesional no fueron verificadas en esta maqueta.",
-      "languagesLabel": "Idiomas",
-      "languages": { "es": "Español", "en": "Inglés" },
-      "assignedAtLabel": "Asignado el {{date}}"
-    },
-    "activity": {
-      "title": "Hitos del acompañamiento",
-      "viewAction": "Ver hitos del acompañamiento",
-      "empty": {
-        "title": "Todavía no hay hitos",
-        "description": "Los hitos del acompañamiento van a aparecer acá."
-      },
-      "error": { "title": "No pudimos cargar los hitos", "retry": "Reintentar" },
-      "event": {
-        "request_submitted": "Se registró la solicitud",
-        "request_pending": "La solicitud quedó pendiente",
-        "mediator_assigned": "Se asignó un mediador",
-        "accompaniment_started": "Comenzó el acompañamiento",
-        "follow_up_expected": "Próxima actualización esperada",
-        "request_unavailable": "No se asignó un mediador"
-      }
-    },
-    "notices": {
-      "requestSubmitted": { "title": "Solicitud de mediador registrada", "body": "Registramos tu solicitud simulada de acompañamiento para este caso." },
-      "requestPending": { "title": "Solicitud pendiente", "body": "Tu solicitud de acompañamiento sigue pendiente en esta demostración." },
-      "assigned": { "title": "Mediador asignado", "body": "Se asignó un mediador simulado para acompañar este caso." },
-      "unavailable": { "title": "No se asignó un mediador", "body": "En esta demostración no se asignó un mediador para tu solicitud." }
     }
   },
   "states": {
     "error": {
       "title": "Algo no salió bien",
       "retry": "Reintentar"
+    }
+  },
+  "tabs": {
+    "cases": "Casos",
+    "notices": "Avisos",
+    "noticesAccessibleUnread_one": "Avisos, {{count}} sin leer",
+    "noticesAccessibleUnread_other": "Avisos, {{count}} sin leer",
+    "signatures": "Firmas",
+    "profile": "Perfil"
+  },
+  "tasks": {
+    "status": {
+      "pendiente": "Pendiente",
+      "en_progreso": "En curso",
+      "completada": "Completada"
+    },
+    "section": {
+      "title": "Tareas",
+      "empty": {
+        "title": "Todavía no hay tareas",
+        "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
+      }
+    },
+    "calendar": {
+      "action": "Preparar evento de calendario",
+      "preparingTitle": "Preparando el evento de calendario",
+      "preparingBody": "Los detalles del evento van a estar listos en un instante.",
+      "success": {
+        "title": "Datos del evento listos",
+        "body": "Los detalles del evento se prepararon en este entorno de prueba. No se agregaron a Google Calendar, Apple Calendar ni al calendario de tu dispositivo."
+      },
+      "error": {
+        "title": "No pudimos preparar el evento de calendario"
+      }
     }
   }
 }
