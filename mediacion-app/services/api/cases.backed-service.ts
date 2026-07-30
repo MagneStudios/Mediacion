@@ -6,7 +6,7 @@ import type {
   CreateInvitationInput,
 } from '@/types/case';
 
-import type { CasesService } from '../cases.service';
+import type { CasesService, JoinedCase } from '../cases.service';
 import type { ApiCasesService } from './cases.api-service';
 
 /**
@@ -66,6 +66,10 @@ export function createBackedCasesService(api: ApiCasesService): CasesService {
         throw new Error(`Caso ${caseId} is no longer readable`);
       }
       return detail;
+    },
+
+    joinCase(token: string): Promise<JoinedCase> {
+      return api.joinCase(token);
     },
   };
 }

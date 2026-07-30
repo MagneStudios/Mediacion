@@ -46,6 +46,26 @@ export type CasesService = {
    * token, no session — see CaseDetailScreen.tsx for the confirmation UI.
    */
   simulateInvitationAcceptance(caseId: string): Promise<CaseDetail>;
+  /**
+   * Redeems an invitation token as the calling user, joining them to the case
+   * it belongs to. Backed by `POST /casos/unirse`.
+   *
+   * Returns the joined case so the caller can navigate straight to it —
+   * `estado` comes back from the server because joining is what transitions a
+   * case out of `nuevo`, and the screen should show the real value rather than
+   * assume one.
+   *
+   * Rejects when the token is unknown, already redeemed, or past its TTL. The
+   * server distinguishes those; a caller that only needs "it did not work" can
+   * treat any rejection uniformly.
+   */
+  joinCase(token: string): Promise<JoinedCase>;
+};
+
+/** What `joinCase` resolves to — the shape `POST /casos/unirse` returns. */
+export type JoinedCase = {
+  id: string;
+  estado: string;
 };
 
 /**
@@ -165,6 +185,29 @@ export function createMockCasesService(): CasesService {
       }
 
       return committed;
+    },
+
+    async joinCase(token) {
+      const trimmed = token.trim();
+      if (trimmed === '') {
+        return rejectAfter('invitation_token_required', 200);
+      }
+
+      // Matched against invitations this mock actually issued. Accepting any
+      // string would make the screen look like it works while proving nothing,
+      // and a wrong token is the case most worth exercising.
+      const match = Object.values(mockInvitations).find(
+        (invitation) => invitation.token === trimmed,
+      );
+      if (!match) {
+        return rejectAfter('invitation_not_found', 600);
+      }
+
+      // Joining is what moves a case out of 'nuevo', which is exactly the
+      // transition simulateInvitationAcceptance already models. Reusing it keeps
+      // one definition of that transition instead of two that can drift.
+      const detail = await this.simulateInvitationAcceptance(match.caseId);
+      return { id: detail.id, estado: detail.estado };
     },
   };
 }
