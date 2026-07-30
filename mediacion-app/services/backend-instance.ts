@@ -13,7 +13,23 @@ import { createBackend, type Backend } from './api/backend';
  * inlined into. The service singletons import this, and the screens import
  * those, so the chain is reachable from the entry point.
  */
-export const backend: Backend | null = createBackend(expoPublicEnv);
+/**
+ * True while `expo export` prerenders the routes in Node. `window` is defined
+ * in React Native as well as in browsers, so this separates the static build
+ * from both real runtimes rather than mistaking native for a server.
+ */
+const isStaticPrerender = typeof window === 'undefined';
+
+/**
+ * Nothing is constructed during the static build. The Supabase client starts
+ * loading a stored session the moment it is created, which needs storage that
+ * does not exist in Node — that crashed `expo export` outright. The bundle is
+ * evaluated again in the browser, where this resolves to the real backend, so
+ * only the prerendered shell is built without one.
+ */
+export const backend: Backend | null = isStaticPrerender
+  ? null
+  : createBackend(expoPublicEnv);
 
 /** True when the screens are talking to the real API rather than to mocks. */
 export const isBackendLive = backend !== null;
