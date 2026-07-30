@@ -1,5 +1,15 @@
 # Everything the image must never carry, and everything that would bust the
 # build cache without changing the build.
+#
+# Docker allows one ignore file per build context, and both images here build
+# from the repo root: apps/api/Dockerfile and mediacion-app/Dockerfile. So
+# nothing either of them needs can be listed. `mediacion-app` used to be
+# excluded for the API's benefit; it is required by the web image, and the cost
+# is only a larger API build context, never a larger API image — the app is
+# never COPYed into the API runtime stage.
+#
+# Keeping **/dist here matters for both: a local build artifact must never leak
+# into an image and get served or executed instead of a freshly built one.
 node_modules
 **/node_modules
 **/dist
@@ -9,7 +19,6 @@ node_modules
 .github
 .claude
 .vercel
-mediacion-app
 supabase
 docs
 agents
