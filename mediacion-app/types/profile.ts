@@ -39,10 +39,9 @@ export type UpdateProfileInput = Partial<
 >;
 
 /**
- * FRONTEND-ONLY MOCK STATE: no backend table stores per-category
- * notification opt-ins today — `notificaciones` only logs already-sent
- * deliveries (`canal`, `evento`, `estado`). Every field below is a local
- * demonstration preference with no backend equivalent yet.
+ * Persisted in `usuarios.preferencias_notificacion` and served by
+ * `GET`/`PATCH /me/preferencias-notificacion`. A patch merges, so sending one
+ * toggle leaves the rest untouched.
  */
 export type NotificationPreferences = {
   caseUpdates: boolean;

@@ -16,26 +16,6 @@ const parteA: AuthenticatedUser = {
   rol: "parte",
 };
 
-describe("SuscripcionesController unit", () => {
-  it("delegates to the service with the caller id and the request body", async () => {
-    const createSuscripcion = jest
-      .fn()
-      .mockResolvedValue({ id: "sus-1", estado: "pendiente_pago" });
-    const controller = new SuscripcionesController({
-      createSuscripcion,
-    } as unknown as SuscripcionesService);
-
-    const result = await controller.createSuscripcion(parteA, {
-      plan_id: "plan-1",
-    });
-
-    expect(createSuscripcion).toHaveBeenCalledWith(parteA.id, {
-      plan_id: "plan-1",
-    });
-    expect(result).toEqual({ id: "sus-1", estado: "pendiente_pago" });
-  });
-});
-
 describe("POST /suscripciones end-to-end", () => {
   async function bootstrapApp(
     createSuscripcion: jest.Mock,

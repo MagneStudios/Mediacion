@@ -25,50 +25,6 @@ const parteB: AuthenticatedUser = {
   rol: "parte",
 };
 
-describe("InvitacionesController unit", () => {
-  it("creates an invitation using the caso id, caller id and body", async () => {
-    const createInvitation = jest.fn().mockResolvedValue({
-      id: "inv-1",
-      tipo: "link",
-      token: "tok-1",
-      estado: "pendiente",
-    });
-    const controller = new InvitacionesController({
-      createInvitation,
-      joinCase: jest.fn(),
-    } as unknown as InvitacionesService);
-
-    const result = await controller.createInvitation("caso-1", parteA, {
-      tipo: "link",
-    });
-
-    expect(createInvitation).toHaveBeenCalledWith("caso-1", "user-a", {
-      tipo: "link",
-    });
-    expect(result).toEqual({
-      id: "inv-1",
-      tipo: "link",
-      token: "tok-1",
-      estado: "pendiente",
-    });
-  });
-
-  it("joins a case using the token and caller id", async () => {
-    const joinCase = jest
-      .fn()
-      .mockResolvedValue({ id: "caso-1", estado: "activo" });
-    const controller = new InvitacionesController({
-      createInvitation: jest.fn(),
-      joinCase,
-    } as unknown as InvitacionesService);
-
-    const result = await controller.joinCase(parteB, { token: "tok-1" });
-
-    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
-    expect(result).toEqual({ id: "caso-1", estado: "activo" });
-  });
-});
-
 describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
   async function bootstrapApp(overrides: {
     assertMembership: jest.Mock;

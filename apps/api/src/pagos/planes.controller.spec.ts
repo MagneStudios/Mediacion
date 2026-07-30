@@ -16,21 +16,6 @@ const parteA: AuthenticatedUser = {
   rol: "parte",
 };
 
-describe("PlanesController unit", () => {
-  it("delegates to the service and returns its plans", async () => {
-    const plans = [{ id: "plan-base", limite_casos: 2 }];
-    const listPlanes = jest.fn().mockResolvedValue(plans);
-    const controller = new PlanesController({
-      listPlanes,
-    } as unknown as PlanesService);
-
-    const result = await controller.listPlanes();
-
-    expect(listPlanes).toHaveBeenCalledWith();
-    expect(result).toBe(plans);
-  });
-});
-
 describe("GET /planes authenticated end-to-end", () => {
   const plans = [
     {
