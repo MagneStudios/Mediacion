@@ -1,6 +1,10 @@
 import type { Session } from '@supabase/supabase-js';
 
-import type { MockProfile } from '@/types/profile';
+import type {
+  AccountActionResult,
+  MockProfile,
+  NotificationPreferences,
+} from '@/types/profile';
 
 import type { AuthService } from '../../auth/auth.service';
 import type { ProfileApiService } from '../profile.api-service';
@@ -12,10 +16,28 @@ const profile = {
   email: 'ana@example.com',
 } as unknown as MockProfile;
 
+const defaultPreferences: NotificationPreferences = {
+  caseUpdates: true,
+  proposalReady: true,
+  responseReceived: true,
+  signatureReady: true,
+  agreementCompleted: true,
+  mediatorAvailability: true,
+  productUpdates: true,
+};
+
+const deactivationResult: AccountActionResult = {
+  status: 'requested',
+  requestedAt: '2026-07-30T12:00:00.000Z',
+};
+
 function stubApi(overrides: Partial<ProfileApiService> = {}): ProfileApiService {
   return {
     getProfile: async () => profile,
     updateProfile: async () => profile,
+    getNotificationPreferences: async () => defaultPreferences,
+    updateNotificationPreferences: async () => defaultPreferences,
+    requestAccountDeactivation: async () => deactivationResult,
     ...overrides,
   };
 }
@@ -42,30 +64,29 @@ describe('createBackedProfileService', () => {
   });
 
   describe('notification preferences', () => {
-    // `/me` exposes GET and PATCH over usuarios columns only; no endpoint backs
-    // these. They follow the same in-memory approach the profile service
-    // already uses for fields no column backs, rather than pretending to persist.
-    it('starts from the application defaults', async () => {
-      const service = createBackedProfileService(stubApi(), stubAuth());
-      await expect(service.getNotificationPreferences()).resolves.toEqual(
-        expect.objectContaining({ caseUpdates: expect.any(Boolean) }),
+    it('reads them from the API rather than from local state', async () => {
+      const stored = { ...defaultPreferences, productUpdates: false };
+      const getNotificationPreferences = jest.fn(async () => stored);
+      const service = createBackedProfileService(
+        stubApi({ getNotificationPreferences }),
+        stubAuth(),
       );
+      await expect(service.getNotificationPreferences()).resolves.toEqual(stored);
+      expect(getNotificationPreferences).toHaveBeenCalled();
     });
 
-    it('reflects an update for the rest of the session', async () => {
-      const service = createBackedProfileService(stubApi(), stubAuth());
-      const current = await service.getNotificationPreferences();
-      const next = { ...current, productUpdates: !current.productUpdates };
-      await expect(service.updateNotificationPreferences(next)).resolves.toEqual(next);
-      await expect(service.getNotificationPreferences()).resolves.toEqual(next);
-    });
-
-    it('hands back a copy, so a caller cannot mutate the stored state', async () => {
-      const service = createBackedProfileService(stubApi(), stubAuth());
-      const first = await service.getNotificationPreferences();
-      first.caseUpdates = !first.caseUpdates;
-      const second = await service.getNotificationPreferences();
-      expect(second.caseUpdates).not.toBe(first.caseUpdates);
+    it('sends an update to the API and returns what the server stored', async () => {
+      const persisted = { ...defaultPreferences, caseUpdates: false };
+      const updateNotificationPreferences = jest.fn(async () => persisted);
+      const service = createBackedProfileService(
+        stubApi({ updateNotificationPreferences }),
+        stubAuth(),
+      );
+      const next = { ...defaultPreferences, caseUpdates: false };
+      // The server's answer wins: it merges the patch onto what it holds, so
+      // echoing the request back could disagree with what was actually saved.
+      await expect(service.updateNotificationPreferences(next)).resolves.toEqual(persisted);
+      expect(updateNotificationPreferences).toHaveBeenCalledWith(next);
     });
   });
 
@@ -94,20 +115,30 @@ describe('createBackedProfileService', () => {
   });
 
   describe('account deactivation', () => {
-    // No endpoint exists, and AccountActionResult has no failure variant. Telling
-    // someone their deactivation was filed when nothing was sent is a real harm:
-    // they may stop using the account expecting it to be closed.
-    it('refuses rather than reporting a request it never made', async () => {
-      const service = createBackedProfileService(stubApi(), stubAuth());
-      await expect(service.requestAccountDeactivationMock()).rejects.toThrow(
-        /not supported/i,
+    it('files the request through the API', async () => {
+      const requestAccountDeactivation = jest.fn(async () => deactivationResult);
+      const service = createBackedProfileService(
+        stubApi({ requestAccountDeactivation }),
+        stubAuth(),
       );
+      await expect(service.requestAccountDeactivationMock()).resolves.toEqual(
+        deactivationResult,
+      );
+      expect(requestAccountDeactivation).toHaveBeenCalled();
     });
 
-    it('stays refused on a second attempt — no local state pretends otherwise', async () => {
-      const service = createBackedProfileService(stubApi(), stubAuth());
-      await expect(service.requestAccountDeactivationMock()).rejects.toThrow();
-      await expect(service.requestAccountDeactivationMock()).rejects.toThrow();
+    it('reports the server verdict on a repeat, never inventing a second request', async () => {
+      // The endpoint is idempotent: a repeat returns the ORIGINAL timestamp.
+      // The service must pass that through rather than treating it as new.
+      const already: AccountActionResult = {
+        status: 'already_requested',
+        requestedAt: deactivationResult.requestedAt,
+      };
+      const service = createBackedProfileService(
+        stubApi({ requestAccountDeactivation: async () => already }),
+        stubAuth(),
+      );
+      await expect(service.requestAccountDeactivationMock()).resolves.toEqual(already);
     });
   });
 });
