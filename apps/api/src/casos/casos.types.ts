@@ -34,6 +34,7 @@ export const rolesParte: CasoParte["rol_en_caso"][] = ["parte_a", "parte_b"];
 export type CaseSummaryRow = Pick<
   Caso,
   | "id"
+  | "codigo"
   | "nombre"
   | "estado"
   | "metodo"
@@ -46,6 +47,7 @@ export type CaseSummaryRow = Pick<
 export type CaseDetailRow = Pick<
   Caso,
   | "id"
+  | "codigo"
   | "nombre"
   | "descripcion"
   | "metodo"
