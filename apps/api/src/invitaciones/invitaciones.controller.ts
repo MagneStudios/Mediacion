@@ -1,10 +1,11 @@
-import { Body, Controller, Inject, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { InvitacionesService } from "./invitaciones.service";
 import type {
   CreateInvitacionDto,
   InvitacionCreated,
+  InvitacionView,
   JoinCasoDto,
   JoinedCaso,
 } from "./invitaciones.types";
@@ -35,5 +36,13 @@ export class InvitacionesController {
       caller.id,
       caller.email,
     );
+  }
+
+  @Get(":id/invitaciones")
+  listInvitations(
+    @Param("id") casoId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<InvitacionView[]> {
+    return this.invitacionesService.listForCaso(casoId, caller.id);
   }
 }

@@ -6,11 +6,13 @@ import {
   Logger,
 } from "@nestjs/common";
 import { MembershipService } from "../casos/membership.service";
+import { normalizeTimestamp } from "../common/db/timestamp";
 import { NotificacionesService } from "../notificaciones/notificaciones.service";
 import { InvitacionesRepository } from "./invitaciones.repository";
 import type {
   CreateInvitacionDto,
   InvitacionCreated,
+  InvitacionView,
   JoinedCaso,
   TipoInvitacion,
 } from "./invitaciones.types";
@@ -122,5 +124,23 @@ export class InvitacionesService {
     callerEmail: string,
   ): Promise<JoinedCaso> {
     return this.invitacionesRepository.joinCase(token, callerId, callerEmail);
+  }
+
+  /**
+   * Membership is asserted first, so a non-member gets the same 404 a
+   * non-existent caso does and never learns the caso is real — the token is in
+   * this payload, and an invitation token is a credential.
+   */
+  async listForCaso(
+    casoId: string,
+    callerId: string,
+  ): Promise<InvitacionView[]> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    const rows = await this.invitacionesRepository.listByCaso(casoId);
+    return rows.map((row) => ({
+      ...row,
+      fecha_envio: normalizeTimestamp(row.fecha_envio),
+      created_at: normalizeTimestamp(row.created_at) ?? row.created_at,
+    }));
   }
 }

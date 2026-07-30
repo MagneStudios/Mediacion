@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ActividadModule } from "./actividad/actividad.module";
 import { AcuerdosModule } from "./acuerdos/acuerdos.module";
 import { AuditoriaModule } from "./auditoria/auditoria.module";
 import { AuthGuard } from "./auth/auth.guard";
@@ -38,6 +39,7 @@ import { TareasModule } from "./tareas/tareas.module";
     InvitacionesModule,
     ItemsModule,
     AcuerdosModule,
+    ActividadModule,
     ConfiguracionModule,
     EstudiosModule,
     InversoresModule,

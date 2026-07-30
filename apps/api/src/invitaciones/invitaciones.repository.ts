@@ -10,6 +10,7 @@ import { buildCasoLockQuery } from "./caso-lock-query";
 import { emailsMatch } from "./email-match";
 import type {
   InvitacionCreated,
+  InvitacionView,
   JoinedCaso,
   TipoInvitacion,
 } from "./invitaciones.types";
@@ -171,5 +172,23 @@ export class InvitacionesRepository {
         }
         throw toDomainError(error);
       });
+  }
+
+  listByCaso(casoId: string): Promise<InvitacionView[]> {
+    return this.kysely
+      .selectFrom("invitaciones")
+      .select([
+        "id",
+        "caso_id",
+        "tipo",
+        "token",
+        "email_destino",
+        "estado",
+        "fecha_envio",
+        "created_at",
+      ])
+      .where("caso_id", "=", casoId)
+      .orderBy("created_at", "desc")
+      .execute() as Promise<InvitacionView[]>;
   }
 }

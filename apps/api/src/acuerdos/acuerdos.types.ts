@@ -29,3 +29,24 @@ export type PropuestaConRespuestas = {
   propuesta: Propuesta;
   respuestas: RespuestaPropuesta[];
 };
+
+/** Per-signer state for one acuerdo, as a member of the caso sees it. */
+export type FirmaView = {
+  usuario_id: string;
+  nombre: string;
+  apellido: string;
+  docusign_status: string;
+  fecha_firma: string | null;
+};
+
+/** One row of the signature inbox: an acuerdo plus this caller's own state. */
+export type SignatureInboxEntry = {
+  acuerdo_id: string;
+  caso_id: string;
+  caso_nombre: string;
+  caso_codigo: string | null;
+  acuerdo_estado: string;
+  own_status: string;
+  own_fecha_firma: string | null;
+  pending_signers: number;
+};

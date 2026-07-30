@@ -1,6 +1,8 @@
 import { Global, Module } from "@nestjs/common";
 import { CasosModule } from "../casos/casos.module";
 import { DatabaseModule } from "../database/database.module";
+import { AvisosController } from "./avisos.controller";
+import { AvisosService } from "./avisos.service";
 import { NotificacionesRepository } from "./notificaciones.repository";
 import { NotificacionesService } from "./notificaciones.service";
 import { SmtpEmailProvider } from "./providers/email-provider";
@@ -15,10 +17,11 @@ import { VencimientoScheduler } from "./vencimiento.scheduler";
 @Global()
 @Module({
   imports: [DatabaseModule, CasosModule],
-  controllers: [VencimientoController],
+  controllers: [AvisosController, VencimientoController],
   providers: [
     NotificacionesRepository,
     NotificacionesService,
+    AvisosService,
     VencimientoScheduler,
     { provide: EMAIL_PROVIDER, useClass: SmtpEmailProvider },
     { provide: PUSH_PROVIDER, useClass: FcmApnsPushProvider },
