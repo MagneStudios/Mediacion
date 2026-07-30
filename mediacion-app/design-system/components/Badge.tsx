@@ -26,17 +26,17 @@ const VARIANT_STYLE: Record<BadgeVariant, { bg: string; fg: string; borderColor?
  * badge — the only decorative use of Mediation Sage besides the AI button.
  */
 export function Badge({ variant = 'neutral', size = 'md', iconLeft, children }: BadgeProps) {
-  const v = VARIANT_STYLE[variant];
+  const variantStyle = VARIANT_STYLE[variant];
   return (
     <View
       style={[
         styles.base,
         size === 'lg' && styles.lg,
-        { backgroundColor: v.bg, borderColor: v.borderColor ?? 'transparent' },
+        { backgroundColor: variantStyle.bg, borderColor: variantStyle.borderColor ?? 'transparent' },
       ]}
     >
       {iconLeft ? <View>{iconLeft}</View> : null}
-      <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: v.fg }]}>{children}</Text>
+      <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: variantStyle.fg }]}>{children}</Text>
     </View>
   );
 }

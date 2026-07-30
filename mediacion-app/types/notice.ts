@@ -1,23 +1,13 @@
 /**
  * Domain types for the Avisos (notice center) feature.
  *
- * BACKEND ALIGNMENT: the real `notificaciones` table is a delivery LOG only
- * — `canal: 'email'|'push'`, `evento: text` (free text, not an enum), and
- * `estado: 'pendiente'|'enviada'|'fallida'` (a delivery status, never a read
- * receipt). There is no read/unread column anywhere in the schema.
+ * `read` maps to `notificaciones.leido_at` (null means unread). That column is
+ * deliberately separate from `estado`, which is a DELIVERY status — a notice
+ * can be delivered and unread, or read after a failed push.
  *
- * Therefore EVERYTHING in this file is frontend-only mock presentation
- * state, not a backend mirror:
- * - NoticeCategory — a closed UI catalog; the real `evento` field is free
- *   text with no enum to mirror.
- * - NoticePriority — invented; no backend severity/priority field exists.
- * - `read: boolean` — invented; there is no backend read/unread state.
- * - NoticeDestination — a frontend-only typed navigation model with no
- *   backend counterpart.
- *
- * A future backend-integration phase would need genuinely new schema (a
- * per-user read-state column, a closed event-type enum) before this feature
- * could be backed by `notificaciones` as-is.
+ * `NoticeCategory`, `NoticePriority` and `NoticeDestination` have no backend
+ * counterpart: `evento` is free text with no enum, and there is no severity
+ * column. They are presentation state derived on the client.
  */
 
 export type NoticeCategory =

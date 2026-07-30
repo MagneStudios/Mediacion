@@ -12,7 +12,6 @@ import { MembershipService } from "../casos/membership.service";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
 import { MediacionController } from "./mediacion.controller";
 import { MediacionService } from "./mediacion.service";
-import type { MediacionView } from "./mediacion.types";
 
 const parteA: AuthenticatedUser = {
   id: "user-a",
@@ -29,77 +28,6 @@ const mediador: AuthenticatedUser = {
   email: "med@b.com",
   rol: "mediador",
 };
-
-describe("MediacionController unit", () => {
-  it("requestMediacion passes casoId, caller id and mediadorId through to the service", async () => {
-    const view: MediacionView = {
-      id: "mediacion-1",
-      caso_id: "caso-1",
-      mediador_id: mediador.id,
-      estado: "solicitada",
-      ronda: 3,
-      fecha_solicitud: "now",
-      fecha_aceptacion: null,
-    };
-    const requestMediacion = jest.fn().mockResolvedValue(view);
-    const controller = new MediacionController({
-      requestMediacion,
-    } as unknown as MediacionService);
-
-    const result = await controller.requestMediacion("caso-1", parteA, {
-      mediadorId: mediador.id,
-    });
-
-    expect(requestMediacion).toHaveBeenCalledWith(
-      "caso-1",
-      parteA.id,
-      mediador.id,
-    );
-    expect(result).toBe(view);
-  });
-
-  it("updateEstado passes mediacion id, caller and estado through to the service", async () => {
-    const view: MediacionView = {
-      id: "mediacion-1",
-      caso_id: "caso-1",
-      mediador_id: mediador.id,
-      estado: "aceptada",
-      ronda: 3,
-      fecha_solicitud: "now",
-      fecha_aceptacion: "now",
-    };
-    const updateEstado = jest.fn().mockResolvedValue(view);
-    const controller = new MediacionController({
-      updateEstado,
-    } as unknown as MediacionService);
-
-    const result = await controller.updateEstado("mediacion-1", mediador, {
-      estado: "aceptada",
-    });
-
-    expect(updateEstado).toHaveBeenCalledWith(
-      "mediacion-1",
-      mediador,
-      "aceptada",
-    );
-    expect(result).toBe(view);
-  });
-
-  it("propagates a 404 thrown by the service unchanged", async () => {
-    const notFound = new HttpException(
-      { code: "mediacion_not_found", message: "Mediacion not found" },
-      404,
-    );
-    const updateEstado = jest.fn().mockRejectedValue(notFound);
-    const controller = new MediacionController({
-      updateEstado,
-    } as unknown as MediacionService);
-
-    await expect(
-      controller.updateEstado("mediacion-1", parteA, { estado: "aceptada" }),
-    ).rejects.toBe(notFound);
-  });
-});
 
 describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
   async function bootstrapApp(

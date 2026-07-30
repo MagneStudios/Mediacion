@@ -32,7 +32,7 @@ const VARIANT_STYLE: Record<StatusPillStatus, { bg: string; fg: string }> = {
  * state.
  */
 export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse = false, children }: StatusPillProps) {
-  const v = VARIANT_STYLE[status];
+  const variantStyle = VARIANT_STYLE[status];
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -61,9 +61,9 @@ export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse 
   }, [pulse, opacity]);
 
   return (
-    <View style={[styles.base, size === 'lg' && styles.lg, { backgroundColor: v.bg }]}>
-      {dot ? <Animated.View style={[styles.dot, { backgroundColor: v.fg, opacity }]} /> : null}
-      <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: v.fg }]}>{children}</Text>
+    <View style={[styles.base, size === 'lg' && styles.lg, { backgroundColor: variantStyle.bg }]}>
+      {dot ? <Animated.View style={[styles.dot, { backgroundColor: variantStyle.fg, opacity }]} /> : null}
+      <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: variantStyle.fg }]}>{children}</Text>
     </View>
   );
 }

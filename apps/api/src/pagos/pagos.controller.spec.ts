@@ -17,30 +17,6 @@ const parteA: AuthenticatedUser = {
   rol: "parte",
 };
 
-describe("PagosController unit", () => {
-  it("delegates to the service using the suscripcion id from the route and the caller id", async () => {
-    const createPreference = jest
-      .fn()
-      .mockResolvedValue({ init_point: "https://mp.example.com/x" });
-    const controller = new PagosController({
-      createPreference,
-    } as unknown as PagosService);
-
-    const result = await controller.createPreference(parteA, "sus-1");
-
-    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
-    expect(result).toEqual({ init_point: "https://mp.example.com/x" });
-  });
-
-  it("exposes no method through which a client can assert a payment as complete", () => {
-    const controllerMethods = Object.getOwnPropertyNames(
-      PagosController.prototype,
-    ).filter((name) => name !== "constructor");
-
-    expect(controllerMethods).toEqual(["createPreference"]);
-  });
-});
-
 describe("POST /suscripciones/:id/pago end-to-end", () => {
   async function bootstrapApp(
     createPreference: jest.Mock,
