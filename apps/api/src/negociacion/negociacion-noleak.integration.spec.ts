@@ -95,10 +95,27 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
   const parteAId = randomUUID();
   const parteBId = randomUUID();
   const strangerId = randomUUID();
-  const rawValorMinA = "137";
-  const rawValorMaxA = "889";
-  const rawValorMinB = "222";
-  const rawValorMaxB = "654";
+  // Thirteen digits, not three, and that length is the point.
+  //
+  // The assertion below scans the serialized response for these values as
+  // substrings. With three-digit ranges it kept colliding with the random UUIDs
+  // in the payload — UUIDs are hexadecimal, so every decimal digit occurs in
+  // them by chance. One CI run failed on "654" matching `…-9af3-e654bb576c26`
+  // while the same commit passed on a re-run; nothing had leaked. A flaky
+  // security test is worse than no test, because it trains everyone to re-run it
+  // and a real leak ships on the second attempt.
+  //
+  // A UUID's longest unbroken group is twelve characters, so a thirteen-digit
+  // string cannot appear inside one — the hyphens break every run. That makes
+  // the scan deterministic while still covering the entire response, ids
+  // included, rather than excluding fields to dodge the collision.
+  //
+  // The overlap relationship is preserved: B's range sits inside A's, so
+  // computeMeetingPoints still finds an overlap and reports `acordable`.
+  const rawValorMinA = "1370000000001";
+  const rawValorMaxA = "8890000000009";
+  const rawValorMinB = "2220000000003";
+  const rawValorMaxB = "6540000000007";
 
   beforeAll(async () => {
     kysely = new Kysely<Database>({
