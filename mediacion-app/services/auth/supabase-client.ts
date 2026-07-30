@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import { readAppEnv } from '@/config/env';
+import { expoPublicEnv } from '@/config/env-source';
 
 /**
  * Supabase is used for authentication only: the app never reads or writes
@@ -10,11 +11,14 @@ import { readAppEnv } from '@/config/env';
  */
 let client: SupabaseClient | null = null;
 
+/**
+ * The default source is `expoPublicEnv`, not `process.env`. Expo only inlines
+ * `process.env.NAME` written as a static member expression, so handing the whole
+ * object over means `readAppEnv` finds nothing in a web bundle — and the failure
+ * is silent: the app falls back to mocks and looks fine. See config/env-source.ts.
+ */
 export function createSupabaseClient(
-  source: Record<string, string | undefined> = process.env as Record<
-    string,
-    string | undefined
-  >,
+  source: Record<string, string | undefined> = expoPublicEnv,
 ): SupabaseClient {
   const env = readAppEnv(source);
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
