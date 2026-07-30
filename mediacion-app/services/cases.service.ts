@@ -8,6 +8,8 @@ import type {
 } from '../types/case';
 import { mockCaseDetails, mockCases } from '../mocks/cases';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
+import { createBackedCasesService } from './api/cases.backed-service';
+import { backend } from './backend-instance';
 
 /**
  * Replaceable service boundary for the Casos feature. Phase 1/2 ship only
@@ -168,4 +170,6 @@ export function createMockCasesService(): CasesService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const casesService: CasesService = createMockCasesService();
+export const casesService: CasesService = backend
+  ? createBackedCasesService(backend.cases)
+  : createMockCasesService();
