@@ -200,6 +200,7 @@ export type Database = {
         Row: {
           carpeta_id: string | null;
           creador_id: string;
+          codigo: string | null;
           created_at: string;
           descripcion: string | null;
           estado: Database["public"]["Enums"]["estado_caso"];
@@ -215,6 +216,7 @@ export type Database = {
         Insert: {
           carpeta_id?: string | null;
           creador_id: string;
+          codigo?: string | null;
           created_at?: string;
           descripcion?: string | null;
           estado?: Database["public"]["Enums"]["estado_caso"];
@@ -230,6 +232,7 @@ export type Database = {
         Update: {
           carpeta_id?: string | null;
           creador_id?: string;
+          codigo?: string | null;
           created_at?: string;
           descripcion?: string | null;
           estado?: Database["public"]["Enums"]["estado_caso"];
@@ -612,6 +615,7 @@ export type Database = {
           evento: string;
           fecha: string | null;
           id: string;
+          leido_at: string | null;
           usuario_id: string;
         };
         Insert: {
@@ -622,6 +626,7 @@ export type Database = {
           evento: string;
           fecha?: string | null;
           id?: string;
+          leido_at?: string | null;
           usuario_id: string;
         };
         Update: {
@@ -632,6 +637,7 @@ export type Database = {
           evento?: string;
           fecha?: string | null;
           id?: string;
+          leido_at?: string | null;
           usuario_id?: string;
         };
         Relationships: [
@@ -985,12 +991,14 @@ export type Database = {
           consentimiento_fecha: string | null;
           created_at: string;
           documento: string | null;
+          desactivacion_solicitada_at: string | null;
           email: string;
           estudio_id: string | null;
           id: string;
           idioma: string | null;
           nombre: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
+          preferencias_notificacion: Json;
           telefono: string | null;
           updated_at: string;
           verif_biometrica:
@@ -1004,12 +1012,14 @@ export type Database = {
           consentimiento_fecha?: string | null;
           created_at?: string;
           documento?: string | null;
+          desactivacion_solicitada_at?: string | null;
           email: string;
           estudio_id?: string | null;
           id: string;
           idioma?: string | null;
           nombre: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
+          preferencias_notificacion?: Json;
           telefono?: string | null;
           updated_at?: string;
           verif_biometrica?:
@@ -1023,12 +1033,14 @@ export type Database = {
           consentimiento_fecha?: string | null;
           created_at?: string;
           documento?: string | null;
+          desactivacion_solicitada_at?: string | null;
           email?: string;
           estudio_id?: string | null;
           id?: string;
           idioma?: string | null;
           nombre?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
+          preferencias_notificacion?: Json;
           telefono?: string | null;
           updated_at?: string;
           verif_biometrica?:
