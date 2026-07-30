@@ -4,6 +4,28 @@ Audit of `mediacion-app` (React Native / Expo, built against mocks) vs the real 
 
 ---
 
+## 0.1 Status re-check — `origin/main` @ `172ce22` (2026-07-30)
+
+Re-verified against the live route table and the deployed stack. Sections 0 and 1–4 are kept as written; this layer corrects them.
+
+**The headline finding of section 0 is no longer true.** It says the dominant risk is that the frontend performs zero network I/O and has no authentication. PR #63 closed that: `mediacion-app` now has a Supabase client, login/signup screens, a session gate, and real API services for cases, positions and profile. Verified on the deployed bundle, which contains the API host and the Kong host and emits `login.html` and `signup.html`.
+
+**Also closed since the 2026-07-29 re-check** — two gaps that section 0 does not list, both still marked BACKEND-MISSING in sections 1–4:
+
+| Gap in sections 1–4 | Now |
+|---|---|
+| `updateProfile` — no `PATCH /me` (line 107) | `PATCH /me` exists (`me.controller.ts:33`). Allowlist accepts `nombre`, `apellido`, `telefono`, `idioma`; `rol`, `email` and `activo` are deliberately not self-patchable (`profile-allowlist.ts`) |
+| `deleteOwnPosition` — no `DELETE /items/:id` (line 133) | `DELETE /items/:id` exists, backed by RLS `items_delete_own` |
+| `joinCase` — screen was a no-op placeholder | `POST /casos/unirse` was always there; the frontend is wired as of PR #71 |
+
+**Corrections to section 2**: it states CORS is not enabled in `main.ts`. It is, opt-in via `CORS_ORIGINS` — unset means disabled, so an unconfigured deploy never becomes open. Verified against the deploy: preflight returns 204 with the allowed origin, and a foreign origin receives no CORS headers.
+
+**One caveat on the signature flow.** Section 0 lists it as closed, and the endpoints do exist, but they are **inert until the eight `DOCUSIGN_*` variables are configured**. With them unset the send fails and the acuerdo is compensated back to `borrador`, so the UI must handle a failed send rather than assume success. Per-signer status is still genuinely missing: `firmas.docusign_status` exists in the schema but no endpoint serves it.
+
+**Still genuinely missing** (verified against every controller, not inferred): notification preferences, account deactivation, human-readable `caseCode`, `GET` for invitations, signature inbox, agreement history, notice read-state, and a party-facing activity timeline.
+
+---
+
 ## 0. Status re-check — `origin/dev` @ `ced1269` (2026-07-29)
 
 Sections 1–4 below are the original 2026-07-24 audit and are kept verbatim for traceability. Several backend gaps have since been closed. Re-verified against the live route table on `dev`:
