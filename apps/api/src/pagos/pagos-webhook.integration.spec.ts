@@ -180,6 +180,17 @@ describeDb(
     });
 
     it("activates the suscripcion when a later approved webhook transitions a previously pendiente payment", async () => {
+      // The suscripcion is created once in beforeAll and the first test in this
+      // describe activates it, so by the time this one runs its precondition is
+      // already violated and `not.toBe("activa")` below fails. Stating the
+      // starting estado here is what this test is actually about — the
+      // pendiente_pago -> activa transition — and makes it order-independent.
+      await kysely
+        .updateTable("suscripciones")
+        .set({ estado: "pendiente_pago" })
+        .where("id", "=", suscripcionId)
+        .execute();
+
       const mpPaymentId = `mp-${randomUUID()}`;
       const pendingClient = new FixedMercadoPagoClient({
         id: mpPaymentId,
