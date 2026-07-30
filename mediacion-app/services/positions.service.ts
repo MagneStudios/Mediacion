@@ -3,6 +3,7 @@ import type { CreatePositionInput, PositionItem, UpdatePositionInput } from '../
 import { generateMockPositionId } from '../utils/mock-id';
 import { getPositionEligibility } from '../utils/position-eligibility';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
+import { backend } from './backend-instance';
 
 /**
  * Replaceable service boundary for a party's own private position items.
@@ -152,4 +153,8 @@ export function createMockPositionsService(): PositionsService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const positionsService: PositionsService = createMockPositionsService();
+// The real service implements PositionsService member for member, so it is
+// swapped in directly with no adapter.
+export const positionsService: PositionsService = backend
+  ? backend.positions
+  : createMockPositionsService();

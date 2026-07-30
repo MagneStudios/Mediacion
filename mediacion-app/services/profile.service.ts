@@ -1,6 +1,8 @@
 import { buildInitialNotificationPreferences, buildInitialProfile } from '../mocks/profile';
 import type { AccountActionResult, MockProfile, NotificationPreferences, UpdateProfileInput } from '../types/profile';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
+import { createBackedProfileService } from './api/profile.backed-service';
+import { backend } from './backend-instance';
 
 /**
  * Replaceable service boundary for the authenticated party's own profile,
@@ -108,4 +110,6 @@ export function createMockProfileService(): ProfileService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const profileService: ProfileService = createMockProfileService();
+export const profileService: ProfileService = backend
+  ? createBackedProfileService(backend.profile, backend.auth)
+  : createMockProfileService();
