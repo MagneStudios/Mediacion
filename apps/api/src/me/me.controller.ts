@@ -6,11 +6,16 @@ import {
   HttpStatus,
   Inject,
   Patch,
+  Post,
 } from "@nestjs/common";
 import type { AuthenticatedUser, MeProfile } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { MeService } from "./me.service";
-import type { UpdateProfileDto } from "./me.types";
+import type { AccountActionResult, UpdateProfileDto } from "./me.types";
+import type {
+  NotificationPreferences,
+  UpdateNotificationPreferencesDto,
+} from "./notification-preferences";
 
 @Controller("me")
 export class MeController {
@@ -36,5 +41,27 @@ export class MeController {
     @Body() body: UpdateProfileDto,
   ): Promise<MeProfile> {
     return this.meService.updateOwnProfile(caller.id, body);
+  }
+
+  @Get("preferencias-notificacion")
+  getOwnNotificationPreferences(
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<NotificationPreferences> {
+    return this.meService.findNotificationPreferences(caller.id);
+  }
+
+  @Patch("preferencias-notificacion")
+  updateOwnNotificationPreferences(
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() body: UpdateNotificationPreferencesDto,
+  ): Promise<NotificationPreferences> {
+    return this.meService.updateNotificationPreferences(caller.id, body);
+  }
+
+  @Post("desactivacion")
+  requestOwnDeactivation(
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<AccountActionResult> {
+    return this.meService.requestDeactivation(caller.id);
   }
 }
