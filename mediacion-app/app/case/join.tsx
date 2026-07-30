@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { useState } from 'react';
+import { Stack, router } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 
@@ -8,24 +8,42 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { JoinCaseForm, type JoinCaseFormStatus } from '@/features/cases/components/JoinCaseForm';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-
-// Placeholder shell only — no case-join service exists yet in this phase
-// (see `POST /casos/unirse` in docs/integration-contract.md). `status` is a
-// fixed constant, never state, because there is no real submission to
-// transition it: never fabricate a submitting/error/success result without
-// a real backend call behind it.
-const status: JoinCaseFormStatus = 'idle';
+import { casesService } from '@/services/cases.service';
 
 export default function CaseJoinScreen() {
   const { t } = useTranslation();
   const { horizontalPadding } = useResponsiveLayout();
 
   const [token, setToken] = useState('');
+  const [status, setStatus] = useState<JoinCaseFormStatus>('idle');
 
-  const handleSubmit = () => {
-    // Intentional no-op — wiring this to a real POST /casos/unirse call is
-    // out of scope for this presentational-only screen.
-  };
+  const handleSubmit = useCallback(async () => {
+    // Guarded so a double tap cannot fire a second redemption while the first
+    // is in flight — redeeming twice is exactly what the server rejects.
+    if (status === 'submitting' || token.trim() === '') {
+      return;
+    }
+    setStatus('submitting');
+    try {
+      const joined = await casesService.joinCase(token);
+      // `replace`, not `push`: once the token is redeemed this screen has
+      // nothing left to do, and going back to it would only fail.
+      router.replace(`/case/${joined.id}`);
+    } catch {
+      // Deliberately one error state. The server distinguishes unknown,
+      // already-redeemed and expired tokens, but telling someone holding an
+      // invitation which of those it was is an enumeration oracle, and the
+      // recovery is the same in every case: check the code and try again.
+      setStatus('error');
+    }
+  }, [status, token]);
+
+  const handleChangeText = useCallback((next: string) => {
+    setToken(next);
+    // Clears the error as soon as the code changes, so a stale failure does not
+    // sit under a value the user has already corrected.
+    setStatus((current) => (current === 'error' ? 'idle' : current));
+  }, []);
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -38,7 +56,7 @@ export default function CaseJoinScreen() {
 
         <JoinCaseForm
           value={token}
-          onChangeText={setToken}
+          onChangeText={handleChangeText}
           status={status}
           onSubmit={handleSubmit}
           title={t('caseJoin.title')}
