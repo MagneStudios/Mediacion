@@ -43,8 +43,12 @@ describe('createBackend', () => {
 
   it('asks the auth service for a token on every request rather than capturing one', async () => {
     const tokens = ['first', 'second'];
-    const fetchImpl = jest.fn(async () =>
-      new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }),
+    const fetchImpl = jest.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response('[]', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
     );
     const backend = createBackend(configured, {
       createClient: () => ({ auth: {} }) as never,
@@ -65,9 +69,7 @@ describe('createBackend', () => {
     await backend?.cases.listCases();
 
     const headersOf = (call: number) =>
-      (fetchImpl.mock.calls[call]?.[1] as RequestInit | undefined)?.headers as
-        | Record<string, string>
-        | undefined;
+      fetchImpl.mock.calls[call]?.[1]?.headers as Record<string, string> | undefined;
     expect(headersOf(0)?.Authorization).toBe('Bearer first');
     expect(headersOf(1)?.Authorization).toBe('Bearer second');
   });
