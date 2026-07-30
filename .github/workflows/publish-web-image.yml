@@ -1,0 +1,82 @@
+name: publish-web-image
+
+# Builds the Expo web image here and publishes it, so the VPS never builds it.
+#
+# `expo export` on its own exhausts the deployment host: a single web build —
+# with nothing else running — took the API, the frontend, Supabase and the
+# Coolify panel down for about three minutes, repeatedly. The host answered ICMP
+# throughout, so it was memory, not networking. Every frontend release was an
+# outage.
+#
+# Coolify pulls the tag below instead of building. The API image is small enough
+# to keep building on the host, so it is deliberately not included here.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-web-image
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lowercased because a registry path must be, and the org is mixed case.
+      - name: Resolve the image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')-web" >> "$GITHUB_OUTPUT"
+
+      # These three are inlined into the bundle at build time, so the image is
+      # bound to one environment. They are public by design — the anon key is
+      # meant to reach browsers — which is why they are variables, not secrets.
+      # The Dockerfile refuses to build if any is empty.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: mediacion-app/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          build-args: |
+            EXPO_PUBLIC_API_URL=${{ vars.EXPO_PUBLIC_API_URL }}
+            EXPO_PUBLIC_SUPABASE_URL=${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+            EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # A bundle that builds but inlines nothing looks healthy and sends every
+      # request to undefined. That shipped to production once already, so the
+      # image is inspected before anyone can deploy it.
+      - name: Verify the published image carries its configuration
+        run: |
+          docker pull ${{ steps.image.outputs.name }}:${{ github.sha }}
+          docker run --rm --entrypoint sh ${{ steps.image.outputs.name }}:${{ github.sha }} -c '
+            bundle=$(ls /usr/share/nginx/html/_expo/static/js/web/*.js | head -1)
+            for value in "${{ vars.EXPO_PUBLIC_API_URL }}" "${{ vars.EXPO_PUBLIC_SUPABASE_URL }}"; do
+              if ! grep -q "$value" "$bundle"; then
+                echo "ERROR: $value is absent from the published bundle." >&2
+                exit 1
+              fi
+            done
+            test -f /usr/share/nginx/html/login.html
+            test -f /usr/share/nginx/html/signup.html
+            echo "published image carries its configuration"
+          '
