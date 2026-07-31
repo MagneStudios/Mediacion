@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, Badge, StatusPill, type StatusPillStatus } from '../../../design-system';
+import { Avatar, StatusPill, type StatusPillStatus } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
@@ -13,15 +13,16 @@ export type ProfileHeaderCardProps = {
   statusVisual: StatusPillStatus;
 };
 
-/** Non-interactive summary card — display name, role, and account status. Never shows internal IDs or backend metadata. */
 export function ProfileHeaderCard({ displayName, roleLabel, statusLabel, statusVisual }: ProfileHeaderCardProps) {
   return (
     <View style={styles.container}>
       <Avatar name={displayName} size="lg" />
       <View style={styles.body}>
-        <Text style={styles.name}>{displayName}</Text>
-        <Badge variant="outline">{roleLabel}</Badge>
-        <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
+        <Text style={styles.name} accessibilityRole="header">{displayName}</Text>
+        <Text style={styles.role}>{roleLabel}</Text>
+        <View style={styles.badges}>
+          <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
+        </View>
       </View>
     </View>
   );
@@ -31,22 +32,33 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.lg,
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
     borderWidth: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
   },
   body: {
     flex: 1,
     gap: spacing.xxs,
-    alignItems: 'flex-start',
   },
   name: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 20,
-    letterSpacing: -0.3,
+    fontFamily: typography.headline.fontFamily,
+    fontSize: 24,
+    letterSpacing: -0.4,
+    lineHeight: 30,
     color: semanticColors.text.primary,
+  },
+  role: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 14,
+    color: semanticColors.text.secondary,
+  },
+  badges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xxs,
   },
 });

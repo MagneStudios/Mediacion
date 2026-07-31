@@ -14,22 +14,18 @@ export type ProfileMenuItemProps = {
   accessibilityLabel?: string;
 };
 
-/**
- * A single settings-navigation row — the whole row is one Pressable (via
- * Card's `interactive`), never a Card wrapping a separate nested button.
- */
 export function ProfileMenuItem({ icon, label, description, onPress, accessibilityLabel }: ProfileMenuItemProps) {
   return (
     <Card interactive onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.iconCircle}>
-          <Icon name={icon} size={18} color={semanticColors.text.secondary} />
-        </View>
-        <View style={styles.body}>
-          <Text style={styles.label}>{label}</Text>
-          {description ? <Text style={styles.description}>{description}</Text> : null}
-        </View>
-        <Icon name="chevron-right" size={18} color={semanticColors.text.tertiary} />
+      <View style={styles.iconCircle}>
+        <Icon name={icon} size={22} color={semanticColors.text.secondary} />
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.label}>{label}</Text>
+        {description ? <Text style={styles.description}>{description}</Text> : null}
+      </View>
+      <View style={styles.chevronRow}>
+        <Icon name="chevron-right" size={16} color={semanticColors.text.tertiary} />
       </View>
     </Card>
   );
@@ -38,17 +34,14 @@ export function ProfileMenuItem({ icon, label, description, onPress, accessibili
 const styles = StyleSheet.create({
   card: {
     borderRadius: 14,
-    padding: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: spacing.lg,
+    minHeight: 180,
     gap: spacing.sm,
   },
   iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,
@@ -56,16 +49,23 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    gap: 1,
+    gap: spacing.xxs,
   },
   label: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    fontFamily: typography.cardTitle.fontFamily,
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },
   description: {
     fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
+    fontSize: 14,
+    lineHeight: 20,
     color: semanticColors.text.secondary,
+  },
+  chevronRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
 });

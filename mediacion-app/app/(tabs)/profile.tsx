@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
+import { Button, ErrorState, Icon, LoadingState, StatusPill } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { radii } from '@/design-system/tokens/radii';
@@ -11,7 +11,6 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnvironmentNotice';
 import { PreferenceRow } from '@/features/profile/components/PreferenceRow';
-import { ProfileHeaderCard } from '@/features/profile/components/ProfileHeaderCard';
 import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
 import { useNotificationPreferences } from '@/features/profile/hooks/useNotificationPreferences';
 import { useProfile } from '@/features/profile/hooks/useProfile';
@@ -23,7 +22,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { status, profile, reload } = useProfile();
   const notifications = useNotificationPreferences();
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   if (status === 'loading') {
     return (
@@ -41,6 +40,9 @@ export default function ProfileScreen() {
     );
   }
 
+  const displayName = `${profile.nombre} ${profile.apellido}`;
+  const initials = `${profile.nombre.charAt(0)}${profile.apellido.charAt(0)}`.toUpperCase();
+
   const notificationsValue =
     notifications.status === 'success' && notifications.preferences
       ? t('profile.summary.notificationsValue', {
@@ -53,47 +55,75 @@ export default function ProfileScreen() {
 
   const appVersion = Constants.expoConfig?.version ?? '—';
 
-  const primaryColumn = (
-    <>
-      <ProfileHeaderCard
-        displayName={`${profile.nombre} ${profile.apellido}`}
-        roleLabel={t(`profile.role.${profile.rol}`)}
-        statusLabel={profile.activo ? t('profile.status.active') : t('profile.status.inactive')}
-        statusVisual={profile.activo ? 'success' : 'neutral'}
-      />
-
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>{t('profile.summary.sectionTitle')}</Text>
-        <PreferenceRow label={t('profile.summary.language')} value={languageValue} />
-        <PreferenceRow label={t('profile.summary.notifications')} value={notificationsValue} />
-        <PreferenceRow label={t('profile.summary.privacy')} value={t('profile.summary.privacyValue')} />
-      </View>
-    </>
-  );
-
-  const secondaryColumn = (
-    <>
-      <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
-      <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
-      <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
-      <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
-      <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
-      <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
-    </>
-  );
-
   return (
     <ScrollView
       style={styles.scrollContainer}
       contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
     >
-      <Text style={styles.title} accessibilityRole="header">
-        {t('profile.header.title')}
-      </Text>
+      {/* 1. Hero */}
+      <View style={styles.hero}>
+        <View style={styles.heroInner}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarInitials}>{initials}</Text>
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.heroName} accessibilityRole="header">{displayName}</Text>
+            <Text style={styles.heroRole}>{t(`profile.role.${profile.rol}`)}</Text>
+            <View style={styles.heroBadge}>
+              <StatusPill status={profile.activo ? 'success' : 'neutral'}>
+                {profile.activo ? t('profile.status.active') : t('profile.status.inactive')}
+              </StatusPill>
+            </View>
+          </View>
+          <Button
+            variant="secondary"
+            size="sm"
+            iconLeft={<Icon name="pencil" size={14} color={semanticColors.action.secondaryFg} />}
+            onPress={() => { blurActiveElement(); router.push('/profile/edit'); }}
+          >
+            {t('profile.menu.edit.label')}
+          </Button>
+        </View>
+      </View>
 
       <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.overview')} />
 
-      <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
+      {/* 2+3. Summary + Options grid */}
+      <View style={[styles.bodySection, isWide && styles.bodySectionWide]}>
+        {/* Summary */}
+        <View style={[styles.summaryCol, isWide && styles.summaryColWide]}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>{t('profile.summary.sectionTitle')}</Text>
+            <PreferenceRow label={t('profile.summary.language')} value={languageValue} />
+            <PreferenceRow label={t('profile.summary.notifications')} value={notificationsValue} />
+            <PreferenceRow label={t('profile.summary.privacy')} value={t('profile.summary.privacyValue')} />
+          </View>
+        </View>
+
+        {/* Options grid */}
+        <View style={[styles.optionsCol, isWide && styles.optionsColWide]}>
+          <View style={[styles.optionsGrid, isWide && styles.optionsGridWide]}>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
+            </View>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
+            </View>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
+            </View>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
+            </View>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
+            </View>
+            <View style={styles.optionItem}>
+              <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
+            </View>
+          </View>
+        </View>
+      </View>
 
       <Text style={styles.version}>{t('profile.version', { version: appVersion })}</Text>
     </ScrollView>
@@ -111,33 +141,118 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+    gap: spacing.lg,
   },
-  title: {
+
+  /* ---- Hero ---- */
+  hero: {
+    backgroundColor: semanticColors.surface.sunken,
+    borderRadius: radii.xl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+  },
+  heroInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  avatarCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: semanticColors.action.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  avatarInitials: {
     fontFamily: typography.headline.fontFamily,
     fontSize: 26,
-    letterSpacing: -0.5,
+    color: semanticColors.action.primaryFg,
+  },
+  heroText: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  heroName: {
+    fontFamily: typography.headline.fontFamily,
+    fontSize: 24,
+    letterSpacing: -0.4,
+    lineHeight: 30,
     color: semanticColors.text.primary,
-    marginBottom: spacing.xs,
+  },
+  heroRole: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 14,
+    color: semanticColors.text.secondary,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    marginTop: spacing.xxs,
+  },
+
+  /* ---- Body: summary + options ---- */
+  bodySection: {
+    gap: spacing.lg,
+  },
+  bodySectionWide: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xl,
+  },
+  summaryCol: {
+    gap: spacing.md,
+  },
+  summaryColWide: {
+    width: 280,
+    flexShrink: 0,
   },
   summaryCard: {
     gap: spacing.xxs,
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
     borderWidth: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
   },
   summaryTitle: {
     fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
     color: semanticColors.text.tertiary,
     marginBottom: spacing.xxs,
   },
+
+  /* ---- Options grid ---- */
+  optionsCol: {
+    gap: spacing.md,
+  },
+  optionsColWide: {
+    flex: 1,
+    minWidth: 0,
+  },
+  optionsGrid: {
+    gap: spacing.sm,
+  },
+  optionsGridWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    alignItems: 'stretch',
+  },
+  optionItem: {
+    flexGrow: 1,
+    minWidth: 0,
+    flexBasis: '45%',
+  },
+
+  /* ---- Footer ---- */
   version: {
     alignSelf: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     fontFamily: typography.caption.fontFamily,
     fontSize: typography.caption.fontSize,
     color: semanticColors.text.tertiary,
