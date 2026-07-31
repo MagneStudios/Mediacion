@@ -102,24 +102,24 @@ export default function ProfileScreen() {
 
         {/* Options grid */}
         <View style={[styles.optionsCol, isWide && styles.optionsColWide]}>
-          <View style={[styles.optionsGrid, isWide && styles.optionsGridWide]}>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
+          <View style={isWide ? styles.optionsGridWide : styles.optionsGridCompact}>
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="pencil" label={t('profile.menu.edit.label')} description={t('profile.menu.edit.description')} onPress={() => { blurActiveElement(); router.push('/profile/edit'); }} />
             </View>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="bell" label={t('profile.menu.notifications.label')} description={t('profile.menu.notifications.description')} onPress={() => { blurActiveElement(); router.push('/profile/notifications'); }} />
             </View>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="shield-check" label={t('profile.menu.privacy.label')} description={t('profile.menu.privacy.description')} onPress={() => { blurActiveElement(); router.push('/profile/privacy'); }} />
             </View>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="help-circle" label={t('profile.menu.help.label')} description={t('profile.menu.help.description')} onPress={() => { blurActiveElement(); router.push('/profile/help'); }} />
             </View>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
             </View>
-            <View style={styles.optionItem}>
-              <ProfileMenuItem icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
+            <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
             </View>
           </View>
         </View>
@@ -141,7 +141,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
     gap: spacing.lg,
   },
 
@@ -235,6 +236,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   optionsGrid: {
+    gap: spacing.sm,
+  },
+  optionsGridCompact: {
     gap: spacing.sm,
   },
   optionsGridWide: {
