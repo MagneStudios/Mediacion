@@ -133,7 +133,7 @@ export function NoticeCard({
         <View style={styles.footerMeta}>
           {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
         </View>
-        {!read && onMarkRead && !hasRightRail ? (
+        {!actionable && !read && onMarkRead && !hasRightRail ? (
           <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
             {markReadLabel}
           </Button>
