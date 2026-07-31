@@ -19,9 +19,6 @@ export type CaseFiltersProps = {
 
 const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
-// Keyboard focus-visible ring for web — same pattern as Button. CSS pseudo-class,
-// not a JS event. Injects once at module scope; `outline` draws outside the
-// border box so layout/spacing is unaffected. Native is a no-op.
 if (Platform.OS === 'web') {
   try {
     const styleTag = document.createElement('style');
@@ -30,28 +27,13 @@ if (Platform.OS === 'web') {
       `[data-testid="case-filter-chip"]:focus-visible{outline:2px solid ${semanticColors.border.focus};outline-offset:2px}`;
     document.head.appendChild(styleTag);
   } catch {
-    /* SSR / non-browser — safe no-op */
+    /* SSR / non-browser */
   }
 }
 
 /**
- * Client-side filter over the already-fetched case list — same pattern as
- * `NoticeFilter` in the Avisos tab (no service/hook change, just a derived
- * view of data already in memory).
- *
- * Responsive:
- * - Compact (<768px): a fixed four-column row — each chip `flex: 1`, equal
- *   width, centered text, reduced chip padding, one-line labels at 12px, so
- *   Todos / Negociación / Conciliación / Mediación all fit fully at 320px
- *   with no scroll, no ellipsis and no truncation.
- * - Medium/wide (>=768px): unchanged — a horizontally scrollable row, chips
- *   sized to their content.
- *
- * Visual: chips live inside a single grouped surface (soft aquatic sunken
- * background + hairline border). The selected chip is a white pill with a
- * visible primary border, never the solid primary fill — so the filter
- * never competes with the main "Crear un caso" CTA. Touch targets stay
- * at the 44px minimum on every breakpoint via the chip's own minHeight.
+ * Client-side filter — Stitch v6 style: compact pills, solid selected,
+ * soft ring unselected. All four filters fit in one row at every breakpoint.
  */
 export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFiltersProps) {
   const { isCompact } = useResponsiveLayout();
@@ -73,25 +55,21 @@ export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFil
 
   if (isCompact) {
     return (
-      <View style={[styles.surface, styles.surfaceCompact]}>
-        <View style={[styles.row, styles.rowCompact]} accessibilityRole="tablist">
-          {chips}
-        </View>
+      <View style={styles.rowCompact} accessibilityRole="tablist">
+        {chips}
       </View>
     );
   }
 
   return (
-    <View style={styles.surface}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        accessibilityRole="tablist"
-        contentContainerStyle={styles.row}
-      >
-        {chips}
-      </ScrollView>
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      accessibilityRole="tablist"
+      contentContainerStyle={styles.row}
+    >
+      {chips}
+    </ScrollView>
   );
 }
 
@@ -112,7 +90,7 @@ function FilterChip({ label, selected, onPress, compact }: FilterChipProps) {
       testID="case-filter-chip"
       style={({ hovered, pressed }) => [
         styles.chip,
-        compact ? styles.chipCompact : null,
+        compact && styles.chipCompact,
         selected ? styles.chipSelected : styles.chipUnselected,
         !selected && hovered ? styles.chipHover : null,
         pressed ? styles.chipPressed : null,
@@ -121,7 +99,7 @@ function FilterChip({ label, selected, onPress, compact }: FilterChipProps) {
       <Text
         style={[
           styles.label,
-          compact ? styles.labelCompact : null,
+          compact && styles.labelCompact,
           selected ? styles.labelSelected : styles.labelUnselected,
         ]}
         numberOfLines={1}
@@ -133,59 +111,48 @@ function FilterChip({ label, selected, onPress, compact }: FilterChipProps) {
 }
 
 const styles = StyleSheet.create({
-  surface: {
-    backgroundColor: semanticColors.surface.sunken,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: semanticColors.border.default,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xxs,
-  },
-  surfaceCompact: {
-    paddingHorizontal: 2,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xxs,
-    paddingRight: spacing.sm,
+    gap: spacing.xs,
   },
   rowCompact: {
-    flex: 1,
-    gap: 3,
-    paddingRight: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
   },
   chip: {
-    minHeight: 44,
+    minHeight: 36,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
     borderWidth: 1,
   },
   chipCompact: {
     flex: 1,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
+    minHeight: 36,
   },
   chipUnselected: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-  },
-  chipSelected: {
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.action.primaryBg,
-  },
-  chipHover: {
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
   },
+  chipSelected: {
+    backgroundColor: semanticColors.action.primaryBg,
+    borderColor: semanticColors.action.primaryBg,
+  },
+  chipHover: {
+    backgroundColor: semanticColors.surface.sunken,
+  },
   chipPressed: {
-    backgroundColor: semanticColors.surface.card,
     opacity: 0.85,
   },
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 13,
+    fontWeight: '500',
   },
   labelCompact: {
     fontSize: 12,
@@ -194,7 +161,7 @@ const styles = StyleSheet.create({
     color: semanticColors.text.secondary,
   },
   labelSelected: {
-    color: semanticColors.text.primary,
+    color: semanticColors.action.primaryFg,
     fontWeight: '600',
   },
 });

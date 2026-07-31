@@ -21,7 +21,7 @@ export type CasesDashboardScreenProps = {
 export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboardScreenProps) {
   const { t } = useTranslation();
   const result = useCases();
-  const { isWide, horizontalPadding } = useResponsiveLayout();
+  const { isWide, isExtraWide, horizontalPadding } = useResponsiveLayout();
   const [filter, setFilter] = useState<CaseFilterValue>('all');
 
   const allCases = result.status === 'success' ? result.cases : [];
@@ -31,7 +31,7 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
   );
   const pendingResponseCount = useMemo(() => allCases.filter((c) => c.statusLabelKey === 'proposalReady').length, [allCases]);
 
-  const numColumns = isWide ? 2 : 1;
+  const numColumns = isExtraWide ? 3 : isWide ? 2 : 1;
 
   return (
     <View style={styles.container}>
@@ -41,16 +41,12 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         keyExtractor={(item) => item.id}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? 1480 : contentWidths.wide, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isExtraWide ? 1640 : isWide ? 1280 : contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
           <View style={styles.header}>
-            {/* Header: eyebrow + title + description left, CTA right */}
             <View style={[styles.headerTop, isWide && styles.headerTopWide]}>
               <View style={styles.titleBlock}>
-                <Text variant="eyebrow" color="quaternary" style={styles.eyebrow}>
-                  {t('cases.eyebrow')}
-                </Text>
-                <Text variant={isWide ? 'displayMd' : 'headline'} accessibilityRole="header">
+                <Text variant={isWide ? 'displayLg' : 'headline'} accessibilityRole="header">
                   {t('cases.title')}
                 </Text>
                 <Text variant="body" color="secondary" style={styles.description}>
@@ -77,7 +73,6 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
               </View>
             </View>
 
-            {/* Filters toolbar */}
             {result.status === 'success' && allCases.length > 0 ? (
               <CaseFilters
                 value={filter}
@@ -92,15 +87,11 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
             ) : null}
           </View>
         }
-        renderItem={({ item }) =>
-          numColumns > 1 ? (
-            <View style={styles.gridItem}>
-              <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} isWide />
-            </View>
-          ) : (
-            <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />
-          )
-        }
+        renderItem={({ item }) => (
+          <View style={numColumns > 1 ? styles.gridItem : undefined}>
+            <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} isWide={numColumns > 1} />
+          </View>
+        )}
         ItemSeparatorComponent={numColumns > 1 ? undefined : () => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={
           result.status === 'loading' ? (
@@ -135,17 +126,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   columnWrapper: {
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    gap: spacing.lg,
+    marginBottom: 0,
   },
   gridItem: {
     flex: 1,
-    maxWidth: '50%',
     minWidth: 0,
   },
   header: {
-    gap: spacing.md,
-    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   headerTop: {
     gap: spacing.sm,
@@ -160,11 +150,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  eyebrow: {
-    marginBottom: spacing.xxs,
-  },
   description: {
-    marginTop: 4,
+    marginTop: 2,
   },
   headerRight: {
     gap: spacing.sm,

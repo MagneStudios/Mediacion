@@ -7,7 +7,7 @@ import type { CaseSummary } from '@/types/case';
 // Text assertions go through i18n.t(...) — see CaseCard.test.tsx for why.
 const t = i18n.t.bind(i18n);
 
-let mockResponsiveLayout = { isWide: false, horizontalPadding: 16 };
+let mockResponsiveLayout = { isWide: false, isExtraWide: false, horizontalPadding: 16 };
 jest.mock('@/hooks/use-responsive-layout', () => ({
   useResponsiveLayout: () => mockResponsiveLayout,
 }));
@@ -52,7 +52,7 @@ function renderScreen(props: Partial<{ onOpenCase: jest.Mock; onCreateCase: jest
 }
 
 beforeEach(() => {
-  mockResponsiveLayout = { isWide: false, horizontalPadding: 16 };
+  mockResponsiveLayout = { isWide: false, isExtraWide: false, horizontalPadding: 16 };
 });
 
 describe('CasesDashboardScreen', () => {
@@ -162,7 +162,7 @@ describe('CasesDashboardScreen', () => {
 
   describe('responsive — compact width (320/375/390px, isWide=false)', () => {
     it('renders a single-column list (no columnWrapper grid)', async () => {
-      mockResponsiveLayout = { isWide: false, horizontalPadding: 16 };
+      mockResponsiveLayout = { isWide: false, isExtraWide: false, horizontalPadding: 16 };
       mockUseCasesResult = { status: 'success', cases: threeCases };
       await renderScreen();
       expect(screen.getByText('Custodia compartida')).toBeTruthy();
@@ -171,7 +171,7 @@ describe('CasesDashboardScreen', () => {
 
   describe('responsive — wide web (1280/1440px, isWide=true)', () => {
     it('renders the two-column composition without losing any case', async () => {
-      mockResponsiveLayout = { isWide: true, horizontalPadding: 32 };
+      mockResponsiveLayout = { isWide: true, isExtraWide: false, horizontalPadding: 32 };
       mockUseCasesResult = { status: 'success', cases: threeCases };
       await renderScreen();
       expect(screen.getByText('Custodia compartida')).toBeTruthy();

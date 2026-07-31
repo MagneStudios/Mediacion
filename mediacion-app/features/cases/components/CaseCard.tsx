@@ -24,13 +24,13 @@ const STATUS_ACCENT: Record<CaseVisualStatus, string> = {
   ai: semanticColors.ai.accent,
 };
 
-const CONTEXTUAL_TONE: Record<CaseVisualStatus, { bg: string; fg: string }> = {
+const CONTEXTUAL_TONE: Record<CaseVisualStatus, { bg: string; fg: string; border?: string }> = {
   success: { bg: semanticColors.status.successBg, fg: semanticColors.status.successFg },
-  warning: { bg: semanticColors.status.warningBg, fg: semanticColors.status.warningFg },
-  error: { bg: semanticColors.status.errorBg, fg: semanticColors.status.errorFg },
+  warning: { bg: semanticColors.status.warningBg, fg: semanticColors.status.warningFg, border: semanticColors.status.warningFg },
+  error: { bg: semanticColors.status.errorBg, fg: semanticColors.status.errorFg, border: semanticColors.status.errorFg },
   info: { bg: semanticColors.status.infoBg, fg: semanticColors.status.infoFg },
   neutral: { bg: semanticColors.surface.sunken, fg: semanticColors.text.secondary },
-  ai: { bg: semanticColors.ai.tint, fg: semanticColors.ai.accent },
+  ai: { bg: semanticColors.ai.tint, fg: semanticColors.ai.accent, border: semanticColors.ai.accent },
 };
 
 const CTA_KEY: Record<CaseStatusLabelKey, 'continue' | 'respond' | 'view'> = {
@@ -63,6 +63,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
   const isFinished = caseSummary.statusLabelKey === 'signed';
   const contextualLabel = isFinished ? t('cases.resultLabel') : t('cases.nextActionLabel');
   const contextualIcon: 'check' | 'info' = isFinished ? 'check' : 'info';
+  const hasContextualBorder = contextualTone.border != null;
 
   const buttonVariant = buttonVariantFor(ctaKey, caseSummary.visualStatus);
 
@@ -78,11 +79,11 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 
   return (
     <Card style={[styles.card, { borderLeftWidth: 3, borderLeftColor: STATUS_ACCENT[caseSummary.visualStatus] }]}>
-      {/* 1. Header: method badge left · status pill right */}
+      {/* 1. Header: method eyebrow left · status pill right */}
       <View style={styles.topRow}>
         <View style={styles.methodBadge} accessibilityLabel={t(`methods.${caseSummary.metodo}`)}>
-          <Icon name={methodIcon} size={13} color={semanticColors.text.secondary} />
-          <Text variant="caption" color="secondary">
+          <Icon name={methodIcon} size={14} color={semanticColors.text.tertiary} />
+          <Text variant="eyebrow" style={styles.methodLabel}>
             {methodLabel}
           </Text>
         </View>
@@ -91,22 +92,31 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         </StatusPill>
       </View>
 
-      {/* 2. Title — strong visual weight */}
-      <Text variant="cardTitle" style={styles.title} numberOfLines={2}>
+      {/* 2. Title — strong visual weight, Stitch v6 card-title */}
+      <Text variant="cardTitle" style={[styles.title, isFinished && styles.titleFinished]} numberOfLines={2}>
         {caseSummary.title}
       </Text>
 
       {/* 3. Metadata — counterparty + round, muted */}
-      <Text variant="bodySm" color="secondary" numberOfLines={1}>
+      <Text variant="bodySm" style={[styles.meta, isFinished ? styles.metaFinished : styles.metaActive]} numberOfLines={1}>
         {metaText}
       </Text>
 
       {/* 4. Contextual block — next action / result */}
-      <View style={[styles.contextualBlock, { backgroundColor: contextualTone.bg }]}>
-        <Icon name={contextualIcon} size={16} color={contextualTone.fg} />
+      <View
+        style={[
+          styles.contextualBlock,
+          { backgroundColor: contextualTone.bg },
+          hasContextualBorder && {
+            borderLeftWidth: 4,
+            borderLeftColor: contextualTone.border,
+          },
+        ]}
+      >
+        <Icon name={contextualIcon} size={18} color={contextualTone.fg} />
         <View style={styles.contextualBody}>
           <View style={styles.contextualLabelRow}>
-            <Text variant="eyebrow" style={{ color: contextualTone.fg, fontSize: 12 }}>
+            <Text variant="eyebrow" style={[styles.contextualEyebrow, { color: contextualTone.fg }]}>
               {contextualLabel}
             </Text>
             {caseSummary.slaHours != null ? (
@@ -123,19 +133,17 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 
       {/* 5. Divider + CTA */}
       <Divider tone="soft" />
-      <View style={isWide ? styles.footerDesktop : styles.footerMobile}>
-        <View style={isWide ? styles.footerCtaDesktop : undefined}>
-          <Button
-            variant={buttonVariant}
-            fullWidth={!isWide}
-            size={isWide ? 'sm' : 'md'}
-            onPress={onPress}
-            accessibilityLabel={ctaAccessibilityLabel}
-            iconRight={<Icon name="chevron-right" size={16} color={chevronColor} />}
-          >
-            {ctaContent}
-          </Button>
-        </View>
+      <View style={styles.footer}>
+        <Button
+          variant={buttonVariant}
+          fullWidth={!isWide}
+          size="sm"
+          onPress={onPress}
+          accessibilityLabel={ctaAccessibilityLabel}
+          iconRight={<Icon name="chevron-right" size={16} color={chevronColor} />}
+        >
+          {ctaContent}
+        </Button>
       </View>
     </Card>
   );
@@ -143,10 +151,11 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: spacing.lg,
     gap: spacing.sm,
     borderWidth: 1,
+    minHeight: 240,
   },
   topRow: {
     flexDirection: 'row',
@@ -158,10 +167,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xxs,
   },
+  methodLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontSize: 12,
+    color: semanticColors.text.tertiary,
+  },
   title: {
-    fontSize: 17,
-    letterSpacing: -0.3,
-    lineHeight: 24,
+    fontSize: 22,
+    letterSpacing: -0.2,
+    lineHeight: 28,
+  },
+  titleFinished: {
+    color: semanticColors.text.secondary,
+  },
+  meta: {
+    marginTop: -spacing.xxs,
+  },
+  metaActive: {
+    color: semanticColors.text.secondary,
+  },
+  metaFinished: {
+    color: semanticColors.text.tertiary,
   },
   contextualBlock: {
     flexDirection: 'row',
@@ -181,13 +208,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  footerDesktop: {
+  contextualEyebrow: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  footer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-  },
-  footerMobile: {},
-  footerCtaDesktop: {
-    flexShrink: 0,
   },
 });
