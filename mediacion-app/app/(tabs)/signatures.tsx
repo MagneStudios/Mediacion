@@ -101,11 +101,15 @@ export default function SignaturesScreen() {
   return (
     <ScrollView
       style={styles.scrollContainer}
-      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
     >
-      <Text style={styles.title} accessibilityRole="header">
-        {t('agreement.inbox.title')}
-      </Text>
+      <View style={styles.headerSection}>
+        <Text style={styles.eyebrow}>{t('agreement.inbox.title')}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('agreement.inbox.title')}
+        </Text>
+      </View>
+
       {renderGroup(t('agreement.inbox.groups.pending'), pending, 'neutral', 'pencil')}
       {renderGroup(t('agreement.inbox.groups.waitingOther'), waitingOther, 'info', 'clock')}
       {renderGroup(t('agreement.inbox.groups.completed'), completed, 'success', 'shield-check')}
@@ -126,21 +130,37 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.xl,
+    paddingBottom: spacing.xxl,
     gap: spacing.lg,
   },
+  headerSection: {
+    gap: spacing.xxs,
+  },
+  eyebrow: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: semanticColors.text.secondary,
+  },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 26,
-    letterSpacing: -0.5,
+    fontFamily: typography.displayLg.fontFamily,
+    fontSize: 34,
+    letterSpacing: -0.6,
+    lineHeight: 40,
     color: semanticColors.text.primary,
   },
   section: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   sectionTitle: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
     color: semanticColors.text.tertiary,
   },
   list: {
