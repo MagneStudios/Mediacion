@@ -67,8 +67,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.headline.fontFamily,
-    fontSize: 22,
-    letterSpacing: -0.3,
+    fontSize: 28,
+    letterSpacing: -0.4,
+    lineHeight: 34,
     color: semanticColors.text.primary,
   },
   metaRow: {

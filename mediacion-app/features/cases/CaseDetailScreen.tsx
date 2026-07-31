@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
+import { radii } from '../../design-system/tokens/radii';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
 import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
@@ -20,7 +21,6 @@ import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard'
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
-import { PrivacyNotice } from './components/PrivacyNotice';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
 import { useCaseDetail } from './hooks/useCaseDetail';
 
@@ -108,11 +108,22 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     const eligibility = getPositionEligibility(detail.estado);
     const canCreate = eligibility === 'editable';
     return (
-      <View style={styles.module}>
-        <Text style={styles.moduleLabel} accessibilityRole="header">
-          {t('caseDetail.positions.title')}
-        </Text>
-        <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
+      <Card style={styles.positionsCard}>
+        <View style={styles.positionsHeader}>
+          <Text style={styles.positionsEyebrow} accessibilityRole="header">
+            {t('caseDetail.positions.title')}
+          </Text>
+        </View>
+
+        <View style={styles.privacyBanner}>
+          <View style={styles.privacyIconWrap}>
+            <Icon name="lock" size={20} color={semanticColors.ai.accent} />
+          </View>
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyBody}>{t('caseDetail.positions.supportingCopy')}</Text>
+          </View>
+        </View>
+
         <View style={[styles.positionsActions, isWide && styles.positionsActionsRow]}>
           {canCreate ? (
             <Button
@@ -138,7 +149,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
             {t('caseDetail.positions.viewAction')}
           </Button>
         </View>
-      </View>
+      </Card>
     );
   })();
 
@@ -199,14 +210,10 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       ) : (
         <ResponsiveColumns
           collapseEmptySecondary
-          primary={
-            <>
-              {positionsSection}
-              <NegotiationSummaryCard caseId={caseId} />
-            </>
-          }
+          primary={positionsSection}
           secondary={
             <>
+              <NegotiationSummaryCard caseId={caseId} />
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
               {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
             </>
@@ -251,6 +258,49 @@ const styles = StyleSheet.create({
     color: semanticColors.text.quaternary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+  },
+  positionsCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  positionsHeader: {
+    gap: spacing.xxs,
+  },
+  positionsEyebrow: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: semanticColors.text.secondary,
+  },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: semanticColors.surface.supportAqua,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  privacyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: semanticColors.surface.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  privacyTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  privacyBody: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 13,
+    lineHeight: 19,
+    color: semanticColors.text.secondary,
   },
   positionsActions: {
     gap: spacing.xs,

@@ -52,47 +52,46 @@ export function NegotiationSummaryCard({ caseId }: NegotiationSummaryCardProps) 
   const router = useRouter();
   const { status, state, reload } = useNegotiation(caseId);
 
+  const summary = status === 'success' && state ? summaryFor(state) : null;
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel} accessibilityRole="header">
-        {t('negotiation.sectionTitle')}
-      </Text>
-
       <Card style={styles.card}>
-        {status === 'loading' ? (
-          <Text style={styles.description}>{t('common.loading')}</Text>
-        ) : status === 'error' || !state ? (
-          <>
-            <Text style={styles.description}>{t('negotiation.summary.error.title')}</Text>
-            <Button variant="secondary" size="sm" onPress={reload}>
-              {t('common.retry')}
-            </Button>
-          </>
-        ) : (
-          (() => {
-            const summary = summaryFor(state);
-            return (
-              <>
-                <View style={styles.row}>
-                  <Text style={styles.title}>{t(summary.titleKey)}</Text>
-                  <StatusPill status={summary.status}>{t(summary.statusKey)}</StatusPill>
-                </View>
-                <Text style={styles.description}>{t(summary.descriptionKey)}</Text>
-              </>
-            );
-          })()
-        )}
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardHeaderLabel} accessibilityRole="header">{t('negotiation.sectionTitle')}</Text>
+          {summary ? (
+            <StatusPill status={summary.status}>{t(summary.statusKey)}</StatusPill>
+          ) : null}
+        </View>
 
-        <Button
-          variant="secondary"
-          fullWidth
-          onPress={() => {
-            blurActiveElement();
-            router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } });
-          }}
-        >
-          {t('negotiation.summary.viewAction')}
-        </Button>
+        <View style={styles.cardBody}>
+          {status === 'loading' ? (
+            <Text style={styles.description}>{t('common.loading')}</Text>
+          ) : status === 'error' || !state ? (
+            <>
+              <Text style={styles.description}>{t('negotiation.summary.error.title')}</Text>
+              <Button variant="secondary" size="sm" onPress={reload}>
+                {t('common.retry')}
+              </Button>
+            </>
+          ) : summary ? (
+            <>
+              <Text style={styles.title}>{t(summary.titleKey)}</Text>
+              <Text style={styles.description}>{t(summary.descriptionKey)}</Text>
+            </>
+          ) : null}
+
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              blurActiveElement();
+              router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } });
+            }}
+          >
+            {t('negotiation.summary.viewAction')}
+          </Button>
+        </View>
       </Card>
     </View>
   );
@@ -102,32 +101,45 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing.xs,
   },
-  sectionLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
-    color: semanticColors.text.quaternary,
-  },
   card: {
     borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 0,
+    gap: 0,
+    overflow: 'hidden',
   },
-  row: {
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.xs,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: semanticColors.surface.sunken,
+    borderBottomWidth: 1,
+    borderBottomColor: semanticColors.border.soft,
+  },
+  cardHeaderLabel: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 12,
+    color: semanticColors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  cardBody: {
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   title: {
     flex: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    fontFamily: typography.cardTitle.fontFamily,
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },
   description: {
     fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 21,
     color: semanticColors.text.secondary,
   },
 });
