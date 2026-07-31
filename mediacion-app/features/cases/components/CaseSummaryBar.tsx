@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '../../../design-system/components/Text';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 
 export type CaseSummaryBarProps = {
@@ -21,7 +22,7 @@ export type CaseSummaryBarProps = {
 export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResponseLabel }: CaseSummaryBarProps) {
   return (
     <View style={styles.row} accessibilityRole="summary">
-      <View style={styles.item}>
+      <View style={styles.chip}>
         <Text variant="cardTitle" color="primary">
           {total}
         </Text>
@@ -29,7 +30,7 @@ export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResp
           {totalLabel}
         </Text>
       </View>
-      <View style={[styles.item, styles.itemBordered]}>
+      <View style={styles.chip}>
         <Text variant="cardTitle" color="primary">
           {pendingResponse}
         </Text>
@@ -44,14 +45,14 @@ export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResp
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
-  item: {
+  chip: {
+    flex: 1,
+    backgroundColor: semanticColors.surface.sunken,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     gap: 2,
-  },
-  itemBordered: {
-    paddingLeft: spacing.lg,
-    borderLeftWidth: 1,
-    borderLeftColor: semanticColors.border.default,
   },
 });

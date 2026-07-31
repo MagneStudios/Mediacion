@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radii.lg,
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   top: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   body: {
     flex: 1,
@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
   },
   title: {
     letterSpacing: -0.2,
-    marginBottom: 2,
   },
   footer: {
     flexDirection: 'row',
@@ -140,11 +139,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.xs,
-    padding: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderRadius: radii.md,
   },
   nextActionBody: {
     flex: 1,
-    gap: 2,
   },
 });

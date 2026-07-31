@@ -54,6 +54,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: spacing.xs,
+    paddingRight: spacing.md,
   },
   chip: {
     minHeight: 44,

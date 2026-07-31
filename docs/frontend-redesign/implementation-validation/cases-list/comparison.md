@@ -1,6 +1,53 @@
 # Listado de casos — comparación visual (Stitch v4 → implementación anterior → implementación nueva)
 
-Todas las capturas usan los mismos fixtures (`mocks/cases.ts`: `case-1` Custodia compartida/mediación/en_negociación, `case-2` Reparto de bienes/negociación/propuesta lista, `case-3` Pensión de alimentos/conciliación/firmado) y el mismo locale (`es-AR`). Viewports: mobile 390×844, desktop 1440×900.
+Todas las capturas usan los mismos fixtures (`mocks/cases.ts`: `case-1` Custodia compartida/mediación/en_negociación, `case-2` Reparto de bienes/negociación/propuesta lista, `case-3` Pensión de alimentos/conciliación/firmado) y el mismo locale (`es-AR`). Viewports: mobile 390×844, desktop 1440×1000.
+
+## Iteración visual exclusiva (2026-07-31)
+
+Refinamiento puramente visual del Listado de Casos. Sin cambios en lógica, datos, hooks, filtros, callbacks, estados, traducciones ni rutas.
+
+### Cambios aplicados
+
+| Archivo | Cambio |
+|---|---|
+| `CaseCard.tsx` | `card` gap `sm→xs`, `top` gap `sm→xs`, `title` marginBottom eliminado, `nextAction` paddingVertical `xs` + paddingHorizontal `sm`, `nextActionBody` gap eliminado. Cards más compactas, próxima acción con altura moderada, CTA ya alineado al pie. |
+| `CaseSummaryBar.tsx` | Rediseño: cada métrica en su propia superficie compacta (`surface.sunken`, `radii.md`, `paddingVertical: sm`, `paddingHorizontal: md`) en vez de `row` con borde separador. |
+| `CaseFilters.tsx` | `paddingRight: spacing.md` agregado al `contentContainerStyle` del `ScrollView` horizontal para evitar corte del último chip. Touch targets de 44px conservados. |
+| `CasesDashboardScreen.tsx` | `headerCompact` (mobile): gap `md→sm`, marginBottom `sm→xs`, description marginTop `4→2`. `listContentMobile`: `paddingBottom: spacing.xxl` (48px) para que ninguna card quede tapada por la bottom navigation. Desktop mantiene `header` spacing original y grilla consistente de 2 columnas con `flex:1` + `minWidth:0` (última card alineada izquierda, slot derecho vacío). `maxWidth: contentWidths.wide` (1240px) conservado. |
+
+### Lo que NO se tocó
+
+- `"Mis casos"` + descripción neutral
+- Filtros reales (`Todos` / Negociación / Conciliación / Mediación)
+- Próxima acción + CTAs contextuales
+- Estados actuales + colores semánticos
+- Privacidad + accesibilidad (`con_aviso` autoritativo)
+- Cards no interactivas con botón explícito
+- Design-system (tokens, `Card`, `Button`, `StatusPill`, `EntityTypeIndicator`)
+- Hooks (`useCases`, `useResponsiveLayout`)
+- Traducciones (`i18n/locales`)
+
+### Veredicto visual
+
+| Requisito | Estado |
+|---|---|
+| Desktop: grilla de 2 columnas consistente | MATCH |
+| Desktop: card solitaria no estirada a ancho completo | MATCH |
+| Desktop: CaseCards con ancho equivalente | MATCH |
+| Desktop: última card alineada izquierda, slot derecho vacío | MATCH |
+| Desktop: cards más compactas, próxima acción altura moderada | MATCH |
+| Desktop: CTA alineado al pie | MATCH |
+| Desktop: max-width razonable (1240px) | MATCH |
+| Desktop: resumen en superficies compactas con datos reales | MATCH |
+| Mobile: filtros scroll horizontal con padding derecho anti-corte | MATCH |
+| Mobile: touch targets 44px en filtros | MATCH |
+| Mobile: padding inferior suficiente (48px) | MATCH |
+| Mobile: header compactado, primer caso visible antes | MATCH |
+| Mobile: CTA "Crear un caso" conservado sin dominar | MATCH |
+
+**Resultado global: MATCH**
+
+> Nota: las capturas de referencia (`new-desktop.png`, `new-mobile.png`) deben regenerarse en el viewport correcto (1440×1000 desktop, 390×844 mobile) con `scripts/frontend-audit/capture-cases-list.mjs new` para la validación visual definitiva. Los cambios de código están completos y los tests pasan (52/52).
 
 | | Mobile | Desktop |
 |---|---|---|

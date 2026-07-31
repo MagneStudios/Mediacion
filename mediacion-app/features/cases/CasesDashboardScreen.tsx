@@ -49,15 +49,15 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         keyExtractor={(item) => item.id}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, isWide ? null : styles.listContentMobile, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View style={[styles.header, isWide ? null : styles.headerCompact]}>
             <View style={[styles.headerTop, isWide ? styles.headerTopWide : null]}>
               <View style={isWide ? styles.titleWide : undefined}>
                 <Text variant={isWide ? 'displayLg' : 'headline'} accessibilityRole="header">
                   {t('cases.title')}
                 </Text>
-                <Text variant="body" color="secondary" style={styles.description}>
+                <Text variant="body" color="secondary" style={[styles.description, isWide ? null : styles.descriptionCompact]}>
                   {t('cases.description')}
                 </Text>
               </View>
@@ -134,6 +134,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     flexGrow: 1,
   },
+  listContentMobile: {
+    paddingBottom: spacing.xxl,
+  },
   columnWrapper: {
     gap: spacing.md,
     marginBottom: spacing.md,
@@ -145,6 +148,10 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.md,
     marginBottom: spacing.sm,
+  },
+  headerCompact: {
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   headerTop: {
     gap: spacing.sm,
@@ -163,5 +170,8 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 4,
+  },
+  descriptionCompact: {
+    marginTop: 2,
   },
 });
