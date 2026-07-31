@@ -560,6 +560,8 @@
       "statusCompleted": "Completada"
     },
     "proposal": {
+      "intro": "Esta propuesta busca acercar las posiciones expresadas por ambas partes.",
+      "meetingPointSectionTitle": "Puntos de encuentro",
       "rationaleTitle": "Fundamento",
       "statusPending": "Pendiente de respuesta",
       "statusAccepted": "Aceptada",

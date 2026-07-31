@@ -560,6 +560,8 @@
       "statusCompleted": "Completed"
     },
     "proposal": {
+      "intro": "This proposal aims to bring both parties' stated positions closer together.",
+      "meetingPointSectionTitle": "Meeting points",
       "rationaleTitle": "Rationale",
       "statusPending": "Awaiting response",
       "statusAccepted": "Accepted",

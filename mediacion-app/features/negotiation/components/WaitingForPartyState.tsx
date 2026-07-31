@@ -1,10 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Icon } from '../../../design-system';
+import { Text } from '../../../design-system/components/Text';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
-import { typography } from '../../../design-system/tokens/typography';
 
 export type WaitingForPartyStateProps = {
   title: string;
@@ -17,8 +17,10 @@ export function WaitingForPartyState({ title, description }: WaitingForPartyStat
     <View style={styles.container} accessibilityRole="text" accessibilityLabel={`${title}. ${description}`}>
       <Icon name="clock" size={18} color={semanticColors.text.tertiary} />
       <View style={styles.textColumn}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text variant="body">{title}</Text>
+        <Text variant="bodySm" color="secondary">
+          {description}
+        </Text>
       </View>
     </View>
   );
@@ -36,16 +38,5 @@ const styles = StyleSheet.create({
   textColumn: {
     flex: 1,
     gap: 2,
-  },
-  title: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
-    color: semanticColors.text.primary,
-  },
-  description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: semanticColors.text.secondary,
   },
 });
