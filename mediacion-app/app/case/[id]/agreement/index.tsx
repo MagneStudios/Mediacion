@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, EmptyState, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
+import { Button, EmptyState, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { AgreementExportAction } from '@/features/agreements/components/AgreementExportAction';
 import { BreachNoticeDialog } from '@/features/agreements/components/BreachNoticeDialog';
 import { BreachNoticeForm } from '@/features/agreements/components/BreachNoticeForm';
@@ -104,7 +104,13 @@ export default function AgreementDashboardScreen() {
 
   const primaryColumn = (
     <>
-      <PrivacyNotice title={t('agreement.sharedMarker.title')}>{t('agreement.sharedMarker.body')}</PrivacyNotice>
+      <View style={styles.privacyBanner}>
+        <Icon name="lock" size={18} color={semanticColors.ai.accent} />
+        <View style={styles.privacyTextCol}>
+          <Text style={styles.privacyTitle}>{t('agreement.sharedMarker.title')}</Text>
+          <Text style={styles.privacyBody}>{t('agreement.sharedMarker.body')}</Text>
+        </View>
+      </View>
       <SharedAgreementCard
         title={agreement.title}
         summary={agreement.summary}
@@ -119,15 +125,18 @@ export default function AgreementDashboardScreen() {
 
   const secondaryColumn = (
     <>
-      <SignatureProgressCard
-        title={t('agreement.progress.title')}
-        signers={signers}
-        ownRoleLabel={t('agreement.signer.own')}
-        otherRoleLabel={t('agreement.signer.other')}
-        signedStatusLabel={t('agreement.signer.signed')}
-        pendingStatusLabel={t('agreement.signer.pending')}
-        formatDate={formatAgreementDate}
-      />
+      <View style={styles.signatureGroup}>
+        <SignatureProgressCard
+          title={t('agreement.progress.title')}
+          signers={signers}
+          ownRoleLabel={t('agreement.signer.own')}
+          otherRoleLabel={t('agreement.signer.other')}
+          signedStatusLabel={t('agreement.signer.signed')}
+          pendingStatusLabel={t('agreement.signer.pending')}
+          formatDate={formatAgreementDate}
+        />
+        {allSignaturesComplete ? <Text style={styles.bodyText}>{t('agreement.response.completed')}</Text> : null}
+      </View>
 
       {canPrepareDocument ? (
         prepareStatus === 'pending' ? (
@@ -172,36 +181,46 @@ export default function AgreementDashboardScreen() {
 
       {waitingForOtherParty ? <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text> : null}
 
-      {allSignaturesComplete ? <Text style={styles.bodyText}>{t('agreement.response.completed')}</Text> : null}
-
       {readOnly && agreement.estado === 'con_aviso' ? <Text style={styles.bodyText}>{t('agreement.status.conAvisoNotice')}</Text> : null}
 
       {canReportBreach ? (
-        <BreachNoticeForm
-          description={breachDescription}
-          onChangeDescription={setBreachDescription}
-          descriptionError={breachDescriptionError}
-          status="idle"
-          onSubmit={handleBreachSubmit}
-          title={t('agreement.breachNotice.form.title')}
-          descriptionLabel={t('agreement.breachNotice.form.descriptionLabel')}
-          descriptionHint={t('agreement.breachNotice.form.descriptionHint')}
-          descriptionPlaceholder={t('agreement.breachNotice.form.descriptionPlaceholder')}
-          submitLabel={t('agreement.breachNotice.form.submitAction')}
-          submittingLabel={t('agreement.breachNotice.form.submittingAction')}
-        />
-      ) : null}
-
-      <Button
-        variant="tertiary"
-        fullWidth
-        onPress={() => {
-          blurActiveElement();
-          router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
-        }}
-      >
-        {t('agreement.history.viewAction')}
-      </Button>
+        <View style={styles.breachGroup}>
+          <BreachNoticeForm
+            description={breachDescription}
+            onChangeDescription={setBreachDescription}
+            descriptionError={breachDescriptionError}
+            status="idle"
+            onSubmit={handleBreachSubmit}
+            title={t('agreement.breachNotice.form.title')}
+            descriptionLabel={t('agreement.breachNotice.form.descriptionLabel')}
+            descriptionHint={t('agreement.breachNotice.form.descriptionHint')}
+            descriptionPlaceholder={t('agreement.breachNotice.form.descriptionPlaceholder')}
+            submitLabel={t('agreement.breachNotice.form.submitAction')}
+            submittingLabel={t('agreement.breachNotice.form.submittingAction')}
+          />
+          <Button
+            variant="tertiary"
+            fullWidth
+            onPress={() => {
+              blurActiveElement();
+              router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
+            }}
+          >
+            {t('agreement.history.viewAction')}
+          </Button>
+        </View>
+      ) : (
+        <Button
+          variant="tertiary"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
+          }}
+        >
+          {t('agreement.history.viewAction')}
+        </Button>
+      )}
     </>
   );
 
@@ -214,9 +233,12 @@ export default function AgreementDashboardScreen() {
       >
         <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
 
-        <Text style={styles.title} accessibilityRole="header">
-          {t('agreement.dashboard.title')}
-        </Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title} accessibilityRole="header">
+            {t('agreement.dashboard.title')}
+          </Text>
+          <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
+        </View>
 
         <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
@@ -249,16 +271,56 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    fontFamily: typography.displayLg.fontFamily,
+    fontSize: 34,
+    letterSpacing: -0.6,
+    lineHeight: 40,
     color: semanticColors.text.primary,
+    flexShrink: 1,
+  },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: semanticColors.surface.supportAqua,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  privacyTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  privacyTitle: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: semanticColors.ai.accent,
+  },
+  privacyBody: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 13,
+    lineHeight: 19,
+    color: semanticColors.text.secondary,
   },
   bodyText: {
     fontFamily: typography.bodySm.fontFamily,
     fontSize: 14,
     lineHeight: 21,
     color: semanticColors.text.secondary,
+  },
+  signatureGroup: {
+    gap: spacing.xs,
+  },
+  breachGroup: {
+    gap: spacing.xs,
   },
 });

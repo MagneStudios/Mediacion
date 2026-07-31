@@ -30,25 +30,30 @@ export function SharedAgreementCard({
 }: SharedAgreementCardProps) {
   return (
     <Card style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+      <View style={styles.headerBar}>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={2}>
           {title}
         </Text>
         <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
       </View>
 
-      <Text style={styles.summary}>{summary}</Text>
+      <View style={styles.body}>
+        <Text style={styles.summary}>{summary}</Text>
 
-      {terms.map((term) => (
-        <SharedAgreementTermCard key={term.id} title={term.title} description={term.description} />
-      ))}
+        {terms.map((term, index) => (
+          <View key={term.id}>
+            {index > 0 ? <View style={styles.termDivider} /> : null}
+            <SharedAgreementTermCard title={term.title} description={term.description} />
+          </View>
+        ))}
 
-      {rationale ? (
-        <View style={styles.rationale}>
-          <Text style={styles.rationaleLabel}>{rationaleLabel}</Text>
-          <Text style={styles.rationaleText}>{rationale}</Text>
-        </View>
-      ) : null}
+        {rationale ? (
+          <View style={styles.rationale}>
+            <Text style={styles.rationaleLabel}>{rationaleLabel}</Text>
+            <Text style={styles.rationaleText}>{rationale}</Text>
+          </View>
+        ) : null}
+      </View>
     </Card>
   );
 }
@@ -56,21 +61,31 @@ export function SharedAgreementCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.xs,
+    padding: 0,
+    overflow: 'hidden',
   },
-  header: {
+  headerBar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: semanticColors.surface.sunken,
+    borderBottomWidth: 1,
+    borderBottomColor: semanticColors.border.soft,
   },
-  title: {
+  headerTitle: {
     flexShrink: 1,
     fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '600',
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
+  },
+  body: {
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   summary: {
     fontFamily: typography.bodySm.fontFamily,
@@ -78,19 +93,31 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: semanticColors.text.secondary,
   },
+  termDivider: {
+    height: 1,
+    backgroundColor: semanticColors.border.soft,
+    marginVertical: spacing.xxs,
+  },
   rationale: {
     marginTop: spacing.xxs,
-    gap: 2,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: semanticColors.border.soft,
+    gap: spacing.xxs,
   },
   rationaleLabel: {
     fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 11,
-    color: semanticColors.text.quaternary,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: semanticColors.text.tertiary,
   },
   rationaleText: {
     fontFamily: typography.bodySm.fontFamily,
     fontSize: 13,
     lineHeight: 19,
     color: semanticColors.text.secondary,
+    fontStyle: 'italic',
   },
 });
