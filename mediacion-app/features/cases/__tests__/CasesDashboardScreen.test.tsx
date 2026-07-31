@@ -133,7 +133,9 @@ describe('CasesDashboardScreen', () => {
 
     it('filters by method client-side without changing the underlying data source', async () => {
       await renderScreen();
-      await fireEvent.press(screen.getByText(t('methods.mediacion')));
+      // Cards now show the method name too — target the filter chip
+      // (first rendered element) via getAllByText instead of getByText.
+      await fireEvent.press(screen.getAllByText(t('methods.mediacion'))[0]);
       expect(screen.getByText('Custodia compartida')).toBeTruthy();
       expect(screen.queryByText('Reparto de bienes')).toBeNull();
       expect(screen.queryByText('Pensión de alimentos')).toBeNull();
@@ -141,7 +143,7 @@ describe('CasesDashboardScreen', () => {
 
     it('"all" filter restores the full list', async () => {
       await renderScreen();
-      await fireEvent.press(screen.getByText(t('methods.mediacion')));
+      await fireEvent.press(screen.getAllByText(t('methods.mediacion'))[0]);
       await fireEvent.press(screen.getByText(t('cases.filters.all')));
       expect(screen.getByText('Reparto de bienes')).toBeTruthy();
     });

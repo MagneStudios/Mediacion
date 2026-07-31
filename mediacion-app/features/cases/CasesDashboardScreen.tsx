@@ -95,7 +95,7 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         renderItem={({ item }) =>
           numColumns > 1 ? (
             <View style={styles.gridItem}>
-              <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />
+              <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} isWide />
             </View>
           ) : (
             <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} />

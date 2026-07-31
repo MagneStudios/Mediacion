@@ -4,50 +4,75 @@ Todas las capturas usan los mismos fixtures (`mocks/cases.ts`: `case-1` Custodia
 
 ## Iteración visual exclusiva (2026-07-31)
 
-Refinamiento puramente visual del Listado de Casos. Sin cambios en lógica, datos, hooks, filtros, callbacks, estados, traducciones ni rutas.
+### Iteración 2: Reorganización de jerarquía de CaseCard + CTA contextual desktop/mobile
 
-### Cambios aplicados
+Cambio estructural de la card para acercarla a la referencia Stitch v4, manteniendo datos, callbacks y lógica intactos.
+
+#### Nueva jerarquía (5 secciones)
+
+| # | Sección | Composición |
+|---|---|---|
+| 1 | Top row | Método (icono 14px + eyebrow 12px, color por método) a la izquierda · StatusPill alineado a la derecha |
+| 2 | Título | `cardTitle` (22px semibold), máximo 2 líneas, contraste alto |
+| 3 | Metadata | Contraparte + ronda en `bodySm`/`secondary`, 1 línea |
+| 4 | Bloque contextual | Background semántico suave, padding reducido (`xs` vertical). Label "Próxima acción" o "Resultado" (según `signed`). SLA integrado a la derecha del label (dejó de ser un `StatusPill` separado). Icono `info` o `check` según estado. |
+| 5 | Footer | `borderTop` suave. Desktop: `justifyContent: flex-end`, botón `size=sm` no full-width alineado a la derecha. Mobile: botón `fullWidth`, `size=md`. |
+
+#### Botones: variante por acción (no por visualStatus)
+
+| CTA Key | Variante | Apariencia |
+|---|---|---|
+| `continue` (inReview) | `primary` | Sólido azul — acción pendiente |
+| `respond` (proposalReady) | `ai` | Sólido turquesa — acción pendiente |
+| `view` (signed / awaitingCounterparty) | `secondary` | Outline — caso cerrado / verificado |
+
+#### Archivos modificados
+
+| Archivo | Cambios |
+|---|---|
+| `CaseCard.tsx` | Reescritura completa del JSX y estilos: nueva jerarquía de 5 secciones, `isWide` prop, `METHOD_COLOR` por método, `contextualBlock` con SLA integrado, footer con CTA desktop-right/mobile-fullWidth, `buttonVariantFor()` por `ctaKey`. `EntityTypeIndicator` reemplazado por method badge inline con `accessibilityLabel` conservado. |
+| `CasesDashboardScreen.tsx` | `isWide` pasado a `CaseCard` en el branch `numColumns > 1`. |
+| `es-AR.json` / `en.json` | Nueva key `cases.resultLabel` ("Resultado" / "Result"). |
+| `CasesDashboardScreen.test.tsx` | `getByText` → `getAllByText[0]` en 2 tests de filtro (ahora hay texto de método duplicado: filtro + card). |
+
+#### Lo que NO se tocó
+
+- `useCases`, `useResponsiveLayout`, hooks, services, stores, rutas
+- `EstadoCaso`, `MetodoCaso`, `CaseSummary`, `CaseVisualStatus`, `CaseStatusLabelKey`
+- `CTA_KEY`, derivación de `ctaKey` por `statusLabelKey`
+- `onPress` callback — todos los CTAs siguen llamando exactamente a `onOpenCase`
+- `con_aviso`, privacidad, accesibilidad (cards no interactivas, 1 solo `role="button"`)
+- Design-system (`Card`, `Button`, `StatusPill`, `Icon`, `Text`, tokens)
+
+### Iteración 1: Compactado visual inicial
 
 | Archivo | Cambio |
 |---|---|
-| `CaseCard.tsx` | `card` gap `sm→xs`, `top` gap `sm→xs`, `title` marginBottom eliminado, `nextAction` paddingVertical `xs` + paddingHorizontal `sm`, `nextActionBody` gap eliminado. Cards más compactas, próxima acción con altura moderada, CTA ya alineado al pie. |
-| `CaseSummaryBar.tsx` | Rediseño: cada métrica en su propia superficie compacta (`surface.sunken`, `radii.md`, `paddingVertical: sm`, `paddingHorizontal: md`) en vez de `row` con borde separador. |
-| `CaseFilters.tsx` | `paddingRight: spacing.md` agregado al `contentContainerStyle` del `ScrollView` horizontal para evitar corte del último chip. Touch targets de 44px conservados. |
-| `CasesDashboardScreen.tsx` | `headerCompact` (mobile): gap `md→sm`, marginBottom `sm→xs`, description marginTop `4→2`. `listContentMobile`: `paddingBottom: spacing.xxl` (48px) para que ninguna card quede tapada por la bottom navigation. Desktop mantiene `header` spacing original y grilla consistente de 2 columnas con `flex:1` + `minWidth:0` (última card alineada izquierda, slot derecho vacío). `maxWidth: contentWidths.wide` (1240px) conservado. |
-
-### Lo que NO se tocó
-
-- `"Mis casos"` + descripción neutral
-- Filtros reales (`Todos` / Negociación / Conciliación / Mediación)
-- Próxima acción + CTAs contextuales
-- Estados actuales + colores semánticos
-- Privacidad + accesibilidad (`con_aviso` autoritativo)
-- Cards no interactivas con botón explícito
-- Design-system (tokens, `Card`, `Button`, `StatusPill`, `EntityTypeIndicator`)
-- Hooks (`useCases`, `useResponsiveLayout`)
-- Traducciones (`i18n/locales`)
+| `CaseSummaryBar.tsx` | Rediseño: cada métrica en superficie compacta (`surface.sunken`, `radii.md`). |
+| `CaseFilters.tsx` | `paddingRight: spacing.md` en `contentContainerStyle`. |
+| `CasesDashboardScreen.tsx` | `headerCompact` mobile, `listContentMobile` 48px bottom padding. |
 
 ### Veredicto visual
 
 | Requisito | Estado |
 |---|---|
-| Desktop: grilla de 2 columnas consistente | MATCH |
-| Desktop: card solitaria no estirada a ancho completo | MATCH |
-| Desktop: CaseCards con ancho equivalente | MATCH |
-| Desktop: última card alineada izquierda, slot derecho vacío | MATCH |
-| Desktop: cards más compactas, próxima acción altura moderada | MATCH |
-| Desktop: CTA alineado al pie | MATCH |
-| Desktop: max-width razonable (1240px) | MATCH |
-| Desktop: resumen en superficies compactas con datos reales | MATCH |
-| Mobile: filtros scroll horizontal con padding derecho anti-corte | MATCH |
-| Mobile: touch targets 44px en filtros | MATCH |
-| Mobile: padding inferior suficiente (48px) | MATCH |
-| Mobile: header compactado, primer caso visible antes | MATCH |
-| Mobile: CTA "Crear un caso" conservado sin dominar | MATCH |
+| Desktop: grilla de 2 columnas estable | MATCH |
+| Desktop: card solitaria mismo ancho, alineada izquierda | MATCH |
+| Desktop: max-width contenido (1240px) | MATCH |
+| Desktop: jerarquía de 5 secciones | MATCH |
+| Desktop: CTA alineado derecha, no full-width | MATCH |
+| Desktop: botón sólido para acción pendiente, outline para cerrado | MATCH |
+| Mobile: CTA full-width, min-height 44px | MATCH |
+| Bloque contextual: altura/padding reducidos, SLA integrado | MATCH |
+| Bloque contextual: "Resultado" para `signed` | MATCH |
+| Método con color propio por tipo | MATCH |
+| Privacidad: sin posiciones, métricas ni avatares | MATCH |
+| Cards no interactivas (1 solo button role) | MATCH |
+| Tests: 52/52 | MATCH |
 
 **Resultado global: MATCH**
 
-> Nota: las capturas de referencia (`new-desktop.png`, `new-mobile.png`) deben regenerarse en el viewport correcto (1440×1000 desktop, 390×844 mobile) con `scripts/frontend-audit/capture-cases-list.mjs new` para la validación visual definitiva. Los cambios de código están completos y los tests pasan (52/52).
+> Las capturas (`new-desktop.png` 1440×1000, `new-mobile.png` 390×844) deben regenerarse con `scripts/frontend-audit/capture-cases-list.mjs new` para validación visual definitiva.
 
 | | Mobile | Desktop |
 |---|---|---|

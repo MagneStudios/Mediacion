@@ -351,6 +351,7 @@
       "all": "Todos"
     },
     "nextActionLabel": "Próxima acción",
+    "resultLabel": "Resultado",
     "nextAction": {
       "inReview": "El proceso sigue en curso.",
       "proposalReady": "Hay una propuesta esperando tu respuesta.",

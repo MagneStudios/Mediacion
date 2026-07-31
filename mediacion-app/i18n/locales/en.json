@@ -351,6 +351,7 @@
       "all": "All"
     },
     "nextActionLabel": "Next action",
+    "resultLabel": "Result",
     "nextAction": {
       "inReview": "The process is still moving forward.",
       "proposalReady": "There's a proposal waiting for your response.",
