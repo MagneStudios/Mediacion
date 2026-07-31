@@ -321,7 +321,8 @@
     }
   },
   "cases": {
-    "title": "Your cases",
+    "title": "My cases",
+    "description": "Review your cases and next steps.",
     "createCase": "Start a case",
     "loading": "Looking for your cases…",
     "empty": {
@@ -341,7 +342,26 @@
       "sla": "SLA {{hours}} h"
     },
     "round": "Round {{number}}",
-    "noRound": "No active round"
+    "noRound": "No active round",
+    "summary": {
+      "total": "Cases",
+      "pendingResponse": "Waiting for your response"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "nextActionLabel": "Next action",
+    "nextAction": {
+      "inReview": "The process is still moving forward.",
+      "proposalReady": "There's a proposal waiting for your response.",
+      "signed": "The agreement was signed by both parties.",
+      "awaitingCounterparty": "Waiting for the other party to join the case."
+    },
+    "cta": {
+      "continue": "Continue case",
+      "respond": "Respond to proposal",
+      "view": "View case"
+    }
   },
   "common": {
     "back": "Back",

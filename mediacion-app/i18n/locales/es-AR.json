@@ -321,7 +321,8 @@
     }
   },
   "cases": {
-    "title": "Tus casos",
+    "title": "Mis casos",
+    "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
     "loading": "Buscando tus casos…",
     "empty": {
@@ -341,7 +342,26 @@
       "sla": "SLA {{hours}} h"
     },
     "round": "Ronda {{number}}",
-    "noRound": "Sin ronda activa"
+    "noRound": "Sin ronda activa",
+    "summary": {
+      "total": "Casos",
+      "pendingResponse": "Esperan tu respuesta"
+    },
+    "filters": {
+      "all": "Todos"
+    },
+    "nextActionLabel": "Próxima acción",
+    "nextAction": {
+      "inReview": "El proceso sigue en curso.",
+      "proposalReady": "Hay una propuesta esperando tu respuesta.",
+      "signed": "El acuerdo fue firmado por ambas partes.",
+      "awaitingCounterparty": "Esperando a que la contraparte se una al caso."
+    },
+    "cta": {
+      "continue": "Continuar caso",
+      "respond": "Responder propuesta",
+      "view": "Ver caso"
+    }
   },
   "common": {
     "back": "Atrás",
