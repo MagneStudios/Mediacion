@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, StyleSheet, View } from 'react-native';
+import type { DimensionValue } from 'react-native';
+import { FlatList, Platform, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, Icon, LoadingState, Text } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
@@ -32,6 +33,10 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
   const pendingResponseCount = useMemo(() => allCases.filter((c) => c.statusLabelKey === 'proposalReady').length, [allCases]);
 
   const numColumns = isExtraWide ? 3 : isWide ? 2 : 1;
+  const columnGap = spacing.lg;
+  const gridItemWidth = Platform.OS === 'web' && numColumns > 1
+    ? (`calc((100% - ${columnGap * (numColumns - 1)}px) / ${numColumns})` as DimensionValue)
+    : undefined;
 
   return (
     <View style={styles.container}>
@@ -88,7 +93,7 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
           </View>
         }
         renderItem={({ item }) => (
-          <View style={numColumns > 1 ? styles.gridItem : undefined}>
+          <View style={numColumns > 1 ? [styles.gridItem, { width: gridItemWidth }] : undefined}>
             <CaseCard caseSummary={item} onPress={() => onOpenCase(item)} isWide={numColumns > 1} />
           </View>
         )}
@@ -127,11 +132,12 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     gap: spacing.lg,
-    marginBottom: 0,
   },
   gridItem: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     minWidth: 0,
+    marginBottom: spacing.lg,
   },
   header: {
     gap: spacing.sm,
