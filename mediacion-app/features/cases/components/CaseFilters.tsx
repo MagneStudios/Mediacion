@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
@@ -18,63 +18,132 @@ export type CaseFiltersProps = {
 
 const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
+// Keyboard focus-visible ring for web — same pattern as Button. CSS pseudo-class,
+// not a JS event. Injects once at module scope; `outline` draws outside the
+// border box so layout/spacing is unaffected. Native is a no-op.
+if (Platform.OS === 'web') {
+  try {
+    const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-mediacion', 'case-filter-focus-visible');
+    styleTag.textContent =
+      `[data-testid="case-filter-chip"]:focus-visible{outline:2px solid ${semanticColors.border.focus};outline-offset:2px}`;
+    document.head.appendChild(styleTag);
+  } catch {
+    /* SSR / non-browser — safe no-op */
+  }
+}
+
 /**
  * Client-side filter over the already-fetched case list — same pattern as
  * `NoticeFilter` in the Avisos tab (no service/hook change, just a derived
  * view of data already in memory). Horizontally scrollable so it never
  * overflows on narrow widths (320px) regardless of locale text length.
+ *
+ * Visual: chips live inside a single grouped surface (soft aquatic sunken
+ * background + hairline border). The selected chip is a white pill with a
+ * visible primary border, never the solid primary fill — so the filter
+ * never competes with the main "Crear un caso" CTA. Touch targets stay
+ * at the 44px minimum on every breakpoint via the chip's own minHeight.
  */
 export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFiltersProps) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={styles.row}>
-      <Pressable
-        accessibilityRole="tab"
-        accessibilityState={{ selected: value === 'all' }}
-        onPress={() => onChange('all')}
-        style={[styles.chip, value === 'all' ? styles.chipActive : null]}
+    <View style={styles.surface}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityRole="tablist"
+        contentContainerStyle={styles.row}
       >
-        <Text style={[styles.label, value === 'all' ? styles.labelActive : null]}>{allLabel}</Text>
-      </Pressable>
-      {METHODS.map((metodo) => (
-        <Pressable
-          key={metodo}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: value === metodo }}
-          onPress={() => onChange(metodo)}
-          style={[styles.chip, value === metodo ? styles.chipActive : null]}
-        >
-          <Text style={[styles.label, value === metodo ? styles.labelActive : null]}>{methodLabels[metodo]}</Text>
-        </Pressable>
-      ))}
-    </ScrollView>
+        <FilterChip label={allLabel} selected={value === 'all'} onPress={() => onChange('all')} />
+        {METHODS.map((metodo) => (
+          <FilterChip
+            key={metodo}
+            label={methodLabels[metodo]}
+            selected={value === metodo}
+            onPress={() => onChange(metodo)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+type FilterChipProps = {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+};
+
+function FilterChip({ label, selected, onPress }: FilterChipProps) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      testID="case-filter-chip"
+      style={({ hovered, pressed }) => [
+        styles.chip,
+        selected ? styles.chipSelected : styles.chipUnselected,
+        !selected && hovered ? styles.chipHover : null,
+        pressed ? styles.chipPressed : null,
+      ]}
+    >
+      <Text style={[styles.label, selected ? styles.labelSelected : styles.labelUnselected]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  surface: {
+    backgroundColor: semanticColors.surface.sunken,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: semanticColors.border.default,
+    paddingVertical: 2,
+    paddingHorizontal: spacing.xxs,
+  },
   row: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    paddingRight: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xxs,
+    paddingRight: spacing.sm,
   },
   chip: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
-    borderRadius: radii.pill,
-    backgroundColor: semanticColors.surface.sunken,
+    alignItems: 'center',
+    borderRadius: radii.md,
     borderWidth: 1,
+  },
+  chipUnselected: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+  },
+  chipSelected: {
+    backgroundColor: semanticColors.surface.card,
+    borderColor: semanticColors.action.primaryBg,
+  },
+  chipHover: {
+    backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
   },
-  chipActive: {
-    backgroundColor: semanticColors.action.primaryBg,
-    borderColor: semanticColors.action.primaryBg,
+  chipPressed: {
+    backgroundColor: semanticColors.surface.card,
+    opacity: 0.85,
   },
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 13,
+  },
+  labelUnselected: {
     color: semanticColors.text.secondary,
   },
-  labelActive: {
-    color: semanticColors.action.primaryFg,
+  labelSelected: {
+    color: semanticColors.text.primary,
+    fontWeight: '600',
   },
 });

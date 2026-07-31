@@ -143,6 +143,7 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     flex: 1,
+    maxWidth: '50%',
     minWidth: 0,
   },
   header: {

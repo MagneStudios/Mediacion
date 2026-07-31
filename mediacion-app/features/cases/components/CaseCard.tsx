@@ -6,7 +6,7 @@ import { Button, Card, Icon, StatusPill, Text } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
-import type { CaseSummary, CaseStatusLabelKey, CaseVisualStatus, MetodoCaso } from '../../../types/case';
+import type { CaseSummary, CaseStatusLabelKey, CaseVisualStatus } from '../../../types/case';
 import { getMethodIcon } from '../../../utils/get-method-icon';
 
 export type CaseCardProps = {
@@ -33,13 +33,6 @@ const CONTEXTUAL_TONE: Record<CaseVisualStatus, { bg: string; fg: string }> = {
   info: { bg: semanticColors.status.infoBg, fg: semanticColors.status.infoFg },
   neutral: { bg: semanticColors.surface.sunken, fg: semanticColors.text.secondary },
   ai: { bg: semanticColors.ai.tint, fg: semanticColors.ai.accent },
-};
-
-/** Method → icon colour, matching the identity Stitch assigns to each resolution method. Purely visual — no business logic. */
-const METHOD_COLOR: Record<MetodoCaso, string> = {
-  negociacion: semanticColors.text.secondary,
-  conciliacion: semanticColors.status.warningFg,
-  mediacion: semanticColors.ai.accent,
 };
 
 /**
@@ -81,7 +74,6 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 
   const buttonVariant = buttonVariantFor(ctaKey, caseSummary.visualStatus);
 
-  const methodColor = METHOD_COLOR[caseSummary.metodo];
   const methodIcon = getMethodIcon(caseSummary.metodo);
   const methodLabel = t(`methods.${caseSummary.metodo}`);
 
@@ -102,8 +94,8 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
       {/* 1. Top row: method badge left · status pill right */}
       <View style={styles.topRow}>
         <View style={styles.methodBadge} accessibilityLabel={t(`methods.${caseSummary.metodo}`)}>
-          <Icon name={methodIcon} size={14} color={methodColor} />
-          <Text variant="eyebrow" style={{ color: methodColor, fontSize: 12 }}>
+          <Icon name={methodIcon} size={12} color={semanticColors.text.secondary} />
+          <Text variant="caption" color="secondary">
             {methodLabel}
           </Text>
         </View>

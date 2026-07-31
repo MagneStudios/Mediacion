@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: semanticColors.surface.sunken,
     borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     gap: 2,
   },
 });

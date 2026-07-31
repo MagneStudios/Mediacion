@@ -2,9 +2,168 @@
 
 Todas las capturas usan los mismos fixtures (`mocks/cases.ts`: `case-1` Custodia compartida/mediación/en_negociación, `case-2` Reparto de bienes/negociación/propuesta lista, `case-3` Pensión de alimentos/conciliación/firmado) y el mismo locale (`es-AR`). Viewports: mobile 390×844, desktop 1440×1000.
 
+## VALIDACIÓN FINAL — 2026-07-31
+
+### Veredicto definitivo: MATCH
+
+| Verificación | Estado |
+|---|---|
+| Validación visual manual | **Realizada por el usuario — dirección visual aprobada** |
+| Capturas automatizadas | **Omitidas por decisión del usuario** (no se generan screenshots ni scripts de Playwright) |
+| Código adicional modificado | No |
+| Lógica modificada | No |
+| Hooks/services/rutas modificados | No |
+| Design-system modificado | No |
+| Tests | 52/52 pass |
+| Lint | Pass (sin errores) |
+| TypeScript | 1 error preexistente (`case-mapper.test.ts`), 0 nuevos |
+| git diff --check | OK |
+| Problemas visuales encontrados en código | 0 |
+
+### Verificación por código
+
+La validación visual fue aprobada manualmente por el usuario; las capturas automatizadas se omitieron por decisión explícita. El código se verificó por comportamiento declarado en todos los viewports:
+
+| Viewport | isWide | numColumns | gridItem.maxWidth | header gap | listContentMobile | Filtros scroll |
+|---|---|---|---|---|---|---|
+| 320×800 | false | 1 | n/a | spacing.sm | paddingBottom: 48px | ✓ horizontal |
+| 375×812 | false | 1 | n/a | spacing.sm | paddingBottom: 48px | ✓ horizontal |
+| 390×844 | false | 1 | n/a | spacing.sm | paddingBottom: 48px | ✓ horizontal |
+| 768×1024 | false | 1 | n/a | spacing.sm | paddingBottom: 48px | ✓ horizontal |
+| 1024×900 | true | 2 | '50%' | spacing.md | n/a | ✓ horizontal |
+| 1280×900 | true | 2 | '50%' | spacing.md | n/a | ✓ horizontal |
+| 1440×1000 | true | 2 | '50%' | spacing.md | n/a | ✓ horizontal |
+
+**Comportamiento de grilla (código):**
+- `numColumns = isWide ? 2 : 1` — 1 columna en <1024px, 2 en ≥1024px
+- `gridItem: { flex: 1, maxWidth: '50%', minWidth: 0 }` — cada ítem ocupa como máximo 50% de la fila. Ultima card de fila impar limitada a 50%, alineada izquierda.
+- `columnWrapper: { gap: spacing.md, marginBottom: spacing.md }` — separación consistente entre columnas y filas
+
+**Filtros (código):**
+- `paddingRight: spacing.sm` en `contentContainerStyle` del ScrollView horizontal — último chip con respiración
+- `minHeight: 44` en cada chip — touch targets accesibles
+- `paddingVertical: 2, paddingHorizontal: spacing.xxs` en superficie — contenedor compacto
+- CSS `:focus-visible` via `testID="case-filter-chip"` — focus ring Cerúleo en web
+
+**Métricas (código):**
+- `paddingVertical: spacing.xs` (8px), `paddingHorizontal: spacing.sm` (12px) — compactas
+
+### Diferencias deliberadas frente a Stitch v4
+
+| Diferencia | Motivo |
+|---|---|
+| Sin saludo personalizado ("Buen día, Marco") | Dato personal; nunca implementado |
+| Sin avatares múltiples en footer | Sin datos de avatar en el modelo actual |
+| Sin métricas de mensajes ni fechas | No existen en el modelo de datos |
+| Sin "Ordenar por" | No existe funcionalidad de ordenamiento |
+| Sin buscador | No implementado |
+| Método con color unificado muted | Menor protagonismo frente a título y estado |
+| Botones: solid para pendiente, outline para cerrado | Derivado de `ctaKey`, no de `visualStatus` |
+
+### Resumen de archivos modificados (todas las iteraciones)
+
+| Archivo | Iteraciones |
+|---|---|
+| `CasesDashboardScreen.tsx` | 1 (header compact, padding mobile) + 2 (isWide a CaseCard) + 4 (gridItem maxWidth 50%) |
+| `CaseCard.tsx` | 1 (gaps, nextAction) + 2 (jerarquía 5 secciones, CTA desktop/mobile, contextualBlock, buttonVariant) + 4 (mute method labels) |
+| `CaseFilters.tsx` | 1 (paddingRight) + 3 (superficie agrupada, selected/unselected/hover/focus CSS) + 4 (paddingVertical compacto) |
+| `CaseSummaryBar.tsx` | 1 (superficies compactas) + 4 (padding reducido) |
+| `es-AR.json` / `en.json` | 2 (resultLabel) |
+| `CasesDashboardScreen.test.tsx` | 2 (getAllByText[0] en tests de filtro) |
+
+NOTA: Las capturas automatizadas se omitieron por decisión explícita del usuario — no se generaron screenshots ni se crearon scripts de Playwright. La validación visual final fue realizada manualmente por el usuario y aprobada. No hay cambios funcionales; todos los cambios son visuales.
+
+---
+
 ## Iteración visual exclusiva (2026-07-31)
 
-### Iteración 2: Reorganización de jerarquía de CaseCard + CTA contextual desktop/mobile
+### Iteración 4 (final): Ajustes de grilla, compactación y jerarquía
+
+Correcciones finales sin modificar lógica, hooks, servicios, estados, traducciones, callbacks ni design-system tokens.
+
+#### Ajuste 1 — Grid desktop: última card sin stretch
+
+| Archivo | Cambio |
+|---|---|
+| `CasesDashboardScreen.tsx:147` | `gridItem` agrega `maxWidth: '50%'`. Con `flex: 1`, los ítems de una fila de 2 columnas comparten el espacio equitativamente. Una card solitaria queda limitada al 50% del ancho de fila, alineada a la izquierda, con el slot derecho vacío. |
+
+```
+[ Card 1 ][ Card 2 ]
+[ Card 3 ][        ]
+```
+
+#### Ajuste 2 — Filtros: superficie más compacta
+
+| Archivo | Cambio |
+|---|---|
+| `CaseFilters.tsx:105-110` | `padding: spacing.xxs` (4px all) → `paddingVertical: 2, paddingHorizontal: spacing.xxs`. Touch targets 44px conservados. Scroll horizontal y paddingRight mantenidos. |
+
+#### Ajuste 3 — Métodos en CaseCard: menor protagonismo
+
+| Archivo | Cambio |
+|---|---|
+| `CaseCard.tsx:84-87` | Eliminado `METHOD_COLOR` (colores distintos por método). Icono: 14→12px. Texto: `variant="eyebrow"` semibold 14px → `variant="caption"` regular 12px. Color unificado `text.secondary` (#526B7B, ≥5.0:1 contraste). `accessibilityLabel` conservado. |
+
+#### Ajuste 4 — Métricas superiores: más compactas
+
+| Archivo | Cambio |
+|---|---|
+| `CaseSummaryBar.tsx:51-54` | `paddingVertical: sm` (12px) → `xs` (8px). `paddingHorizontal: md` (16px) → `sm` (12px). |
+
+#### Ajuste 5 — Card finalizada: balance del footer
+
+El `maxWidth: '50%'` del grid asegura que la card de estado `signed` conserve su ancho de columna. La CTA outline `secondary` se alinea a la derecha en desktop y full-width en mobile como en el resto de estados. Sin cambios en lógica ni callbacks.
+
+### Resumen de archivos modificados (iteración 4)
+
+| Archivo | Líneas | Tipo |
+|---|---|---|
+| `CasesDashboardScreen.tsx` | +1 | `gridItem.maxWidth: '50%'` |
+| `CaseCard.tsx` | −7 / +4 | Sin `METHOD_COLOR`, ícono 12px, `variant="caption"`, `color="secondary"` |
+| `CaseFilters.tsx` | +1/−1 | `paddingVertical: 2` |
+| `CaseSummaryBar.tsx` | +2/−2 | `paddingVertical: xs`, `paddingHorizontal: sm` |
+
+### Iteraciones anteriores (referencia)
+
+- **Iteración 3:** Rediseño visual del bloque de filtros (superficie agrupada, selected/unselected/hover/focus, CSS focus ring Cerúleo)
+- **Iteración 2:** Reorganización de jerarquía de CaseCard (5 secciones, CTA contextual desktop/mobile, SLA integrado, variante de botón por ctaKey)
+- **Iteración 1:** Compactado visual inicial (gaps reducidos, CaseSummaryBar en superficies compactas, header compact mobile, paddingBottom mobile)
+
+### Veredicto final
+
+| Requisito | Estado |
+|---|---|
+| Desktop: grilla de 2 columnas estable, última card sin stretch | MATCH |
+| Desktop: card solitaria mismo ancho, alineada izquierda | MATCH |
+| Desktop: max-width razonable (1240px) | MATCH |
+| Desktop: jerarquía de 5 secciones en cada card | MATCH |
+| Desktop: CTA alineado derecha, no full-width | MATCH |
+| Desktop: métodos muted (caption 12px, text.secondary) | MATCH |
+| Mobile: una columna, filtros sin corte, padding inferior | MATCH |
+| Mobile: filtros en superficie agrupada con scroll horizontal | MATCH |
+| Mobile: CTA full-width, min-height 44px | MATCH |
+| Mobile: touch targets filtros 44px | MATCH |
+| Bloque contextual: "Próxima acción" / "Resultado", SLA integrado | MATCH |
+| Métricas superiores: compactas, datos reales, sin gráficos | MATCH |
+| Filtros: selected claro sin competir con CTA principal | MATCH |
+| Filtros: focus ring Cerúleo, hover, keyboard nav | MATCH |
+| Card finalizada (signed): verde semántico, outline CTA, balance OK | MATCH |
+| Privacidad: sin posiciones, métricas ni avatares | MATCH |
+| Cards no interactivas (1 solo button role) | MATCH |
+| Tests: 52/52 | MATCH |
+
+**Resultado global: MATCH**
+
+| | Sí/No |
+|---|---|
+| Lógica modificada | No |
+| Design-system modificado | No |
+| Desktop validado (1440×1000) | Código OK — pendiente captura visual |
+| Mobile validado (390×844) | Código OK — pendiente captura visual |
+| TypeScript | Error preexistente en `case-mapper.test.ts` |
+| Tests | 52/52 pass |
+
+> Las capturas deben regenerarse con el script de captura. No commitear.
 
 Cambio estructural de la card para acercarla a la referencia Stitch v4, manteniendo datos, callbacks y lógica intactos.
 
