@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
+import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { radii } from '../../design-system/tokens/radii';
@@ -165,48 +165,59 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       <CaseDetailHeader detail={detail} isWide={isWide} />
 
       {isAwaitingCounterparty ? (
-        <Card style={styles.awaitingCard}>
-          <View style={styles.awaitingHeader}>
-            <StatusPill status="info">{t('cases.status.awaitingCounterparty')}</StatusPill>
-          </View>
-          <Text style={styles.moduleLabel}>{t('caseDetail.awaitingCounterparty.title')}</Text>
-          <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
+        <View style={styles.awaitingSection}>
+          <Card style={styles.awaitingGuidanceCard}>
+            <View style={styles.awaitingGuidanceHeader}>
+              <View style={styles.awaitingGuidanceIconWrap}>
+                <Icon name="info" size={22} color={semanticColors.ai.accent} />
+              </View>
+              <View style={styles.awaitingGuidanceTextCol}>
+                <Text style={styles.awaitingGuidanceTitle}>{t('caseDetail.awaitingCounterparty.title')}</Text>
+                <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
+              </View>
+            </View>
+          </Card>
 
-          {invitation ? (
-            <InvitationResultCard
-              label={
-                invitation.tipo === 'link'
-                  ? t('caseCreation.invite.linkLabel')
-                  : invitation.tipo === 'codigo'
-                    ? t('caseCreation.invite.codeLabel')
-                    : t('caseCreation.invite.emailLabel')
-              }
-              value={invitation.token ?? invitation.emailDestino ?? ''}
-              monospace={invitation.tipo === 'codigo'}
-              copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
-              copiedLabel={t('caseCreation.invite.copied')}
-            />
-          ) : invitationStatus === 'error' ? (
-            <ErrorState
-              title={t('caseDetail.awaitingCounterparty.invitationError')}
-              retryLabel={t('common.retry')}
-              onRetry={handleViewInvitation}
-            />
-          ) : (
-            <Button variant="secondary" onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
-              {invitationStatus === 'loading'
-                ? t('common.loading')
-                : t('caseDetail.awaitingCounterparty.viewInvitation')}
-            </Button>
-          )}
+          <Card style={styles.awaitingInvitationCard}>
+            {invitation ? (
+              <InvitationResultCard
+                label={
+                  invitation.tipo === 'link'
+                    ? t('caseCreation.invite.linkLabel')
+                    : invitation.tipo === 'codigo'
+                      ? t('caseCreation.invite.codeLabel')
+                      : t('caseCreation.invite.emailLabel')
+                }
+                value={invitation.token ?? invitation.emailDestino ?? ''}
+                monospace={invitation.tipo === 'codigo'}
+                copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
+                copiedLabel={t('caseCreation.invite.copied')}
+              />
+            ) : invitationStatus === 'error' ? (
+              <ErrorState
+                title={t('caseDetail.awaitingCounterparty.invitationError')}
+                retryLabel={t('common.retry')}
+                onRetry={handleViewInvitation}
+              />
+            ) : (
+              <Button variant="primary" fullWidth onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
+                {invitationStatus === 'loading'
+                  ? t('common.loading')
+                  : t('caseDetail.awaitingCounterparty.viewInvitation')}
+              </Button>
+            )}
+          </Card>
 
-          <View style={styles.simulateSection}>
+          <View style={styles.awaitingDemoSection}>
+            <View style={styles.awaitingDemoHeader}>
+              <Icon name="sparkles" size={20} color={semanticColors.text.tertiary} />
+            </View>
             <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}</Text>
             <Button variant="secondary" fullWidth onPress={openSimulateDialog} disabled={simulateStatus === 'pending'}>
               {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
             </Button>
           </View>
-        </Card>
+        </View>
       ) : (
         <ResponsiveColumns
           collapseEmptySecondary
@@ -309,19 +320,68 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  awaitingCard: {
-    borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.xs,
+  awaitingSection: {
+    gap: spacing.md,
   },
-  awaitingHeader: {
+  awaitingGuidanceCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: semanticColors.surface.supportAqua,
+    borderLeftWidth: 4,
+    borderLeftColor: semanticColors.ai.accent,
+  },
+  awaitingGuidanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  awaitingGuidanceIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: semanticColors.surface.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  awaitingGuidanceTextCol: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  awaitingGuidanceTitle: {
+    fontFamily: typography.cardTitle.fontFamily,
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    color: semanticColors.text.primary,
+  },
+  awaitingInvitationCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  awaitingInvitationEyebrow: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: semanticColors.text.secondary,
+  },
+  awaitingDemoSection: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
+    alignItems: 'center',
+  },
+  awaitingDemoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  simulateSection: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
   },
   bodyText: {
     fontFamily: typography.bodySm.fontFamily,
