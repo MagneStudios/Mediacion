@@ -113,7 +113,7 @@ Todas las capturas incluyen: header, tarjeta de ronda, propuesta, puntos de encu
 | Frase introductoria idéntica a la de escritorio | Descripciones ricas por categoría (ej. "Alternancia quincenal con flexibilidad...") → se usa el label/valor/estado real, sin inventar prosa por categoría | — | — |
 | Badge "Asistente de Mediación" como identificador de IA | Se usó la clave ya existente `negotiation.generate.badge` ("Asistido por IA") en vez de inventar "Asistente de Mediación IA" | — | Preferir traducción existente, evitar confundir IA con mediador humano |
 
-**Diferencia visual real encontrada durante la validación (no oculta):** a 320–390px, el título de la propuesta (`Punto de encuentro — Ronda N`) se trunca agresivamente con `numberOfLines={2}` cuando el `StatusPill` de estado ocupa espacio fijo a su lado, llegando a cortar el número de ronda en pantallas muy angostas (ver capturas `both-accepted-mobile-320.png`). Esto ya ocurría en el diseño anterior (no es una regresión de este PR) pero sigue siendo una oportunidad de mejora real: mover el número de ronda fuera del título a una línea secundaria, o permitir 3 líneas en vez de 2.
+**Diferencia visual encontrada durante la validación — ya corregida:** a 320–390px, el título de la propuesta (`Punto de encuentro — Ronda N`) se truncaba con `numberOfLines={2}` cuando el `StatusPill` de estado ocupaba espacio fijo a su lado, llegando a cortar el número de ronda en pantallas muy angostas (capturas `both-accepted-mobile-320.png`, preexistente al rediseño, no una regresión). **Corregido** agregando `flexWrap: 'wrap'` al header de `SharedProposalCard` (`features/negotiation/components/SharedProposalCard.tsx`) + un `minWidth: 180` en el título: cuando no entran juntos en una línea, el `StatusPill` cae a su propia línea debajo en vez de exprimir el título. Cambio puramente de estilo (una línea de `StyleSheet`), sin tocar props ni lógica — verificado en vivo a 320/375/390px contra `case-2` (estado "Pendiente de respuesta", el más largo) y `case-3` (estado "Aceptada"): el título ahora se ve completo en ambos casos, sin truncar. Tests de `SharedProposalCard` siguen en 8/8 verde.
 
 **Diferencias visuales que todavía quedan:** Stitch mobile no muestra rail de mediador (queda debajo del fold en su propia composición); la versión real lo integra en el flujo normal de `ResponsiveColumns` (se apila debajo en mobile). No se afirma paridad visual total — la tipografía, el espaciado exacto y los íconos de Material Symbols de Stitch no se replicaron pixel a pixel, solo la jerarquía e intención.
 
@@ -173,7 +173,7 @@ services/api/__tests__/case-mapper.test.ts(16,3): error TS2322: Type '{ codigo?:
 
 **RESULTADO: PASS WITH LIMITATIONS**
 
-(No se declara PASS puro porque: (a) se encontró y se documenta honestamente un problema real de truncado de título a 320-390px preexistente al rediseño, no corregido en este PR por estar fuera de alcance — ver Entregable 3; (b) la verificación de "hydration warnings" no fue una búsqueda específica por ese término, solo verificación general de errores de consola.)
+(No se declara PASS puro porque la verificación de "hydration warnings" no fue una búsqueda específica por ese término, solo verificación general de errores de consola. El truncado de título a 320-390px encontrado durante la primera pasada de este reporte **ya fue corregido** — ver nota en Entregable 3 — y reverificado en vivo.)
 
 **STITCH REFERENCES:**
 - projectId: `13244248640108036515`
@@ -207,7 +207,7 @@ services/api/__tests__/case-mapper.test.ts(16,3): error TS2322: Type '{ codigo?:
 
 **RISKS:**
 - Riesgos funcionales: ninguno (cambio 100% presentacional)
-- Riesgos visuales: truncado de título de propuesta a 320-390px cuando el `StatusPill` de estado es largo (preexistente, documentado, no corregido en este PR)
+- Riesgos visuales: ninguno pendiente — el truncado de título a 320-390px encontrado durante la validación fue corregido (`flexWrap` en el header de `SharedProposalCard`) y reverificado en vivo a 320/375/390px
 - Limitaciones de validación: sin verificación específica de "hydration warnings" por nombre; sin captura dedicada de `/negotiation/history` (fuera de alcance); mediador limitado a `unavailable_before_round_3`/`available` en las capturas (no se forzó un estado `assigned`/`pending` real, ya que eso pertenece a la pantalla de mediador, no a esta)
 
 **GIT STATUS (salida completa):**

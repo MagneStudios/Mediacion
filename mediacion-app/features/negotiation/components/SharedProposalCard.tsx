@@ -135,11 +135,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
     gap: spacing.xs,
   },
   title: {
     flex: 1,
+    // Never share a line with the status pill when there isn't room for
+    // both — flexWrap above lets the pill drop to its own line instead of
+    // squeezing the title down to where its 2 allowed lines truncate mid
+    // sentence (found during manual validation at 320-390px, e.g. "Punto
+    // de encuentro …" cutting off the round number entirely).
+    minWidth: 180,
   },
   meetingPointSectionTitle: {
     marginTop: spacing.xxs,
