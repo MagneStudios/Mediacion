@@ -629,6 +629,9 @@
   },
   "notices": {
     "title": "Centro de avisos",
+    "header": {
+      "badge": "Notificaciones"
+    },
     "demoNotice": {
       "title": "Entorno de demostración",
       "body": "Los avisos de esta demostración no se envían por correo ni al dispositivo."

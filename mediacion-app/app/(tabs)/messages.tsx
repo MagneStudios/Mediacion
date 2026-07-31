@@ -6,15 +6,15 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
+import { NoticesDemoNotice } from '@/features/notices/components/NoticesDemoNotice';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { DeadlineNoticeCard } from '@/features/notices/components/DeadlineNoticeCard';
 import { MarkAllReadAction } from '@/features/notices/components/MarkAllReadAction';
 import { NoticeCard } from '@/features/notices/components/NoticeCard';
 import { NoticeFilter } from '@/features/notices/components/NoticeFilter';
-import { NoticesDemoNotice } from '@/features/notices/components/NoticesDemoNotice';
-import { NoticesOverviewHeader } from '@/features/notices/components/NoticesOverviewHeader';
-import { UnreadSummaryCard } from '@/features/notices/components/UnreadSummaryCard';
+import { NoticesHeader } from '@/features/notices/components/NoticesHeader';
 import { useNotices } from '@/features/notices/hooks/useNotices';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import type { NoticeFilter as NoticeFilterValue, NoticeListItem } from '@/types/notice';
@@ -27,11 +27,11 @@ export default function NoticeCenterScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<NoticeFilterValue>('all');
   const { status, notices, reload, markingId, markErrorId, markOneRead, markAllStatus, markAllRead } = useNotices(filter);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const handleActivate = async (notice: NoticeListItem) => {
     const requiresCase = 'caseId' in notice.destination;
-    if (requiresCase && !notice.caseTitle) return; // referenced case unavailable — render safely, don't navigate
+    if (requiresCase && !notice.caseTitle) return;
     const href = resolveNoticeDestination(notice.destination);
     if (!href) return;
 
@@ -46,8 +46,6 @@ export default function NoticeCenterScreen() {
       blurActiveElement();
       router.push(href);
     }
-    // else: markErrorId is now set to notice.id — the card shows an inline
-    // recoverable error, and stays unread; re-tapping retries the sequence.
   };
 
   const handleViewActivity = () => {
@@ -56,26 +54,37 @@ export default function NoticeCenterScreen() {
   };
 
   const unreadCount = notices.filter((notice) => !notice.read).length;
-  const summaryMessage = unreadCount === 0 ? t('notices.noUnread') : t('notices.unreadSummary', { count: unreadCount });
 
   const listHeader =
     status === 'success' ? (
       <View style={styles.headerSection}>
-        <NoticesOverviewHeader title={t('notices.title')} />
-        <NoticesDemoNotice title={t('notices.demoNotice.title')} body={t('notices.demoNotice.body')} />
-        <PrivacyNotice title={t('notices.privacyNotice.title')}>{t('notices.privacyNotice.body')}</PrivacyNotice>
-        <UnreadSummaryCard message={summaryMessage} />
-        <NoticeFilter value={filter} onChange={setFilter} allLabel={t('notices.filters.all')} unreadLabel={t('notices.filters.unread')} />
-        <MarkAllReadAction
-          label={t('notices.markAllAction')}
-          pendingLabel={t('notices.markAllPending')}
-          onPress={markAllRead}
-          disabled={unreadCount === 0}
-          pending={markAllStatus === 'pending'}
-        />
-        <Button variant="tertiary" fullWidth onPress={handleViewActivity}>
-          {t('notices.viewActivityAction')}
-        </Button>
+        <NoticesHeader title={t('notices.title')} unreadCount={unreadCount} isWide={isWide} />
+
+        <View style={[styles.infoRow, isWide && styles.infoRowWide]}>
+          <View style={styles.infoItem}>
+            <NoticesDemoNotice title={t('notices.demoNotice.title')} body={t('notices.demoNotice.body')} />
+          </View>
+          <View style={styles.infoItem}>
+            <PrivacyNotice title={t('notices.privacyNotice.title')}>{t('notices.privacyNotice.body')}</PrivacyNotice>
+          </View>
+        </View>
+
+        <View style={[styles.controlBar, isWide && styles.controlBarWide]}>
+          <NoticeFilter value={filter} onChange={setFilter} allLabel={t('notices.filters.all')} unreadLabel={t('notices.filters.unread')} />
+          <View style={[styles.controlActions, isWide && styles.controlActionsWide]}>
+            <MarkAllReadAction
+              label={t('notices.markAllAction')}
+              pendingLabel={t('notices.markAllPending')}
+              onPress={markAllRead}
+              disabled={unreadCount === 0}
+              pending={markAllStatus === 'pending'}
+              fullWidth={!isWide}
+            />
+            <Button variant="tertiary" fullWidth={!isWide} onPress={handleViewActivity}>
+              {t('notices.viewActivityAction')}
+            </Button>
+          </View>
+        </View>
       </View>
     ) : null;
 
@@ -84,7 +93,7 @@ export default function NoticeCenterScreen() {
       <FlatList
         data={status === 'success' ? notices : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? 1480 : contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={listHeader}
         renderItem={({ item }) => {
           const CardComponent = item.category === 'deadline' ? DeadlineNoticeCard : NoticeCard;
@@ -107,6 +116,7 @@ export default function NoticeCenterScreen() {
               markErrorLabel={t('notices.markReadError')}
               markReadLabel={t('notices.markReadAction')}
               onMarkRead={() => markOneRead(item.id)}
+              isWide={isWide}
             />
           );
         }}
@@ -136,10 +146,41 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.xl,
   },
   headerSection: {
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  infoRow: {
+    gap: spacing.xs,
+  },
+  infoRowWide: {
+    flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+  },
+  infoItem: {
+    flex: 1,
+  },
+  controlBar: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: semanticColors.surface.sunken,
+    borderColor: semanticColors.border.default,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+  },
+  controlBarWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  controlActions: {
+    gap: spacing.xs,
+  },
+  controlActionsWide: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });

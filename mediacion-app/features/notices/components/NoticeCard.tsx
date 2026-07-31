@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../../design-system/components/Button';
 import { Card } from '../../../design-system/components/Card';
+import { Divider } from '../../../design-system/components/Divider';
 import { Icon } from '../../../design-system/components/Icon';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
@@ -28,16 +29,26 @@ export type NoticeCardProps = {
   markReadLabel?: string;
   onMarkRead?: () => void;
   emphasis?: 'normal' | 'warning';
+  isWide?: boolean;
 };
 
 /**
- * Dual-mode notice card:
- * - Actionable (a real destination): the whole Card is one interactive
- *   Pressable — activating it marks-then-navigates (see onActivate,
- *   composed by the caller).
- * - Informational (no destination): the Card stays non-interactive, and a
- *   sibling "Marcar como leído" Button — shown only while unread — is the
- *   only interactive element. Never nested inside another Pressable.
+ * Stitch-inspired dual-mode notice card with desktop action-rail layout:
+ *
+ *   ┌── Category · time           [Importante] ⋯ ──────────┐
+ *   │                                                        │
+ *   │  Title                       [ Acción real (o ⋮ ) ]   │
+ *   │  Description text here…                                │
+ *   │                                                        │
+ *   │  ────────────────────────────────────────────────────  │
+ *   │  Case: Custodia · Date                                 │
+ *   └────────────────────────────────────────────────────────┘
+ *
+ * - Actionable on desktop: body uses available width; the whole card
+ *   is one interactive Pressable.
+ * - Non-actionable + unread: "Marcar como leído" button in the right
+ *   rail on desktop, in the footer on mobile.
+ * - Read / informational: body fills the card with no rail.
  */
 export function NoticeCard({
   category,
@@ -47,7 +58,7 @@ export function NoticeCard({
   dateLabel,
   read,
   unreadLabel,
-  readLabel,
+  readLabel: _readLabel,
   importantLabel,
   caseLine,
   actionable,
@@ -58,11 +69,25 @@ export function NoticeCard({
   markReadLabel,
   onMarkRead,
   emphasis = 'normal',
+  isWide = false,
 }: NoticeCardProps) {
+  const hasRightRail = isWide && (!read && !actionable && onMarkRead != null);
+
   const content = (
     <>
-      <View style={styles.headerRow}>
-        <NoticeCategoryBadge category={category} label={categoryLabel} />
+      {/* ---- header line ---- */}
+      <View style={styles.headerLine}>
+        <View style={styles.headerLeft}>
+          <NoticeCategoryBadge category={category} label={categoryLabel} />
+          <Text style={styles.dot}>·</Text>
+          <Text style={styles.timeLabel}>{dateLabel}</Text>
+          {!read ? (
+            <View style={styles.unreadPill} accessibilityLabel={unreadLabel}>
+              <View style={styles.unreadDot} />
+              <Text style={styles.unreadText}>{unreadLabel}</Text>
+            </View>
+          ) : null}
+        </View>
         {importantLabel ? (
           <View style={styles.importantPill}>
             <Icon name="alert-circle" size={12} color={semanticColors.status.warningFg} />
@@ -71,31 +96,58 @@ export function NoticeCard({
         ) : null}
       </View>
 
-      <Text style={styles.title} accessibilityRole="header">
-        {title}
-      </Text>
-      <Text style={styles.body}>{body}</Text>
-      {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
+      {/* ---- body area ---- */}
+      {hasRightRail ? (
+        <View style={styles.bodyWithRail}>
+          <View style={styles.bodyColumn}>
+            <Text style={styles.title} accessibilityRole="header">
+              {title}
+            </Text>
+            <Text style={styles.description} numberOfLines={3}>
+              {body}
+            </Text>
+          </View>
+          <View style={styles.rightRail}>
+            <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
+              {markReadLabel}
+            </Button>
+          </View>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
+          <Text style={styles.description} numberOfLines={3}>
+            {body}
+          </Text>
+        </>
+      )}
+
+      {/* ---- divider + footer ---- */}
+      {hasMarkError ? <Text style={styles.errorText}>{markErrorLabel}</Text> : null}
+
+      <Divider tone="soft" />
 
       <View style={styles.footerRow}>
-        <Text style={styles.date} accessibilityLabel={dateLabel}>
-          {dateLabel}
-        </Text>
-        <Text style={[styles.readMarker, !read ? styles.unreadMarker : null]} accessibilityLabel={read ? readLabel : unreadLabel}>
-          {read ? readLabel : unreadLabel}
-        </Text>
+        <View style={styles.footerMeta}>
+          {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
+        </View>
+        {!read && onMarkRead && !hasRightRail ? (
+          <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
+            {markReadLabel}
+          </Button>
+        ) : null}
       </View>
-
-      {hasMarkError ? <Text style={styles.errorText}>{markErrorLabel}</Text> : null}
     </>
   );
 
-  // Unread gets a left accent bar so it reads at a glance, not only via the
-  // small text marker in the footer — color is never the only unread signal,
-  // the marker text stays. Read, non-actionable (purely informational)
-  // notices additionally drop to a quieter border once already handled, so
-  // the list's visual weight tracks what still needs attention.
-  const accentStyle = emphasis === 'warning' ? styles.accentWarning : !read ? styles.accentUnread : styles.accentRead;
+  const accentStyle =
+    emphasis === 'warning'
+      ? styles.accentWarning
+      : !read
+        ? styles.accentUnread
+        : styles.accentRead;
   const quietStyle = read && !actionable ? styles.cardQuiet : null;
 
   if (actionable) {
@@ -115,14 +167,12 @@ export function NoticeCard({
   return (
     <Card style={[styles.card, accentStyle, quietStyle]}>
       {content}
-      {!read && onMarkRead ? (
-        <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking} style={styles.markReadButton}>
-          {markReadLabel}
-        </Button>
-      ) : null}
     </Card>
   );
 }
+
+const DOT_SIZE = 8;
+const UNREAD_DOT_SIZE = 6;
 
 const styles = StyleSheet.create({
   card: {
@@ -135,12 +185,6 @@ const styles = StyleSheet.create({
   cardQuiet: {
     borderColor: semanticColors.border.soft,
   },
-  // borderColor is repeated alongside borderLeftColor in every variant here
-  // (even where the two agree) — RN Web resolves border-*-color as
-  // independent atomic classes whose cascade order isn't guaranteed to
-  // match this array's order, so a variant that only sets borderLeftColor
-  // can silently lose to Card's own default borderColor class. Setting
-  // both from the same object sidesteps that.
   accentUnread: {
     borderColor: semanticColors.border.default,
     borderLeftColor: semanticColors.text.primary,
@@ -153,65 +197,116 @@ const styles = StyleSheet.create({
     borderColor: semanticColors.border.default,
     borderLeftColor: 'transparent',
   },
-  headerRow: {
+
+  /* ---- header line ---- */
+  headerLine: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+  },
+  dot: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 11,
+    color: semanticColors.text.quaternary,
+    lineHeight: 14,
+  },
+  timeLabel: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 11,
+    color: semanticColors.text.tertiary,
+  },
+  unreadPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  unreadDot: {
+    width: UNREAD_DOT_SIZE,
+    height: UNREAD_DOT_SIZE,
+    borderRadius: UNREAD_DOT_SIZE / 2,
+    backgroundColor: semanticColors.text.primary,
+  },
+  unreadText: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 11,
+    color: semanticColors.text.primary,
+  },
   importantPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   importantText: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 11,
     color: semanticColors.status.warningFg,
   },
+
+  /* ---- body with rail ---- */
+  bodyWithRail: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  bodyColumn: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  rightRail: {
+    flexShrink: 0,
+    justifyContent: 'center',
+  },
+
+  /* ---- body ---- */
   title: {
     fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },
-  body: {
+  description: {
     fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     color: semanticColors.text.secondary,
   },
-  caseLine: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
-    color: semanticColors.text.tertiary,
-  },
+
+  /* ---- footer ---- */
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xxs,
+    gap: spacing.xs,
   },
-  date: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 11,
-    color: semanticColors.text.tertiary,
+  footerMeta: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    minWidth: 0,
   },
-  readMarker: {
+  caseLine: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 11,
     color: semanticColors.text.tertiary,
+    flexShrink: 1,
   },
-  unreadMarker: {
-    color: semanticColors.text.primary,
-  },
+
+  /* ---- misc ---- */
   errorText: {
     fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
+    fontSize: 12,
     color: semanticColors.status.errorFg,
-  },
-  markReadButton: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.xxs,
   },
 });

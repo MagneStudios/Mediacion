@@ -629,6 +629,9 @@
   },
   "notices": {
     "title": "Notice center",
+    "header": {
+      "badge": "Notifications"
+    },
     "demoNotice": {
       "title": "Demonstration environment",
       "body": "Notices in this demo aren't sent by email or to your device."
