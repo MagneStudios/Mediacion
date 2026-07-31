@@ -31,19 +31,29 @@ function role(fontFamily: string, fontSize: number, lineHeightMultiplier: number
   };
 }
 
+/**
+ * Sizes/weights/letterSpacing below are ported verbatim from
+ * `DESIGN-mediacion-actualizado.md`'s `typography:` block (aquatic redesign,
+ * phase 1 foundations). Two changes from the previous scale: display sizes
+ * shrank (72/56/40 → 48/40/34 — this role has zero current usages anywhere
+ * in the app, confirmed by grep, so this is a zero-ripple change) and every
+ * "weight 600" role (the display roles, headline, cardTitle, button, eyebrow) now maps to
+ * `fontFamily.semibold` instead of `.medium` — the doc is explicit that
+ * headings/important actions use 600, not 500.
+ */
 export const typography = {
-  displayXl: role(fontFamily.medium, 72, 1.05, -2),
-  displayLg: role(fontFamily.medium, 56, 1.1, -1.4),
-  displayMd: role(fontFamily.medium, 40, 1.15, -0.8),
-  headline: role(fontFamily.medium, 28, 1.2, -0.5),
-  cardTitle: role(fontFamily.medium, 22, 1.25, -0.3),
-  subhead: role(fontFamily.regular, 20, 1.4, -0.2),
-  bodyLg: role(fontFamily.regular, 18, 1.5, -0.1),
+  displayXl: role(fontFamily.semibold, 48, 1.08, -1.2),
+  displayLg: role(fontFamily.semibold, 40, 1.12, -0.8),
+  displayMd: role(fontFamily.semibold, 34, 1.16, -0.6),
+  headline: role(fontFamily.semibold, 28, 1.22, -0.4),
+  cardTitle: role(fontFamily.semibold, 22, 1.28, -0.2),
+  subhead: role(fontFamily.regular, 20, 1.45, -0.1),
+  bodyLg: role(fontFamily.regular, 18, 1.55, 0),
   body: role(fontFamily.regular, 16, 1.5, 0),
   bodySm: role(fontFamily.regular, 14, 1.5, 0),
   caption: role(fontFamily.regular, 12, 1.4, 0),
-  button: role(fontFamily.medium, 15, 1.2, 0),
-  eyebrow: role(fontFamily.medium, 14, 1.3, 0),
+  button: role(fontFamily.semibold, 15, 1.2, 0),
+  eyebrow: role(fontFamily.semibold, 14, 1.3, 0),
   mono: role(fontFamily.mono, 13, 1.5, 0),
 } as const;
 

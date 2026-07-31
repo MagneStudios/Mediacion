@@ -178,7 +178,7 @@ export function ConfirmationDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(17, 17, 17, 0.4)',
+    backgroundColor: 'rgba(23, 50, 74, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,

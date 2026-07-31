@@ -30,12 +30,12 @@ SplashScreen.preventAutoHideAsync();
 const mediacionNavigationTheme: Theme = {
   dark: false,
   colors: {
-    primary: colors.ink,
+    primary: colors.primary,
     background: colors.canvas,
     card: colors.surface1,
     text: colors.ink,
     border: colors.hairline,
-    notification: colors.mediationSage,
+    notification: colors.mediationAqua,
   },
   fonts: {
     regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },

@@ -19,9 +19,9 @@ export const shadows: Record<'card' | 'overlay' | 'popover', ViewStyle> = {
   // component using this token on web, since the shadow* keys are still
   // present in the resulting style object regardless of platform.
   overlay: Platform.select<ViewStyle>({
-    web: { boxShadow: '0 12px 32px -8px rgba(17, 17, 17, 0.16), 0 2px 8px -2px rgba(17, 17, 17, 0.08)' },
+    web: { boxShadow: '0 12px 32px -8px rgba(23, 50, 74, 0.16), 0 2px 8px -2px rgba(23, 50, 74, 0.08)' },
     default: {
-      shadowColor: '#111111',
+      shadowColor: '#17324A',
       shadowOffset: { width: 0, height: 12 },
       shadowOpacity: 0.16,
       shadowRadius: 32,
@@ -29,9 +29,9 @@ export const shadows: Record<'card' | 'overlay' | 'popover', ViewStyle> = {
     },
   }) as ViewStyle,
   popover: Platform.select<ViewStyle>({
-    web: { boxShadow: '0 8px 24px -6px rgba(17, 17, 17, 0.14), 0 1px 4px -1px rgba(17, 17, 17, 0.08)' },
+    web: { boxShadow: '0 8px 24px -6px rgba(23, 50, 74, 0.14), 0 1px 4px -1px rgba(23, 50, 74, 0.08)' },
     default: {
-      shadowColor: '#111111',
+      shadowColor: '#17324A',
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.14,
       shadowRadius: 24,

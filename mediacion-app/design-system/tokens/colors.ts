@@ -1,38 +1,77 @@
 /**
- * Mediación color tokens — ported from the Claude Design "Mediación Design
- * System" (tokens/colors.css). Cream canvas, white cards, charcoal ink, and a
- * single reserved sage accent for AI-assisted actions.
+ * Mediación color tokens — aquatic palette (redesign phase 1, "foundations"),
+ * ported from the approved `DESIGN-mediacion-actualizado.md` design-system
+ * doc exported from Stitch (docs/frontend-redesign/stitch-export/). Hielo
+ * canvas, white cards, deep-blue ink, Aero-derived primary, Cerúleo-derived
+ * accent (focus/info), and a Turquesa accent reserved exclusively for
+ * AI/mediation actions — replaces the previous cream-and-sage identity.
+ *
+ * `statusSuccess`/`semanticSuccess` deliberately do NOT reuse `mediationAqua`
+ * even though the source doc's `status-success` token does (both `#2F858B`
+ * there) — this codebase has an established, tested rule that the AI/
+ * mediation accent is reserved exclusively for AI-assisted actions and must
+ * never appear for any other purpose (see agents/front/AGENTS.md). Reusing
+ * it for "success" would make an accepted proposal/signed agreement visually
+ * indistinguishable from "AI-assisted", so success gets its own distinct
+ * green instead, kept in the same muted/cool family as the rest of the
+ * palette. Everything else below is taken verbatim from the source doc.
  */
 export const colors = {
   // Base: brand & ink
-  primary: '#324d5a',
-  onPrimary: '#ffffff',
-  ink: '#111111',
-  inkMuted: '#626260',
-  inkSubtle: '#7b7b78',
-  inkTertiary: '#9c9fa5',
-  mediationSage: '#45645e',
-  supportBlue: '#324d5a',
+  primary: '#3F6F9E',
+  primaryHover: '#345F89',
+  primaryPressed: '#294E72',
+  onPrimary: '#FFFFFF',
+
+  accent: '#2F83C5',
+  accentSoft: '#DCEFFC',
+  onAccent: '#FFFFFF',
+
+  mediationAqua: '#2F858B',
+  mediationAquaSoft: '#D8F2F2',
+  onMediationAqua: '#FFFFFF',
+
+  ink: '#17324A',
+  inkMuted: '#526B7B',
+  inkSubtle: '#718795',
+  inkTertiary: '#93A6B1',
 
   // Base: surfaces
-  canvas: '#f5f1ec',
-  surface1: '#ffffff',
-  surface2: '#ebe7e1',
-  inverseCanvas: '#000000',
-  inverseSurface1: '#313130',
-  inverseInk: '#ffffff',
-  inverseInkMuted: '#9c9fa5',
+  canvas: '#F4FAFD',
+  surface1: '#FFFFFF',
+  surface2: '#EAF6FD',
+  surface3: '#DCEFFC',
+  surfaceAqua: '#E2F6F6',
+  inverseCanvas: '#17324A',
+  inverseSurface1: '#24445F',
+  inverseInk: '#FFFFFF',
+  inverseInkMuted: '#D7E5ED',
 
   // Base: lines
-  hairline: '#d3cec6',
-  hairlineSoft: '#ebe7e1',
+  hairline: '#C9DCE7',
+  hairlineSoft: '#E1EDF3',
+  focusRing: '#2F83C5',
 
   // Base: status (used inside product surfaces only, never as brand backgrounds)
-  statusWarning: '#c58a2b',
-  statusInfo: '#4f7f93',
-  statusSuccess: '#4f7a68',
-  semanticError: '#c41c1c',
-  semanticSuccess: '#4f7a68',
+  statusWarning: '#B7791F',
+  statusInfo: '#2F83C5',
+  statusSuccess: '#2F8F6B',
+  semanticError: '#B93845',
+  semanticSuccess: '#2F8F6B',
+} as const;
+
+/**
+ * Migration reference only — never imported by app code. Documents the old
+ * cream-and-sage hex values this redesign replaces, per the source doc's own
+ * "Migration mapping" table, so a reviewer can trace what changed and why.
+ */
+export const legacyColorMigrationMap = {
+  '#324d5a': { was: 'primary/support blue', now: 'colors.primary (Aero-derived)' },
+  '#45645e': { was: 'mediation sage (AI accent)', now: 'colors.mediationAqua (Turquesa)' },
+  '#f5f1ec': { was: 'cream canvas', now: 'colors.canvas (Hielo)' },
+  '#ebe7e1': { was: 'cream surface', now: 'colors.surface2' },
+  '#111111': { was: 'charcoal ink', now: 'colors.ink (deep blue)' },
+  '#d3cec6': { was: 'warm gray hairline', now: 'colors.hairline (cool blue-gray)' },
 } as const;
 
 export const semanticColors = {
@@ -49,6 +88,8 @@ export const semanticColors = {
     canvas: colors.canvas,
     card: colors.surface1,
     sunken: colors.surface2,
+    /** Soft aquatic tint reserved for AI-proposal / guided-resolution content (source doc's "proposal surface"). */
+    supportAqua: colors.surfaceAqua,
     inverse: colors.inverseCanvas,
     inverseRaised: colors.inverseSurface1,
   },
@@ -56,39 +97,51 @@ export const semanticColors = {
     default: colors.hairline,
     soft: colors.hairlineSoft,
     strong: colors.ink,
-    focus: colors.mediationSage,
+    // Cerúleo accent, not the AI/mediation accent — focus is a distinct
+    // concern from "this action is AI-assisted" and must never share a color.
+    focus: colors.accent,
   },
   action: {
-    primaryBg: colors.ink,
+    primaryBg: colors.primary,
     primaryFg: colors.onPrimary,
-    primaryBgPressed: '#000000',
+    primaryBgPressed: colors.primaryPressed,
     secondaryBg: colors.surface1,
-    secondaryFg: colors.ink,
+    secondaryFg: colors.primary,
     secondaryBorder: colors.hairline,
     tertiaryBg: 'transparent',
-    tertiaryFg: colors.ink,
-    aiBg: colors.mediationSage,
-    aiFg: colors.onPrimary,
-    aiBgPressed: '#37504b',
+    tertiaryFg: colors.primary,
+    aiBg: colors.mediationAqua,
+    aiFg: colors.onMediationAqua,
+    aiBgPressed: '#256F74',
     disabledBg: colors.surface2,
     disabledFg: colors.inkTertiary,
   },
   status: {
-    successFg: colors.statusSuccess,
-    successBg: '#eaf0ec',
-    warningFg: colors.statusWarning,
-    warningBg: '#f6eddc',
-    errorFg: colors.semanticError,
-    errorBg: '#f6e4e4',
-    errorBgPressed: '#eccccc',
-    infoFg: colors.statusInfo,
-    infoBg: '#e6eef1',
+    // The *Fg values below are deliberately darker than the base
+    // colors.statusWarning/semanticError/statusSuccess tokens — verified
+    // against their paired *Bg tint at ≥4.5:1 (WCAG AA for normal-size
+    // text; the base tokens alone land at 3.3–4.0:1 against these light
+    // backgrounds, which only clears the 3:1 non-text/large-text bar). The
+    // warning/error pair reuses the source doc's own status-chip-warning/
+    // status-chip-danger text values, chosen there for exactly this reason;
+    // success has no doc-provided chip pairing (see the colors.ts top
+    // comment on why it isn't sharing mediationAqua), so its darker text
+    // shade is derived here the same way.
+    successFg: '#1F6E4F',
+    successBg: '#E1F3EA',
+    warningFg: '#7A4B0B',
+    warningBg: '#FFF2D8',
+    errorFg: '#8E2632',
+    errorBg: '#FCE5E8',
+    errorBgPressed: '#F5CDD3',
+    infoFg: colors.primaryPressed,
+    infoBg: colors.accentSoft,
     neutralFg: colors.inkMuted,
     neutralBg: colors.surface2,
   },
   ai: {
-    accent: colors.mediationSage,
-    tint: '#eaf0ee',
-    border: '#c7d6d1',
+    accent: colors.mediationAqua,
+    tint: colors.mediationAquaSoft,
+    border: '#BFE3E1',
   },
 } as const;

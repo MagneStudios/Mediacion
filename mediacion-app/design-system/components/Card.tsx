@@ -12,6 +12,7 @@ import {
 import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
 import { shadows } from '../tokens/elevation';
+import { spacing } from '../tokens/spacing';
 
 export type CardVariant = 'default' | 'featured' | 'tinted' | 'guidance' | 'mockup' | 'banner' | 'trust';
 
@@ -35,45 +36,45 @@ const VARIANT_STYLE: Record<CardVariant, ViewStyle> = {
     borderColor: semanticColors.border.default,
     borderWidth: 1,
     borderRadius: radii.lg,
-    padding: 24,
+    padding: spacing.lg,
   },
   featured: {
     backgroundColor: semanticColors.text.primary,
     borderColor: semanticColors.text.primary,
     borderWidth: 1,
     borderRadius: radii.lg,
-    padding: 24,
+    padding: spacing.lg,
   },
   tinted: {
     backgroundColor: semanticColors.surface.sunken,
     borderRadius: radii.lg,
-    padding: 32,
+    padding: spacing.xl,
   },
   guidance: {
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
     borderWidth: 1,
     borderRadius: radii.lg,
-    padding: 32,
+    padding: spacing.xl,
   },
   mockup: {
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
     borderWidth: 1,
     borderRadius: radii.xl,
-    padding: 24,
+    padding: spacing.lg,
   },
   banner: {
     backgroundColor: semanticColors.surface.card,
     borderColor: semanticColors.border.default,
     borderWidth: 1,
     borderRadius: radii.xxl,
-    padding: 48,
+    padding: spacing.xxl,
   },
   trust: {
     backgroundColor: semanticColors.surface.canvas,
     borderRadius: radii.xs,
-    padding: 16,
+    padding: spacing.md,
   },
 };
 

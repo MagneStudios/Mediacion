@@ -1,0 +1,120 @@
+{
+  "stitchProjectId": "13244248640108036515",
+  "stitchProjectName": "Sistema de Diseño Mediación Serena",
+  "fetchedAt": "2026-07-31T02:15:00Z",
+  "accessMethod": "@google/stitch-sdk",
+  "directMcpStatus": "blocked-by-client-schema-parser",
+  "directMcpError": "can't resolve reference #/$defs/ScreenInstance from id #",
+  "screens": [
+    {
+      "slug": "cases-list",
+      "screenId": {
+        "desktop": "980e7dc20e44406e86fcceff7ec97b78",
+        "mobile": "6038011f44f84a71a6f619b2267cede1"
+      },
+      "title": {
+        "desktop": "Listado de Casos (Desktop) v4",
+        "mobile": "Listado de Casos (Mobile) v4"
+      },
+      "width": { "desktop": 2560, "mobile": 780 },
+      "height": { "desktop": 3396, "mobile": 1768 },
+      "deviceType": { "desktop": "DESKTOP", "mobile": "MOBILE" },
+      "sourceFormat": "html+png (Stitch-generated Tailwind HTML)",
+      "previewPath": {
+        "desktop": "selected/cases-list/desktop/preview.png",
+        "mobile": "selected/cases-list/mobile/preview.png"
+      },
+      "sourcePath": {
+        "desktop": "selected/cases-list/desktop/screen.html",
+        "mobile": "selected/cases-list/mobile/screen.html"
+      },
+      "assetsPath": null,
+      "candidateCount": 3,
+      "candidates": [
+        { "versionSlug": "v3-desktop", "screenId": "721ab1fca16f405cad188150e0c1e173", "rejected": true, "reason": "placeholder text still says 'Buscar casos, partes o expedientes...' (pre-correction terminology); preview screenshot unavailable from Stitch for this screen" },
+        { "versionSlug": "v4-desktop", "screenId": "980e7dc20e44406e86fcceff7ec97b78", "rejected": false },
+        { "versionSlug": "v4-mobile", "screenId": "6038011f44f84a71a6f619b2267cede1", "rejected": false }
+      ],
+      "approved_candidate": true,
+      "availableArtifacts": ["preview.png", "screen.html", "metadata.json"],
+      "missingArtifacts": ["design-tokens-export", "component-source"],
+      "notes": "Uses 'Casos' terminology throughout, no leftover 'Expediente' references, explicit 'Próxima acción' block, method label ('Negociación Directa') and status visually differentiated, contextual CTAs ('Responder propuesta', 'Continuar caso'). No decorative background bubbles."
+    },
+    {
+      "slug": "case-detail",
+      "screenId": {
+        "desktop": "e1f72a369ca74787b447ba4cc3cfd0d0",
+        "mobile": "583a5113016a49bdb5c426684e9a7fda"
+      },
+      "title": {
+        "desktop": "Detalle del Caso (Desktop) v3",
+        "mobile": "Detalle del Caso (Mobile) v3"
+      },
+      "width": { "desktop": 2560, "mobile": 780 },
+      "height": { "desktop": 2496, "mobile": 1768 },
+      "deviceType": { "desktop": "DESKTOP", "mobile": "MOBILE" },
+      "sourceFormat": "html+png (Stitch-generated Tailwind HTML)",
+      "previewPath": {
+        "desktop": "selected/case-detail/desktop/preview.png",
+        "mobile": "selected/case-detail/mobile/preview.png"
+      },
+      "sourcePath": {
+        "desktop": "selected/case-detail/desktop/screen.html",
+        "mobile": "selected/case-detail/mobile/screen.html"
+      },
+      "assetsPath": null,
+      "candidateCount": 4,
+      "candidates": [
+        { "versionSlug": "v2-desktop", "screenId": "47db51acd0794ac1b75839fd2ed227e5", "rejected": true, "reason": "shows an invented metric literally reading '65% de Consenso' and an unconditionally-shown named assigned mediator, both against the approved criteria" },
+        { "versionSlug": "v3-desktop", "screenId": "e1f72a369ca74787b447ba4cc3cfd0d0", "rejected": false },
+        { "versionSlug": "v2-mobile", "screenId": "c47a74a436f944669ef02e8919afc583", "rejected": true, "reason": "labels the AI proposal engine as 'Sugerencia del Mediador IA', conflating the AI facilitator with the human mediator role" },
+        { "versionSlug": "v3-mobile", "screenId": "583a5113016a49bdb5c426684e9a7fda", "rejected": false }
+      ],
+      "approved_candidate": true,
+      "availableArtifacts": ["preview.png", "screen.html", "metadata.json"],
+      "missingArtifacts": ["design-tokens-export", "component-source"],
+      "notes": "No invented consensus/percentage metrics, mediator section shown conditionally ('La asignación de un mediador se confirmará en la siguiente fase de negociación') rather than a hardcoded assigned mediator, own-private-position card explicitly states 'La contraparte no puede verla.' No counterparty private data exposed."
+    },
+    {
+      "slug": "ai-proposal",
+      "screenId": {
+        "desktop": "540288af2fc64489bdecb42051577209",
+        "mobile": "72bf18985fd4472e81e6a8fc50cbe86f"
+      },
+      "title": {
+        "desktop": "Propuesta de IA (Desktop) v3",
+        "mobile": "Propuesta de IA (Mobile) v3"
+      },
+      "width": { "desktop": 2560, "mobile": 780 },
+      "height": { "desktop": 2644, "mobile": 1768 },
+      "deviceType": { "desktop": "DESKTOP", "mobile": "MOBILE" },
+      "sourceFormat": "html+png (Stitch-generated Tailwind HTML)",
+      "previewPath": {
+        "desktop": "selected/ai-proposal/desktop/preview.png",
+        "mobile": "selected/ai-proposal/mobile/preview.png"
+      },
+      "sourcePath": {
+        "desktop": "selected/ai-proposal/desktop/screen.html",
+        "mobile": "selected/ai-proposal/mobile/screen.html"
+      },
+      "assetsPath": null,
+      "candidateCount": 6,
+      "candidates": [
+        { "versionSlug": "v1-desktop", "screenId": "eefb68e5d4d54a1cac7a35ee7fbe0938", "rejected": true, "reason": "decorative animated background blobs (rounded-full + blur-3xl + animate-pulse)" },
+        { "versionSlug": "v2-desktop", "screenId": "eb795363b88447bc81d24fe46c350f79", "rejected": true, "reason": "decorative background blobs (two rounded-full blur-[100px]/blur-[80px] shapes)" },
+        { "versionSlug": "v3-desktop", "screenId": "540288af2fc64489bdecb42051577209", "rejected": false },
+        { "versionSlug": "v1-mobile", "screenId": "5acdecba4b0c44089e56551c73f4398a", "rejected": true, "reason": "decorative background blob (rounded-full blur-3xl)" },
+        { "versionSlug": "v2-mobile", "screenId": "261e1f9e849d42089f9fa3f9d6d86c25", "rejected": false, "reason": "no decorative bubbles found, but superseded by v3 (most recent) — kept only as a reference candidate" },
+        { "versionSlug": "v3-mobile", "screenId": "72bf18985fd4472e81e6a8fc50cbe86f", "rejected": false }
+      ],
+      "approved_candidate": true,
+      "availableArtifacts": ["preview.png", "screen.html", "metadata.json"],
+      "missingArtifacts": ["design-tokens-export", "component-source"],
+      "notes": "No decorative background bubbles (only functional backdrop-blur-xl on sticky header/nav and small live-status pulse dots). No invented 'nivel de consenso' or unverified percentages found anywhere in this version. Uses approved aquatic palette tokens (bg-hielo, mediation-aqua)."
+    }
+  ],
+  "requiredCorrectionsSummary": [
+    "None required in the selected v4/v3/v3 versions for the three target screens — violations were found only in older/rejected candidate versions (v3-desktop cases-list, v2-desktop/v2-mobile case-detail, v1/v2 ai-proposal) and are documented per-screen above as the reason those versions were rejected.",
+    "Still to verify visually (not checked via HTML grep): exact hex values of the approved Hielo/Aero/Aguamarina/Cerúleo/Turquesa palette against design-system/tokens/colors.ts before implementation."
+  ]
+}
