@@ -6,7 +6,6 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
-import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { NoticesDemoNotice } from '@/features/notices/components/NoticesDemoNotice';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -149,7 +148,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   headerSection: {
-    gap: spacing.md,
+    gap: spacing.xs,
     marginBottom: spacing.md,
   },
   infoRow: {
@@ -164,11 +163,7 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: semanticColors.surface.sunken,
-    borderColor: semanticColors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.lg,
+    paddingVertical: spacing.sm,
   },
   controlBarWide: {
     flexDirection: 'row',

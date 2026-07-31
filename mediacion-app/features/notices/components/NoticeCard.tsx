@@ -69,9 +69,9 @@ export function NoticeCard({
   markReadLabel,
   onMarkRead,
   emphasis = 'normal',
-  isWide = false,
+  isWide: _isWide = false,
 }: NoticeCardProps) {
-  const hasRightRail = isWide && (!read && !actionable && onMarkRead != null);
+  const showMarkRead = !actionable && !read && onMarkRead != null;
 
   const content = (
     <>
@@ -96,33 +96,13 @@ export function NoticeCard({
         ) : null}
       </View>
 
-      {/* ---- body area ---- */}
-      {hasRightRail ? (
-        <View style={styles.bodyWithRail}>
-          <View style={styles.bodyColumn}>
-            <Text style={styles.title} accessibilityRole="header">
-              {title}
-            </Text>
-            <Text style={styles.description} numberOfLines={3}>
-              {body}
-            </Text>
-          </View>
-          <View style={styles.rightRail}>
-            <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
-              {markReadLabel}
-            </Button>
-          </View>
-        </View>
-      ) : (
-        <>
-          <Text style={styles.title} accessibilityRole="header">
-            {title}
-          </Text>
-          <Text style={styles.description} numberOfLines={3}>
-            {body}
-          </Text>
-        </>
-      )}
+      {/* ---- body ---- */}
+      <Text style={styles.title} accessibilityRole="header">
+        {title}
+      </Text>
+      <Text style={styles.description} numberOfLines={3}>
+        {body}
+      </Text>
 
       {/* ---- divider + footer ---- */}
       {hasMarkError ? <Text style={styles.errorText}>{markErrorLabel}</Text> : null}
@@ -133,7 +113,7 @@ export function NoticeCard({
         <View style={styles.footerMeta}>
           {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
         </View>
-        {!actionable && !read && onMarkRead && !hasRightRail ? (
+        {showMarkRead ? (
           <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
             {markReadLabel}
           </Button>
@@ -171,13 +151,12 @@ export function NoticeCard({
   );
 }
 
-const DOT_SIZE = 8;
 const UNREAD_DOT_SIZE = 6;
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: 14,
-    padding: spacing.md,
+    padding: spacing.lg,
     gap: spacing.xs,
     borderWidth: 1,
     borderLeftWidth: 3,
@@ -220,7 +199,7 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 11,
+    fontSize: 12,
     color: semanticColors.text.tertiary,
   },
   unreadPill: {
@@ -251,34 +230,21 @@ const styles = StyleSheet.create({
     color: semanticColors.status.warningFg,
   },
 
-  /* ---- body with rail ---- */
-  bodyWithRail: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  bodyColumn: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xxs,
-  },
-  rightRail: {
-    flexShrink: 0,
-    justifyContent: 'center',
-  },
-
   /* ---- body ---- */
   title: {
     fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 15,
+    fontSize: 18,
+    fontWeight: '600',
     letterSpacing: -0.2,
+    lineHeight: 24,
     color: semanticColors.text.primary,
   },
   description: {
     fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 21,
     color: semanticColors.text.secondary,
+    maxWidth: 640,
   },
 
   /* ---- footer ---- */
@@ -298,7 +264,7 @@ const styles = StyleSheet.create({
   },
   caseLine: {
     fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 11,
+    fontSize: 12,
     color: semanticColors.text.tertiary,
     flexShrink: 1,
   },
