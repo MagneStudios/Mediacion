@@ -10,16 +10,30 @@ export type ResponsiveColumnsProps = {
   primary: ReactNode;
   /** Contextual/supporting content — status summaries, related actions, notices. */
   secondary: ReactNode;
+  /**
+   * Opt-in (default false): size the secondary column to its real content
+   * width (up to `secondaryColumnMaxWidth`) and let the primary column grow
+   * to fill the rest. When `secondary` renders nothing, the rail collapses
+   * to zero instead of leaving a fixed empty slot. Consumers whose
+   * secondary always has content keep the default fixed 2:1 split.
+   */
+  collapseEmptySecondary?: boolean;
 };
 
 /**
  * Stacks `primary` then `secondary` (unchanged source order) below `wide`;
- * becomes a 2:1 side-by-side row at `wide` (1024px) and above. Never
- * reorders its children — DOM order is identical to visual order at every
- * breakpoint, so screen-reader/keyboard tab order never becomes confusing
- * and no action ever "disappears" at a breakpoint, only relocates spatially.
+ * becomes a side-by-side row at `wide` (1024px) and above. Never reorders
+ * its children — DOM order is identical to visual order at every breakpoint,
+ * so screen-reader/keyboard tab order never becomes confusing and no action
+ * ever "disappears" at a breakpoint, only relocates spatially.
+ *
+ * With `collapseEmptySecondary` the split is content-driven rather than a
+ * fixed 2:1 ratio: the primary column grows to fill all available space,
+ * while the secondary column takes only its own content width (up to
+ * `secondaryColumnMaxWidth`) and collapses to zero when its children render
+ * nothing — so an empty rail never leaves a gap beside the primary column.
  */
-export function ResponsiveColumns({ primary, secondary }: ResponsiveColumnsProps) {
+export function ResponsiveColumns({ primary, secondary, collapseEmptySecondary = false }: ResponsiveColumnsProps) {
   const { isWide } = useResponsiveLayout();
 
   if (!isWide) {
@@ -27,6 +41,15 @@ export function ResponsiveColumns({ primary, secondary }: ResponsiveColumnsProps
       <View style={styles.stacked}>
         {primary}
         {secondary}
+      </View>
+    );
+  }
+
+  if (collapseEmptySecondary) {
+    return (
+      <View style={styles.row}>
+        <View style={styles.primaryColumnFluid}>{primary}</View>
+        <View style={styles.secondaryColumnAuto}>{secondary}</View>
       </View>
     );
   }
@@ -55,6 +78,21 @@ const styles = StyleSheet.create({
   },
   secondaryColumn: {
     flex: 1,
+    minWidth: 0,
+    maxWidth: secondaryColumnMaxWidth,
+    gap: spacing.md,
+  },
+  primaryColumnFluid: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    gap: spacing.md,
+  },
+  secondaryColumnAuto: {
+    flexGrow: 0,
+    flexShrink: 1,
+    flexBasis: 'auto',
     minWidth: 0,
     maxWidth: secondaryColumnMaxWidth,
     gap: spacing.md,

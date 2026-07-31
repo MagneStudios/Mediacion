@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
+import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { typography } from '../../design-system/tokens/typography';
@@ -18,6 +18,7 @@ import { getPositionEligibility } from '../../utils/position-eligibility';
 import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
+import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { PrivacyNotice } from './components/PrivacyNotice';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
@@ -33,7 +34,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { status, detail, reload } = useCaseDetail(caseId);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
   const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -66,10 +67,6 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       setSimulateDialogVisible(false);
       reload();
 
-      // Best-effort side effects only, strictly after the case transition
-      // above has already committed — a notice/activity failure here never
-      // rolls it back. Both narrow append functions dedupe internally, so
-      // this can never create a duplicate on a retried call.
       try {
         await appendCaseNotice({ caseId, eventKey: 'invitation_accepted_simulated' });
       } catch {
@@ -111,14 +108,16 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     const eligibility = getPositionEligibility(detail.estado);
     const canCreate = eligibility === 'editable';
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{t('caseDetail.positions.title')}</Text>
+      <View style={styles.module}>
+        <Text style={styles.moduleLabel} accessibilityRole="header">
+          {t('caseDetail.positions.title')}
+        </Text>
         <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
-        <View style={styles.positionsActions}>
+        <View style={[styles.positionsActions, isWide && styles.positionsActionsRow]}>
           {canCreate ? (
             <Button
               variant="primary"
-              fullWidth
+              fullWidth={!isWide}
               iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
               onPress={() => {
                 blurActiveElement();
@@ -130,7 +129,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           ) : null}
           <Button
             variant="secondary"
-            fullWidth
+            fullWidth={!isWide}
             onPress={() => {
               blurActiveElement();
               router.push({ pathname: '/case/[id]/positions', params: { id: caseId } });
@@ -143,25 +142,23 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     );
   })();
 
+  const workspaceMaxWidth = isWide ? 1480 : contentWidths.wide;
+
+  const contentStyle = getResponsiveContentStyle({ maxWidth: workspaceMaxWidth, horizontalPadding });
+
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+      contentContainerStyle={[styles.content, contentStyle]}
     >
-      <Text style={styles.title} accessibilityRole="header">
-        {detail.title}
-      </Text>
-      <Text style={styles.subtitle}>{t('caseDetail.caseCode', { code: detail.caseCode })}</Text>
-
-      <PrivacyNotice>{t('caseDetail.privacyNotice')}</PrivacyNotice>
+      <CaseDetailHeader detail={detail} isWide={isWide} />
 
       {isAwaitingCounterparty ? (
-        <View style={styles.section}>
-          <View style={styles.methodRow}>
-            <Badge variant="neutral">{t(`methods.${detail.metodo}`)}</Badge>
+        <Card style={styles.awaitingCard}>
+          <View style={styles.awaitingHeader}>
             <StatusPill status="info">{t('cases.status.awaitingCounterparty')}</StatusPill>
           </View>
-          <Text style={styles.sectionLabel}>{t('caseDetail.awaitingCounterparty.title')}</Text>
+          <Text style={styles.moduleLabel}>{t('caseDetail.awaitingCounterparty.title')}</Text>
           <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
 
           {invitation ? (
@@ -198,9 +195,10 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
               {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
             </Button>
           </View>
-        </View>
+        </Card>
       ) : (
         <ResponsiveColumns
+          collapseEmptySecondary
           primary={
             <>
               {positionsSection}
@@ -236,45 +234,44 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  positionsActions: {
-    gap: spacing.xs,
-  },
   container: {
     flex: 1,
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingVertical: spacing.xl,
+    gap: spacing.xl,
   },
-  title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 22,
-    letterSpacing: -0.3,
-    color: semanticColors.text.primary,
+  module: {
+    gap: spacing.sm,
   },
-  subtitle: {
-    fontFamily: typography.mono.fontFamily,
+  moduleLabel: {
+    fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
-    color: semanticColors.text.tertiary,
-    marginTop: -spacing.xs,
+    color: semanticColors.text.quaternary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
-  methodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  positionsActions: {
     gap: spacing.xs,
   },
-  section: {
+  positionsActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  awaitingCard: {
+    borderRadius: 14,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  awaitingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   simulateSection: {
     gap: spacing.xs,
     marginTop: spacing.sm,
-  },
-  sectionLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
-    color: semanticColors.text.quaternary,
   },
   bodyText: {
     fontFamily: typography.bodySm.fontFamily,
