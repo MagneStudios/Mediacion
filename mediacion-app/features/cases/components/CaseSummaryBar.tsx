@@ -6,32 +6,25 @@ import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 
 export type CaseSummaryBarProps = {
-  /** Total number of cases in the (unfiltered) list — already fetched, never a separate metrics call. */
   total: number;
   totalLabel: string;
-  /** Count of cases whose statusLabelKey is 'proposalReady' — a real, already-existing presentation bucket, not a derived/invented metric. */
   pendingResponse: number;
   pendingResponseLabel: string;
 };
 
-/**
- * Purely presentational — every number it renders is a prop computed by the
- * screen from the array `useCases()` already returned. No fetch, no
- * business logic, no metric that doesn't already exist in the list.
- */
 export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResponseLabel }: CaseSummaryBarProps) {
   return (
     <View style={styles.row} accessibilityRole="summary">
-      <View style={styles.chip}>
-        <Text variant="cardTitle" color="primary">
+      <View style={styles.card}>
+        <Text variant="cardTitle" color="primary" style={styles.number}>
           {total}
         </Text>
         <Text variant="caption" color="tertiary">
           {totalLabel}
         </Text>
       </View>
-      <View style={styles.chip}>
-        <Text variant="cardTitle" color="primary">
+      <View style={styles.card}>
+        <Text variant="cardTitle" color="primary" style={styles.number}>
           {pendingResponse}
         </Text>
         <Text variant="caption" color="tertiary">
@@ -45,14 +38,19 @@ export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResp
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  chip: {
-    flex: 1,
+  card: {
     backgroundColor: semanticColors.surface.sunken,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: semanticColors.border.default,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    gap: 2,
+    minWidth: 88,
+    alignItems: 'flex-start',
+  },
+  number: {
+    lineHeight: 24,
   },
 });

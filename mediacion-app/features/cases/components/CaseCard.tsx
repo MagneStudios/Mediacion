@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, Icon, StatusPill, Text } from '../../../design-system';
+import { Button, Card, Divider, Icon, StatusPill, Text } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
@@ -15,7 +15,6 @@ export type CaseCardProps = {
   isWide?: boolean;
 };
 
-/** Same fg palette StatusPill uses per status — kept here so the card's left accent bar always agrees with its own StatusPill instead of a second color vocabulary. */
 const STATUS_ACCENT: Record<CaseVisualStatus, string> = {
   success: semanticColors.status.successFg,
   warning: semanticColors.status.warningFg,
@@ -25,7 +24,6 @@ const STATUS_ACCENT: Record<CaseVisualStatus, string> = {
   ai: semanticColors.ai.accent,
 };
 
-/** Same bg/fg pairing StatusPill already uses per status — the contextual callout reuses it instead of inventing a second tint. */
 const CONTEXTUAL_TONE: Record<CaseVisualStatus, { bg: string; fg: string }> = {
   success: { bg: semanticColors.status.successBg, fg: semanticColors.status.successFg },
   warning: { bg: semanticColors.status.warningBg, fg: semanticColors.status.warningFg },
@@ -35,12 +33,6 @@ const CONTEXTUAL_TONE: Record<CaseVisualStatus, { bg: string; fg: string }> = {
   ai: { bg: semanticColors.ai.tint, fg: semanticColors.ai.accent },
 };
 
-/**
- * The CTA label is the only thing that varies by `statusLabelKey` — the
- * action behind it is always the same real `onPress` (navigate to the case
- * detail route). No new route, no new decision: this only makes the
- * already-existing whole-card tap explicit as a labeled, contextual button.
- */
 const CTA_KEY: Record<CaseStatusLabelKey, 'continue' | 'respond' | 'view'> = {
   inReview: 'continue',
   proposalReady: 'respond',
@@ -85,16 +77,11 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
     semanticColors.action.secondaryFg;
 
   return (
-    // Non-interactive by design (Card has no `interactive`/`onPress`) — the
-    // explicit CTA button below is a sibling, never nested inside another
-    // Pressable. See design-system rule in agents/front/AGENTS.md: RN Web
-    // renders a Pressable's accessibilityRole="button" as a real <button>,
-    // and a <button> inside a <button> is invalid HTML.
     <Card style={[styles.card, { borderLeftWidth: 3, borderLeftColor: STATUS_ACCENT[caseSummary.visualStatus] }]}>
-      {/* 1. Top row: method badge left · status pill right */}
+      {/* 1. Header: method badge left · status pill right */}
       <View style={styles.topRow}>
         <View style={styles.methodBadge} accessibilityLabel={t(`methods.${caseSummary.metodo}`)}>
-          <Icon name={methodIcon} size={12} color={semanticColors.text.secondary} />
+          <Icon name={methodIcon} size={13} color={semanticColors.text.secondary} />
           <Text variant="caption" color="secondary">
             {methodLabel}
           </Text>
@@ -104,7 +91,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         </StatusPill>
       </View>
 
-      {/* 2. Title — more prominent */}
+      {/* 2. Title — strong visual weight */}
       <Text variant="cardTitle" style={styles.title} numberOfLines={2}>
         {caseSummary.title}
       </Text>
@@ -114,7 +101,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         {metaText}
       </Text>
 
-      {/* 4. Contextual block — next action / result, with SLA integrated */}
+      {/* 4. Contextual block — next action / result */}
       <View style={[styles.contextualBlock, { backgroundColor: contextualTone.bg }]}>
         <Icon name={contextualIcon} size={16} color={contextualTone.fg} />
         <View style={styles.contextualBody}>
@@ -134,7 +121,8 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         </View>
       </View>
 
-      {/* 5. Footer — CTA right-aligned on desktop, full-width on mobile */}
+      {/* 5. Divider + CTA */}
+      <Divider tone="soft" />
       <View style={isWide ? styles.footerDesktop : styles.footerMobile}>
         <View style={isWide ? styles.footerCtaDesktop : undefined}>
           <Button
@@ -156,7 +144,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 const styles = StyleSheet.create({
   card: {
     borderRadius: radii.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
     gap: spacing.sm,
     borderWidth: 1,
   },
@@ -171,8 +159,9 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   title: {
+    fontSize: 17,
     letterSpacing: -0.3,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   contextualBlock: {
     flexDirection: 'row',
@@ -196,15 +185,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: semanticColors.border.soft,
   },
-  footerMobile: {
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: semanticColors.border.soft,
-  },
+  footerMobile: {},
   footerCtaDesktop: {
     flexShrink: 0,
   },

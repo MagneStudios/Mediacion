@@ -25,20 +25,12 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
   const [filter, setFilter] = useState<CaseFilterValue>('all');
 
   const allCases = result.status === 'success' ? result.cases : [];
-  // Client-side filter over the already-fetched list — same pattern as
-  // NoticeFilter in the Avisos tab. No service/hook change: `useCases()` is
-  // never called again, this only narrows the array already in memory.
   const filteredCases = useMemo(
     () => (filter === 'all' ? allCases : allCases.filter((c) => c.metodo === filter)),
     [allCases, filter],
   );
   const pendingResponseCount = useMemo(() => allCases.filter((c) => c.statusLabelKey === 'proposalReady').length, [allCases]);
 
-  // Two columns at `wide` and above (never three/four, even at extraWide —
-  // isWide alone already covers that whole range). RN requires a remount
-  // when numColumns changes; `key` forces that safely. The list has no
-  // internal state tied to a specific render (read-only data from
-  // useCases()), so recreation loses nothing.
   const numColumns = isWide ? 2 : 1;
 
   return (
@@ -49,35 +41,43 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         keyExtractor={(item) => item.id}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        contentContainerStyle={[styles.listContent, isWide ? null : styles.listContentMobile, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? 1480 : contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
-          <View style={[styles.header, isWide ? null : styles.headerCompact]}>
-            <View style={[styles.headerTop, isWide ? styles.headerTopWide : null]}>
-              <View style={isWide ? styles.titleWide : undefined}>
-                <Text variant={isWide ? 'displayLg' : 'headline'} accessibilityRole="header">
+          <View style={styles.header}>
+            {/* Header: eyebrow + title + description left, CTA right */}
+            <View style={[styles.headerTop, isWide && styles.headerTopWide]}>
+              <View style={styles.titleBlock}>
+                <Text variant="eyebrow" color="quaternary" style={styles.eyebrow}>
+                  {t('cases.eyebrow')}
+                </Text>
+                <Text variant={isWide ? 'displayMd' : 'headline'} accessibilityRole="header">
                   {t('cases.title')}
                 </Text>
-                <Text variant="body" color="secondary" style={[styles.description, isWide ? null : styles.descriptionCompact]}>
+                <Text variant="body" color="secondary" style={styles.description}>
                   {t('cases.description')}
                 </Text>
               </View>
-              <Button
-                variant="primary"
-                fullWidth={!isWide}
-                iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
-                onPress={onCreateCase}
-              >
-                {t('cases.createCase')}
-              </Button>
+              <View style={[styles.headerRight, isWide && styles.headerRightWide]}>
+                {result.status === 'success' && allCases.length > 0 ? (
+                  <CaseSummaryBar
+                    total={allCases.length}
+                    totalLabel={t('cases.summary.total')}
+                    pendingResponse={pendingResponseCount}
+                    pendingResponseLabel={t('cases.summary.pendingResponse')}
+                  />
+                ) : null}
+                <Button
+                  variant="primary"
+                  fullWidth={!isWide}
+                  iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
+                  onPress={onCreateCase}
+                >
+                  {t('cases.createCase')}
+                </Button>
+              </View>
             </View>
-            {result.status === 'success' && allCases.length > 0 ? (
-              <CaseSummaryBar
-                total={allCases.length}
-                totalLabel={t('cases.summary.total')}
-                pendingResponse={pendingResponseCount}
-                pendingResponseLabel={t('cases.summary.pendingResponse')}
-              />
-            ) : null}
+
+            {/* Filters toolbar */}
             {result.status === 'success' && allCases.length > 0 ? (
               <CaseFilters
                 value={filter}
@@ -131,11 +131,8 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.xl,
     flexGrow: 1,
-  },
-  listContentMobile: {
-    paddingBottom: spacing.xxl,
   },
   columnWrapper: {
     gap: spacing.md,
@@ -150,29 +147,30 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.sm,
   },
-  headerCompact: {
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
   headerTop: {
     gap: spacing.sm,
   },
-  // Wide web: title left, compact intrinsic-width CTA right — never a
-  // hardcoded button width, `fullWidth={false}` already sizes the button to
-  // its own content (see Button.tsx). Mobile/medium keep the original
-  // column layout (title above a full-width button) untouched.
   headerTopWide: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: spacing.lg,
   },
-  titleWide: {
+  titleBlock: {
     flex: 1,
+    minWidth: 0,
+  },
+  eyebrow: {
+    marginBottom: spacing.xxs,
   },
   description: {
     marginTop: 4,
   },
-  descriptionCompact: {
-    marginTop: 2,
+  headerRight: {
+    gap: spacing.sm,
+  },
+  headerRightWide: {
+    flexShrink: 0,
+    alignItems: 'flex-end',
   },
 });

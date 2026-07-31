@@ -322,6 +322,7 @@
   },
   "cases": {
     "title": "Mis casos",
+    "eyebrow": "Panel de casos",
     "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
     "loading": "Buscando tus casos…",

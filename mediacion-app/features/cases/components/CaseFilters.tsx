@@ -1,5 +1,6 @@
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useResponsiveLayout } from '../../../hooks/use-responsive-layout';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
@@ -36,8 +37,15 @@ if (Platform.OS === 'web') {
 /**
  * Client-side filter over the already-fetched case list — same pattern as
  * `NoticeFilter` in the Avisos tab (no service/hook change, just a derived
- * view of data already in memory). Horizontally scrollable so it never
- * overflows on narrow widths (320px) regardless of locale text length.
+ * view of data already in memory).
+ *
+ * Responsive:
+ * - Compact (<768px): a fixed four-column row — each chip `flex: 1`, equal
+ *   width, centered text, reduced chip padding, one-line labels at 12px, so
+ *   Todos / Negociación / Conciliación / Mediación all fit fully at 320px
+ *   with no scroll, no ellipsis and no truncation.
+ * - Medium/wide (>=768px): unchanged — a horizontally scrollable row, chips
+ *   sized to their content.
  *
  * Visual: chips live inside a single grouped surface (soft aquatic sunken
  * background + hairline border). The selected chip is a white pill with a
@@ -46,6 +54,33 @@ if (Platform.OS === 'web') {
  * at the 44px minimum on every breakpoint via the chip's own minHeight.
  */
 export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFiltersProps) {
+  const { isCompact } = useResponsiveLayout();
+
+  const chips = (
+    <>
+      <FilterChip label={allLabel} selected={value === 'all'} onPress={() => onChange('all')} compact={isCompact} />
+      {METHODS.map((metodo) => (
+        <FilterChip
+          key={metodo}
+          label={methodLabels[metodo]}
+          selected={value === metodo}
+          onPress={() => onChange(metodo)}
+          compact={isCompact}
+        />
+      ))}
+    </>
+  );
+
+  if (isCompact) {
+    return (
+      <View style={[styles.surface, styles.surfaceCompact]}>
+        <View style={[styles.row, styles.rowCompact]} accessibilityRole="tablist">
+          {chips}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.surface}>
       <ScrollView
@@ -54,15 +89,7 @@ export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFil
         accessibilityRole="tablist"
         contentContainerStyle={styles.row}
       >
-        <FilterChip label={allLabel} selected={value === 'all'} onPress={() => onChange('all')} />
-        {METHODS.map((metodo) => (
-          <FilterChip
-            key={metodo}
-            label={methodLabels[metodo]}
-            selected={value === metodo}
-            onPress={() => onChange(metodo)}
-          />
-        ))}
+        {chips}
       </ScrollView>
     </View>
   );
@@ -72,9 +99,10 @@ type FilterChipProps = {
   label: string;
   selected: boolean;
   onPress: () => void;
+  compact: boolean;
 };
 
-function FilterChip({ label, selected, onPress }: FilterChipProps) {
+function FilterChip({ label, selected, onPress, compact }: FilterChipProps) {
   return (
     <Pressable
       accessibilityRole="tab"
@@ -84,12 +112,20 @@ function FilterChip({ label, selected, onPress }: FilterChipProps) {
       testID="case-filter-chip"
       style={({ hovered, pressed }) => [
         styles.chip,
+        compact ? styles.chipCompact : null,
         selected ? styles.chipSelected : styles.chipUnselected,
         !selected && hovered ? styles.chipHover : null,
         pressed ? styles.chipPressed : null,
       ]}
     >
-      <Text style={[styles.label, selected ? styles.labelSelected : styles.labelUnselected]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.label,
+          compact ? styles.labelCompact : null,
+          selected ? styles.labelSelected : styles.labelUnselected,
+        ]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
@@ -105,11 +141,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: spacing.xxs,
   },
+  surfaceCompact: {
+    paddingHorizontal: 2,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xxs,
     paddingRight: spacing.sm,
+  },
+  rowCompact: {
+    flex: 1,
+    gap: 3,
+    paddingRight: 0,
   },
   chip: {
     minHeight: 44,
@@ -118,6 +162,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radii.md,
     borderWidth: 1,
+  },
+  chipCompact: {
+    flex: 1,
+    paddingHorizontal: 4,
   },
   chipUnselected: {
     backgroundColor: 'transparent',
@@ -138,6 +186,9 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 13,
+  },
+  labelCompact: {
+    fontSize: 12,
   },
   labelUnselected: {
     color: semanticColors.text.secondary,

@@ -322,6 +322,7 @@
   },
   "cases": {
     "title": "My cases",
+    "eyebrow": "Case dashboard",
     "description": "Review your cases and next steps.",
     "createCase": "Start a case",
     "loading": "Looking for your cases…",
