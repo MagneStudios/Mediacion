@@ -22,7 +22,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { status, profile, reload } = useProfile();
   const notifications = useNotificationPreferences();
-  const { horizontalPadding, isWide } = useResponsiveLayout();
+  const { horizontalPadding, isWide, isCompact } = useResponsiveLayout();
 
   if (status === 'loading') {
     return (
@@ -62,11 +62,11 @@ export default function ProfileScreen() {
     >
       {/* 1. Hero */}
       <View style={styles.hero}>
-        <View style={styles.heroInner}>
+        <View style={[styles.heroInner, isCompact && styles.heroInnerCompact]}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
-          <View style={styles.heroText}>
+          <View style={isCompact ? styles.heroTextCompact : styles.heroText}>
             <Text style={styles.heroName} accessibilityRole="header">{displayName}</Text>
             <Text style={styles.heroRole}>{t(`profile.role.${profile.rol}`)}</Text>
             <View style={styles.heroBadge}>
@@ -75,14 +75,16 @@ export default function ProfileScreen() {
               </StatusPill>
             </View>
           </View>
-          <Button
-            variant="secondary"
-            size="sm"
-            iconLeft={<Icon name="pencil" size={14} color={semanticColors.action.secondaryFg} />}
-            onPress={() => { blurActiveElement(); router.push('/profile/edit'); }}
-          >
-            {t('profile.menu.edit.label')}
-          </Button>
+          <View style={isCompact ? styles.heroButtonCompact : undefined}>
+            <Button
+              variant="secondary"
+              size="sm"
+              iconLeft={<Icon name="pencil" size={14} color={semanticColors.action.secondaryFg} />}
+              onPress={() => { blurActiveElement(); router.push('/profile/edit'); }}
+            >
+              {t('profile.menu.edit.label')}
+            </Button>
+          </View>
         </View>
       </View>
 
@@ -174,6 +176,8 @@ const styles = StyleSheet.create({
   },
   heroText: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     gap: spacing.xxs,
   },
   heroName: {
@@ -191,6 +195,21 @@ const styles = StyleSheet.create({
   heroBadge: {
     flexDirection: 'row',
     marginTop: spacing.xxs,
+  },
+  heroInnerCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: spacing.md,
+  },
+  heroTextCompact: {
+    width: '100%',
+    flexShrink: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  heroButtonCompact: {
+    width: '100%',
+    alignSelf: 'stretch',
   },
 
   /* ---- Body: summary + options ---- */
