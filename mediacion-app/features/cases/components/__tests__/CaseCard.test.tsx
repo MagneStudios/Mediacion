@@ -69,11 +69,11 @@ describe('CaseCard', () => {
     expect(screen.queryByText(/SLA/)).toBeNull();
   });
 
-  it('wraps a long title instead of clipping to one line', async () => {
+  it('wraps a long title without truncating it', async () => {
     const longTitle = 'Revisión integral del régimen de cuidado personal, alimentos y vivienda familiar compartida';
     await renderCard(buildCase({ title: longTitle }));
     const titleNode = screen.getByText(longTitle);
-    expect(titleNode.props.numberOfLines).toBe(2);
+    expect(titleNode.props.numberOfLines).toBeUndefined();
   });
 
   describe('next action + contextual CTA — derived only from statusLabelKey, never invented', () => {

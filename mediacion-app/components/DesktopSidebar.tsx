@@ -50,30 +50,39 @@ export function DesktopSidebar() {
 
   return (
     <View style={styles.container} accessibilityLabel={t('common.mainNavigation')}>
-      {ITEMS.map((item) => {
-        const selected = item.section === activeSection;
-        const isNotices = item.section === 'notices';
-        const accessibleLabel = isNotices && unreadCount > 0 ? t('tabs.noticesAccessibleUnread', { count: unreadCount }) : t(item.labelKey);
+      <View style={styles.brand}>
+        <View style={styles.brandMark}>
+          <Icon name="scale" size={22} color={semanticColors.action.primaryFg} strokeWidth={2.2} />
+        </View>
+        <Text style={styles.brandName}>Mediación</Text>
+      </View>
 
-        return (
-          <Pressable
-            key={item.section}
-            onPress={() => handleNavigate(item.href)}
-            accessibilityRole="link"
-            accessibilityLabel={accessibleLabel}
-            accessibilityState={{ selected }}
-            style={({ pressed }) => [styles.item, selected ? styles.itemSelected : null, pressed && !selected ? styles.itemPressed : null]}
-          >
-            <Icon name={item.icon} size={20} color={selected ? semanticColors.text.primary : semanticColors.text.tertiary} />
-            <Text style={[styles.label, selected ? styles.labelSelected : null]}>{t(item.labelKey)}</Text>
-            {isNotices && unreadCount > 0 ? (
-              <View style={styles.badge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Text style={styles.badgeText}>{unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(unreadCount)}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        );
-      })}
+      <View style={styles.navigation}>
+        {ITEMS.map((item) => {
+          const selected = item.section === activeSection;
+          const isNotices = item.section === 'notices';
+          const accessibleLabel = isNotices && unreadCount > 0 ? t('tabs.noticesAccessibleUnread', { count: unreadCount }) : t(item.labelKey);
+
+          return (
+            <Pressable
+              key={item.section}
+              onPress={() => handleNavigate(item.href)}
+              accessibilityRole="link"
+              accessibilityLabel={accessibleLabel}
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [styles.item, selected ? styles.itemSelected : null, pressed && !selected ? styles.itemPressed : null]}
+            >
+              <Icon name={item.icon} size={20} color={selected ? semanticColors.action.primaryFg : semanticColors.text.tertiary} />
+              <Text style={[styles.label, selected ? styles.labelSelected : null]}>{t(item.labelKey)}</Text>
+              {isNotices && unreadCount > 0 ? (
+                <View style={[styles.badge, selected && styles.badgeSelected]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Text style={[styles.badgeText, selected && styles.badgeTextSelected]}>{unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(unreadCount)}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -85,9 +94,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface1,
     borderRightWidth: 1,
     borderRightColor: colors.hairline,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.sm,
-    gap: spacing.xxs,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.xxl,
+  },
+  brandMark: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: semanticColors.action.primaryBg,
+  },
+  brandName: {
+    fontFamily: typography.headline.fontFamily,
+    fontSize: 21,
+    letterSpacing: -0.35,
+    color: semanticColors.text.primary,
+  },
+  navigation: {
+    gap: spacing.xs,
   },
   item: {
     flexDirection: 'row',
@@ -95,14 +127,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     minHeight: spacingLayout.touchTarget,
     paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.md,
-    borderLeftWidth: 3,
-    borderLeftColor: 'transparent',
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.lg,
   },
   itemSelected: {
-    backgroundColor: semanticColors.surface.sunken,
-    borderLeftColor: semanticColors.text.primary,
+    backgroundColor: semanticColors.action.primaryBg,
   },
   itemPressed: {
     backgroundColor: semanticColors.surface.sunken,
@@ -115,7 +144,7 @@ const styles = StyleSheet.create({
   },
   labelSelected: {
     fontFamily: typography.button.fontFamily,
-    color: semanticColors.text.primary,
+    color: semanticColors.action.primaryFg,
   },
   badge: {
     minWidth: 20,
@@ -126,10 +155,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.ink,
   },
+  badgeSelected: {
+    backgroundColor: semanticColors.action.primaryFg,
+  },
   badgeText: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 11,
     lineHeight: 13,
     color: colors.onPrimary,
+  },
+  badgeTextSelected: {
+    color: semanticColors.action.primaryBg,
   },
 });

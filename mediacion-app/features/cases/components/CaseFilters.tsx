@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   rowCompact: {
     flexDirection: 'row',
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   chip: {
-    minHeight: 36,
+    minHeight: 40,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xxs,
     justifyContent: 'center',
@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   chipUnselected: {
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.border.default,
+    backgroundColor: semanticColors.surface.sunken,
+    borderColor: semanticColors.border.soft,
   },
   chipSelected: {
     backgroundColor: semanticColors.action.primaryBg,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   labelCompact: {
     fontSize: 12,

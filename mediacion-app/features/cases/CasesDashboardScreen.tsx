@@ -48,28 +48,27 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isExtraWide ? 1640 : isWide ? 1280 : contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View style={[styles.header, isWide && styles.headerWide]}>
             <View style={[styles.headerTop, isWide && styles.headerTopWide]}>
-              <View style={styles.titleBlock}>
+              <View style={[styles.titleBlock, isWide && styles.titleBlockWide]}>
+                <View style={[styles.eyebrowRow, isWide && styles.eyebrowRowWide]}>
+                  <Icon name="folder-open" size={17} color={semanticColors.action.primaryBg} />
+                  <Text variant="eyebrow" style={styles.eyebrow}>
+                    {t('tabs.cases')}
+                  </Text>
+                </View>
                 <Text variant={isWide ? 'displayLg' : 'headline'} accessibilityRole="header">
                   {t('cases.title')}
                 </Text>
-                <Text variant="body" color="secondary" style={styles.description}>
+                <Text variant={isWide ? 'bodyLg' : 'body'} color="secondary" style={styles.description}>
                   {t('cases.description')}
                 </Text>
               </View>
-              <View style={[styles.headerRight, isWide && styles.headerRightWide]}>
-                {result.status === 'success' && allCases.length > 0 ? (
-                  <CaseSummaryBar
-                    total={allCases.length}
-                    totalLabel={t('cases.summary.total')}
-                    pendingResponse={pendingResponseCount}
-                    pendingResponseLabel={t('cases.summary.pendingResponse')}
-                  />
-                ) : null}
+              <View style={[styles.headerAction, isWide && styles.headerActionWide]}>
                 <Button
                   variant="primary"
                   fullWidth={!isWide}
+                  size="lg"
                   iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
                   onPress={onCreateCase}
                 >
@@ -79,16 +78,26 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
             </View>
 
             {result.status === 'success' && allCases.length > 0 ? (
-              <CaseFilters
-                value={filter}
-                onChange={setFilter}
-                allLabel={t('cases.filters.all')}
-                methodLabels={{
-                  negociacion: t('methods.negociacion'),
-                  conciliacion: t('methods.conciliacion'),
-                  mediacion: t('methods.mediacion'),
-                }}
-              />
+              <View style={[styles.dashboardTools, isWide && styles.dashboardToolsWide]}>
+                <CaseSummaryBar
+                  total={allCases.length}
+                  totalLabel={t('cases.summary.total')}
+                  pendingResponse={pendingResponseCount}
+                  pendingResponseLabel={t('cases.summary.pendingResponse')}
+                />
+                <View style={[styles.filters, isWide && styles.filtersWide]}>
+                  <CaseFilters
+                    value={filter}
+                    onChange={setFilter}
+                    allLabel={t('cases.filters.all')}
+                    methodLabels={{
+                      negociacion: t('methods.negociacion'),
+                      conciliacion: t('methods.conciliacion'),
+                      mediacion: t('methods.mediacion'),
+                    }}
+                  />
+                </View>
+              </View>
             ) : null}
           </View>
         }
@@ -127,7 +136,8 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
     flexGrow: 1,
   },
   columnWrapper: {
@@ -141,30 +151,79 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   header: {
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
+    width: '100%',
+    alignSelf: 'stretch',
+    gap: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  headerWide: {
+    gap: spacing.lg,
   },
   headerTop: {
-    gap: spacing.sm,
+    gap: spacing.lg,
   },
   headerTopWide: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   titleBlock: {
     flex: 1,
     minWidth: 0,
+    maxWidth: 720,
+    gap: spacing.xs,
+  },
+  titleBlockWide: {
+    gap: spacing.xxs,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xxs,
+  },
+  eyebrowRowWide: {
+    marginBottom: 0,
+  },
+  eyebrow: {
+    color: semanticColors.action.primaryBg,
+    textTransform: 'uppercase',
+    letterSpacing: 1.25,
   },
   description: {
-    marginTop: 2,
+    maxWidth: 640,
   },
-  headerRight: {
-    gap: spacing.sm,
+  headerAction: {
+    width: '100%',
   },
-  headerRightWide: {
+  headerActionWide: {
+    width: 'auto',
     flexShrink: 0,
+  },
+  dashboardTools: {
+    gap: spacing.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
+    borderRadius: 18,
+    backgroundColor: semanticColors.surface.card,
+  },
+  dashboardToolsWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xl,
+    paddingVertical: spacing.sm,
+  },
+  filters: {
+    minWidth: 0,
+  },
+  filtersWide: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 420,
     alignItems: 'flex-end',
   },
 });

@@ -78,7 +78,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
     semanticColors.action.secondaryFg;
 
   return (
-    <Card style={[styles.card, { borderLeftWidth: 3, borderLeftColor: STATUS_ACCENT[caseSummary.visualStatus] }]}>
+    <Card style={[styles.card, { borderTopWidth: 3, borderTopColor: STATUS_ACCENT[caseSummary.visualStatus] }]}>
       {/* 1. Header: method eyebrow left · status pill right */}
       <View style={styles.topRow}>
         <View style={styles.methodBadge} accessibilityLabel={t(`methods.${caseSummary.metodo}`)}>
@@ -87,18 +87,20 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
             {methodLabel}
           </Text>
         </View>
-        <StatusPill status={caseSummary.visualStatus} pulse={caseSummary.visualStatus === 'ai'}>
-          {t(`cases.status.${caseSummary.statusLabelKey}`)}
-        </StatusPill>
+        <View style={styles.statusSlot}>
+          <StatusPill status={caseSummary.visualStatus} pulse={caseSummary.visualStatus === 'ai'}>
+            {t(`cases.status.${caseSummary.statusLabelKey}`)}
+          </StatusPill>
+        </View>
       </View>
 
       {/* 2. Title — strong visual weight, Stitch v6 card-title */}
-      <Text variant="cardTitle" style={[styles.title, isFinished && styles.titleFinished]} numberOfLines={2}>
+      <Text variant="cardTitle" style={[styles.title, isFinished && styles.titleFinished]}>
         {caseSummary.title}
       </Text>
 
       {/* 3. Metadata — counterparty + round, muted */}
-      <Text variant="bodySm" style={[styles.meta, isFinished ? styles.metaFinished : styles.metaActive]} numberOfLines={1}>
+      <Text variant="bodySm" style={[styles.meta, isFinished ? styles.metaFinished : styles.metaActive]}>
         {metaText}
       </Text>
 
@@ -132,18 +134,20 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
       </View>
 
       {/* 5. Divider + CTA */}
-      <Divider tone="soft" />
-      <View style={styles.footer}>
-        <Button
-          variant={buttonVariant}
-          fullWidth={!isWide}
-          size="sm"
-          onPress={onPress}
-          accessibilityLabel={ctaAccessibilityLabel}
-          iconRight={<Icon name="chevron-right" size={16} color={chevronColor} />}
-        >
-          {ctaContent}
-        </Button>
+      <View style={styles.footerSection}>
+        <Divider tone="soft" />
+        <View style={styles.footer}>
+          <Button
+            variant={buttonVariant}
+            fullWidth={!isWide}
+            size="sm"
+            onPress={onPress}
+            accessibilityLabel={ctaAccessibilityLabel}
+            iconRight={<Icon name="chevron-right" size={16} color={chevronColor} />}
+          >
+            {ctaContent}
+          </Button>
+        </View>
       </View>
     </Card>
   );
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radii.xl,
     padding: spacing.lg,
-    gap: spacing.sm,
+    gap: spacing.md,
     borderWidth: 1,
     minHeight: 240,
     flex: 1,
@@ -161,12 +165,14 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: spacing.md,
   },
   methodBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xxs,
+    flexShrink: 1,
   },
   methodLabel: {
     textTransform: 'uppercase',
@@ -183,7 +189,7 @@ const styles = StyleSheet.create({
     color: semanticColors.text.secondary,
   },
   meta: {
-    marginTop: -spacing.xxs,
+    marginTop: -spacing.xs,
   },
   metaActive: {
     color: semanticColors.text.secondary,
@@ -195,9 +201,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
   },
   contextualBody: {
     flex: 1,
@@ -208,16 +216,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.xs,
   },
   contextualEyebrow: {
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  statusSlot: {
+    flexShrink: 1,
+    alignItems: 'flex-end',
+  },
+  footerSection: {
+    marginTop: 'auto',
+    gap: spacing.md,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 'auto',
   },
 });

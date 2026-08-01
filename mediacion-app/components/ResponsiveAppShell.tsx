@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { semanticColors } from '../design-system/tokens/colors';
 import { useResponsiveLayout } from '../hooks/use-responsive-layout';
 import { DesktopSidebar } from './DesktopSidebar';
+import { DesktopTopbar } from './DesktopTopbar';
 
 export type ResponsiveAppShellProps = {
   children: ReactNode;
@@ -32,7 +33,10 @@ export function ResponsiveAppShell({ children }: ResponsiveAppShellProps) {
   return (
     <View style={styles.row}>
       <DesktopSidebar />
-      <View style={styles.main}>{children}</View>
+      <View style={styles.main}>
+        <DesktopTopbar />
+        <View style={styles.content}>{children}</View>
+      </View>
     </View>
   );
 }
@@ -46,5 +50,10 @@ const styles = StyleSheet.create({
   main: {
     flex: 1,
     minWidth: 0,
+    backgroundColor: semanticColors.surface.canvas,
+  },
+  content: {
+    flex: 1,
+    minHeight: 0,
   },
 });
