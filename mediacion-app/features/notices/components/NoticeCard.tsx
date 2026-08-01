@@ -8,7 +8,7 @@ import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { NoticeCategory } from '../../../types/notice';
-import { NoticeCategoryBadge } from './NoticeCategoryBadge';
+import { getNoticeCategoryTone, NoticeCategoryBadge } from './NoticeCategoryBadge';
 
 export type NoticeCardProps = {
   category: NoticeCategory;
@@ -69,9 +69,11 @@ export function NoticeCard({
   markReadLabel,
   onMarkRead,
   emphasis = 'normal',
-  isWide: _isWide = false,
+  isWide = false,
 }: NoticeCardProps) {
   const showMarkRead = !actionable && !read && onMarkRead != null;
+  const showFooter = caseLine != null || showMarkRead || actionable;
+  const categoryTone = getNoticeCategoryTone(category);
 
   const content = (
     <>
@@ -97,37 +99,48 @@ export function NoticeCard({
       </View>
 
       {/* ---- body ---- */}
-      <Text style={styles.title} accessibilityRole="header">
+      <Text style={[styles.title, isWide && styles.titleWide]} accessibilityRole="header">
         {title}
       </Text>
-      <Text style={styles.description} numberOfLines={3}>
+      <Text style={[styles.description, isWide && styles.descriptionWide]}>
         {body}
       </Text>
 
       {/* ---- divider + footer ---- */}
       {hasMarkError ? <Text style={styles.errorText}>{markErrorLabel}</Text> : null}
 
-      <Divider tone="soft" />
-
-      <View style={styles.footerRow}>
-        <View style={styles.footerMeta}>
-          {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
+      {showFooter ? (
+        <View style={styles.footerSection}>
+          <Divider tone="soft" />
+          <View style={[styles.footerRow, isWide && styles.footerRowWide]}>
+            <View style={styles.footerMeta}>
+              {caseLine ? <Text style={styles.caseLine}>{caseLine}</Text> : null}
+            </View>
+            {showMarkRead ? (
+              <Button variant="primary" size="sm" onPress={onMarkRead} disabled={isMarking}>
+                {markReadLabel}
+              </Button>
+            ) : actionable ? (
+              <View style={styles.openIndicator} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Icon name="chevron-right" size={18} color={semanticColors.action.primaryBg} />
+              </View>
+            ) : null}
+          </View>
         </View>
-        {showMarkRead ? (
-          <Button variant="secondary" size="sm" onPress={onMarkRead} disabled={isMarking}>
-            {markReadLabel}
-          </Button>
-        ) : null}
-      </View>
+      ) : null}
     </>
   );
 
-  const accentStyle =
-    emphasis === 'warning'
+  const accentStyle = read
+    ? styles.accentRead
+    : emphasis === 'warning' || importantLabel != null
       ? styles.accentWarning
-      : !read
-        ? styles.accentUnread
-        : styles.accentRead;
+      : categoryTone === 'info'
+        ? styles.accentInfo
+        : categoryTone === 'success'
+          ? styles.accentSuccess
+          : styles.accentUnread;
+  const surfaceStyle = !read && categoryTone === 'info' ? styles.cardInfo : null;
   const quietStyle = read && !actionable ? styles.cardQuiet : null;
 
   if (actionable) {
@@ -137,7 +150,7 @@ export function NoticeCard({
         onPress={onActivate}
         accessibilityLabel={title}
         accessibilityState={{ busy: Boolean(isMarking), selected: !read }}
-        style={[styles.card, accentStyle, quietStyle]}
+        style={[styles.card, isWide && styles.cardWide, surfaceStyle, accentStyle, quietStyle]}
       >
         {content}
       </Card>
@@ -145,7 +158,7 @@ export function NoticeCard({
   }
 
   return (
-    <Card style={[styles.card, accentStyle, quietStyle]}>
+    <Card style={[styles.card, isWide && styles.cardWide, surfaceStyle, accentStyle, quietStyle]}>
       {content}
     </Card>
   );
@@ -159,18 +172,34 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.xs,
     borderWidth: 1,
-    borderLeftWidth: 3,
+    borderColor: semanticColors.border.default,
+    borderLeftWidth: 5,
+  },
+  cardWide: {
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
   cardQuiet: {
     borderColor: semanticColors.border.soft,
+  },
+  cardInfo: {
+    backgroundColor: semanticColors.surface.sunken,
   },
   accentUnread: {
     borderColor: semanticColors.border.default,
     borderLeftColor: semanticColors.text.primary,
   },
   accentWarning: {
-    borderColor: semanticColors.status.warningFg,
+    borderColor: semanticColors.border.default,
     borderLeftColor: semanticColors.status.warningFg,
+  },
+  accentInfo: {
+    borderColor: semanticColors.border.default,
+    borderLeftColor: semanticColors.action.primaryBg,
+  },
+  accentSuccess: {
+    borderColor: semanticColors.border.default,
+    borderLeftColor: semanticColors.status.successFg,
   },
   accentRead: {
     borderColor: semanticColors.border.default,
@@ -198,14 +227,20 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   timeLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
+    fontFamily: typography.mono.fontFamily,
     fontSize: 12,
-    color: semanticColors.text.tertiary,
+    color: semanticColors.text.quaternary,
   },
   unreadPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 9999,
+    backgroundColor: semanticColors.status.infoBg,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
   },
   unreadDot: {
     width: UNREAD_DOT_SIZE,
@@ -223,6 +258,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     flexShrink: 0,
+    paddingVertical: 3,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 9999,
+    backgroundColor: semanticColors.status.warningBg,
+    borderWidth: 1,
+    borderColor: semanticColors.status.warningBg,
   },
   importantText: {
     fontFamily: typography.eyebrow.fontFamily,
@@ -239,6 +280,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: semanticColors.text.primary,
   },
+  titleWide: {
+    fontSize: 20,
+    lineHeight: 27,
+  },
   description: {
     fontFamily: typography.bodySm.fontFamily,
     fontSize: 14,
@@ -246,8 +291,17 @@ const styles = StyleSheet.create({
     color: semanticColors.text.secondary,
     maxWidth: 640,
   },
+  descriptionWide: {
+    fontSize: 15,
+    lineHeight: 23,
+    maxWidth: 900,
+  },
 
   /* ---- footer ---- */
+  footerSection: {
+    gap: spacing.sm,
+    marginTop: spacing.xxs,
+  },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,11 +316,22 @@ const styles = StyleSheet.create({
     gap: 6,
     minWidth: 0,
   },
+  footerRowWide: {
+    minHeight: 36,
+  },
   caseLine: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
     color: semanticColors.text.tertiary,
     flexShrink: 1,
+  },
+  openIndicator: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: semanticColors.surface.sunken,
   },
 
   /* ---- misc ---- */

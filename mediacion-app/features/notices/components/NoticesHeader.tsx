@@ -2,6 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { Icon } from '../../../design-system/components/Icon';
+import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
 export type NoticesHeaderProps = {
@@ -18,11 +20,13 @@ export function NoticesHeader({ title, unreadCount, isWide }: NoticesHeaderProps
 
   return (
     <View style={styles.container}>
-      <Text style={styles.eyebrow}>Portal de Notificaciones</Text>
+      <View style={styles.eyebrowRow}>
+        <Icon name="bell" size={17} color={semanticColors.action.primaryBg} />
+        <Text style={styles.eyebrow}>{t('notices.header.badge')}</Text>
+      </View>
       <Text
         style={[styles.title, isWide ? styles.titleWide : styles.titleCompact]}
         accessibilityRole="header"
-        numberOfLines={1}
       >
         {title}
       </Text>
@@ -33,7 +37,12 @@ export function NoticesHeader({ title, unreadCount, isWide }: NoticesHeaderProps
 
 const styles = StyleSheet.create({
   container: {
-    gap: 2,
+    gap: spacing.xxs,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   eyebrow: {
     fontFamily: typography.eyebrow.fontFamily,
@@ -41,7 +50,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    color: semanticColors.text.secondary,
+    color: semanticColors.action.primaryBg,
   },
   title: {
     fontFamily: typography.displayLg.fontFamily,
@@ -58,8 +67,9 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   summary: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: typography.bodySm.fontSize,
+    fontFamily: typography.bodyLg.fontFamily,
+    fontSize: typography.bodyLg.fontSize,
+    lineHeight: typography.bodyLg.lineHeight,
     color: semanticColors.text.secondary,
   },
 });

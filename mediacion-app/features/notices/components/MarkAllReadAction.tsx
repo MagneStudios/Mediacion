@@ -11,7 +11,7 @@ export type MarkAllReadActionProps = {
 
 export function MarkAllReadAction({ label, pendingLabel, onPress, disabled, pending, fullWidth = true }: MarkAllReadActionProps) {
   return (
-    <Button variant="secondary" fullWidth={fullWidth} onPress={onPress} disabled={disabled || pending}>
+    <Button variant="primary" fullWidth={fullWidth} onPress={onPress} disabled={disabled || pending}>
       {pending ? pendingLabel : label}
     </Button>
   );

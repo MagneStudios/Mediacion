@@ -6,6 +6,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { Button, EmptyState, ErrorState, Icon, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { NoticesDemoNotice } from '@/features/notices/components/NoticesDemoNotice';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -59,17 +60,14 @@ export default function NoticeCenterScreen() {
       <View style={styles.headerSection}>
         <NoticesHeader title={t('notices.title')} unreadCount={unreadCount} isWide={isWide} />
 
-        <View style={[styles.infoRow, isWide && styles.infoRowWide]}>
-          <View style={styles.infoItem}>
-            <NoticesDemoNotice title={t('notices.demoNotice.title')} body={t('notices.demoNotice.body')} />
-          </View>
-          <View style={styles.infoItem}>
-            <PrivacyNotice title={t('notices.privacyNotice.title')}>{t('notices.privacyNotice.body')}</PrivacyNotice>
-          </View>
-        </View>
-
         <View style={[styles.controlBar, isWide && styles.controlBarWide]}>
-          <NoticeFilter value={filter} onChange={setFilter} allLabel={t('notices.filters.all')} unreadLabel={t('notices.filters.unread')} />
+          <NoticeFilter
+            value={filter}
+            onChange={setFilter}
+            allLabel={t('notices.filters.all')}
+            unreadLabel={t('notices.filters.unread')}
+            isWide={isWide}
+          />
           <View style={[styles.controlActions, isWide && styles.controlActionsWide]}>
             <MarkAllReadAction
               label={t('notices.markAllAction')}
@@ -82,6 +80,15 @@ export default function NoticeCenterScreen() {
             <Button variant="tertiary" fullWidth={!isWide} onPress={handleViewActivity}>
               {t('notices.viewActivityAction')}
             </Button>
+          </View>
+        </View>
+
+        <View style={[styles.infoRow, isWide && styles.infoRowWide]}>
+          <View style={styles.infoItem}>
+            <NoticesDemoNotice title={t('notices.demoNotice.title')} body={t('notices.demoNotice.body')} />
+          </View>
+          <View style={styles.infoItem}>
+            <PrivacyNotice title={t('notices.privacyNotice.title')}>{t('notices.privacyNotice.body')}</PrivacyNotice>
           </View>
         </View>
       </View>
@@ -145,11 +152,12 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
   headerSection: {
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
   },
   infoRow: {
     gap: spacing.xs,
@@ -163,19 +171,26 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: semanticColors.surface.card,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
+    borderRadius: radii.xl,
   },
   controlBarWide: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   controlActions: {
     gap: spacing.xs,
   },
   controlActionsWide: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
 });
