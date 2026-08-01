@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     minHeight: 240,
+    flex: 1,
   },
   topRow: {
     flexDirection: 'row',
@@ -217,5 +218,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    marginTop: 'auto',
   },
 });

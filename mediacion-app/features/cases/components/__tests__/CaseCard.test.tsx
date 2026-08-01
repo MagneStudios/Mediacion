@@ -142,3 +142,32 @@ describe('CaseCard', () => {
     expect(screen.queryByText(/rango/i)).toBeNull();
   });
 });
+
+describe('CaseCard — equal-height layout (flex: 1, footer pushed to bottom)', () => {
+  it('renders the CTA footer button regardless of title length', async () => {
+    await renderCard(buildCase({
+      title: 'Caso muy breve',
+      statusLabelKey: 'inReview',
+      visualStatus: 'info',
+    }));
+    expect(screen.getByText(t('cases.cta.continue'))).toBeTruthy();
+
+    const { unmount } = await renderCard(buildCase({
+      title: 'Revisión integral del régimen de cuidado personal, alimentos y vivienda familiar compartida extendida con múltiples partes',
+      statusLabelKey: 'signed',
+      visualStatus: 'success',
+    }));
+    expect(screen.getByText(t('cases.cta.view'))).toBeTruthy();
+    unmount();
+  });
+
+  it('renders contextual block and footer CTA for proposalReady status', async () => {
+    await renderCard(buildCase({ statusLabelKey: 'proposalReady', visualStatus: 'ai' }));
+    expect(screen.getByText(t('cases.cta.respond'))).toBeTruthy();
+  });
+
+  it('renders contextual block and footer CTA for awaitingCounterparty status', async () => {
+    await renderCard(buildCase({ statusLabelKey: 'awaitingCounterparty', visualStatus: 'neutral' }));
+    expect(screen.getByText(t('cases.cta.view'))).toBeTruthy();
+  });
+});

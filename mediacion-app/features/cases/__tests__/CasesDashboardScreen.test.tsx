@@ -178,6 +178,57 @@ describe('CasesDashboardScreen', () => {
       expect(screen.getByText('Reparto de bienes')).toBeTruthy();
       expect(screen.getByText('Pensión de alimentos')).toBeTruthy();
     });
+
+    it('two-column grid renders all CTA buttons for mixed-height content', async () => {
+      mockResponsiveLayout = { isWide: true, isExtraWide: false, horizontalPadding: 32 };
+      const mixedCases: CaseSummary[] = [
+        buildCase({ id: 'c1', title: 'Caso breve', metodo: 'mediacion', statusLabelKey: 'inReview', visualStatus: 'info', slaHours: null }),
+        buildCase({
+          id: 'c2',
+          title: 'Revisión integral del régimen de cuidado personal, alimentos compartidos y vivienda familiar',
+          metodo: 'negociacion',
+          statusLabelKey: 'proposalReady',
+          visualStatus: 'ai',
+          roundNumber: 3,
+          slaHours: 48,
+        }),
+      ];
+      mockUseCasesResult = { status: 'success', cases: mixedCases };
+      await renderScreen();
+      expect(screen.getByText('Caso breve')).toBeTruthy();
+      expect(screen.getByText(/Revisión integral/)).toBeTruthy();
+      expect(screen.getByText(t('cases.cta.continue'))).toBeTruthy();
+      expect(screen.getByText(t('cases.cta.respond'))).toBeTruthy();
+    });
+  });
+
+  describe('responsive — extra-wide web (1600px+, isExtraWide=true, 3 columns)', () => {
+    it('renders the three-column composition without losing any case', async () => {
+      mockResponsiveLayout = { isWide: true, isExtraWide: true, horizontalPadding: 32 };
+      mockUseCasesResult = { status: 'success', cases: threeCases };
+      await renderScreen();
+      expect(screen.getByText('Custodia compartida')).toBeTruthy();
+      expect(screen.getByText('Reparto de bienes')).toBeTruthy();
+      expect(screen.getByText('Pensión de alimentos')).toBeTruthy();
+    });
+
+    it('three-column grid renders all CTA buttons for varied content lengths', async () => {
+      mockResponsiveLayout = { isWide: true, isExtraWide: true, horizontalPadding: 32 };
+      const variedCases: CaseSummary[] = [
+        buildCase({ id: 'a', title: 'Caso muy breve', metodo: 'mediacion', statusLabelKey: 'signed', visualStatus: 'success', slaHours: null, roundNumber: null }),
+        buildCase({ id: 'b', title: 'División de bienes gananciales y régimen de visitas con mediación familiar extendida', metodo: 'negociacion', statusLabelKey: 'proposalReady', visualStatus: 'ai', roundNumber: 2, slaHours: 24 }),
+        buildCase({ id: 'c', title: 'Acuerdo parcial de alimentos', metodo: 'conciliacion', statusLabelKey: 'inReview', visualStatus: 'info', slaHours: 72 }),
+      ];
+      mockUseCasesResult = { status: 'success', cases: variedCases };
+      await renderScreen();
+      expect(screen.getByText(/Caso muy breve/)).toBeTruthy();
+      expect(screen.getByText(/División de bienes/)).toBeTruthy();
+      expect(screen.getByText(/Acuerdo parcial/)).toBeTruthy();
+      // All three CTAs must render
+      expect(screen.getByText(t('cases.cta.view'))).toBeTruthy();
+      expect(screen.getByText(t('cases.cta.respond'))).toBeTruthy();
+      expect(screen.getByText(t('cases.cta.continue'))).toBeTruthy();
+    });
   });
 
   describe('terminology and content safety', () => {

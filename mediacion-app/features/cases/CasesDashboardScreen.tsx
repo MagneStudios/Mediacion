@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     gap: spacing.lg,
+    alignItems: 'stretch',
   },
   gridItem: {
     flexGrow: 0,
