@@ -33,7 +33,11 @@ if (Platform.OS === 'web') {
 
 /**
  * Client-side filter — Stitch v6 style: compact pills, solid selected,
- * soft ring unselected. All four filters fit in one row at every breakpoint.
+ * soft ring unselected. Desktop keeps a single scrollable row. Compact/mobile
+ * renders a fixed 2×2 grid instead — natural content-based wrapping put three
+ * chips on row one and stranded the fourth alone on row two, which read as
+ * unbalanced. A `width` percentage per chip (not `flex: 1`, which redistributes
+ * unevenly once wrapped) forces exactly two per row regardless of label length.
  */
 export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFiltersProps) {
   const { isCompact } = useResponsiveLayout();
@@ -118,8 +122,13 @@ const styles = StyleSheet.create({
   },
   rowCompact: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.xxs,
+    // `justifyContent: 'space-between'` applies per wrapped line, so each
+    // row of 2 fixed-width chips gets the same horizontal gap between them
+    // as the next row — no `gap`/margin bookkeeping needed for that axis.
+    justifyContent: 'space-between',
+    rowGap: spacing.xs,
   },
   chip: {
     minHeight: 40,
@@ -131,7 +140,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipCompact: {
-    flex: 1,
+    // Fixed at 48% of the row so exactly 2 chips fit per line no matter
+    // which 2 land together — the leftover ~4% is the gap `space-between`
+    // (on the container) places between them. Content stays centered
+    // (`chip.justifyContent`/`alignItems: 'center'`) inside the wider pill.
+    width: '48%',
     paddingHorizontal: spacing.xs,
     minHeight: 36,
   },
