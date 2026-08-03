@@ -74,6 +74,10 @@ export function NoticeCard({
   const showMarkRead = !actionable && !read && onMarkRead != null;
   const showFooter = caseLine != null || showMarkRead || actionable;
   const categoryTone = getNoticeCategoryTone(category);
+  // The info-tone card tints its whole background the same soft blue as the
+  // default unread-pill fill — on that surface the pill needs a white fill to
+  // stay legible as a distinct marker instead of blending into the card.
+  const onTintedSurface = !read && categoryTone === 'info';
 
   const content = (
     <>
@@ -84,7 +88,7 @@ export function NoticeCard({
           <Text style={styles.dot}>·</Text>
           <Text style={styles.timeLabel}>{dateLabel}</Text>
           {!read ? (
-            <View style={styles.unreadPill} accessibilityLabel={unreadLabel}>
+            <View style={[styles.unreadPill, onTintedSurface && styles.unreadPillOnTint]} accessibilityLabel={unreadLabel}>
               <View style={styles.unreadDot} />
               <Text style={styles.unreadText}>{unreadLabel}</Text>
             </View>
@@ -241,6 +245,10 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.status.infoBg,
     borderWidth: 1,
     borderColor: semanticColors.border.soft,
+  },
+  unreadPillOnTint: {
+    backgroundColor: semanticColors.surface.card,
+    borderColor: semanticColors.border.default,
   },
   unreadDot: {
     width: UNREAD_DOT_SIZE,
