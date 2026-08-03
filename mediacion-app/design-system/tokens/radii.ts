@@ -1,13 +1,16 @@
 /**
- * Mediación radius tokens — ported from tokens/spacing.css. Modest corners
- * everywhere; pill radius is reserved for tab toggles / avatars, never CTAs.
+ * Mediación radius tokens — aquatic redesign scale, ported verbatim from
+ * `DESIGN-mediacion-actualizado.md`'s `rounded:` block. Slightly softer than
+ * the previous cream-and-sage scale (xs/sm/md/lg/xl each +2px). Modest
+ * corners everywhere; pill radius is reserved for tab toggles / avatars /
+ * status chips, never CTAs.
  */
 export const radii = {
-  xs: 4,
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  xs: 6,
+  sm: 8,
+  md: 10,
+  lg: 14,
+  xl: 18,
   xxl: 24,
   pill: 9999,
   full: 9999,

@@ -30,11 +30,16 @@ export function useProfile() {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    profileService.getProfile().then((result) => {
-      if (cancelled) return;
-      setProfile(result);
-      setStatus('success');
-    });
+    profileService
+      .getProfile()
+      .then((result) => {
+        if (cancelled) return;
+        setProfile(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        // A failed silent refresh keeps the data already on screen.
+      });
     return () => {
       cancelled = true;
     };

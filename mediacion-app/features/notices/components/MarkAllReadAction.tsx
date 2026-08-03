@@ -6,12 +6,12 @@ export type MarkAllReadActionProps = {
   onPress: () => void;
   disabled?: boolean;
   pending?: boolean;
+  fullWidth?: boolean;
 };
 
-/** Thin Button wrapper for "Marcar todas como leídas" — disabled while pending, disabled entirely when there's nothing unread. */
-export function MarkAllReadAction({ label, pendingLabel, onPress, disabled, pending }: MarkAllReadActionProps) {
+export function MarkAllReadAction({ label, pendingLabel, onPress, disabled, pending, fullWidth = true }: MarkAllReadActionProps) {
   return (
-    <Button variant="secondary" fullWidth onPress={onPress} disabled={disabled || pending}>
+    <Button variant="primary" fullWidth={fullWidth} onPress={onPress} disabled={disabled || pending}>
       {pending ? pendingLabel : label}
     </Button>
   );

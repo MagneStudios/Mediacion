@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, EntityTypeIndicator, StatusPill } from '../../../design-system';
+import { Button, Card, Divider, Icon, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { IconName } from '../../../design-system/components/Icon';
@@ -12,14 +13,12 @@ export type SignatureInboxCardProps = {
   agreementTitle: string;
   statusLabel: string;
   statusVisual: StatusPillStatus;
-  /** Signature-specific glyph for this group (draft/needs-your-signature/waiting/complete/notice) — never the generic case-card pattern. */
   statusIcon: IconName;
   dateLabel?: string;
   reviewLabel: string;
   onReview: () => void;
 };
 
-/** Same fg palette StatusPill uses per status — keeps the left accent bar and icon chip in agreement with the pill shown in the header. */
 const ACCENT: Record<StatusPillStatus, string> = {
   success: semanticColors.status.successFg,
   warning: semanticColors.status.warningFg,
@@ -29,7 +28,6 @@ const ACCENT: Record<StatusPillStatus, string> = {
   ai: semanticColors.ai.accent,
 };
 
-/** One signature-inbox entry — no provider IDs, no certificate data, no other party details. Card is non-interactive; the review action is a sibling Button. */
 export function SignatureInboxCard({
   caseTitle,
   agreementTitle,
@@ -41,61 +39,100 @@ export function SignatureInboxCard({
   onReview,
 }: SignatureInboxCardProps) {
   return (
-    <Card style={[styles.card, { borderWidth: 1, borderLeftWidth: 3, borderLeftColor: ACCENT[statusVisual] }]}>
+    <Card style={[styles.card, { borderLeftWidth: 3, borderLeftColor: ACCENT[statusVisual] }]}>
       <View style={styles.header}>
-        <EntityTypeIndicator icon={statusIcon} tone={statusVisual} />
-        <View style={styles.textColumn}>
-          <Text style={styles.caseTitle} numberOfLines={1}>
-            {caseTitle}
-          </Text>
-          <Text style={styles.agreementTitle} numberOfLines={1}>
-            {agreementTitle}
-          </Text>
+        <View style={styles.iconCircle}>
+          <Icon name="file-signature" size={20} color={semanticColors.text.secondary} />
         </View>
-        <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
+        <View style={styles.headerText}>
+          <View style={styles.topRow}>
+            <Text style={styles.caseLabel} numberOfLines={1}>{caseTitle}</Text>
+            <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
+          </View>
+          <Text style={styles.agreementTitle} numberOfLines={2}>{agreementTitle}</Text>
+        </View>
       </View>
+
       {dateLabel ? (
-        <Text style={styles.date} accessibilityLabel={dateLabel}>
-          {dateLabel}
-        </Text>
+        <View style={styles.dateRow}>
+          <Icon name="clock" size={14} color={semanticColors.text.tertiary} />
+          <Text style={styles.date} accessibilityLabel={dateLabel}>{dateLabel}</Text>
+        </View>
       ) : null}
-      <Button variant="secondary" fullWidth onPress={onReview}>
-        {reviewLabel}
-      </Button>
+
+      <Divider tone="soft" />
+
+      <View style={styles.footer}>
+        <Button variant="secondary" size="sm" onPress={onReview} iconRight={<Icon name="chevron-right" size={14} color={semanticColors.action.secondaryFg} />}>
+          {reviewLabel}
+        </Button>
+      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
     gap: spacing.sm,
+    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  textColumn: {
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: semanticColors.surface.sunken,
+    flexShrink: 0,
+  },
+  headerText: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: spacing.xxs,
   },
-  caseTitle: {
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  caseLabel: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
-    color: semanticColors.text.quaternary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: semanticColors.text.tertiary,
+    flexShrink: 1,
   },
   agreementTitle: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 16,
+    fontFamily: typography.cardTitle.fontFamily,
+    fontSize: 17,
+    fontWeight: '600',
     letterSpacing: -0.2,
+    lineHeight: 23,
     color: semanticColors.text.primary,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+  },
   date: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 11,
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 13,
     color: semanticColors.text.tertiary,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 });

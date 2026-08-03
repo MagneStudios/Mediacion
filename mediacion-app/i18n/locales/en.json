@@ -321,7 +321,9 @@
     }
   },
   "cases": {
-    "title": "Your cases",
+    "title": "My cases",
+    "eyebrow": "Case dashboard",
+    "description": "Review your cases and next steps.",
     "createCase": "Start a case",
     "loading": "Looking for your cases…",
     "empty": {
@@ -341,7 +343,27 @@
       "sla": "SLA {{hours}} h"
     },
     "round": "Round {{number}}",
-    "noRound": "No active round"
+    "noRound": "No active round",
+    "summary": {
+      "total": "Cases",
+      "pendingResponse": "Waiting for your response"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "nextActionLabel": "Next action",
+    "resultLabel": "Result",
+    "nextAction": {
+      "inReview": "The process is still moving forward.",
+      "proposalReady": "There's a proposal waiting for your response.",
+      "signed": "The agreement was signed by both parties.",
+      "awaitingCounterparty": "Waiting for the other party to join the case."
+    },
+    "cta": {
+      "continue": "Continue case",
+      "respond": "Respond to proposal",
+      "view": "View case"
+    }
   },
   "common": {
     "back": "Back",
@@ -538,6 +560,8 @@
       "statusCompleted": "Completed"
     },
     "proposal": {
+      "intro": "This proposal aims to bring both parties' stated positions closer together.",
+      "meetingPointSectionTitle": "Meeting points",
       "rationaleTitle": "Rationale",
       "statusPending": "Awaiting response",
       "statusAccepted": "Accepted",
@@ -608,6 +632,9 @@
   },
   "notices": {
     "title": "Notice center",
+    "header": {
+      "badge": "Notifications"
+    },
     "demoNotice": {
       "title": "Demonstration environment",
       "body": "Notices in this demo aren't sent by email or to your device."

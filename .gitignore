@@ -5,6 +5,10 @@
 *.pem
 *.key
 
+# opencode.json holds the Stitch MCP API key (X-Goog-Api-Key) — local-machine
+# config, never committed. Use opencode.example.json as the template.
+/opencode.json
+
 # === Dependencias ===
 node_modules/
 .pnp

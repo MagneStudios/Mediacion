@@ -1,4 +1,4 @@
-export { colors, semanticColors } from './colors';
+export { colors, semanticColors, legacyColorMigrationMap } from './colors';
 export { fontFamily, typography } from './typography';
 export type { TypographyRole } from './typography';
 export { spacing, layout } from './spacing';

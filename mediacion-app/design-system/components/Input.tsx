@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
 import { focusBorderWidth } from '../tokens/elevation';
@@ -18,7 +18,7 @@ export type InputProps = Omit<TextInputProps, 'style'> & {
  * Mediación text field. Errors are always surfaced as text (never color
  * alone) and the control keeps a 44px touch target.
  */
-export function Input({ label, hint, error, iconLeft, editable = true, onFocus, onBlur, ...rest }: InputProps) {
+export function Input({ label, hint, error, iconLeft, editable = true, multiline, numberOfLines, onFocus, onBlur, ...rest }: InputProps) {
   const [focused, setFocused] = useState(false);
   const reactId = useId();
   const isInvalid = Boolean(error);
@@ -33,6 +33,8 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
       ? semanticColors.border.focus
       : semanticColors.border.default;
 
+  const isMultiline = Boolean(multiline);
+
   return (
     <View style={styles.field}>
       {label ? (
@@ -43,6 +45,7 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
       <View
         style={[
           styles.control,
+          isMultiline && styles.controlMultiline,
           {
             borderColor,
             borderWidth: focused || isInvalid ? focusBorderWidth : 1,
@@ -54,8 +57,11 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
         <TextInput
           {...rest}
           editable={editable}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
           placeholderTextColor={semanticColors.text.quaternary}
-          style={styles.input}
+          style={[styles.input, isMultiline && styles.inputMultiline, webNoOutline]}
+          textAlignVertical={isMultiline ? 'top' : 'center'}
           accessibilityLabelledBy={label ? `${reactId}-label` : undefined}
           accessibilityHint={error || hint || undefined}
           {...({ 'aria-describedby': describedById } as Partial<TextInputProps>)}
@@ -83,6 +89,8 @@ export function Input({ label, hint, error, iconLeft, editable = true, onFocus, 
   );
 }
 
+const webNoOutline = Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as Record<string, unknown>) : undefined;
+
 const styles = StyleSheet.create({
   field: {
     gap: 6,
@@ -100,8 +108,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: layout.touchTarget,
   },
+  controlMultiline: {
+    alignItems: 'flex-start',
+    minHeight: undefined,
+  },
   icon: {
     flexShrink: 0,
+    paddingTop: 10,
   },
   input: {
     flex: 1,
@@ -109,6 +122,11 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     color: semanticColors.text.primary,
     paddingVertical: 10,
+  },
+  inputMultiline: {
+    minHeight: 80,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   hintMsg: {
     fontFamily: typography.caption.fontFamily,

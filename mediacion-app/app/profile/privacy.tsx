@@ -13,7 +13,7 @@ import { blurActiveElement } from '@/utils/blur-active-element';
 export default function ProfilePrivacyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   return (
     <ScrollView
@@ -30,6 +30,7 @@ export default function ProfilePrivacyScreen() {
       <ProfileMenuItem
         icon="alert-circle"
         label={t('profile.privacy.links.deactivation')}
+        compact={!isWide}
         onPress={() => {
           blurActiveElement();
           router.push('/profile/account');
@@ -38,6 +39,7 @@ export default function ProfilePrivacyScreen() {
       <ProfileMenuItem
         icon="help-circle"
         label={t('profile.privacy.links.support')}
+        compact={!isWide}
         onPress={() => {
           blurActiveElement();
           router.push('/profile/help');

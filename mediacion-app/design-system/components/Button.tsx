@@ -55,7 +55,7 @@ const VARIANT_BG: Record<ButtonVariant, string> = {
 const VARIANT_BG_PRESSED: Record<ButtonVariant, string> = {
   primary: semanticColors.action.primaryBgPressed,
   secondary: semanticColors.surface.sunken,
-  tertiary: 'rgba(17, 17, 17, 0.09)',
+  tertiary: 'rgba(23, 50, 74, 0.09)',
   ai: semanticColors.action.aiBgPressed,
   destructive: semanticColors.status.errorBgPressed,
 };

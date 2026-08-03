@@ -321,7 +321,9 @@
     }
   },
   "cases": {
-    "title": "Tus casos",
+    "title": "Mis casos",
+    "eyebrow": "Panel de casos",
+    "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
     "loading": "Buscando tus casos…",
     "empty": {
@@ -341,7 +343,27 @@
       "sla": "SLA {{hours}} h"
     },
     "round": "Ronda {{number}}",
-    "noRound": "Sin ronda activa"
+    "noRound": "Sin ronda activa",
+    "summary": {
+      "total": "Casos",
+      "pendingResponse": "Esperan tu respuesta"
+    },
+    "filters": {
+      "all": "Todos"
+    },
+    "nextActionLabel": "Próxima acción",
+    "resultLabel": "Resultado",
+    "nextAction": {
+      "inReview": "El proceso sigue en curso.",
+      "proposalReady": "Hay una propuesta esperando tu respuesta.",
+      "signed": "El acuerdo fue firmado por ambas partes.",
+      "awaitingCounterparty": "Esperando a que la contraparte se una al caso."
+    },
+    "cta": {
+      "continue": "Continuar caso",
+      "respond": "Responder propuesta",
+      "view": "Ver caso"
+    }
   },
   "common": {
     "back": "Atrás",
@@ -538,6 +560,8 @@
       "statusCompleted": "Completada"
     },
     "proposal": {
+      "intro": "Esta propuesta busca acercar las posiciones expresadas por ambas partes.",
+      "meetingPointSectionTitle": "Puntos de encuentro",
       "rationaleTitle": "Fundamento",
       "statusPending": "Pendiente de respuesta",
       "statusAccepted": "Aceptada",
@@ -608,6 +632,9 @@
   },
   "notices": {
     "title": "Centro de avisos",
+    "header": {
+      "badge": "Notificaciones"
+    },
     "demoNotice": {
       "title": "Entorno de demostración",
       "body": "Los avisos de esta demostración no se envían por correo ni al dispositivo."

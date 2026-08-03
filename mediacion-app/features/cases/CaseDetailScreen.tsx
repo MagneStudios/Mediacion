@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '../../design-system';
+import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
+import { radii } from '../../design-system/tokens/radii';
 import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
 import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
@@ -18,8 +19,8 @@ import { getPositionEligibility } from '../../utils/position-eligibility';
 import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
+import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
-import { PrivacyNotice } from './components/PrivacyNotice';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
 import { useCaseDetail } from './hooks/useCaseDetail';
 
@@ -33,7 +34,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { status, detail, reload } = useCaseDetail(caseId);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
   const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -66,10 +67,6 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       setSimulateDialogVisible(false);
       reload();
 
-      // Best-effort side effects only, strictly after the case transition
-      // above has already committed — a notice/activity failure here never
-      // rolls it back. Both narrow append functions dedupe internally, so
-      // this can never create a duplicate on a retried call.
       try {
         await appendCaseNotice({ caseId, eventKey: 'invitation_accepted_simulated' });
       } catch {
@@ -111,14 +108,27 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     const eligibility = getPositionEligibility(detail.estado);
     const canCreate = eligibility === 'editable';
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{t('caseDetail.positions.title')}</Text>
-        <PrivacyNotice>{t('caseDetail.positions.supportingCopy')}</PrivacyNotice>
-        <View style={styles.positionsActions}>
+      <Card style={styles.positionsCard}>
+        <View style={styles.positionsHeader}>
+          <Text style={styles.positionsEyebrow} accessibilityRole="header">
+            {t('caseDetail.positions.title')}
+          </Text>
+        </View>
+
+        <View style={styles.privacyBanner}>
+          <View style={styles.privacyIconWrap}>
+            <Icon name="lock" size={20} color={semanticColors.ai.accent} />
+          </View>
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyBody}>{t('caseDetail.positions.supportingCopy')}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.positionsActions, isWide && styles.positionsActionsRow]}>
           {canCreate ? (
             <Button
               variant="primary"
-              fullWidth
+              fullWidth={!isWide}
               iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
               onPress={() => {
                 blurActiveElement();
@@ -130,7 +140,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           ) : null}
           <Button
             variant="secondary"
-            fullWidth
+            fullWidth={!isWide}
             onPress={() => {
               blurActiveElement();
               router.push({ pathname: '/case/[id]/positions', params: { id: caseId } });
@@ -139,60 +149,69 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
             {t('caseDetail.positions.viewAction')}
           </Button>
         </View>
-      </View>
+      </Card>
     );
   })();
+
+  const workspaceMaxWidth = isWide ? 1480 : contentWidths.wide;
+
+  const contentStyle = getResponsiveContentStyle({ maxWidth: workspaceMaxWidth, horizontalPadding });
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.wide, horizontalPadding })]}
+      contentContainerStyle={[styles.content, contentStyle]}
     >
-      <Text style={styles.title} accessibilityRole="header">
-        {detail.title}
-      </Text>
-      <Text style={styles.subtitle}>{t('caseDetail.caseCode', { code: detail.caseCode })}</Text>
-
-      <PrivacyNotice>{t('caseDetail.privacyNotice')}</PrivacyNotice>
+      <CaseDetailHeader detail={detail} isWide={isWide} />
 
       {isAwaitingCounterparty ? (
-        <View style={styles.section}>
-          <View style={styles.methodRow}>
-            <Badge variant="neutral">{t(`methods.${detail.metodo}`)}</Badge>
-            <StatusPill status="info">{t('cases.status.awaitingCounterparty')}</StatusPill>
-          </View>
-          <Text style={styles.sectionLabel}>{t('caseDetail.awaitingCounterparty.title')}</Text>
-          <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
+        <View style={styles.awaitingSection}>
+          <Card style={styles.awaitingGuidanceCard}>
+            <View style={styles.awaitingGuidanceHeader}>
+              <View style={styles.awaitingGuidanceIconWrap}>
+                <Icon name="info" size={22} color={semanticColors.ai.accent} />
+              </View>
+              <View style={styles.awaitingGuidanceTextCol}>
+                <Text style={styles.awaitingGuidanceTitle}>{t('caseDetail.awaitingCounterparty.title')}</Text>
+                <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.description')}</Text>
+              </View>
+            </View>
+          </Card>
 
-          {invitation ? (
-            <InvitationResultCard
-              label={
-                invitation.tipo === 'link'
-                  ? t('caseCreation.invite.linkLabel')
-                  : invitation.tipo === 'codigo'
-                    ? t('caseCreation.invite.codeLabel')
-                    : t('caseCreation.invite.emailLabel')
-              }
-              value={invitation.token ?? invitation.emailDestino ?? ''}
-              monospace={invitation.tipo === 'codigo'}
-              copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
-              copiedLabel={t('caseCreation.invite.copied')}
-            />
-          ) : invitationStatus === 'error' ? (
-            <ErrorState
-              title={t('caseDetail.awaitingCounterparty.invitationError')}
-              retryLabel={t('common.retry')}
-              onRetry={handleViewInvitation}
-            />
-          ) : (
-            <Button variant="secondary" onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
-              {invitationStatus === 'loading'
-                ? t('common.loading')
-                : t('caseDetail.awaitingCounterparty.viewInvitation')}
-            </Button>
-          )}
+          <Card style={styles.awaitingInvitationCard}>
+            {invitation ? (
+              <InvitationResultCard
+                label={
+                  invitation.tipo === 'link'
+                    ? t('caseCreation.invite.linkLabel')
+                    : invitation.tipo === 'codigo'
+                      ? t('caseCreation.invite.codeLabel')
+                      : t('caseCreation.invite.emailLabel')
+                }
+                value={invitation.token ?? invitation.emailDestino ?? ''}
+                monospace={invitation.tipo === 'codigo'}
+                copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
+                copiedLabel={t('caseCreation.invite.copied')}
+              />
+            ) : invitationStatus === 'error' ? (
+              <ErrorState
+                title={t('caseDetail.awaitingCounterparty.invitationError')}
+                retryLabel={t('common.retry')}
+                onRetry={handleViewInvitation}
+              />
+            ) : (
+              <Button variant="primary" fullWidth onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
+                {invitationStatus === 'loading'
+                  ? t('common.loading')
+                  : t('caseDetail.awaitingCounterparty.viewInvitation')}
+              </Button>
+            )}
+          </Card>
 
-          <View style={styles.simulateSection}>
+          <View style={styles.awaitingDemoSection}>
+            <View style={styles.awaitingDemoHeader}>
+              <Icon name="sparkles" size={20} color={semanticColors.text.tertiary} />
+            </View>
             <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}</Text>
             <Button variant="secondary" fullWidth onPress={openSimulateDialog} disabled={simulateStatus === 'pending'}>
               {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
@@ -201,14 +220,11 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
         </View>
       ) : (
         <ResponsiveColumns
-          primary={
-            <>
-              {positionsSection}
-              <NegotiationSummaryCard caseId={caseId} />
-            </>
-          }
+          collapseEmptySecondary
+          primary={positionsSection}
           secondary={
             <>
+              <NegotiationSummaryCard caseId={caseId} />
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
               {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
             </>
@@ -236,45 +252,136 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  positionsActions: {
-    gap: spacing.xs,
-  },
   container: {
     flex: 1,
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingVertical: spacing.xl,
+    gap: spacing.xl,
   },
-  title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 22,
-    letterSpacing: -0.3,
-    color: semanticColors.text.primary,
+  module: {
+    gap: spacing.sm,
   },
-  subtitle: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 12,
-    color: semanticColors.text.tertiary,
-    marginTop: -spacing.xs,
-  },
-  methodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  section: {
-    gap: spacing.xs,
-  },
-  simulateSection: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  sectionLabel: {
+  moduleLabel: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
     color: semanticColors.text.quaternary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  positionsCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  positionsHeader: {
+    gap: spacing.xxs,
+  },
+  positionsEyebrow: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: semanticColors.text.secondary,
+  },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: semanticColors.surface.supportAqua,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  privacyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: semanticColors.surface.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  privacyTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  privacyBody: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 13,
+    lineHeight: 19,
+    color: semanticColors.text.secondary,
+  },
+  positionsActions: {
+    gap: spacing.xs,
+  },
+  positionsActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  awaitingSection: {
+    gap: spacing.md,
+  },
+  awaitingGuidanceCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: semanticColors.surface.supportAqua,
+    borderLeftWidth: 4,
+    borderLeftColor: semanticColors.ai.accent,
+  },
+  awaitingGuidanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  awaitingGuidanceIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: semanticColors.surface.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  awaitingGuidanceTextCol: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  awaitingGuidanceTitle: {
+    fontFamily: typography.cardTitle.fontFamily,
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    color: semanticColors.text.primary,
+  },
+  awaitingInvitationCard: {
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  awaitingInvitationEyebrow: {
+    fontFamily: typography.eyebrow.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: semanticColors.text.secondary,
+  },
+  awaitingDemoSection: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
+    alignItems: 'center',
+  },
+  awaitingDemoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   bodyText: {
     fontFamily: typography.bodySm.fontFamily,

@@ -1,3 +1,4 @@
+import type { NotificationPreferences } from '../../../types/profile';
 import type { HttpClient, RequestOptions } from '../http-client';
 import {
   createApiProfileService,
@@ -161,5 +162,40 @@ describe('createApiProfileService', () => {
     });
 
     expect(profile.nombre).toBe('Normalizado');
+  });
+});
+
+describe('notification preferences endpoints', () => {
+  const allPrefs: NotificationPreferences = {
+    caseUpdates: true,
+    proposalReady: true,
+    responseReceived: true,
+    signatureReady: true,
+    agreementCompleted: true,
+    mediatorAvailability: true,
+    productUpdates: true,
+  };
+
+  it('reads them from GET /me/preferencias-notificacion', async () => {
+    const { http, calls } = buildHttp(() => allPrefs);
+
+    const prefs = await createApiProfileService(http).getNotificationPreferences();
+
+    expect(calls[0].path).toBe('/me/preferencias-notificacion');
+    expect(calls[0].options?.method).toBeUndefined();
+    expect(prefs).toEqual(allPrefs);
+  });
+
+  it('PATCHes the partial and returns the server answer', async () => {
+    const { http, calls } = buildHttp(() => ({ ...allPrefs, productUpdates: false }));
+
+    const prefs = await createApiProfileService(http).updateNotificationPreferences({
+      productUpdates: false,
+    });
+
+    expect(calls[0].path).toBe('/me/preferencias-notificacion');
+    expect(calls[0].options?.method).toBe('PATCH');
+    expect(calls[0].options?.body).toEqual({ productUpdates: false });
+    expect(prefs.productUpdates).toBe(false);
   });
 });

@@ -1,17 +1,18 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AIProcessingState, Button, ErrorState, Icon, LoadingState, ResponsiveColumns } from '@/design-system';
+import { Text } from '@/design-system/components/Text';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
-import { typography } from '@/design-system/tokens/typography';
 import { useCaseDetail } from '@/features/cases/hooks/useCaseDetail';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
 import { MediatorSummaryCard } from '@/features/mediator/components/MediatorSummaryCard';
 import { CurrentRoundCard } from '@/features/negotiation/components/CurrentRoundCard';
+import { ProposalOutcomeNotice } from '@/features/negotiation/components/ProposalOutcomeNotice';
 import { ProposalResponseActions } from '@/features/negotiation/components/ProposalResponseActions';
 import { ProposalResponseDialog } from '@/features/negotiation/components/ProposalResponseDialog';
 import { SharedProposalCard } from '@/features/negotiation/components/SharedProposalCard';
@@ -32,7 +33,7 @@ export default function NegotiationDashboardScreen() {
   // same explicit not-found presentation as every sibling route instead of
   // a silent, near-blank read_only render.
   const { status: caseStatus, detail: caseDetail } = useCaseDetail(caseId);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
   const {
     status,
     state,
@@ -120,13 +121,22 @@ export default function NegotiationDashboardScreen() {
       ) : null}
 
       {eligibility === 'waiting_counterparty' ? (
-        <Text style={styles.bodyText}>{t('negotiation.summary.waitingCounterparty.description')}</Text>
+        <WaitingForPartyState
+          title={t('negotiation.summary.waitingCounterparty.title')}
+          description={t('negotiation.summary.waitingCounterparty.description')}
+        />
       ) : null}
       {eligibility === 'positions_incomplete' ? (
-        <Text style={styles.bodyText}>{t('negotiation.summary.positionsIncomplete.description')}</Text>
+        <WaitingForPartyState
+          title={t('negotiation.summary.positionsIncomplete.title')}
+          description={t('negotiation.summary.positionsIncomplete.description')}
+        />
       ) : null}
       {eligibility === 'waiting_other_party' ? (
-        <Text style={styles.bodyText}>{t('negotiation.summary.waitingOtherParty.description')}</Text>
+        <WaitingForPartyState
+          title={t('negotiation.summary.waitingOtherParty.title')}
+          description={t('negotiation.summary.waitingOtherParty.description')}
+        />
       ) : null}
 
       {generateStatus === 'pending' ? (
@@ -142,6 +152,8 @@ export default function NegotiationDashboardScreen() {
           title={t('negotiation.proposal.title', {
             round: currentProposal.roundNumber,
           })}
+          intro={t('negotiation.proposal.intro')}
+          meetingPointSectionTitle={t('negotiation.proposal.meetingPointSectionTitle')}
           meetingPoint={currentProposal.meetingPoint}
           narrative={currentProposal.narrative}
           pendingLabel={t('negotiation.proposal.generating')}
@@ -186,23 +198,31 @@ export default function NegotiationDashboardScreen() {
       ) : null}
 
       {roundResolved && !bothAccepted && currentProposal?.estado === 'rechazada' ? (
-        <Text style={styles.bodyText}>{t('negotiation.resolution.notAcceptedBody')}</Text>
+        <ProposalOutcomeNotice
+          tone="neutral"
+          title={t('negotiation.summary.completedNoAgreement.title')}
+          description={t('negotiation.resolution.notAcceptedBody')}
+        />
       ) : null}
 
       {bothAccepted ? (
-        <View style={styles.section}>
-          <Text style={styles.bodyText}>{t('negotiation.resolution.agreementBody')}</Text>
-          <Button
-            variant="primary"
-            fullWidth
-            onPress={() => {
-              blurActiveElement();
-              router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
-            }}
-          >
-            {t('negotiation.resolution.reviewAgreementAction')}
-          </Button>
-        </View>
+        <ProposalOutcomeNotice
+          tone="success"
+          title={t('negotiation.summary.agreementReached.title')}
+          description={t('negotiation.resolution.agreementBody')}
+          action={
+            <Button
+              variant="primary"
+              fullWidth
+              onPress={() => {
+                blurActiveElement();
+                router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+              }}
+            >
+              {t('negotiation.resolution.reviewAgreementAction')}
+            </Button>
+          }
+        />
       ) : null}
 
       {canStartRound ? (
@@ -261,7 +281,7 @@ export default function NegotiationDashboardScreen() {
     >
       <Stack.Screen options={{ title: t('negotiation.dashboard.title') }} />
 
-      <Text style={styles.title} accessibilityRole="header">
+      <Text variant={isWide ? 'displayLg' : 'headline'} accessibilityRole="header">
         {t('negotiation.dashboard.title')}
       </Text>
 
@@ -297,20 +317,5 @@ const styles = StyleSheet.create({
   content: {
     paddingVertical: spacing.md,
     gap: spacing.md,
-  },
-  title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
-    color: semanticColors.text.primary,
-  },
-  section: {
-    gap: spacing.xs,
-  },
-  bodyText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
-    color: semanticColors.text.secondary,
   },
 });

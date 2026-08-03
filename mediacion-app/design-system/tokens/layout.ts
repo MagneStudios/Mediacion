@@ -17,7 +17,7 @@ export const breakpoints = {
 } as const;
 
 /** Fixed desktop sidebar width — within the approved 240–256px range. */
-export const sidebarWidth = 248;
+export const sidebarWidth = 256;
 
 /** Cap on ResponsiveColumns' secondary column, so a wide viewport never stretches contextual/supporting content unreadably wide. */
 export const secondaryColumnMaxWidth = 380;

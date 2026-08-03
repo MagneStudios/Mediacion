@@ -1,9 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Card, StatusPill } from '../../../design-system';
-import { semanticColors } from '../../../design-system/tokens/colors';
+import { Text } from '../../../design-system/components/Text';
 import { spacing } from '../../../design-system/tokens/spacing';
-import { typography } from '../../../design-system/tokens/typography';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 
 export type CurrentRoundCardProps = {
@@ -17,7 +16,7 @@ export function CurrentRoundCard({ roundLabel, statusLabel, statusVisual }: Curr
   return (
     <Card style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.roundLabel} accessibilityRole="header">
+        <Text variant="cardTitle" accessibilityRole="header">
           {roundLabel}
         </Text>
         <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
@@ -36,11 +35,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,
-  },
-  roundLabel: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 18,
-    letterSpacing: -0.2,
-    color: semanticColors.text.primary,
   },
 });

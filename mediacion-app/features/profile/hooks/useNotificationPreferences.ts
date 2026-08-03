@@ -29,11 +29,16 @@ export function useNotificationPreferences() {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    profileService.getNotificationPreferences().then((result) => {
-      if (cancelled) return;
-      setPreferences(result);
-      setStatus('success');
-    });
+    profileService
+      .getNotificationPreferences()
+      .then((result) => {
+        if (cancelled) return;
+        setPreferences(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        // A failed silent refresh keeps the data already on screen.
+      });
     return () => {
       cancelled = true;
     };
