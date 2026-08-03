@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -72,9 +72,11 @@ export default function CaseCreateReviewScreen() {
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={3} total={4} label={t('caseCreation.progress', { step: 3, total: 4 })} />
 
-      <Text style={styles.title} accessibilityRole="header">
-        {t('caseCreation.review.title')}
-      </Text>
+      <View style={styles.intro}>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('caseCreation.review.title')}
+        </Text>
+      </View>
 
       <CaseReviewCard
         nameLabel={t('caseCreation.review.nameLabel')}
@@ -87,28 +89,31 @@ export default function CaseCreateReviewScreen() {
 
       <PrivacyNotice>{t('caseCreation.review.privacyReminder')}</PrivacyNotice>
 
-      {status === 'error' ? (
-        <ErrorState
-          title={t('caseCreation.review.error.title')}
-          retryLabel={t('caseCreation.review.error.retry')}
-          onRetry={handleCreate}
-        />
-      ) : (
-        <Button variant="primary" fullWidth onPress={handleCreate} loading={status === 'submitting'} loadingLabel={t('caseCreation.review.creating')}>
-          {t('caseCreation.review.create')}
+      <View style={styles.actions}>
+        {status === 'error' ? (
+          <ErrorState
+            title={t('caseCreation.review.error.title')}
+            retryLabel={t('caseCreation.review.error.retry')}
+            onRetry={handleCreate}
+          />
+        ) : (
+          <Button variant="primary" size="lg" fullWidth onPress={handleCreate} loading={status === 'submitting'} loadingLabel={t('caseCreation.review.creating')}>
+            {t('caseCreation.review.create')}
+          </Button>
+        )}
+        <Button
+          variant="tertiary"
+          size="lg"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.back();
+          }}
+          disabled={status === 'submitting'}
+        >
+          {t('caseCreation.review.edit')}
         </Button>
-      )}
-      <Button
-        variant="tertiary"
-        fullWidth
-        onPress={() => {
-          blurActiveElement();
-          router.back();
-        }}
-        disabled={status === 'submitting'}
-      >
-        {t('caseCreation.review.edit')}
-      </Button>
+      </View>
     </ScrollView>
   );
 }
@@ -119,13 +124,19 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  intro: {
+    marginBottom: spacing.xs,
+  },
+  actions: {
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
 });

@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState, Input, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -85,25 +85,29 @@ export default function CaseCreateInviteScreen() {
         <Stack.Screen options={{ title: '' }} />
         <CaseCreationProgress step={4} total={4} label={t('caseCreation.progress', { step: 4, total: 4 })} />
 
-        <Text style={styles.title} accessibilityRole="header">
-          {t('caseCreation.invite.title')}
-        </Text>
-        <Text style={styles.subtitle}>{t('caseCreation.invite.subtitle')}</Text>
+        <View style={styles.intro}>
+          <Text style={styles.title} accessibilityRole="header">
+            {t('caseCreation.invite.title')}
+          </Text>
+          <Text style={styles.subtitle}>{t('caseCreation.invite.subtitle')}</Text>
+        </View>
 
-        {TIPOS.map((option) => (
-          <SelectableCard
-            key={option}
-            icon={option === 'link' ? 'send' : option === 'codigo' ? 'lock' : 'messages-square'}
-            title={t(`caseCreation.invite.method.${option}.title`)}
-            description={t(`caseCreation.invite.method.${option}.description`)}
-            selected={tipo === option}
-            selectedLabel={t('caseCreation.method.selected')}
-            onPress={() => {
-              setTipo(option);
-              setEmailTouched(false);
-            }}
-          />
-        ))}
+        <View style={styles.options} accessibilityRole="radiogroup">
+          {TIPOS.map((option) => (
+            <SelectableCard
+              key={option}
+              icon={option === 'link' ? 'send' : option === 'codigo' ? 'lock' : 'messages-square'}
+              title={t(`caseCreation.invite.method.${option}.title`)}
+              description={t(`caseCreation.invite.method.${option}.description`)}
+              selected={tipo === option}
+              selectedLabel={t('caseCreation.method.selected')}
+              onPress={() => {
+                setTipo(option);
+                setEmailTouched(false);
+              }}
+            />
+          ))}
+        </View>
 
         {tipo === 'email' ? (
           <Input
@@ -121,7 +125,7 @@ export default function CaseCreateInviteScreen() {
         ) : null}
 
         {draft.invitation ? (
-          <>
+          <View style={styles.result}>
             <InvitationResultCard
               label={
                 draft.invitation.tipo === 'link'
@@ -142,6 +146,7 @@ export default function CaseCreateInviteScreen() {
             </Text>
             <Button
               variant="primary"
+              size="lg"
               fullWidth
               onPress={() => {
                 blurActiveElement();
@@ -150,7 +155,7 @@ export default function CaseCreateInviteScreen() {
             >
               {t('caseCreation.invite.continue')}
             </Button>
-          </>
+          </View>
         ) : status === 'error' ? (
           <ErrorState
             title={t('caseCreation.invite.error.title')}
@@ -158,7 +163,7 @@ export default function CaseCreateInviteScreen() {
             onRetry={handlePrepare}
           />
         ) : (
-          <Button variant="primary" fullWidth disabled={!tipo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
+          <Button variant="primary" size="lg" fullWidth disabled={!tipo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
             {t('caseCreation.invite.sendInvitation')}
           </Button>
         )}
@@ -176,25 +181,29 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
+  },
+  intro: {
+    gap: spacing.xs,
+  },
+  options: {
+    gap: spacing.sm,
+  },
+  result: {
     gap: spacing.md,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   subtitle: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
     color: semanticColors.text.secondary,
-    marginTop: -spacing.sm,
   },
   confirmation: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });

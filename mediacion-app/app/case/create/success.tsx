@@ -61,10 +61,10 @@ export default function CaseCreateSuccessScreen() {
       ) : null}
 
       <View style={styles.actions}>
-        <Button variant="primary" fullWidth onPress={handleViewCase}>
+        <Button variant="primary" size="lg" fullWidth onPress={handleViewCase}>
           {t('caseCreation.success.viewCase')}
         </Button>
-        <Button variant="secondary" fullWidth onPress={handleBackToDashboard}>
+        <Button variant="secondary" size="lg" fullWidth onPress={handleBackToDashboard}>
           {t('caseCreation.success.backToDashboard')}
         </Button>
       </View>
@@ -75,40 +75,39 @@ export default function CaseCreateSuccessScreen() {
 const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
   },
   badge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: semanticColors.status.successBg,
+    borderWidth: 1,
+    borderColor: semanticColors.status.successFg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
     textAlign: 'center',
   },
   body: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
     color: semanticColors.text.secondary,
     textAlign: 'center',
+    maxWidth: 520,
   },
   method: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
+    ...typography.bodySm,
     color: semanticColors.text.tertiary,
+    marginTop: -spacing.xs,
   },
   actions: {
     width: '100%',
     gap: spacing.xs,
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
 });

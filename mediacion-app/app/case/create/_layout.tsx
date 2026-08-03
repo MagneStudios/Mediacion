@@ -11,6 +11,7 @@ export default function CaseCreateLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.canvas },
           headerTintColor: colors.ink,
+          headerTitle: '',
           headerTitleStyle: { fontFamily: fontFamily.medium },
           headerShadowVisible: false,
         }}
