@@ -24,7 +24,7 @@ export default function MediatorActivityScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">
             {t('mediator.activity.title')}
@@ -58,14 +58,13 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
     flexGrow: 1,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
 });

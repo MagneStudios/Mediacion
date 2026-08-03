@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Icon, StatusPill } from '../../../design-system';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { MediatorState } from '../../../types/mediator';
@@ -114,7 +115,7 @@ export function MediatorSummaryCard({ caseId, hideWhenUnavailable = false }: Med
         ) : status === 'error' || !state ? (
           <>
             <Text style={styles.description}>{t('mediator.summary.error.title')}</Text>
-            <Button variant="secondary" size="sm" onPress={reload}>
+            <Button variant="secondary" size="lg" fullWidth onPress={reload}>
               {t('common.retry')}
             </Button>
           </>
@@ -135,7 +136,7 @@ export function MediatorSummaryCard({ caseId, hideWhenUnavailable = false }: Med
         )}
 
         {status === 'success' && state ? (
-          <Button variant="secondary" fullWidth onPress={goToMediator}>
+          <Button variant="secondary" size="lg" fullWidth onPress={goToMediator}>
             {state.eligibility === 'unavailable_before_round_3'
               ? t('mediator.summary.learnMoreAction')
               : state.eligibility === 'available'
@@ -153,30 +154,29 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   sectionLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
+    ...typography.eyebrow,
     color: semanticColors.text.quaternary,
   },
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   title: {
-    flex: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });
