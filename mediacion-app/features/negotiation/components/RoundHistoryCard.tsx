@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
@@ -45,35 +46,31 @@ export function RoundHistoryCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.xxs,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.xs,
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,
   },
   roundLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
+    ...typography.eyebrow,
     color: semanticColors.text.quaternary,
   },
   title: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    ...typography.bodyLg,
     color: semanticColors.text.primary,
   },
   summary: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   date: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 11,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });

@@ -213,6 +213,7 @@ export default function NegotiationDashboardScreen() {
           action={
             <Button
               variant="primary"
+              size="lg"
               fullWidth
               onPress={() => {
                 blurActiveElement();
@@ -229,7 +230,7 @@ export default function NegotiationDashboardScreen() {
         startRoundStatus === 'error' ? (
           <ErrorState title={t('negotiation.startRound.error.title')} retryLabel={t('common.retry')} onRetry={startNextRound} />
         ) : (
-          <Button variant="primary" fullWidth onPress={startNextRound} loading={startRoundStatus === 'pending'} loadingLabel={t('common.loading')}>
+          <Button variant="primary" size="lg" fullWidth onPress={startNextRound} loading={startRoundStatus === 'pending'} loadingLabel={t('common.loading')}>
             {t('negotiation.startRound.action')}
           </Button>
         )
@@ -239,9 +240,10 @@ export default function NegotiationDashboardScreen() {
         generateStatus === 'error' ? (
           <ErrorState title={t('negotiation.generate.error.title')} retryLabel={t('common.retry')} onRetry={generateProposal} />
         ) : (
-          <>
+          <View style={styles.actionGroup}>
             <Button
               variant="ai"
+              size="lg"
               fullWidth
               iconLeft={<Icon name="sparkles" size={16} color={semanticColors.action.aiFg} />}
               onPress={generateProposal}
@@ -249,7 +251,7 @@ export default function NegotiationDashboardScreen() {
               {t('negotiation.generate.action')}
             </Button>
             <PrivacyNotice>{t('negotiation.generate.privacyNote')}</PrivacyNotice>
-          </>
+          </View>
         )
       ) : null}
     </>
@@ -263,6 +265,7 @@ export default function NegotiationDashboardScreen() {
 
       <Button
         variant="tertiary"
+        size="lg"
         fullWidth
         onPress={() => {
           blurActiveElement();
@@ -315,7 +318,11 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  actionGroup: {
+    gap: spacing.sm,
   },
 });
