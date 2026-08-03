@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -44,6 +44,15 @@ export default function MediatorDashboardScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
+  useEffect(() => {
+    setConfirmVisible(false);
+    resetRequestStatus();
+  }, [caseId, resetRequestStatus]);
+
+  useEffect(() => {
+    if (state?.eligibility !== 'available') setConfirmVisible(false);
+  }, [state?.eligibility]);
+
   if (status === 'loading') {
     return (
       <View style={styles.container}>
@@ -68,8 +77,8 @@ export default function MediatorDashboardScreen() {
   };
 
   const handleConfirmRequest = async () => {
-    await requestMediator();
-    setConfirmVisible(false);
+    const succeeded = await requestMediator();
+    if (succeeded) setConfirmVisible(false);
   };
 
   const summaryKey = SUMMARY_KEY_BY_ELIGIBILITY[state.eligibility];
@@ -103,7 +112,15 @@ export default function MediatorDashboardScreen() {
       </View>
 
       {state.eligibility === 'available' ? (
-        <Button variant="secondary" size="lg" fullWidth onPress={openConfirm} loading={requestStatus === 'pending'} loadingLabel={t('common.loading')}>
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          onPress={openConfirm}
+          loading={requestStatus === 'pending'}
+          loadingLabel={t('common.loading')}
+          accessibilityLabel={t('mediator.summary.requestAction')}
+        >
           {t('mediator.summary.requestAction')}
         </Button>
       ) : null}
