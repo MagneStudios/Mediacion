@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -29,6 +29,16 @@ export default function NoticeCenterScreen() {
   const { status, notices, reload, markingId, markErrorId, markOneRead, markAllStatus, markAllRead } = useNotices(filter);
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
+  const hasLoadedOnceRef = useRef(false);
+  useEffect(() => {
+    if (status === 'success') hasLoadedOnceRef.current = true;
+  }, [status]);
+  // A filter switch re-enters `status === 'loading'` for a ~500ms refetch. Once the
+  // list has rendered at least once, keep the header and the current rows in place
+  // instead of tearing down to a bare full-screen spinner on every tab change.
+  const isRefetching = status === 'loading' && hasLoadedOnceRef.current;
+  const showHeader = status === 'success' || isRefetching;
+
   const handleActivate = async (notice: NoticeListItem) => {
     const requiresCase = 'caseId' in notice.destination;
     if (requiresCase && !notice.caseTitle) return;
@@ -56,7 +66,7 @@ export default function NoticeCenterScreen() {
   const unreadCount = notices.filter((notice) => !notice.read).length;
 
   const listHeader =
-    status === 'success' ? (
+    showHeader ? (
       <View style={styles.headerSection}>
         <NoticesHeader title={t('notices.title')} unreadCount={unreadCount} isWide={isWide} />
 
@@ -97,8 +107,9 @@ export default function NoticeCenterScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={status === 'success' ? notices : []}
+        data={status === 'error' ? [] : notices}
         keyExtractor={(item) => item.id}
+        style={[isRefetching && styles.listRefetching]}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? 1480 : contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={listHeader}
         renderItem={({ item }) => {
@@ -154,6 +165,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: spacing.xxl,
     paddingBottom: spacing.xxl,
+  },
+  listRefetching: {
+    opacity: 0.6,
+    pointerEvents: 'none',
   },
   headerSection: {
     gap: spacing.lg,

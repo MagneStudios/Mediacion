@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { agreementsService } from '../../../services/agreements.service';
 import type { AgreementHistoryItem } from '../../../types/agreement';
@@ -14,6 +14,12 @@ export function useAgreementHistory(caseId: string): UseAgreementHistoryResult {
   const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'success'>('loading');
   const [items, setItems] = useState<AgreementHistoryItem[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const activeCaseIdRef = useRef(caseId);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+  }
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -26,12 +32,14 @@ export function useAgreementHistory(caseId: string): UseAgreementHistoryResult {
     agreementsService
       .getAgreementHistory(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setItems(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -39,7 +47,7 @@ export function useAgreementHistory(caseId: string): UseAgreementHistoryResult {
     };
   }, [caseId, attempt]);
 
-  if (status === 'loading') return { status, items: undefined };
+  if (resultCaseId !== caseId || status === 'loading') return { status: 'loading', items: undefined };
   if (status === 'error') return { status, items: undefined, reload };
   if (status === 'empty') return { status, items: [] };
   return { status, items };

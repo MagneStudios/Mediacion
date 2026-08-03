@@ -14,9 +14,7 @@ export function PreferenceRow({ label, value }: PreferenceRowProps) {
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value} numberOfLines={1}>
-        {value}
-      </Text>
+      <Text style={styles.value}>{value}</Text>
     </View>
   );
 }
@@ -24,20 +22,19 @@ export function PreferenceRow({ label, value }: PreferenceRowProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
   label: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   value: {
     flexShrink: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
+    minWidth: 0,
+    ...typography.body,
     color: semanticColors.text.primary,
     textAlign: 'right',
   },

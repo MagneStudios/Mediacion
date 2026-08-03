@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -77,10 +77,12 @@ export default function CreatePositionScreen() {
       >
         <Stack.Screen options={{ title: '' }} />
 
-        <Text style={styles.title} accessibilityRole="header">
-          {t('positions.create.title')}
-        </Text>
-        <Text style={styles.subtitle}>{t('positions.create.subtitle')}</Text>
+        <View style={styles.intro}>
+          <Text style={styles.title} accessibilityRole="header">
+            {t('positions.create.title')}
+          </Text>
+          <Text style={styles.subtitle}>{t('positions.create.subtitle')}</Text>
+        </View>
 
         <PositionFormFields
           category={category}
@@ -119,7 +121,7 @@ export default function CreatePositionScreen() {
           onChangeConditions={setConcessionConditions}
         />
 
-        <Button variant="primary" fullWidth onPress={handleContinue}>
+        <Button variant="primary" size="lg" fullWidth onPress={handleContinue}>
           {t('positions.create.continue')}
         </Button>
       </ScrollView>
@@ -136,20 +138,19 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
+  },
+  intro: {
+    gap: spacing.xs,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   subtitle: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
     color: semanticColors.text.secondary,
-    marginTop: -spacing.sm,
   },
 });

@@ -1,5 +1,5 @@
 import { I18nextProvider } from 'react-i18next';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 import type { NegotiationEligibility, NegotiationState, SharedProposal } from '@/types/negotiation';
@@ -116,7 +116,7 @@ function setReady(state: NegotiationState) {
 }
 
 async function renderScreen() {
-  await render(
+  return render(
     <I18nextProvider i18n={i18n}>
       <NegotiationDashboardScreen />
     </I18nextProvider>,
@@ -262,6 +262,13 @@ describe('NegotiationDashboardScreen', () => {
       expect(screen.getByRole('button', { name: t('negotiation.response.reject') })).toBeTruthy();
     });
 
+    it('does not allow a response while the proposal narrative is still generating', async () => {
+      setReady(buildState('in_progress', { currentProposal: buildProposal({ narrative: null }) }));
+      await renderScreen();
+      expect(screen.queryByRole('button', { name: t('negotiation.response.accept') })).toBeNull();
+      expect(screen.queryByRole('button', { name: t('negotiation.response.reject') })).toBeNull();
+    });
+
     it('accepting opens the existing confirmation dialog, and confirming calls the real submitResponse with "acepta"', async () => {
       setReady(buildState('in_progress', { currentProposal: buildProposal() }));
       await renderScreen();
@@ -278,6 +285,36 @@ describe('NegotiationDashboardScreen', () => {
       expect(screen.getByText(t('negotiation.response.dialogs.reject.title'))).toBeTruthy();
       await fireEvent.press(screen.getByRole('button', { name: t('negotiation.response.dialogs.confirmReject') }));
       expect(mockSubmitResponse).toHaveBeenCalledWith('prop-1', 'rechaza');
+    });
+
+    it('keeps the confirmation open and exposes retry when submission fails', async () => {
+      setReady(buildState('in_progress', { currentProposal: buildProposal() }));
+      const view = await renderScreen();
+      await fireEvent.press(screen.getByRole('button', { name: t('negotiation.response.accept') }));
+      mockNegotiationHook.respondStatus = 'error';
+      await view.rerender(
+        <I18nextProvider i18n={i18n}>
+          <NegotiationDashboardScreen />
+        </I18nextProvider>,
+      );
+      expect(screen.getByText(t('negotiation.response.error.title'))).toBeTruthy();
+      expect(screen.getByText(t('common.retry'))).toBeTruthy();
+    });
+
+    it('closes a confirmation if focus refresh replaces the proposal', async () => {
+      setReady(buildState('in_progress', { currentProposal: buildProposal() }));
+      const view = await renderScreen();
+      await fireEvent.press(screen.getByRole('button', { name: t('negotiation.response.accept') }));
+      mockNegotiationHook.state = buildState('in_progress', {
+        currentProposal: buildProposal({ id: 'prop-2' }),
+      });
+      await view.rerender(
+        <I18nextProvider i18n={i18n}>
+          <NegotiationDashboardScreen />
+        </I18nextProvider>,
+      );
+      await waitFor(() => expect(screen.queryByText(t('negotiation.response.dialogs.accept.title'))).toBeNull());
+      expect(mockSubmitResponse).not.toHaveBeenCalled();
     });
   });
 
@@ -323,6 +360,15 @@ describe('NegotiationDashboardScreen', () => {
       expect(screen.getByText(t('negotiation.summary.agreementReached.title'))).toBeTruthy();
       await fireEvent.press(screen.getByText(t('negotiation.resolution.reviewAgreementAction')));
       expect(mockRoutePush).toHaveBeenCalledWith({ pathname: '/case/[id]/agreement', params: { id: 'case-1' } });
+    });
+  });
+
+  describe('read-only fallback', () => {
+    it('explains a terminal negotiation with no proposal or round outcome', async () => {
+      setReady(buildState('read_only', { currentRound: null, currentProposal: null }));
+      await renderScreen();
+      expect(screen.getByText(t('negotiation.summary.readOnly.title'))).toBeTruthy();
+      expect(screen.getByText(t('negotiation.summary.readOnly.description'))).toBeTruthy();
     });
   });
 

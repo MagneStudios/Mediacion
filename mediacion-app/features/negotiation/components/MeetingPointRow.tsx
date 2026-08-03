@@ -43,27 +43,25 @@ export function MeetingPointRow({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 4,
-    paddingVertical: spacing.xs,
+    gap: spacing.xxs,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: semanticColors.border.soft,
   },
   heading: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,
   },
   category: {
     flex: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   value: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });

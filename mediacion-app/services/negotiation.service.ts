@@ -199,6 +199,10 @@ export function createMockNegotiationService(): NegotiationService {
       };
 
       const created = await delay(round, 600);
+      const latestAtCommit = getMostRecentRound(caseId);
+      if (latestAtCommit?.estado === 'activa' || latestAtCommit?.id !== mostRecent?.id) {
+        return rejectAfter('negotiation_round_still_active', 0);
+      }
       // Only pushed after the (simulated) request resolves, so a forced
       // failure above never leaves a partially-created round behind.
       mockRounds.push(created);
@@ -249,6 +253,10 @@ export function createMockNegotiationService(): NegotiationService {
       };
 
       const created = await delay(proposal, 1500);
+      const roundAtCommit = getMostRecentRound(caseId);
+      if (roundAtCommit?.id !== round.id || roundAtCommit.estado !== 'activa' || roundAtCommit.proposalId) {
+        return rejectAfter('negotiation_proposal_already_exists', 0);
+      }
       // Only mutate the round after the mock "request" resolves — a forced
       // failure above never leaves the round pointing at a half-created
       // proposal.
@@ -291,6 +299,17 @@ export function createMockNegotiationService(): NegotiationService {
 
       const ownDecision: OwnProposalResponse = { proposalId, decision, createdAt: new Date().toISOString() };
       const saved = await delay(ownDecision, 700);
+      const proposalAtCommit = getProposalById(proposalId);
+      const roundAtCommit = getMostRecentRound(caseId);
+      if (
+        !proposalAtCommit ||
+        proposalAtCommit.estado !== 'pendiente' ||
+        roundAtCommit?.id !== round.id ||
+        roundAtCommit.estado !== 'activa' ||
+        getOwnResponseForProposal(proposalId)
+      ) {
+        return rejectAfter('negotiation_response_already_submitted', 0);
+      }
       mockOwnResponses.push(saved);
 
       // Reveal + apply the simulated counterparty decision only now — never

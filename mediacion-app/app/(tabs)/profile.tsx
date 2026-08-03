@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, Icon, LoadingState, StatusPill } from '@/design-system';
+import { Button, Card, ErrorState, Icon, LoadingState, StatusPill } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { radii } from '@/design-system/tokens/radii';
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
       {/* 1. Hero */}
       <View style={styles.hero}>
         <View style={[styles.heroInner, isCompact && styles.heroInnerCompact]}>
-          <View style={styles.avatarCircle}>
+          <View style={styles.avatarCircle} accessible accessibilityRole="image" accessibilityLabel={displayName}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
           <View style={isCompact ? styles.heroTextCompact : styles.heroText}>
@@ -78,8 +78,9 @@ export default function ProfileScreen() {
           <View style={isCompact ? styles.heroButtonCompact : undefined}>
             <Button
               variant="secondary"
-              size="sm"
-              iconLeft={<Icon name="pencil" size={14} color={semanticColors.action.secondaryFg} />}
+              size="lg"
+              fullWidth={isCompact}
+              iconLeft={<Icon name="pencil" size={18} color={semanticColors.action.secondaryFg} />}
               onPress={() => { blurActiveElement(); router.push('/profile/edit'); }}
             >
               {t('profile.menu.edit.label')}
@@ -94,12 +95,12 @@ export default function ProfileScreen() {
       <View style={[styles.bodySection, isWide && styles.bodySectionWide]}>
         {/* Summary */}
         <View style={[styles.summaryCol, isWide && styles.summaryColWide]}>
-          <View style={styles.summaryCard}>
+          <Card style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>{t('profile.summary.sectionTitle')}</Text>
             <PreferenceRow label={t('profile.summary.language')} value={languageValue} />
             <PreferenceRow label={t('profile.summary.notifications')} value={notificationsValue} />
             <PreferenceRow label={t('profile.summary.privacy')} value={t('profile.summary.privacyValue')} />
-          </View>
+          </Card>
         </View>
 
         {/* Options grid */}
@@ -170,8 +171,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarInitials: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 26,
+    ...typography.headline,
     color: semanticColors.action.primaryFg,
   },
   heroText: {
@@ -181,15 +181,11 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   heroName: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
-    lineHeight: 30,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   heroRole: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   heroBadge: {
@@ -229,19 +225,13 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   summaryCard: {
-    gap: spacing.xxs,
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.border.default,
-    borderWidth: 1,
+    gap: spacing.xs,
     borderRadius: radii.xl,
     padding: spacing.lg,
   },
   summaryTitle: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 13,
-    fontWeight: '600',
+    ...typography.eyebrow,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
     color: semanticColors.text.tertiary,
     marginBottom: spacing.xxs,
   },
@@ -253,9 +243,6 @@ const styles = StyleSheet.create({
   optionsColWide: {
     flex: 1,
     minWidth: 0,
-  },
-  optionsGrid: {
-    gap: spacing.sm,
   },
   optionsGridCompact: {
     gap: spacing.sm,
@@ -276,8 +263,7 @@ const styles = StyleSheet.create({
   version: {
     alignSelf: 'center',
     marginTop: spacing.sm,
-    fontFamily: typography.caption.fontFamily,
-    fontSize: typography.caption.fontSize,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });

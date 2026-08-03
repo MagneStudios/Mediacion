@@ -68,11 +68,11 @@ describe('ProfilePrivacyScreen — responsive ProfileMenuItem variant', () => {
     expect(screen.queryAllByTestId('menu-item-dashboard')).toHaveLength(0);
   });
 
-  it('uses the dashboard variant on desktop widths (isWide true)', async () => {
+  it('keeps simple related links compact on desktop widths', async () => {
     mockIsWide = true;
     await renderScreen();
-    expect(screen.getAllByTestId('menu-item-dashboard')).toHaveLength(2);
-    expect(screen.queryAllByTestId('menu-item-compact')).toHaveLength(0);
+    expect(screen.getAllByTestId('menu-item-compact')).toHaveLength(2);
+    expect(screen.queryAllByTestId('menu-item-dashboard')).toHaveLength(0);
   });
 
   it('preserves navigation, labels and icons on mobile', async () => {

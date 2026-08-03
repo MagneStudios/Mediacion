@@ -3,7 +3,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { useResponsiveLayout } from '../../../hooks/use-responsive-layout';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
-import { spacing } from '../../../design-system/tokens/spacing';
+import { layout, spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { MetodoCaso } from '../../../types/case';
 
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     // (`chip.justifyContent`/`alignItems: 'center'`) inside the wider pill.
     width: '48%',
     paddingHorizontal: spacing.xs,
-    minHeight: 36,
+    minHeight: layout.touchTarget,
   },
   chipUnselected: {
     backgroundColor: semanticColors.surface.sunken,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: semanticColors.action.primaryBg,
   },
   chipHover: {
-    backgroundColor: semanticColors.surface.sunken,
+    borderColor: semanticColors.border.default,
   },
   chipPressed: {
     opacity: 0.85,

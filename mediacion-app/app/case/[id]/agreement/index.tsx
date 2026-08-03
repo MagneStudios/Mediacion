@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -25,11 +25,17 @@ export default function AgreementDashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { status, state, reload, prepareStatus, prepareDocument } = useAgreement(caseId);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const [breachDescription, setBreachDescription] = useState('');
   const [breachSubmitAttempted, setBreachSubmitAttempted] = useState(false);
   const [breachDialogVisible, setBreachDialogVisible] = useState(false);
+
+  useEffect(() => {
+    setBreachDescription('');
+    setBreachSubmitAttempted(false);
+    setBreachDialogVisible(false);
+  }, [caseId, state?.agreement.id]);
 
   if (status === 'loading') {
     return (
@@ -100,12 +106,18 @@ export default function AgreementDashboardScreen() {
       : agreement.estado === 'enviado_a_firma'
         ? t('agreement.status.enviado_a_firma')
         : t('agreement.status.borrador');
-  const statusVisual = allSignaturesComplete ? 'success' : agreement.estado === 'enviado_a_firma' ? 'info' : 'neutral';
+  const statusVisual = agreement.estado === 'con_aviso'
+    ? 'warning'
+    : allSignaturesComplete
+      ? 'success'
+      : agreement.estado === 'enviado_a_firma'
+        ? 'info'
+        : 'neutral';
 
   const primaryColumn = (
     <>
       <View style={styles.privacyBanner}>
-        <Icon name="lock" size={18} color={semanticColors.ai.accent} />
+        <Icon name="lock" size={18} color={semanticColors.text.tertiary} />
         <View style={styles.privacyTextCol}>
           <Text style={styles.privacyTitle}>{t('agreement.sharedMarker.title')}</Text>
           <Text style={styles.privacyBody}>{t('agreement.sharedMarker.body')}</Text>
@@ -144,7 +156,7 @@ export default function AgreementDashboardScreen() {
         ) : prepareStatus === 'error' ? (
           <ErrorState title={t('agreement.prepare.error.title')} retryLabel={t('common.retry')} onRetry={prepareDocument} />
         ) : (
-          <Button variant="primary" fullWidth onPress={prepareDocument}>
+          <Button variant="primary" size="lg" fullWidth onPress={prepareDocument}>
             {t('agreement.prepare.action')}
           </Button>
         )
@@ -153,6 +165,7 @@ export default function AgreementDashboardScreen() {
       {canSign ? (
         <Button
           variant="primary"
+          size="lg"
           fullWidth
           onPress={() => {
             blurActiveElement();
@@ -200,6 +213,7 @@ export default function AgreementDashboardScreen() {
           />
           <Button
             variant="tertiary"
+            size="lg"
             fullWidth
             onPress={() => {
               blurActiveElement();
@@ -212,6 +226,7 @@ export default function AgreementDashboardScreen() {
       ) : (
         <Button
           variant="tertiary"
+          size="lg"
           fullWidth
           onPress={() => {
             blurActiveElement();
@@ -234,7 +249,7 @@ export default function AgreementDashboardScreen() {
         <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
 
         <View style={styles.headerRow}>
-          <Text style={styles.title} accessibilityRole="header">
+          <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
             {t('agreement.dashboard.title')}
           </Text>
           <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
@@ -268,8 +283,9 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
   },
   headerRow: {
     flexDirection: 'row',
@@ -278,43 +294,35 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   title: {
-    fontFamily: typography.displayLg.fontFamily,
-    fontSize: 34,
-    letterSpacing: -0.6,
-    lineHeight: 40,
+    ...typography.headline,
     color: semanticColors.text.primary,
     flexShrink: 1,
+  },
+  titleWide: {
+    ...typography.displayLg,
   },
   privacyBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    backgroundColor: semanticColors.surface.supportAqua,
+    backgroundColor: semanticColors.surface.sunken,
     borderRadius: radii.lg,
     padding: spacing.md,
   },
   privacyTextCol: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xxs,
   },
   privacyTitle: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: semanticColors.ai.accent,
+    ...typography.eyebrow,
+    color: semanticColors.text.primary,
   },
   privacyBody: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   bodyText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   signatureGroup: {

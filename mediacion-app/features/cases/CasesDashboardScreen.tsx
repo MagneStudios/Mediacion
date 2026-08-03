@@ -6,6 +6,7 @@ import { FlatList, Platform, StyleSheet, View } from 'react-native';
 import { Button, EmptyState, ErrorState, Icon, LoadingState, Text } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
+import { radii } from '../../design-system/tokens/radii';
 import { spacing } from '../../design-system/tokens/spacing';
 import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import type { CaseSummary } from '../../types/case';
@@ -46,7 +47,7 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         keyExtractor={(item) => item.id}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isExtraWide ? 1640 : isWide ? 1280 : contentWidths.wide, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isExtraWide ? contentWidths.dashboardExtraWide : isWide ? contentWidths.dashboardWide : contentWidths.wide, horizontalPadding })]}
         ListHeaderComponent={
           <View style={[styles.header, isWide && styles.headerWide]}>
             <View style={[styles.headerTop, isWide && styles.headerTopWide]}>
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: semanticColors.border.soft,
-    borderRadius: 18,
+    borderRadius: radii.xl,
     backgroundColor: semanticColors.surface.card,
   },
   dashboardToolsWide: {

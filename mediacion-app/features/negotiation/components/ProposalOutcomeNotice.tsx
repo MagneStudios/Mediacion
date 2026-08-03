@@ -44,7 +44,7 @@ export function ProposalOutcomeNotice({ title, description, tone = 'neutral', ac
     <View style={[styles.container, { backgroundColor: TONE_BG[tone] }]}>
       <Icon name={TONE_ICON[tone]} size={16} color={TONE_FG[tone]} />
       <View style={styles.body}>
-        <Text variant="body" style={{ color: TONE_FG[tone] }}>
+        <Text variant="eyebrow" style={{ color: TONE_FG[tone] }}>
           {title}
         </Text>
         <Text variant="bodySm" color="secondary">
@@ -61,14 +61,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    padding: spacing.sm,
+    padding: spacing.md,
     borderRadius: radii.lg,
   },
   body: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xxs,
   },
   action: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
 });

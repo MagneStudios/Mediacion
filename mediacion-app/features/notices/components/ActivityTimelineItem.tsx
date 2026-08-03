@@ -38,17 +38,21 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   label: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: typography.body.fontFamily,
     fontSize: 14,
     color: semanticColors.text.primary,
   },
   date: {
+    flexShrink: 0,
     fontFamily: typography.mono.fontFamily,
     fontSize: 11,
     color: semanticColors.text.tertiary,

@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Card, StatusPill } from '../../../design-system';
 import { Text } from '../../../design-system/components/Text';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 
@@ -27,11 +28,12 @@ export function CurrentRoundCard({ roundLabel, statusLabel, statusVisual }: Curr
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,

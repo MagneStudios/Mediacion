@@ -24,11 +24,16 @@ export function useSignatureInbox(): UseSignatureInboxResult {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    agreementsService.getSignatureInbox().then((result) => {
-      if (cancelled) return;
-      setItems(result);
-      setStatus(result.length === 0 ? 'empty' : 'success');
-    });
+    agreementsService
+      .getSignatureInbox()
+      .then((result) => {
+        if (cancelled) return;
+        setItems(result);
+        setStatus(result.length === 0 ? 'empty' : 'success');
+      })
+      .catch(() => {
+        // A focus refresh is best-effort: keep the last successful inbox.
+      });
     return () => {
       cancelled = true;
     };

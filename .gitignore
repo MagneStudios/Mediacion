@@ -86,3 +86,4 @@ temp/
 # find. Ignored everywhere because a duplicate source file is never intended.
 * 2.*
 * 3.*
+.github/hooks/impeccable.json

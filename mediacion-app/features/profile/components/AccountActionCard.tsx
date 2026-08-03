@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
+import { Card } from '../../../design-system/components/Card';
 import { semanticColors } from '../../../design-system/tokens/colors';
-import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -21,41 +21,31 @@ export type AccountActionCardProps = {
  */
 export function AccountActionCard({ title, description, noticeText, children }: AccountActionCardProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+    <Card style={styles.container}>
+      <Text style={styles.title} accessibilityRole="header">{title}</Text>
       <Text style={styles.description}>{description}</Text>
       {noticeText ? <Text style={styles.notice}>{noticeText}</Text> : null}
       {children}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.xxs,
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+    gap: spacing.xs,
+    padding: spacing.lg,
   },
   title: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   notice: {
     marginTop: spacing.xxs,
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.primary,
   },
 });

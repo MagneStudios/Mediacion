@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -19,7 +19,7 @@ import { SharedProposalCard } from '@/features/negotiation/components/SharedProp
 import { WaitingForPartyState } from '@/features/negotiation/components/WaitingForPartyState';
 import { useNegotiation } from '@/features/negotiation/hooks/useNegotiation';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import type { DecisionPropuesta } from '@/types/negotiation';
+import { isProposalPending, type DecisionPropuesta } from '@/types/negotiation';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function NegotiationDashboardScreen() {
@@ -47,7 +47,24 @@ export default function NegotiationDashboardScreen() {
     resetRespondStatus,
   } = useNegotiation(caseId);
 
-  const [pendingDecision, setPendingDecision] = useState<DecisionPropuesta | null>(null);
+  const [pendingResponse, setPendingResponse] = useState<{
+    caseId: string;
+    proposalId: string;
+    decision: DecisionPropuesta;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!pendingResponse) return;
+    const responseStillCurrent =
+      pendingResponse.caseId === caseId &&
+      pendingResponse.proposalId === state?.currentProposal?.id &&
+      state.currentProposal.estado === 'pendiente' &&
+      !state.ownResponse;
+    if (!responseStillCurrent) {
+      setPendingResponse(null);
+      resetRespondStatus();
+    }
+  }, [caseId, pendingResponse, resetRespondStatus, state]);
 
   if (caseStatus === 'loading' || status === 'loading') {
     return (
@@ -86,19 +103,32 @@ export default function NegotiationDashboardScreen() {
 
   const { eligibility, currentRound, currentProposal, ownResponse, waitingForOtherParty, bothAccepted, roundResolved } = state;
 
-  const canRespond = eligibility === 'in_progress' && currentProposal?.estado === 'pendiente' && !ownResponse;
+  const canRespond =
+    eligibility === 'in_progress' &&
+    currentProposal?.estado === 'pendiente' &&
+    !isProposalPending(currentProposal) &&
+    !ownResponse;
   const canStartRound = eligibility === 'ready' && (!currentRound || currentRound.estado === 'completada');
   const canGenerate = eligibility === 'ready' && currentRound?.estado === 'activa' && !currentRound.proposalId;
 
   const openConfirm = (decision: DecisionPropuesta) => {
+    if (!currentProposal || !canRespond) return;
     resetRespondStatus();
-    setPendingDecision(decision);
+    setPendingResponse({ caseId, proposalId: currentProposal.id, decision });
   };
 
   const handleConfirmResponse = async () => {
-    if (!pendingDecision || !currentProposal) return;
-    await submitResponse(currentProposal.id, pendingDecision);
-    setPendingDecision(null);
+    if (
+      !pendingResponse ||
+      pendingResponse.caseId !== caseId ||
+      pendingResponse.proposalId !== currentProposal?.id ||
+      !canRespond
+    ) {
+      setPendingResponse(null);
+      resetRespondStatus();
+      return;
+    }
+    await submitResponse(pendingResponse.proposalId, pendingResponse.decision);
   };
 
   const proposalStatusLabel =
@@ -197,6 +227,13 @@ export default function NegotiationDashboardScreen() {
         />
       ) : null}
 
+      {eligibility === 'read_only' && !bothAccepted && !roundResolved ? (
+        <WaitingForPartyState
+          title={t('negotiation.summary.readOnly.title')}
+          description={t('negotiation.summary.readOnly.description')}
+        />
+      ) : null}
+
       {roundResolved && !bothAccepted && currentProposal?.estado === 'rechazada' ? (
         <ProposalOutcomeNotice
           tone="neutral"
@@ -213,6 +250,7 @@ export default function NegotiationDashboardScreen() {
           action={
             <Button
               variant="primary"
+              size="lg"
               fullWidth
               onPress={() => {
                 blurActiveElement();
@@ -229,7 +267,7 @@ export default function NegotiationDashboardScreen() {
         startRoundStatus === 'error' ? (
           <ErrorState title={t('negotiation.startRound.error.title')} retryLabel={t('common.retry')} onRetry={startNextRound} />
         ) : (
-          <Button variant="primary" fullWidth onPress={startNextRound} loading={startRoundStatus === 'pending'} loadingLabel={t('common.loading')}>
+          <Button variant="primary" size="lg" fullWidth onPress={startNextRound} loading={startRoundStatus === 'pending'} loadingLabel={t('common.loading')}>
             {t('negotiation.startRound.action')}
           </Button>
         )
@@ -239,9 +277,10 @@ export default function NegotiationDashboardScreen() {
         generateStatus === 'error' ? (
           <ErrorState title={t('negotiation.generate.error.title')} retryLabel={t('common.retry')} onRetry={generateProposal} />
         ) : (
-          <>
+          <View style={styles.actionGroup}>
             <Button
               variant="ai"
+              size="lg"
               fullWidth
               iconLeft={<Icon name="sparkles" size={16} color={semanticColors.action.aiFg} />}
               onPress={generateProposal}
@@ -249,7 +288,7 @@ export default function NegotiationDashboardScreen() {
               {t('negotiation.generate.action')}
             </Button>
             <PrivacyNotice>{t('negotiation.generate.privacyNote')}</PrivacyNotice>
-          </>
+          </View>
         )
       ) : null}
     </>
@@ -263,6 +302,7 @@ export default function NegotiationDashboardScreen() {
 
       <Button
         variant="tertiary"
+        size="lg"
         fullWidth
         onPress={() => {
           blurActiveElement();
@@ -288,21 +328,21 @@ export default function NegotiationDashboardScreen() {
       <ResponsiveColumns primary={primaryColumn} secondary={secondaryColumn} />
 
       <ProposalResponseDialog
-        visible={pendingDecision != null}
+        visible={pendingResponse != null}
         status={respondStatus === 'pending' ? 'submitting' : respondStatus === 'error' ? 'error' : 'idle'}
-        title={pendingDecision === 'acepta' ? t('negotiation.response.dialogs.accept.title') : t('negotiation.response.dialogs.reject.title')}
-        body={pendingDecision === 'acepta' ? t('negotiation.response.dialogs.accept.body') : t('negotiation.response.dialogs.reject.body')}
+        title={pendingResponse?.decision === 'acepta' ? t('negotiation.response.dialogs.accept.title') : t('negotiation.response.dialogs.reject.title')}
+        body={pendingResponse?.decision === 'acepta' ? t('negotiation.response.dialogs.accept.body') : t('negotiation.response.dialogs.reject.body')}
         confirmLabel={
-          pendingDecision === 'acepta' ? t('negotiation.response.dialogs.confirmAccept') : t('negotiation.response.dialogs.confirmReject')
+          pendingResponse?.decision === 'acepta' ? t('negotiation.response.dialogs.confirmAccept') : t('negotiation.response.dialogs.confirmReject')
         }
-        confirmVariant={pendingDecision === 'acepta' ? 'primary' : 'secondary'}
+        confirmVariant={pendingResponse?.decision === 'acepta' ? 'primary' : 'secondary'}
         cancelLabel={t('negotiation.response.dialogs.cancel')}
         errorTitle={t('negotiation.response.error.title')}
         retryLabel={t('common.retry')}
         onConfirm={handleConfirmResponse}
         onCancel={() => {
           if (respondStatus === 'pending') return;
-          setPendingDecision(null);
+          setPendingResponse(null);
         }}
       />
     </ScrollView>
@@ -315,7 +355,11 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  actionGroup: {
+    gap: spacing.sm,
   },
 });

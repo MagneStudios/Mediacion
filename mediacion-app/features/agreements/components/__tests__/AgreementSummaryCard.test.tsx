@@ -1,9 +1,10 @@
 import { I18nextProvider } from 'react-i18next';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 
 const mockRoutePush = jest.fn();
+const mockReload = jest.fn();
 
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
@@ -19,6 +20,7 @@ jest.mock('@/hooks/use-responsive-layout', () => ({
 const mockAgreementHook = {
   status: 'success' as 'loading' | 'error' | 'success',
   state: null as unknown,
+  reload: mockReload,
 };
 
 jest.mock('@/features/agreements/hooks/useAgreement', () => ({
@@ -62,11 +64,21 @@ async function renderCard() {
 
 beforeEach(() => {
   mockRoutePush.mockClear();
+  mockReload.mockClear();
   mockAgreementHook.status = 'success';
   mockAgreementHook.state = null;
 });
 
 describe('AgreementSummaryCard', () => {
+  it('distinguishes a fetch error from an agreement that does not exist and offers retry', async () => {
+    mockAgreementHook.status = 'error';
+    await renderCard();
+    expect(screen.getByText(i18n.t('states.error.title'))).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('states.error.retry') }));
+    expect(mockReload).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(i18n.t('agreement.summary.unavailable'))).toBeNull();
+  });
+
   it('shows con_aviso label when estado is con_aviso', async () => {
     mockAgreementHook.state = buildState('con_aviso');
     await renderCard();

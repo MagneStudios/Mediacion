@@ -33,21 +33,21 @@ export function SignerStatusRow({ roleLabel, statusLabel, signed, dateLabel }: S
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.xs,
   },
   textColumn: {
     flex: 1,
-    gap: 1,
+    minWidth: 140,
+    gap: spacing.xxs,
   },
   roleLabel: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   dateLabel: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 11,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });

@@ -65,6 +65,7 @@ export function BreachNoticeForm({
 
       <Button
         variant="primary"
+        size="lg"
         fullWidth
         disabled={!canSubmit}
         loading={isSubmitting}
@@ -82,9 +83,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 18,
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
 });
