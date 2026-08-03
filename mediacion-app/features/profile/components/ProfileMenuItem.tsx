@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import { Card } from '../../../design-system/components/Card';
@@ -25,7 +26,7 @@ export function ProfileMenuItem({ icon, label, description, onPress, accessibili
           </View>
           <View style={styles.bodyCompact}>
             <Text style={styles.labelCompact}>{label}</Text>
-            {description ? <Text style={styles.descriptionCompact} numberOfLines={1}>{description}</Text> : null}
+            {description ? <Text style={styles.descriptionCompact}>{description}</Text> : null}
           </View>
           <Icon name="chevron-right" size={16} color={semanticColors.text.tertiary} />
         </View>
@@ -51,7 +52,7 @@ export function ProfileMenuItem({ icon, label, description, onPress, accessibili
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     minHeight: 180,
     gap: spacing.sm,
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,
@@ -67,19 +68,15 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+    minWidth: 0,
     gap: spacing.xxs,
   },
   label: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 20,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   chevronRow: {
@@ -89,7 +86,7 @@ const styles = StyleSheet.create({
 
   /* ---- Compact (mobile) ---- */
   cardCompact: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.sm,
   },
   rowCompact: {
@@ -100,7 +97,7 @@ const styles = StyleSheet.create({
   iconCircleCompact: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,
@@ -108,17 +105,15 @@ const styles = StyleSheet.create({
   },
   bodyCompact: {
     flex: 1,
+    minWidth: 0,
     gap: 1,
   },
   labelCompact: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
-    fontWeight: '500',
+    ...typography.button,
     color: semanticColors.text.primary,
   },
   descriptionCompact: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });

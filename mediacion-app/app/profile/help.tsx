@@ -1,12 +1,13 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
+import { typography } from '@/design-system/tokens/typography';
 import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnvironmentNotice';
 import { HelpTopicCard } from '@/features/profile/components/HelpTopicCard';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -16,7 +17,7 @@ const TOPIC_KEYS = ['flow', 'privacy', 'afterAgreement', 'signatureSimulation', 
 export default function ProfileHelpScreen() {
   const { t } = useTranslation();
   const [showContactNotice, setShowContactNotice] = useState(false);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   return (
     <ScrollView
@@ -24,6 +25,10 @@ export default function ProfileHelpScreen() {
       contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
     >
       <Stack.Screen options={{ title: t('profile.help.title') }} />
+
+      <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
+        {t('profile.help.title')}
+      </Text>
 
       {TOPIC_KEYS.map((key) => (
         <HelpTopicCard
@@ -33,7 +38,7 @@ export default function ProfileHelpScreen() {
         />
       ))}
 
-      <Button variant="secondary" fullWidth onPress={() => setShowContactNotice(true)}>
+      <Button variant="secondary" size="lg" fullWidth onPress={() => setShowContactNotice(true)}>
         {t('profile.help.contact.action')}
       </Button>
       {showContactNotice ? (
@@ -50,7 +55,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  title: {
+    ...typography.headline,
+    color: semanticColors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  titleWide: {
+    ...typography.displayLg,
   },
 });

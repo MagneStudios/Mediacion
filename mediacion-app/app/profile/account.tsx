@@ -38,7 +38,7 @@ export default function ProfileAccountScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { profile } = useProfile();
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
   const {
     signOutStatus,
     signOut,
@@ -91,10 +91,14 @@ export default function ProfileAccountScreen() {
     >
       <Stack.Screen options={{ title: t('profile.account.title') }} />
 
+      <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
+        {t('profile.account.title')}
+      </Text>
+
       <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.demoNotice.account')} />
 
       <AccountActionCard title={t('profile.account.signOut.cardTitle')} description={t('profile.account.signOut.cardDescription')}>
-        <Button variant="primary" fullWidth onPress={openSignOutDialog} style={styles.actionButton}>
+        <Button variant="secondary" size="lg" fullWidth onPress={openSignOutDialog} style={styles.actionButton}>
           {t('profile.account.signOut.action')}
         </Button>
       </AccountActionCard>
@@ -106,6 +110,7 @@ export default function ProfileAccountScreen() {
       >
         <Button
           variant={alreadyRequested ? 'tertiary' : 'destructive'}
+          size="lg"
           fullWidth
           onPress={openDeactivationDialog}
           style={styles.actionButton}
@@ -163,8 +168,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  title: {
+    ...typography.headline,
+    color: semanticColors.text.primary,
+  },
+  titleWide: {
+    ...typography.displayLg,
   },
   actionButton: {
     marginTop: spacing.xs,
@@ -172,8 +185,7 @@ const styles = StyleSheet.create({
   version: {
     alignSelf: 'center',
     marginTop: spacing.sm,
-    fontFamily: typography.caption.fontFamily,
-    fontSize: typography.caption.fontSize,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });
