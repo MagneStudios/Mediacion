@@ -159,13 +159,15 @@ export default function EditPositionScreen() {
       >
         <Stack.Screen options={{ title: '' }} />
 
-        <Text style={styles.title} accessibilityRole="header">
-          {readOnly ? t('positions.edit.readOnlyTitle') : t('positions.edit.title')}
-        </Text>
+        <View style={styles.intro}>
+          <Text style={styles.title} accessibilityRole="header">
+            {readOnly ? t('positions.edit.readOnlyTitle') : t('positions.edit.title')}
+          </Text>
 
-        {readOnly ? (
-          <Badge variant="neutral">{t('positions.edit.readOnlyBadge')}</Badge>
-        ) : null}
+          {readOnly ? (
+            <Badge variant="neutral">{t('positions.edit.readOnlyBadge')}</Badge>
+          ) : null}
+        </View>
 
         <PrivacyNotice>{t('positions.dashboard.supportingCopy')}</PrivacyNotice>
 
@@ -212,7 +214,7 @@ export default function EditPositionScreen() {
               onRetry={handleSave}
             />
           ) : (
-            <Button variant="primary" fullWidth onPress={handleSave} loading={saveStatus === 'submitting'} loadingLabel={t('positions.review.saving')}>
+            <Button variant="primary" size="lg" fullWidth onPress={handleSave} loading={saveStatus === 'submitting'} loadingLabel={t('positions.review.saving')}>
               {t('positions.edit.save')}
             </Button>
           )
@@ -231,13 +233,16 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
+  },
+  intro: {
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
 });
