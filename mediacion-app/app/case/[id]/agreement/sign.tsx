@@ -24,11 +24,12 @@ export default function AgreementSignScreen() {
   const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId);
 
   const [confirmed, setConfirmed] = useState(false);
+  const agreementId = state?.agreement.id;
 
-  // Reset the confirmation whenever a different case is opened.
+  // A confirmation applies only to the exact agreement the user reviewed.
   useEffect(() => {
     setConfirmed(false);
-  }, [caseId]);
+  }, [caseId, agreementId]);
 
   // Reset when leaving the screen.
   useFocusEffect(
@@ -93,7 +94,15 @@ export default function AgreementSignScreen() {
         rationale={agreement.rationale}
         rationaleLabel={t('agreement.detail.rationaleTitle')}
         statusLabel={t(`agreement.status.${agreement.estado}`)}
-        statusVisual={agreement.estado === 'enviado_a_firma' ? 'info' : 'neutral'}
+        statusVisual={
+          agreement.estado === 'con_aviso'
+            ? 'warning'
+            : agreement.estado === 'firmado'
+              ? 'success'
+              : agreement.estado === 'enviado_a_firma'
+                ? 'info'
+                : 'neutral'
+        }
       />
 
       <SignatureEnvironmentNotice title={t('agreement.environment.title')} body={t('agreement.environment.body')} />
@@ -128,25 +137,19 @@ export default function AgreementSignScreen() {
             disabled={signStatus === 'pending'}
           />
 
-          {signStatus === 'error' ? (
-            <ErrorState
-              title={t('agreement.sign.error.title')}
-              retryLabel={t('common.retry')}
-              onRetry={handleConfirmSignature}
-            />
-          ) : (
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              onPress={handleConfirmSignature}
-              disabled={!confirmed}
-              loading={signStatus === 'pending'}
-              loadingLabel={t('common.loading')}
-            >
-              {t('agreement.sign.action')}
-            </Button>
-          )}
+          {signStatus === 'error' ? <ErrorState title={t('agreement.sign.error.title')} /> : null}
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={handleConfirmSignature}
+            disabled={!confirmed}
+            loading={signStatus === 'pending'}
+            loadingLabel={t('common.loading')}
+            accessibilityLabel={t('agreement.sign.action')}
+          >
+            {t('agreement.sign.action')}
+          </Button>
         </>
       ) : (
         <Text style={styles.bodyText}>{t('agreement.sign.notReady')}</Text>

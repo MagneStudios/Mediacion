@@ -18,9 +18,34 @@ export function useAgreement(caseId: string) {
   const [state, setState] = useState<AgreementState | null>(null);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const mountedRef = useRef(true);
+  const prepareInFlightRef = useRef<object | null>(null);
+  const signInFlightRef = useRef<object | null>(null);
+  const mutationRevisionRef = useRef(0);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
 
   const [prepareStatus, setPrepareStatus] = useState<MutationStatus>('idle');
   const [signStatus, setSignStatus] = useState<MutationStatus>('idle');
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+    mutationRevisionRef.current += 1;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    prepareInFlightRef.current = null;
+    signInFlightRef.current = null;
+    setPrepareStatus('idle');
+    setSignStatus('idle');
+  }, [caseId]);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -29,11 +54,21 @@ export function useAgreement(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    agreementsService.getAgreementState(caseId).then((result) => {
-      if (cancelled) return;
-      setState(result);
-      setStatus('success');
-    });
+    const revision = mutationRevisionRef.current;
+    if (prepareInFlightRef.current || signInFlightRef.current) return;
+    agreementsService
+      .getAgreementState(caseId)
+      .then((result) => {
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
+        setState(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
+        setStatus('error');
+      });
     return () => {
       cancelled = true;
     };
@@ -46,13 +81,15 @@ export function useAgreement(caseId: string) {
     agreementsService
       .getAgreementState(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setState(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -68,30 +105,44 @@ export function useAgreement(caseId: string) {
   );
 
   const prepareDocument = useCallback(async () => {
-    if (prepareStatus === 'pending') return;
+    if (prepareInFlightRef.current) return;
+    const operation = {};
+    prepareInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
     setPrepareStatus('pending');
     try {
       const result = await agreementsService.prepareSignatureDocument(caseId);
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId) return;
+      setResultCaseId(caseId);
       setState(result);
       setPrepareStatus('idle');
     } catch {
-      setPrepareStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId) setPrepareStatus('error');
+    } finally {
+      if (prepareInFlightRef.current === operation) prepareInFlightRef.current = null;
     }
-  }, [caseId, prepareStatus]);
+  }, [caseId]);
 
   const submitSignature = useCallback(
     async (agreementId: string) => {
-      if (signStatus === 'pending') return;
+      if (signInFlightRef.current) return;
+      const operation = {};
+      signInFlightRef.current = operation;
+      mutationRevisionRef.current += 1;
       setSignStatus('pending');
       try {
         const result = await agreementsService.submitOwnMockSignature(caseId, agreementId);
+        if (!mountedRef.current || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setState(result);
         setSignStatus('idle');
       } catch {
-        setSignStatus('error');
+        if (mountedRef.current && activeCaseIdRef.current === caseId) setSignStatus('error');
+      } finally {
+        if (signInFlightRef.current === operation) signInFlightRef.current = null;
       }
     },
-    [caseId, signStatus],
+    [caseId],
   );
 
   const resetSignStatus = useCallback(() => {
@@ -99,8 +150,8 @@ export function useAgreement(caseId: string) {
   }, []);
 
   return {
-    status,
-    state,
+    status: resultCaseId === caseId ? status : 'loading',
+    state: resultCaseId === caseId ? state : null,
     reload,
     prepareStatus,
     prepareDocument,

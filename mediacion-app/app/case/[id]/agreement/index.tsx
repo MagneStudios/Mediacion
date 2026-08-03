@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -30,6 +30,12 @@ export default function AgreementDashboardScreen() {
   const [breachDescription, setBreachDescription] = useState('');
   const [breachSubmitAttempted, setBreachSubmitAttempted] = useState(false);
   const [breachDialogVisible, setBreachDialogVisible] = useState(false);
+
+  useEffect(() => {
+    setBreachDescription('');
+    setBreachSubmitAttempted(false);
+    setBreachDialogVisible(false);
+  }, [caseId, state?.agreement.id]);
 
   if (status === 'loading') {
     return (
