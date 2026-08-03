@@ -34,7 +34,9 @@ export function RoundHistoryCard({
       <Text style={styles.title} accessibilityRole="header">
         {proposalTitle}
       </Text>
-      <Text style={styles.summary}>{proposalSummary}</Text>
+      <Text style={styles.summary} numberOfLines={3}>
+        {proposalSummary}
+      </Text>
       {dateLabel ? (
         <Text style={styles.date} accessibilityLabel={dateLabel}>
           {dateLabel}

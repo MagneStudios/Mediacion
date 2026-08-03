@@ -19,10 +19,25 @@ export function useNegotiation(caseId: string) {
   const [state, setState] = useState<NegotiationState | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const startRoundInFlightRef = useRef(false);
+  const generateInFlightRef = useRef(false);
+  const respondInFlightRef = useRef(false);
 
   const [startRoundStatus, setStartRoundStatus] = useState<MutationStatus>('idle');
   const [generateStatus, setGenerateStatus] = useState<MutationStatus>('idle');
   const [respondStatus, setRespondStatus] = useState<MutationStatus>('idle');
+
+  useEffect(() => {
+    activeCaseIdRef.current = caseId;
+    startRoundInFlightRef.current = false;
+    generateInFlightRef.current = false;
+    respondInFlightRef.current = false;
+    setStartRoundStatus('idle');
+    setGenerateStatus('idle');
+    setRespondStatus('idle');
+    setState(undefined);
+  }, [caseId]);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -31,11 +46,17 @@ export function useNegotiation(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    negotiationService.getNegotiationState(caseId).then((result) => {
-      if (cancelled) return;
-      setState(result);
-      setStatus('success');
-    });
+    negotiationService
+      .getNegotiationState(caseId)
+      .then((result) => {
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setState(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setStatus('error');
+      });
     return () => {
       cancelled = true;
     };
@@ -69,43 +90,64 @@ export function useNegotiation(caseId: string) {
     }, [fetchSilently]),
   );
 
+  const refreshAfterMutation = useCallback(async () => {
+    try {
+      const result = await negotiationService.getNegotiationState(caseId);
+      if (activeCaseIdRef.current !== caseId) return false;
+      setState(result);
+      setStatus('success');
+      return true;
+    } catch {
+      if (activeCaseIdRef.current === caseId) setStatus('error');
+      return false;
+    }
+  }, [caseId]);
+
   const startNextRound = useCallback(async () => {
-    if (startRoundStatus === 'pending') return;
+    if (startRoundInFlightRef.current) return;
+    startRoundInFlightRef.current = true;
     setStartRoundStatus('pending');
     try {
       await negotiationService.startNextRound(caseId);
-      setStartRoundStatus('idle');
-      fetchSilently();
+      if (await refreshAfterMutation()) setStartRoundStatus('idle');
     } catch {
-      setStartRoundStatus('error');
+      if (activeCaseIdRef.current === caseId) setStartRoundStatus('error');
+    } finally {
+      startRoundInFlightRef.current = false;
     }
-  }, [caseId, startRoundStatus, fetchSilently]);
+  }, [caseId, refreshAfterMutation]);
 
   const generateProposal = useCallback(async () => {
-    if (generateStatus === 'pending') return;
+    if (generateInFlightRef.current) return;
+    generateInFlightRef.current = true;
     setGenerateStatus('pending');
     try {
       await negotiationService.generateSharedProposal(caseId);
-      setGenerateStatus('idle');
-      fetchSilently();
+      if (await refreshAfterMutation()) setGenerateStatus('idle');
     } catch {
-      setGenerateStatus('error');
+      if (activeCaseIdRef.current === caseId) setGenerateStatus('error');
+    } finally {
+      generateInFlightRef.current = false;
     }
-  }, [caseId, generateStatus, fetchSilently]);
+  }, [caseId, refreshAfterMutation]);
 
   const submitResponse = useCallback(
     async (proposalId: string, decision: DecisionPropuesta) => {
-      if (respondStatus === 'pending') return;
+      if (respondInFlightRef.current) return;
+      respondInFlightRef.current = true;
       setRespondStatus('pending');
       try {
         const result = await negotiationService.submitOwnProposalResponse(caseId, proposalId, decision);
+        if (activeCaseIdRef.current !== caseId) return;
         setState(result);
         setRespondStatus('idle');
       } catch {
-        setRespondStatus('error');
+        if (activeCaseIdRef.current === caseId) setRespondStatus('error');
+      } finally {
+        respondInFlightRef.current = false;
       }
     },
-    [caseId, respondStatus],
+    [caseId],
   );
 
   /** Call when opening a fresh confirmation dialog, so a previous attempt's error doesn't appear to already apply to this one. */
