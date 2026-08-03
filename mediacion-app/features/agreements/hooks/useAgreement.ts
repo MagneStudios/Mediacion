@@ -65,9 +65,7 @@ export function useAgreement(caseId: string) {
         setStatus('success');
       })
       .catch(() => {
-        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
-        setResultCaseId(caseId);
-        setStatus('error');
+        // A focus refresh is best-effort: keep the last successful state.
       });
     return () => {
       cancelled = true;

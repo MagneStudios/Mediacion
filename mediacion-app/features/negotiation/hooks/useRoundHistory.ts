@@ -16,6 +16,13 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
   const [items, setItems] = useState<RoundHistoryItem[]>([]);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+    hasLoadedOnceRef.current = false;
+  }
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -27,13 +34,13 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
     negotiationService
       .getRoundHistory(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setItems(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
       })
       .catch(() => {
-        if (cancelled) return;
-        setStatus('error');
+        // A focus refresh is best-effort: keep the last successful history.
       });
     return () => {
       cancelled = true;
@@ -47,13 +54,15 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
     negotiationService
       .getRoundHistory(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setItems(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -68,7 +77,7 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
     }, [fetchSilently]),
   );
 
-  if (status === 'loading') return { status, items: undefined };
+  if (resultCaseId !== caseId || status === 'loading') return { status: 'loading', items: undefined };
   if (status === 'error') return { status, items: undefined, reload };
   if (status === 'empty') return { status, items: [] };
   return { status, items };

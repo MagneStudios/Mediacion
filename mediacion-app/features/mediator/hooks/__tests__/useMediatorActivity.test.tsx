@@ -41,6 +41,14 @@ afterEach(async () => {
 });
 
 describe('useMediatorActivity hardening', () => {
+  it('shows an error when the initial load fails', async () => {
+    mockGetMediatorActivity.mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useMediatorActivity('case-1'));
+
+    await waitFor(() => expect(hook.result.current.status).toBe('error'));
+    expect(hook.result.current.items).toEqual([]);
+  });
+
   it('does not expose items from the previous case during navigation', async () => {
     const caseOneRead = deferred<MediatorActivityItem[]>();
     const caseTwoRead = deferred<MediatorActivityItem[]>();
@@ -67,16 +75,17 @@ describe('useMediatorActivity hardening', () => {
     expect(hook.result.current.items[0]?.caseId).toBe('case-2');
   });
 
-  it('turns a failed focus refresh into a recoverable error', async () => {
+  it('keeps the last successful activity when a focus refresh fails', async () => {
     mockGetMediatorActivity.mockResolvedValueOnce([item('case-1')]);
     mockGetMediatorActivity.mockRejectedValueOnce(new Error('offline'));
     const hook = await renderHook(() => useMediatorActivity('case-1'));
     await waitFor(() => expect(hook.result.current.status).toBe('success'));
 
-    await act(() => {
+    await act(async () => {
       focusEffect?.();
+      await Promise.resolve();
     });
-    await waitFor(() => expect(hook.result.current.status).toBe('error'));
-    expect(hook.result.current.items).toEqual([]);
+    expect(hook.result.current.status).toBe('success');
+    expect(hook.result.current.items).toEqual([item('case-1')]);
   });
 });

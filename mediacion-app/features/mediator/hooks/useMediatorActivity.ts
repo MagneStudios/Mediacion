@@ -36,9 +36,7 @@ export function useMediatorActivity(caseId: string) {
         setStatus('success');
       })
       .catch(() => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
-        setStatus('error');
+        // A focus refresh is best-effort: keep the last successful activity.
       });
     return () => {
       cancelled = true;

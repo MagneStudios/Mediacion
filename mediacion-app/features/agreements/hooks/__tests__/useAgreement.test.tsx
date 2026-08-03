@@ -5,8 +5,13 @@ import type { AgreementState } from '@/types/agreement';
 const mockGetAgreementState = jest.fn();
 const mockPrepareSignatureDocument = jest.fn();
 const mockSubmitOwnMockSignature = jest.fn();
+let focusEffect: (() => void | (() => void)) | undefined;
 
-jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    focusEffect = effect;
+  },
+}));
 jest.mock('@/services/agreements.service', () => ({
   agreementsService: {
     getAgreementState: (...args: unknown[]) => mockGetAgreementState(...args),
@@ -54,6 +59,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  focusEffect = undefined;
 });
 
 afterEach(async () => {
@@ -61,6 +67,29 @@ afterEach(async () => {
 });
 
 describe('useAgreement hardening', () => {
+  it('shows an error when the initial load fails', async () => {
+    mockGetAgreementState.mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useAgreement('case-1'));
+
+    await waitFor(() => expect(hook.result.current.status).toBe('error'));
+    expect(hook.result.current.state).toBeNull();
+  });
+
+  it('keeps the last successful state when a focus refresh fails', async () => {
+    const initial = makeState('case-1');
+    mockGetAgreementState.mockResolvedValueOnce(initial).mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useAgreement('case-1'));
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+
+    await act(async () => {
+      focusEffect?.();
+      await Promise.resolve();
+    });
+
+    expect(hook.result.current.status).toBe('success');
+    expect(hook.result.current.state).toEqual(initial);
+  });
+
   it('allows only one synchronous call for each mutation', async () => {
     const initial = makeState('case-1');
     mockGetAgreementState.mockResolvedValue(initial);

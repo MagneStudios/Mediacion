@@ -51,6 +51,29 @@ afterEach(async () => {
 });
 
 describe('useMediator hardening', () => {
+  it('shows an error when the initial load fails', async () => {
+    mockGetMediatorState.mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useMediator('case-1'));
+
+    await waitFor(() => expect(hook.result.current.status).toBe('error'));
+    expect(hook.result.current.state).toBeNull();
+  });
+
+  it('keeps the last successful state when a focus refresh fails', async () => {
+    const initial = makeState('case-1');
+    mockGetMediatorState.mockResolvedValueOnce(initial).mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useMediator('case-1'));
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+
+    await act(async () => {
+      focusEffect?.();
+      await Promise.resolve();
+    });
+
+    expect(hook.result.current.status).toBe('success');
+    expect(hook.result.current.state).toEqual(initial);
+  });
+
   it('blocks a second request synchronously', async () => {
     mockGetMediatorState.mockResolvedValue(makeState('case-1'));
     const request = deferred<MediatorState>();

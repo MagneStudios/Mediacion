@@ -20,23 +20,37 @@ export function useNegotiation(caseId: string) {
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
   const activeCaseIdRef = useRef(caseId);
-  const startRoundInFlightRef = useRef(false);
-  const generateInFlightRef = useRef(false);
-  const respondInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+  const startRoundInFlightRef = useRef<object | null>(null);
+  const generateInFlightRef = useRef<object | null>(null);
+  const respondInFlightRef = useRef<object | null>(null);
+  const mutationRevisionRef = useRef(0);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
 
   const [startRoundStatus, setStartRoundStatus] = useState<MutationStatus>('idle');
   const [generateStatus, setGenerateStatus] = useState<MutationStatus>('idle');
   const [respondStatus, setRespondStatus] = useState<MutationStatus>('idle');
 
-  useEffect(() => {
+  if (activeCaseIdRef.current !== caseId) {
     activeCaseIdRef.current = caseId;
-    startRoundInFlightRef.current = false;
-    generateInFlightRef.current = false;
-    respondInFlightRef.current = false;
+    hasLoadedOnceRef.current = false;
+    mutationRevisionRef.current += 1;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    startRoundInFlightRef.current = null;
+    generateInFlightRef.current = null;
+    respondInFlightRef.current = null;
     setStartRoundStatus('idle');
     setGenerateStatus('idle');
     setRespondStatus('idle');
-    setState(undefined);
   }, [caseId]);
 
   const reload = useCallback(() => {
@@ -46,16 +60,18 @@ export function useNegotiation(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
+    const revision = mutationRevisionRef.current;
+    if (startRoundInFlightRef.current || generateInFlightRef.current || respondInFlightRef.current) return;
     negotiationService
       .getNegotiationState(caseId)
       .then((result) => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
         setState(result);
         setStatus('success');
       })
       .catch(() => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setStatus('error');
+        // A focus refresh is best-effort: keep the last successful state.
       });
     return () => {
       cancelled = true;
@@ -64,18 +80,21 @@ export function useNegotiation(caseId: string) {
 
   useEffect(() => {
     let cancelled = false;
+    const revision = mutationRevisionRef.current;
     setStatus('loading');
     hasLoadedOnceRef.current = false;
     negotiationService
       .getNegotiationState(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
         setState(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -90,61 +109,85 @@ export function useNegotiation(caseId: string) {
     }, [fetchSilently]),
   );
 
-  const refreshAfterMutation = useCallback(async () => {
+  const refreshAfterMutation = useCallback(async (revision: number) => {
     try {
       const result = await negotiationService.getNegotiationState(caseId);
-      if (activeCaseIdRef.current !== caseId) return false;
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return false;
+      setResultCaseId(caseId);
       setState(result);
       setStatus('success');
       return true;
     } catch {
-      if (activeCaseIdRef.current === caseId) setStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId && mutationRevisionRef.current === revision) {
+        setResultCaseId(caseId);
+        setStatus('error');
+      }
       return false;
     }
   }, [caseId]);
 
   const startNextRound = useCallback(async () => {
     if (startRoundInFlightRef.current) return;
-    startRoundInFlightRef.current = true;
+    const operation = {};
+    startRoundInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
+    const revision = mutationRevisionRef.current;
     setStartRoundStatus('pending');
     try {
       await negotiationService.startNextRound(caseId);
-      if (await refreshAfterMutation()) setStartRoundStatus('idle');
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || startRoundInFlightRef.current !== operation) return;
+      setStartRoundStatus('idle');
+      await refreshAfterMutation(revision);
     } catch {
-      if (activeCaseIdRef.current === caseId) setStartRoundStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId && startRoundInFlightRef.current === operation) {
+        setStartRoundStatus('error');
+      }
     } finally {
-      startRoundInFlightRef.current = false;
+      if (startRoundInFlightRef.current === operation) startRoundInFlightRef.current = null;
     }
   }, [caseId, refreshAfterMutation]);
 
   const generateProposal = useCallback(async () => {
     if (generateInFlightRef.current) return;
-    generateInFlightRef.current = true;
+    const operation = {};
+    generateInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
+    const revision = mutationRevisionRef.current;
     setGenerateStatus('pending');
     try {
       await negotiationService.generateSharedProposal(caseId);
-      if (await refreshAfterMutation()) setGenerateStatus('idle');
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || generateInFlightRef.current !== operation) return;
+      setGenerateStatus('idle');
+      await refreshAfterMutation(revision);
     } catch {
-      if (activeCaseIdRef.current === caseId) setGenerateStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId && generateInFlightRef.current === operation) {
+        setGenerateStatus('error');
+      }
     } finally {
-      generateInFlightRef.current = false;
+      if (generateInFlightRef.current === operation) generateInFlightRef.current = null;
     }
   }, [caseId, refreshAfterMutation]);
 
   const submitResponse = useCallback(
     async (proposalId: string, decision: DecisionPropuesta) => {
       if (respondInFlightRef.current) return;
-      respondInFlightRef.current = true;
+      const operation = {};
+      respondInFlightRef.current = operation;
+      mutationRevisionRef.current += 1;
       setRespondStatus('pending');
       try {
         const result = await negotiationService.submitOwnProposalResponse(caseId, proposalId, decision);
-        if (activeCaseIdRef.current !== caseId) return;
+        if (!mountedRef.current || activeCaseIdRef.current !== caseId || respondInFlightRef.current !== operation) return;
+        setResultCaseId(caseId);
         setState(result);
+        setStatus('success');
         setRespondStatus('idle');
       } catch {
-        if (activeCaseIdRef.current === caseId) setRespondStatus('error');
+        if (mountedRef.current && activeCaseIdRef.current === caseId && respondInFlightRef.current === operation) {
+          setRespondStatus('error');
+        }
       } finally {
-        respondInFlightRef.current = false;
+        if (respondInFlightRef.current === operation) respondInFlightRef.current = null;
       }
     },
     [caseId],
@@ -156,8 +199,8 @@ export function useNegotiation(caseId: string) {
   }, []);
 
   return {
-    status,
-    state,
+    status: resultCaseId === caseId ? status : 'loading',
+    state: resultCaseId === caseId ? state : undefined,
     reload,
     startRoundStatus,
     startNextRound,

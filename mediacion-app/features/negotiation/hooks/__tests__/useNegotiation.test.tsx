@@ -6,8 +6,13 @@ const mockGetNegotiationState = jest.fn();
 const mockStartNextRound = jest.fn();
 const mockGenerateSharedProposal = jest.fn();
 const mockSubmitOwnProposalResponse = jest.fn();
+let focusEffect: (() => void | (() => void)) | undefined;
 
-jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    focusEffect = effect;
+  },
+}));
 jest.mock('@/services/negotiation.service', () => ({
   negotiationService: {
     getNegotiationState: (...args: unknown[]) => mockGetNegotiationState(...args),
@@ -54,10 +59,22 @@ const baseState: NegotiationState = {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((next) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((next, fail) => {
     resolve = next;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
+}
+
+function makeState(caseId: string): NegotiationState {
+  return {
+    ...baseState,
+    caseId,
+    currentRound: baseState.currentRound
+      ? { ...baseState.currentRound, id: `round-${caseId}`, caseId }
+      : null,
+  };
 }
 
 async function renderLoadedHook() {
@@ -69,6 +86,7 @@ async function renderLoadedHook() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  focusEffect = undefined;
 });
 
 afterEach(async () => {
@@ -76,6 +94,28 @@ afterEach(async () => {
 });
 
 describe('useNegotiation mutation guards', () => {
+  it('shows an error when the initial load fails', async () => {
+    mockGetNegotiationState.mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useNegotiation('case-1'));
+
+    await waitFor(() => expect(hook.result.current.status).toBe('error'));
+    expect(hook.result.current.state).toBeUndefined();
+  });
+
+  it('keeps the last successful state when a focus refresh fails', async () => {
+    mockGetNegotiationState.mockResolvedValueOnce(baseState).mockRejectedValueOnce(new Error('offline'));
+    const hook = await renderHook(() => useNegotiation('case-1'));
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+
+    await act(async () => {
+      focusEffect?.();
+      await Promise.resolve();
+    });
+
+    expect(hook.result.current.status).toBe('success');
+    expect(hook.result.current.state).toEqual(baseState);
+  });
+
   it('allows only one in-flight call for every mutation before React rerenders', async () => {
     const hook = await renderLoadedHook();
     const roundRequest = deferred<NegotiationRound>();
@@ -125,5 +165,113 @@ describe('useNegotiation mutation guards', () => {
       responseRequest.resolve({ ...baseState, currentProposal: { ...proposal, estado: 'aceptada' }, bothAccepted: true });
       await Promise.all([firstResponse, secondResponse]);
     });
+  });
+
+  it('finishes a confirmed round mutation when its readback fails and allows a safe reload', async () => {
+    const hook = await renderLoadedHook();
+    mockStartNextRound.mockResolvedValueOnce(round);
+    mockGetNegotiationState.mockRejectedValueOnce(new Error('readback failed'));
+
+    await act(async () => {
+      await hook.result.current.startNextRound();
+    });
+
+    expect(mockStartNextRound).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.startRoundStatus).toBe('idle');
+    expect(hook.result.current.status).toBe('error');
+
+    mockGetNegotiationState.mockResolvedValueOnce(baseState);
+    await act(() => {
+      hook.result.current.reload();
+    });
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+    expect(mockStartNextRound).toHaveBeenCalledTimes(1);
+  });
+
+  it('finishes a confirmed proposal mutation when its readback fails and allows a safe reload', async () => {
+    const hook = await renderLoadedHook();
+    mockGenerateSharedProposal.mockResolvedValueOnce(proposal);
+    mockGetNegotiationState.mockRejectedValueOnce(new Error('readback failed'));
+
+    await act(async () => {
+      await hook.result.current.generateProposal();
+    });
+
+    expect(mockGenerateSharedProposal).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.generateStatus).toBe('idle');
+    expect(hook.result.current.status).toBe('error');
+
+    mockGetNegotiationState.mockResolvedValueOnce(baseState);
+    await act(() => {
+      hook.result.current.reload();
+    });
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+    expect(mockGenerateSharedProposal).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let an old operation release the current case operation', async () => {
+    mockGetNegotiationState.mockImplementation((caseId: string) => Promise.resolve(makeState(caseId)));
+    const oldRequest = deferred<NegotiationRound>();
+    const currentRequest = deferred<NegotiationRound>();
+    mockStartNextRound.mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(currentRequest.promise);
+    const hook = await renderHook<ReturnType<typeof useNegotiation>, { caseId: string }>(
+      ({ caseId }) => useNegotiation(caseId),
+      { initialProps: { caseId: 'case-1' } },
+    );
+    await waitFor(() => expect(hook.result.current.state?.caseId).toBe('case-1'));
+
+    let oldOperation!: Promise<void>;
+    await act(() => {
+      oldOperation = hook.result.current.startNextRound();
+    });
+    await hook.rerender({ caseId: 'case-2' });
+    await waitFor(() => expect(hook.result.current.state?.caseId).toBe('case-2'));
+
+    let currentOperation!: Promise<void>;
+    await act(() => {
+      currentOperation = hook.result.current.startNextRound();
+    });
+    await act(async () => {
+      oldRequest.resolve({ ...round, id: 'round-case-1', caseId: 'case-1' });
+      await oldOperation;
+    });
+    await act(async () => {
+      await hook.result.current.startNextRound();
+    });
+    expect(mockStartNextRound).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      currentRequest.resolve({ ...round, id: 'round-case-2', caseId: 'case-2' });
+      await currentOperation;
+    });
+    expect(hook.result.current.state?.caseId).toBe('case-2');
+    expect(hook.result.current.startRoundStatus).toBe('idle');
+  });
+
+  it('does not let an older reload overwrite a confirmed response', async () => {
+    const hook = await renderLoadedHook();
+    const staleReload = deferred<NegotiationState>();
+    mockGetNegotiationState.mockReturnValueOnce(staleReload.promise);
+    const acceptedState = {
+      ...baseState,
+      currentProposal: { ...proposal, estado: 'aceptada' as const },
+      bothAccepted: true,
+    };
+    mockSubmitOwnProposalResponse.mockResolvedValueOnce(acceptedState);
+
+    await act(() => {
+      hook.result.current.reload();
+    });
+    await act(async () => {
+      await hook.result.current.submitResponse(proposal.id, 'acepta');
+    });
+    expect(hook.result.current.state).toEqual(acceptedState);
+
+    await act(async () => {
+      staleReload.resolve(baseState);
+      await staleReload.promise;
+    });
+    expect(hook.result.current.state).toEqual(acceptedState);
+    expect(hook.result.current.status).toBe('success');
   });
 });

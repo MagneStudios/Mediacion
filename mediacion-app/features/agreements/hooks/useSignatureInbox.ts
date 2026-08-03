@@ -32,8 +32,7 @@ export function useSignatureInbox(): UseSignatureInboxResult {
         setStatus(result.length === 0 ? 'empty' : 'success');
       })
       .catch(() => {
-        if (cancelled) return;
-        setStatus('error');
+        // A focus refresh is best-effort: keep the last successful inbox.
       });
     return () => {
       cancelled = true;
