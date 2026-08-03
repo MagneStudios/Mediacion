@@ -104,14 +104,21 @@ export const semanticColors = {
   action: {
     primaryBg: colors.primary,
     primaryFg: colors.onPrimary,
+    primaryBgHover: colors.primaryHover,
     primaryBgPressed: colors.primaryPressed,
     secondaryBg: colors.surface1,
+    // `canvas` sits a shade below white surface1 and above the `sunken`
+    // pressed tone — the ramp already exists in the palette, just unused
+    // as a button state until now.
+    secondaryBgHover: colors.canvas,
     secondaryFg: colors.primary,
     secondaryBorder: colors.hairline,
     tertiaryBg: 'transparent',
     tertiaryFg: colors.primary,
     aiBg: colors.mediationAqua,
     aiFg: colors.onMediationAqua,
+    // Midpoint between aiBg and aiBgPressed — no existing swatch sits between them.
+    aiBgHover: '#2A7A80',
     aiBgPressed: '#256F74',
     disabledBg: colors.surface2,
     disabledFg: colors.inkTertiary,
@@ -133,6 +140,8 @@ export const semanticColors = {
     warningBg: '#FFF2D8',
     errorFg: '#8E2632',
     errorBg: '#FCE5E8',
+    // Midpoint between errorBg and errorBgPressed — no existing swatch sits between them.
+    errorBgHover: '#F9D9DE',
     errorBgPressed: '#F5CDD3',
     infoFg: colors.primaryPressed,
     infoBg: colors.accentSoft,

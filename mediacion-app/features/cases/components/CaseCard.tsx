@@ -95,7 +95,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
       </View>
 
       {/* 2. Title — strong visual weight, Stitch v6 card-title */}
-      <Text variant="cardTitle" style={[styles.title, isFinished && styles.titleFinished]}>
+      <Text variant="cardTitle" style={isFinished ? styles.titleFinished : undefined}>
         {caseSummary.title}
       </Text>
 
@@ -179,11 +179,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     fontSize: 12,
     color: semanticColors.text.tertiary,
-  },
-  title: {
-    fontSize: 22,
-    letterSpacing: -0.2,
-    lineHeight: 28,
   },
   titleFinished: {
     color: semanticColors.text.secondary,
