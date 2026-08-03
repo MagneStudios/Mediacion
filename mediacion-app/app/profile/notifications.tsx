@@ -27,20 +27,22 @@ export default function ProfileNotificationsScreen() {
   const { status, preferences, reload, updateStatus, togglePreference, retryLastToggle } = useNotificationPreferences();
   const { horizontalPadding } = useResponsiveLayout();
 
-  if (status === 'loading' || !preferences) {
-    return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.loadingContent}>
-        <Stack.Screen options={{ title: t('profile.notifications.title') }} />
-        <LoadingState label={t('common.loading')} />
-      </ScrollView>
-    );
-  }
-
+  // Error must win over the missing-data guard: a failed initial load has no
+  // preferences either, and it must offer a retry, not an endless spinner.
   if (status === 'error') {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.loadingContent}>
         <Stack.Screen options={{ title: t('profile.notifications.title') }} />
         <ErrorState title={t('states.error.title')} retryLabel={t('states.error.retry')} onRetry={reload} />
+      </ScrollView>
+    );
+  }
+
+  if (status === 'loading' || !preferences) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.loadingContent}>
+        <Stack.Screen options={{ title: t('profile.notifications.title') }} />
+        <LoadingState label={t('common.loading')} />
       </ScrollView>
     );
   }
