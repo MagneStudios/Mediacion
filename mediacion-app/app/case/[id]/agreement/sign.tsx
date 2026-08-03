@@ -109,6 +109,7 @@ export default function AgreementSignScreen() {
           ) : null}
           <Button
             variant="secondary"
+            size="lg"
             fullWidth
             onPress={() => {
               blurActiveElement();
@@ -136,6 +137,7 @@ export default function AgreementSignScreen() {
           ) : (
             <Button
               variant="primary"
+              size="lg"
               fullWidth
               onPress={handleConfirmSignature}
               disabled={!confirmed}
@@ -159,28 +161,23 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   bodyText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   section: {
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   sectionTitle: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 18,
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
 });
