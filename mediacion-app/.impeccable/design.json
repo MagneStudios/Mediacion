@@ -1,0 +1,475 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-04T00:00:00.000Z",
+  "title": "Design System: Mediación",
+  "extensions": {
+    "colorMeta": {
+      "mar-de-acuerdo": {
+        "role": "primary",
+        "displayName": "Mar de Acuerdo",
+        "canonical": "#3F6F9E",
+        "tonalRamp": [
+          "#16293B",
+          "#1E3550",
+          "#274264",
+          "#2F4F78",
+          "#3F6F9E",
+          "#6591BD",
+          "#8CB2D5",
+          "#B4D1E8"
+        ]
+      },
+      "mar-de-acuerdo-hover": {
+        "role": "primary",
+        "displayName": "Mar de Acuerdo (hover)",
+        "canonical": "#345F89",
+        "tonalRamp": [
+          "#122135",
+          "#1A2E48",
+          "#223B5A",
+          "#2A4F70",
+          "#345F89",
+          "#5982AD",
+          "#7FA4C6",
+          "#A9C4DE"
+        ]
+      },
+      "mar-de-acuerdo-pressed": {
+        "role": "primary",
+        "displayName": "Mar de Acuerdo (pressed)",
+        "canonical": "#294E72",
+        "tonalRamp": [
+          "#0D1A28",
+          "#14283C",
+          "#1C3550",
+          "#234563",
+          "#294E72",
+          "#4B7399",
+          "#7196B7",
+          "#9DB8D2"
+        ]
+      },
+      "ceruleo-focal": {
+        "role": "secondary",
+        "displayName": "Cerúleo Focal",
+        "canonical": "#2F83C5",
+        "tonalRamp": [
+          "#0D2A45",
+          "#143D61",
+          "#1B547D",
+          "#226B99",
+          "#2F83C5",
+          "#5A9FD4",
+          "#85BDE2",
+          "#B0D8EF"
+        ]
+      },
+      "ceruleo-suave": {
+        "role": "secondary",
+        "displayName": "Cerúleo Suave",
+        "canonical": "#DCEFFC",
+        "tonalRamp": [
+          "#A8D0EE",
+          "#BCD9F3",
+          "#CDE3F7",
+          "#DCEFFC",
+          "#E4F3FD",
+          "#ECF7FE",
+          "#F3FAFE",
+          "#F9FCFF"
+        ]
+      },
+      "turquesa-asistida": {
+        "role": "primary",
+        "displayName": "Turquesa Asistida",
+        "canonical": "#2F858B",
+        "tonalRamp": [
+          "#0D2E32",
+          "#144448",
+          "#1B5A5F",
+          "#227076",
+          "#2F858B",
+          "#4DA0A5",
+          "#71B8BD",
+          "#9CD2D5"
+        ]
+      },
+      "turquesa-asistida-suave": {
+        "role": "primary",
+        "displayName": "Turquesa Asistida Suave",
+        "canonical": "#D8F2F2",
+        "tonalRamp": [
+          "#A0DADA",
+          "#B6E1E1",
+          "#C7E9E9",
+          "#D8F2F2",
+          "#E0F4F4",
+          "#E9F7F7",
+          "#F1FAFA",
+          "#F8FCFC"
+        ]
+      },
+      "tinta-profunda": {
+        "role": "neutral",
+        "displayName": "Tinta Profunda",
+        "canonical": "#17324A",
+        "tonalRamp": [
+          "#070F17",
+          "#0D1D2C",
+          "#132A3E",
+          "#17324A",
+          "#254A66",
+          "#376484",
+          "#507E9F",
+          "#729AB7"
+        ]
+      },
+      "tinta-atenuada": {
+        "role": "neutral",
+        "displayName": "Tinta Atenuada",
+        "canonical": "#526B7B",
+        "tonalRamp": [
+          "#1A252D",
+          "#293A46",
+          "#3A525F",
+          "#526B7B",
+          "#6F8898",
+          "#8DA1AF",
+          "#AEBCC6",
+          "#CED7DE"
+        ]
+      },
+      "tinta-sutil": {
+        "role": "neutral",
+        "displayName": "Tinta Sutil",
+        "canonical": "#718795",
+        "tonalRamp": [
+          "#25313A",
+          "#384754",
+          "#4E5F6E",
+          "#718795",
+          "#8D9EAA",
+          "#A7B5BE",
+          "#C2CCD3",
+          "#DDE3E7"
+        ]
+      },
+      "tinta-terciaria": {
+        "role": "neutral",
+        "displayName": "Tinta Terciaria",
+        "canonical": "#93A6B1",
+        "tonalRamp": [
+          "#3C4850",
+          "#52606A",
+          "#6C7C87",
+          "#93A6B1",
+          "#A9B8C0",
+          "#BEC9D0",
+          "#D3DBE0",
+          "#E8ECEF"
+        ]
+      },
+      "hielo-canvas": {
+        "role": "neutral",
+        "displayName": "Hielo Canvas",
+        "canonical": "#F4FAFD",
+        "tonalRamp": [
+          "#C1D5E4",
+          "#D0DFED",
+          "#E0EAF4",
+          "#F4FAFD",
+          "#F6FBFD",
+          "#F8FCFE",
+          "#FAFDFE",
+          "#FDFEFF"
+        ]
+      },
+      "blanco-superficie": {
+        "role": "neutral",
+        "displayName": "Blanco Superficie",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#E0E0E0",
+          "#E8E8E8",
+          "#F0F0F0",
+          "#F8F8F8",
+          "#FAFAFA",
+          "#FCFCFC",
+          "#FEFEFE",
+          "#FFFFFF"
+        ]
+      },
+      "hielo-hundido": {
+        "role": "neutral",
+        "displayName": "Hielo Hundido",
+        "canonical": "#EAF6FD",
+        "tonalRamp": [
+          "#B8CDE2",
+          "#C9D9EC",
+          "#D9E6F5",
+          "#EAF6FD",
+          "#EEF8FD",
+          "#F2F9FE",
+          "#F6FBFE",
+          "#FBFDFF"
+        ]
+      },
+      "aqua-suave": {
+        "role": "neutral",
+        "displayName": "Aqua Suave",
+        "canonical": "#E2F6F6",
+        "tonalRamp": [
+          "#ADD8D8",
+          "#BFE1E0",
+          "#D0EBEB",
+          "#E2F6F6",
+          "#E8F8F8",
+          "#EEFAFA",
+          "#F4FCFC",
+          "#F9FDFD"
+        ]
+      },
+      "linea-hielo": {
+        "role": "neutral",
+        "displayName": "Línea de Hielo",
+        "canonical": "#C9DCE7",
+        "tonalRamp": [
+          "#91B3C4",
+          "#A3C1D1",
+          "#B6CEDD",
+          "#C9DCE7",
+          "#D4E3EB",
+          "#DFEAEF",
+          "#E9F1F4",
+          "#F4F8F9"
+        ]
+      },
+      "linea-suave": {
+        "role": "neutral",
+        "displayName": "Línea Suave",
+        "canonical": "#E1EDF3",
+        "tonalRamp": [
+          "#AFC7D5",
+          "#C0D3DE",
+          "#D0E0E8",
+          "#E1EDF3",
+          "#E7F0F5",
+          "#EDF4F7",
+          "#F3F8FA",
+          "#F9FBFD"
+        ]
+      },
+      "ambar-alerta": {
+        "role": "status",
+        "displayName": "Ámbar de Alerta",
+        "canonical": "#B7791F",
+        "tonalRamp": [
+          "#42260A",
+          "#5E3610",
+          "#7A4A16",
+          "#975C1B",
+          "#B7791F",
+          "#C8963E",
+          "#D9B465",
+          "#E8D295"
+        ]
+      },
+      "verde-acuerdo": {
+        "role": "status",
+        "displayName": "Verde Acuerdo",
+        "canonical": "#2F8F6B",
+        "tonalRamp": [
+          "#0D3023",
+          "#144633",
+          "#1C5E43",
+          "#247654",
+          "#2F8F6B",
+          "#4DA683",
+          "#71BD9E",
+          "#9CD4BD"
+        ]
+      },
+      "rojo-ruptura": {
+        "role": "status",
+        "displayName": "Rojo de Ruptura",
+        "canonical": "#B93845",
+        "tonalRamp": [
+          "#420F14",
+          "#5E171E",
+          "#7A1F28",
+          "#972732",
+          "#B93845",
+          "#C95C65",
+          "#D98289",
+          "#E8ACB1"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines — case titles, agreement headers. Use displayXl (48px), displayLg (40px), or displayMd (34px)." },
+      "headline": { "displayName": "Headline", "purpose": "Section headers on dashboards and detail screens at 28px/600." },
+      "cardTitle": { "displayName": "Card Title", "purpose": "Card headings, dialog titles, empty-state titles at 22px/600." },
+      "body": { "displayName": "Body", "purpose": "Default reading text at 16px/400/1.5. Max line length 65–75ch." },
+      "bodySm": { "displayName": "Body Small", "purpose": "Secondary metadata and card descriptions at 14px/400." },
+      "caption": { "displayName": "Caption", "purpose": "Timestamps, fine print, tertiary labels at 12px/400." },
+      "button": { "displayName": "Button", "purpose": "All button labels at 15px/600." },
+      "mono": { "displayName": "Mono", "purpose": "Code, amounts, identifiers. JetBrains Mono at 13px/400." }
+    },
+    "shadows": [
+      { "name": "overlay", "value": "0 12px 32px -8px rgba(23,50,74,0.16), 0 2px 8px -2px rgba(23,50,74,0.08)", "purpose": "Full-screen dialogs and confirmation modals." },
+      { "name": "popover", "value": "0 8px 24px -6px rgba(23,50,74,0.14), 0 1px 4px -1px rgba(23,50,74,0.08)", "purpose": "Dropdowns, tooltips, floating menus." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Default easing for state transitions (button hover/press, focus changes)." },
+      { "name": "duration-fast", "value": "120ms", "purpose": "Micro-interactions — focus/blur, hover feedback." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Standard state transitions — button press, card selection." },
+      { "name": "duration-slow", "value": "320ms", "purpose": "Modal enter/exit, page transitions." },
+      { "name": "ai-pulse", "value": "1600ms", "purpose": "Non-blocking AI-pending dot pulse on the AI status pill." }
+    ],
+    "breakpoints": [
+      { "name": "compactMax", "value": "767px", "purpose": "Mobile layout. 16px horizontal padding, bottom tab nav." },
+      { "name": "mediumMin", "value": "768px", "purpose": "Tablet/narrow desktop. 24px horizontal padding, desktop sidebar (web only)." },
+      { "name": "wideMin", "value": "1024px", "purpose": "Desktop. 32px padding, two-column layouts viable." },
+      { "name": "extraWideMin", "value": "1440px", "purpose": "Large desktop. Three-column dashboard grids." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The dominant call-to-action. Mar de Acuerdo background with white text. Use for the single most important action on a screen.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">CONTINUAR</button>",
+      "css": ".ds-btn { font-family: Inter, system-ui, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; min-height: 40px; transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1); } .ds-btn-primary { background-color: #3F6F9E; color: #FFFFFF; } .ds-btn-primary:hover { background-color: #345F89; } .ds-btn-primary:active { background-color: #294E72; } .ds-btn-primary:focus-visible { outline: 2px solid #2F83C5; outline-offset: 2px; } .ds-btn-primary:disabled { background-color: #EAF6FD; color: #93A6B1; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Companion action alongside a primary. Mar de Acuerdo text on white background with hairline border.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">CANCELAR</button>",
+      "css": ".ds-btn { font-family: Inter, system-ui, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; min-height: 40px; transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1); } .ds-btn-secondary { background-color: #FFFFFF; color: #3F6F9E; border-color: #C9DCE7; } .ds-btn-secondary:hover { background-color: #F4FAFD; } .ds-btn-secondary:active { background-color: #EAF6FD; } .ds-btn-secondary:focus-visible { outline: 2px solid #2F83C5; outline-offset: 2px; }"
+    },
+    {
+      "name": "AI Button",
+      "kind": "button",
+      "refersTo": "button-ai",
+      "description": "Exclusively for AI-assisted proposal actions. Turquesa Asistida background with white text. Never shares a screen with a primary button at equal weight.",
+      "html": "<button class=\"ds-btn ds-btn-ai\">\n  <svg class=\"ds-btn-ai-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 2a4 4 0 0 1 4 4v1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h3V6a4 4 0 0 1 4-4z\"/><circle cx=\"12\" cy=\"14\" r=\"3\"/><path d=\"M12 11v3\"/></svg>\n  GENERAR PROPUESTA\n</button>",
+      "css": ".ds-btn { font-family: Inter, system-ui, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; min-height: 40px; transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1); } .ds-btn-ai { background-color: #2F858B; color: #FFFFFF; } .ds-btn-ai:hover { background-color: #2A7A80; } .ds-btn-ai:active { background-color: #256F74; } .ds-btn-ai:focus-visible { outline: 2px solid #2F83C5; outline-offset: 2px; } .ds-btn-ai-icon { flex-shrink: 0; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "For irreversible deletion. A calm, restrained red — deep text on a soft red background, never a bright alarm.",
+      "html": "<button class=\"ds-btn ds-btn-destructive\">ELIMINAR POSICIÓN</button>",
+      "css": ".ds-btn { font-family: Inter, system-ui, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; min-height: 40px; transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1); } .ds-btn-destructive { background-color: #FCE5E8; color: #8E2632; } .ds-btn-destructive:hover { background-color: #F9D9DE; } .ds-btn-destructive:active { background-color: #F5CDD3; } .ds-btn-destructive:focus-visible { outline: 2px solid #2F83C5; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The dominant surface primitive. White card on Hielo canvas — depth through tonal contrast, never a shadow. 14px radius, 24px padding, 1px hairline border.",
+      "html": "<div class=\"ds-card\">\n  <h3 class=\"ds-card-title\">Título de la tarjeta</h3>\n  <p class=\"ds-card-body\">Descripción o contenido principal de la tarjeta. Puede contener texto, acciones, o cualquier contenido relevante.</p>\n</div>",
+      "css": ".ds-card { background-color: #FFFFFF; border: 1px solid #C9DCE7; border-radius: 14px; padding: 24px; } .ds-card-title { font-family: Inter, system-ui, sans-serif; font-size: 22px; font-weight: 600; line-height: 1.28; letter-spacing: -0.01em; color: #17324A; margin: 0 0 8px 0; } .ds-card-body { font-family: Inter, system-ui, sans-serif; font-size: 16px; font-weight: 400; line-height: 1.5; color: #526B7B; margin: 0; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field with label, optional hint, and error state. 44px minimum touch target, 10px radius. Focus shifts border to Cerúleo at 1.5px.",
+      "html": "<div class=\"ds-input-field\">\n  <label class=\"ds-input-label\" for=\"demo-input\">Nombre de la posición</label>\n  <div class=\"ds-input-control\">\n    <input class=\"ds-input\" id=\"demo-input\" type=\"text\" placeholder=\"Ej: Reducción de jornada\" />\n  </div>\n  <span class=\"ds-input-hint\">Describe brevemente la posición que deseas negociar</span>\n</div>",
+      "css": ".ds-input-field { display: flex; flex-direction: column; gap: 6px; } .ds-input-label { font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 400; line-height: 1.5; color: #17324A; } .ds-input-control { display: flex; align-items: center; gap: 8px; border: 1px solid #C9DCE7; border-radius: 10px; padding: 0 14px; min-height: 44px; background-color: #FFFFFF; transition: border-color 0.12s cubic-bezier(0.2, 0, 0, 1); } .ds-input-control:focus-within { border-color: #2F83C5; border-width: 1.5px; padding: 0 13.5px; } .ds-input { flex: 1; font-family: Inter, system-ui, sans-serif; font-size: 16px; font-weight: 400; line-height: 1.5; color: #17324A; border: none; outline: none; background: transparent; padding: 10px 0; } .ds-input::placeholder { color: #93A6B1; } .ds-input-hint { font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 400; line-height: 1.4; color: #526B7B; }"
+    },
+    {
+      "name": "Badge — Neutral",
+      "kind": "custom",
+      "refersTo": "badge-neutral",
+      "description": "Small label for metadata and tags. Sunken background with muted ink text.",
+      "html": "<span class=\"ds-badge ds-badge-neutral\">PRESENCIAL</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 5px; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; line-height: 1.3; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; } .ds-badge-neutral { background-color: #EAF6FD; color: #526B7B; }"
+    },
+    {
+      "name": "Badge — AI",
+      "kind": "custom",
+      "refersTo": "badge-ai",
+      "description": "Marks AI-assisted content. Turquesa Asistida text on aqua tint background. The only decorative use of the AI accent besides the AI button.",
+      "html": "<span class=\"ds-badge ds-badge-ai\">\n  <svg class=\"ds-badge-ai-icon\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 2a4 4 0 0 1 4 4v1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h3V6a4 4 0 0 1 4-4z\"/><circle cx=\"12\" cy=\"14\" r=\"3\"/><path d=\"M12 11v3\"/></svg>\n  ASISTIDO POR IA\n</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 5px; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; line-height: 1.3; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; } .ds-badge-ai { background-color: #D8F2F2; color: #2F858B; } .ds-badge-ai-icon { flex-shrink: 0; }"
+    },
+    {
+      "name": "Status Pill — Success",
+      "kind": "custom",
+      "refersTo": "status-pill-success",
+      "description": "Status indicator for completed/accepted states. Colored dot + text label — color is never the only signal.",
+      "html": "<span class=\"ds-pill ds-pill-success\"><span class=\"ds-pill-dot\"></span>ACEPTADO</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; line-height: 1.3; border-radius: 8px; padding: 4px 9px; } .ds-pill-success { background-color: #E1F3EA; color: #1F6E4F; } .ds-pill-dot { width: 6px; height: 6px; border-radius: 9999px; background-color: currentColor; flex-shrink: 0; }"
+    },
+    {
+      "name": "Status Pill — AI (with pulse)",
+      "kind": "custom",
+      "refersTo": "status-pill-ai",
+      "description": "Non-blocking AI-pending indicator. The dot pulses between 100% and 35% opacity over 1.6s.",
+      "html": "<span class=\"ds-pill ds-pill-ai\"><span class=\"ds-pill-dot ds-pill-pulse\"></span>IA PROCESANDO</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; line-height: 1.3; border-radius: 8px; padding: 4px 9px; } .ds-pill-ai { background-color: #D8F2F2; color: #2F858B; } .ds-pill-dot { width: 6px; height: 6px; border-radius: 9999px; background-color: currentColor; flex-shrink: 0; } .ds-pill-pulse { animation: ds-pulse 1.6s cubic-bezier(0.2, 0, 0, 1) infinite; } @keyframes ds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Calma Azul",
+    "overview": "The Mediación design system creates a visual environment of serene professionalism — cool, clear, and considered. Every surface, color, and interaction is chosen to reduce tension and support deliberate decision-making. The aquatic palette draws from ocean depths and clear skies: deep, trustworthy blues anchor the interface, while the canvas breathes with the lightness of morning ice (Hielo). Nothing shouts; nothing distracts. The design recedes so the content and the mediation process take center stage.\n\nThe system operates on tonal layering — depth is a surface-color shift from canvas to card to sunken, never a shadow at rest. Shadows appear only transiently on overlays and popovers, and even then they are soft and diffused. Interactions are crisp and precise: border shifts on focus, subtle color changes on press, no bounce or looseness. The overall density is comfortable but efficient — generous internal spacing within components, tight grouping of related elements, and clear separation between sections.",
+    "keyCharacteristics": [
+      "Cool aquatic palette: deep blues for ink, Hielo (ice) for canvas, white cards for content surfaces",
+      "Tonal layering over shadows — depth is a surface-color change, not a drop shadow",
+      "Crisp, precise interactions with immediate feedback and no decorative motion",
+      "Modest corner radii (6–24px) everywhere; pill radius reserved for status chips and avatars",
+      "Inter as the single voice for UI, JetBrains Mono for code and data",
+      "A reserved Turquesa Asistida accent exclusively for AI-assisted mediation actions"
+    ],
+    "rules": [
+      {
+        "name": "The One-Color-Per-Concern Rule",
+        "body": "Turquesa Asistida (#2F858B) appears only for AI-assisted actions. Status success is a distinct green (#2F8F6B). Focus is a distinct cerulean (#2F83C5). No two concerns share a color; color is information, not decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Canvas-First Rule",
+        "body": "Every screen's outermost background is Hielo Canvas (#F4FAFD). Cards sit on the canvas as Blanco Superficie. No screen uses a white background directly — the tonal ramp from canvas to card to sunken is the depth system.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight-Step Rule",
+        "body": "Semibold (600) marks headings and actions; Regular (400) marks body and metadata. Medium (500) is never used — two weights create clear separation.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal-Layer Rule",
+        "body": "Depth is a surface-color shift through the tonal ramp: Hielo Canvas → Blanco Superficie → Hielo Hundido. Cards rest at surface.card (#FFFFFF) on the canvas (#F4FAFD) background. Sunken sections sink one step deeper into surface.sunken (#EAF6FD). No surface carries a resting-state shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Shadows appear only as a response to state — dialog overlay, popover, or dismissible floating element. A resting shadow on a card is a bug.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use tonal layering (canvas → white card → sunken surface) for depth — never a resting shadow.",
+      "Do use Mar de Acuerdo (#3F6F9E) for primary actions and navigational emphasis only.",
+      "Do reserve Turquesa Asistida (#2F858B) exclusively for AI-assisted actions, badges, and status pills — never repurpose it for generic success or decoration.",
+      "Do pair every status-pill dot with a text label so color is never the only signal.",
+      "Do pick a named content-width token (form 680px / reading 800px / standard 1040px / wide 1240px) per screen — never a raw number.",
+      "Do maintain the 44px minimum touch target for all interactive elements.",
+      "Do use Inter Semibold (600) for headings and buttons; Inter Regular (400) for body text. Skip Medium (500) entirely."
+    ],
+    "donts": [
+      "Don't add a drop shadow to a card at rest. Shadows are transient — overlays and popovers only.",
+      "Don't use Turquesa Asistida for success confirmations. Success is Verde Acuerdo (#2F8F6B) — a distinct green.",
+      "Don't mix a primary (Mar de Acuerdo) button and an AI (Turquesa Asistida) button at equal visual weight on the same screen. AI actions are subordinate or absent; co-equal AI and human actions create ambiguity about who is in control.",
+      "Don't use pill-shaped buttons. Pill radius (9999px) is for status-pill dots, avatars, and tab toggles only.",
+      "Don't use pure black (#000) or pure gray for text. The ink ramp (Tinta Profunda through Tinta Terciaria) is the only text palette.",
+      "Don't add a colored border-left or border-right above 1px on cards, callouts, or alerts.",
+      "Don't skip the canvas background — every screen's outermost layer must be Hielo Canvas (#F4FAFD). White backgrounds directly on a screen are a tonal-layer break."
+    ]
+  }
+}
