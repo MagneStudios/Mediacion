@@ -59,7 +59,7 @@ export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFil
 
   if (isCompact) {
     return (
-      <View style={styles.rowCompact} accessibilityRole="tablist">
+      <View style={styles.rowCompact} accessibilityRole="tablist" accessibilityLabel="Filtros de casos">
         {chips}
       </View>
     );
@@ -70,6 +70,7 @@ export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFil
       horizontal
       showsHorizontalScrollIndicator={false}
       accessibilityRole="tablist"
+      accessibilityLabel="Filtros de casos"
       contentContainerStyle={styles.row}
     >
       {chips}
@@ -165,7 +166,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 13,
-    fontWeight: '600',
   },
   labelCompact: {
     fontSize: 12,
@@ -175,6 +175,5 @@ const styles = StyleSheet.create({
   },
   labelSelected: {
     color: semanticColors.action.primaryFg,
-    fontWeight: '600',
   },
 });

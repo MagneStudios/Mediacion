@@ -13,9 +13,9 @@ export type CaseSummaryBarProps = {
 };
 
 export function CaseSummaryBar({ total, totalLabel, pendingResponse, pendingResponseLabel }: CaseSummaryBarProps) {
-  // The one number on this bar that means "act now" — same warning tone +
-  // left-accent grammar CaseCard already uses for its own urgent contextual
-  // block, so it reads as a flag rather than another neutral stat.
+  // The one number on this bar that means "act now" — same warning tone
+  // CaseCard already uses for its own urgent contextual block, so it
+  // reads as a flag rather than another neutral stat.
   const hasPending = pendingResponse > 0;
 
   return (
@@ -56,8 +56,6 @@ const styles = StyleSheet.create({
   },
   cardPending: {
     backgroundColor: semanticColors.status.warningBg,
-    borderLeftWidth: 4,
-    borderLeftColor: semanticColors.status.warningFg,
   },
   number: {
     lineHeight: 30,

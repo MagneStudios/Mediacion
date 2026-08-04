@@ -14,7 +14,7 @@ export default function CaseDetailRoute() {
           title: '',
           headerStyle: { backgroundColor: colors.canvas },
           headerTintColor: colors.ink,
-          headerTitleStyle: { fontFamily: fontFamily.medium },
+          headerTitleStyle: { fontFamily: fontFamily.semibold },
           headerShadowVisible: false,
         }}
       />

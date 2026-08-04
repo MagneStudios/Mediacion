@@ -35,7 +35,7 @@ export default function TabLayout() {
               borderTopColor: colors.hairline,
             },
         tabBarLabelStyle: {
-          fontFamily: fontFamily.medium,
+          fontFamily: fontFamily.semibold,
           fontSize: 10,
         },
       }}
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
   },
   badgeText: {
-    fontFamily: fontFamily.medium,
+    fontFamily: fontFamily.semibold,
     fontSize: 9,
     lineHeight: 11,
     color: colors.onPrimary,

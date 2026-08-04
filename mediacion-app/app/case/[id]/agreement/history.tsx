@@ -24,6 +24,9 @@ export default function AgreementHistoryScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">

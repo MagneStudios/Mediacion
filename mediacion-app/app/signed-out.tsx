@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState, Icon, ScreenContainer } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { useAccountActions } from '@/features/profile/hooks/useAccountActions';
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,

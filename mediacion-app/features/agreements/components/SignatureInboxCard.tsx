@@ -19,15 +19,6 @@ export type SignatureInboxCardProps = {
   onReview: () => void;
 };
 
-const ACCENT: Record<StatusPillStatus, string> = {
-  success: semanticColors.status.successFg,
-  warning: semanticColors.status.warningFg,
-  error: semanticColors.status.errorFg,
-  info: semanticColors.status.infoFg,
-  neutral: semanticColors.border.default,
-  ai: semanticColors.ai.accent,
-};
-
 export function SignatureInboxCard({
   caseTitle,
   agreementTitle,
@@ -39,7 +30,7 @@ export function SignatureInboxCard({
   onReview,
 }: SignatureInboxCardProps) {
   return (
-    <Card style={[styles.card, { borderLeftWidth: 3, borderLeftColor: ACCENT[statusVisual] }]}>
+    <Card style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconCircle}>
           <Icon name="file-signature" size={20} color={semanticColors.text.secondary} />
@@ -86,7 +77,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,
@@ -106,7 +97,6 @@ const styles = StyleSheet.create({
   caseLabel: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: semanticColors.text.tertiary,
@@ -115,7 +105,6 @@ const styles = StyleSheet.create({
   agreementTitle: {
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 17,
-    fontWeight: '600',
     letterSpacing: -0.2,
     lineHeight: 23,
     color: semanticColors.text.primary,

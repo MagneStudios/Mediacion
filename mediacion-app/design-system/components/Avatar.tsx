@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   initials: {
-    fontFamily: fontFamily.medium,
+    fontFamily: fontFamily.semibold,
     color: semanticColors.text.secondary,
   },
 });

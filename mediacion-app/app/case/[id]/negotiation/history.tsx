@@ -54,6 +54,9 @@ export default function NegotiationHistoryScreen() {
       <FlatList
         data={result.status === 'success' ? result.items : []}
         keyExtractor={(item) => item.roundId}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <Text style={styles.title} accessibilityRole="header">

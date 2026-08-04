@@ -48,6 +48,7 @@ function FilterTab({ label, selected, onPress, isWide }: FilterTabProps) {
   return (
     <Pressable
       accessibilityRole="tab"
+      accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
       testID="notice-filter-tab"
@@ -114,11 +115,9 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: typography.button.fontFamily,
     fontSize: 14,
-    fontWeight: '500',
   },
   labelActive: {
     color: semanticColors.text.primary,
-    fontWeight: '600',
   },
   labelInactive: {
     color: semanticColors.text.tertiary,

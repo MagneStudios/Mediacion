@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     borderWidth: 1,
     borderColor: semanticColors.border.default,
-    borderLeftWidth: 5,
+
   },
   cardWide: {
     padding: spacing.lg,
@@ -191,23 +191,18 @@ const styles = StyleSheet.create({
   },
   accentUnread: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.text.primary,
   },
   accentWarning: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.status.warningFg,
   },
   accentInfo: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.action.primaryBg,
   },
   accentSuccess: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.status.successFg,
   },
   accentRead: {
-    borderColor: semanticColors.border.default,
-    borderLeftColor: 'transparent',
+    borderColor: semanticColors.border.soft,
   },
 
   /* ---- header line ---- */
@@ -283,7 +278,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: -0.2,
     lineHeight: 24,
     color: semanticColors.text.primary,
@@ -334,9 +328,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   openIndicator: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,

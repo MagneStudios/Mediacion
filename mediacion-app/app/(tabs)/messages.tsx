@@ -109,8 +109,11 @@ export default function NoticeCenterScreen() {
       <FlatList
         data={status === 'error' ? [] : notices}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
         style={[isRefetching && styles.listRefetching]}
-        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? 1480 : contentWidths.standard, horizontalPadding })]}
+        contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isWide ? contentWidths.workspaceWide : contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={listHeader}
         renderItem={({ item }) => {
           const CardComponent = item.category === 'deadline' ? DeadlineNoticeCard : NoticeCard;

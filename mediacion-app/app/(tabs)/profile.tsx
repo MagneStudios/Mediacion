@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   avatarCircle: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: radii.pill,
     backgroundColor: semanticColors.action.primaryBg,
     alignItems: 'center',
     justifyContent: 'center',

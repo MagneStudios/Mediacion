@@ -45,6 +45,9 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
         key={numColumns}
         data={filteredCases}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: isExtraWide ? contentWidths.dashboardExtraWide : isWide ? contentWidths.dashboardWide : contentWidths.wide, horizontalPadding })]}

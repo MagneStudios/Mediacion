@@ -153,7 +153,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     );
   })();
 
-  const workspaceMaxWidth = isWide ? 1480 : contentWidths.wide;
+  const workspaceMaxWidth = isWide ? contentWidths.workspaceWide : contentWidths.wide;
 
   const contentStyle = getResponsiveContentStyle({ maxWidth: workspaceMaxWidth, horizontalPadding });
 
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   positionsCard: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.lg,
   },
@@ -281,7 +281,6 @@ const styles = StyleSheet.create({
   positionsEyebrow: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 14,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: semanticColors.text.secondary,
@@ -297,7 +296,7 @@ const styles = StyleSheet.create({
   privacyIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.pill,
     backgroundColor: semanticColors.surface.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -324,12 +323,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   awaitingGuidanceCard: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.sm,
     backgroundColor: semanticColors.surface.supportAqua,
-    borderLeftWidth: 4,
-    borderLeftColor: semanticColors.ai.accent,
   },
   awaitingGuidanceHeader: {
     flexDirection: 'row',
@@ -339,7 +336,7 @@ const styles = StyleSheet.create({
   awaitingGuidanceIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.pill,
     backgroundColor: semanticColors.surface.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -352,19 +349,17 @@ const styles = StyleSheet.create({
   awaitingGuidanceTitle: {
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },
   awaitingInvitationCard: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.md,
   },
   awaitingInvitationEyebrow: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 14,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: semanticColors.text.secondary,
@@ -373,7 +368,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: semanticColors.border.soft,
     alignItems: 'center',

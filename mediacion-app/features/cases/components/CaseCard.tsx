@@ -63,7 +63,6 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
   const isFinished = caseSummary.statusLabelKey === 'signed';
   const contextualLabel = isFinished ? t('cases.resultLabel') : t('cases.nextActionLabel');
   const contextualIcon: 'check' | 'info' = isFinished ? 'check' : 'info';
-  const hasContextualBorder = contextualTone.border != null;
 
   const buttonVariant = buttonVariantFor(ctaKey, caseSummary.visualStatus);
 
@@ -109,10 +108,6 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         style={[
           styles.contextualBlock,
           { backgroundColor: contextualTone.bg },
-          hasContextualBorder && {
-            borderLeftWidth: 4,
-            borderLeftColor: contextualTone.border,
-          },
         ]}
       >
         <Icon name={contextualIcon} size={18} color={contextualTone.fg} />

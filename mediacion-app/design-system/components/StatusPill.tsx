@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
@@ -34,9 +34,31 @@ const VARIANT_STYLE: Record<StatusPillStatus, { bg: string; fg: string }> = {
 export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse = false, children }: StatusPillProps) {
   const variantStyle = VARIANT_STYLE[status];
   const opacity = useRef(new Animated.Value(1)).current;
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    if (!pulse) {
+    if (Platform.OS === 'web') {
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setReducedMotion(mql.matches);
+      const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    }
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReducedMotion(enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (isEnabled) => {
+      setReducedMotion(isEnabled);
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pulse || reducedMotion) {
       opacity.setValue(1);
       return;
     }
@@ -58,7 +80,7 @@ export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse 
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse, opacity]);
+  }, [pulse, reducedMotion, opacity]);
 
   return (
     <View style={[styles.base, size === 'lg' && styles.lg, { backgroundColor: variantStyle.bg }]}>

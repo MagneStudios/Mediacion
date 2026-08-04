@@ -10,7 +10,7 @@ export default function NegotiationLayout() {
         headerStyle: { backgroundColor: colors.canvas },
         headerTintColor: colors.ink,
         headerTitle: '',
-        headerTitleStyle: { fontFamily: fontFamily.medium },
+        headerTitleStyle: { fontFamily: fontFamily.semibold },
         headerShadowVisible: false,
       }}
     />

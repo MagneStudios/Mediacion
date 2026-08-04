@@ -118,7 +118,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },

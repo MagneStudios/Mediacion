@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Icon, ScreenContainer, StatusPill } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
   badge: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: radii.pill,
     backgroundColor: semanticColors.status.successBg,
     borderWidth: 1,
     borderColor: semanticColors.status.successFg,

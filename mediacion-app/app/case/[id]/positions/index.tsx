@@ -94,6 +94,9 @@ export default function OwnPositionsScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <View style={styles.header}>

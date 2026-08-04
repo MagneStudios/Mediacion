@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '../tokens/colors';
+import { radii } from '../tokens/radii';
 import { spacing } from '../tokens/spacing';
 import { typography } from '../tokens/typography';
 import { Card } from './Card';
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,

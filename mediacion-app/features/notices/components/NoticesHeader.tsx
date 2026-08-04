@@ -47,7 +47,6 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: typography.eyebrow.fontSize,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     color: semanticColors.action.primaryBg,
