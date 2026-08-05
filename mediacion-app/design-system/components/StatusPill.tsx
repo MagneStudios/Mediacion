@@ -38,11 +38,14 @@ export function StatusPill({ status = 'neutral', size = 'md', dot = true, pulse 
 
   useEffect(() => {
     if (Platform.OS === 'web') {
-      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setReducedMotion(mql.matches);
-      const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-      mql.addEventListener('change', onChange);
-      return () => mql.removeEventListener('change', onChange);
+      if (typeof window.matchMedia === 'function') {
+        const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        setReducedMotion(mql.matches);
+        const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+        mql.addEventListener('change', onChange);
+        return () => mql.removeEventListener('change', onChange);
+      }
+      return;
     }
     let cancelled = false;
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
