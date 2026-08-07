@@ -70,11 +70,25 @@ jobs:
       #
       # `nest build` emits under dist/src/ because the project's rootDir resolves
       # to the package root, not to src/ — hence the path below.
+      # Dependencies are checked by RESOLVING them from the API package, not by
+      # testing a path. pnpm's layout has no `node_modules/@nestjs/core` at the
+      # root at all — packages live under `node_modules/.pnpm/<name>@<version>/`
+      # and `apps/api/node_modules/@nestjs/core` is a symlink into it. A path
+      # test against the root fails on a perfectly good image, which is exactly
+      # what it did the first time this workflow ran.
+      #
+      # Resolution is also the stronger assertion: it proves the module is
+      # loadable from where main.js will ask for it, rather than that some
+      # directory exists.
       - name: Verify the published image carries its compiled output
         run: |
           docker pull ${{ steps.image.outputs.name }}:${{ github.sha }}
           docker run --rm --entrypoint sh ${{ steps.image.outputs.name }}:${{ github.sha }} -c '
             test -f apps/api/dist/src/main.js || { echo "ERROR: main.js is absent." >&2; exit 1; }
-            test -d node_modules/@nestjs/core || { echo "ERROR: runtime dependencies are absent." >&2; exit 1; }
+            node -e "
+              for (const dep of [\"@nestjs/core\", \"@nestjs/common\", \"kysely\", \"pg\"]) {
+                require.resolve(dep, { paths: [\"/app/apps/api\"] });
+              }
+            " || { echo "ERROR: runtime dependencies do not resolve." >&2; exit 1; }
             echo "published image carries its compiled output"
           '
