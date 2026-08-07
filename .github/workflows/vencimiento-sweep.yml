@@ -16,6 +16,11 @@ jobs:
       - name: Warn when the sweep trigger is not configured
         if: ${{ vars.API_BASE_URL == '' }}
         run: echo "::warning::API_BASE_URL repository variable is not set; vencimiento sweep trigger skipped"
+      # The path carries no `api` prefix. `setGlobalPrefix("api")` is applied only
+      # by serverless.ts — the Vercel entrypoint, which can never reach Postgres
+      # from outside the VPS and is not a live deployment. The container the API
+      # actually runs in boots main.ts, whose routes start at the root:
+      # `GET /health`, not `GET /api/health`. Verified against the deployment.
       - name: Trigger vencimiento sweep
         if: ${{ vars.API_BASE_URL != '' }}
         env:
@@ -24,4 +29,4 @@ jobs:
         run: |
           curl --fail-with-body --silent --show-error --max-time 90 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${API_BASE_URL}/api/internal/vencimiento/sweep"
+            "${API_BASE_URL}/internal/vencimiento/sweep"
