@@ -9,6 +9,9 @@ import type {
   SignatureInboxItem,
 } from '../types/agreement';
 import { generateMockAgreementId, generateMockHistoryId } from '../utils/mock-id';
+import { createBackedAgreementsService } from './api/agreements.backed-service';
+import { backend } from './backend-instance';
+import { casesService } from './cases.service';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { negotiationService } from './negotiation.service';
 
@@ -300,4 +303,16 @@ export function createMockAgreementsService(): AgreementsService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const agreementsService: AgreementsService = createMockAgreementsService();
+export const agreementsService: AgreementsService = backend
+  ? createBackedAgreementsService(backend.agreements, {
+      getCaseTitle: (caseId) => casesService.getCaseTitle(caseId),
+      getAcceptedRoundNumber: async (caseId) => {
+        const accepted = await negotiationService.getAcceptedProposal(caseId);
+        return accepted?.roundNumber ?? 0;
+      },
+      getCurrentUserId: async () => {
+        const session = await backend.auth.getSession();
+        return session?.user?.id ?? null;
+      },
+    })
+  : createMockAgreementsService();

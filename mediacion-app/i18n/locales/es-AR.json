@@ -729,6 +729,20 @@
         "title": "Tus posiciones privadas están listas",
         "body": "Ya cargaste información privada para este caso. Solo vos podés verla."
       }
+    },
+    "events": {
+      "invitacionEnviada": {
+        "title": "Invitación enviada",
+        "body": "Se envió una invitación para que la otra parte se sume al caso."
+      },
+      "vencimiento": {
+        "title": "Vence un plazo",
+        "body": "Un plazo de este caso está por vencer o ya venció."
+      },
+      "generic": {
+        "title": "Novedad del proceso",
+        "body": "Hay una novedad en este caso."
+      }
     }
   },
   "positions": {

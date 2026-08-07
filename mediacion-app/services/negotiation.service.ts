@@ -16,6 +16,8 @@ import type {
 } from '../types/negotiation';
 import { generateMockProposalId, generateMockRoundId } from '../utils/mock-id';
 import { getNegotiationEligibility } from '../utils/negotiation-eligibility';
+import { createBackedNegotiationService } from './api/negotiation.backed-service';
+import { backend } from './backend-instance';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { positionsService } from './positions.service';
 
@@ -322,4 +324,12 @@ export function createMockNegotiationService(): NegotiationService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const negotiationService: NegotiationService = createMockNegotiationService();
+export const negotiationService: NegotiationService = backend
+  ? createBackedNegotiationService(backend.negotiation, {
+      getCaseDetail: (caseId) => casesService.getCaseDetail(caseId),
+      getOwnPositionCount: async (caseId) => {
+        const positions = await backend.positions.getOwnPositions(caseId);
+        return positions.length;
+      },
+    })
+  : createMockNegotiationService();

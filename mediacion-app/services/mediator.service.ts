@@ -6,6 +6,9 @@ import { generateMockMediationId, generateMockMediatorEventId } from '../utils/m
 import { getMediatorEligibility } from '../utils/mediator-eligibility';
 import { resolveMediatorAssignment } from '../utils/mediator-assignment';
 import { appendMediatorActivity } from './activity.service';
+import { createBackedMediatorService } from './api/mediator.backed-service';
+import { backend } from './backend-instance';
+import { casesService } from './cases.service';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { negotiationService } from './negotiation.service';
 import { appendMediatorNotice } from './notices.service';
@@ -174,4 +177,19 @@ export function createMockMediatorService(): MediatorService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const mediatorService: MediatorService = createMockMediatorService();
+export const mediatorService: MediatorService = backend
+  ? createBackedMediatorService(backend.mediator, {
+      getCaseEstado: async (caseId) => {
+        const detail = await casesService.getCaseDetail(caseId);
+        return detail?.estado ?? null;
+      },
+      getCurrentRoundNumber: async (caseId) => {
+        const state = await negotiationService.getNegotiationState(caseId);
+        return state.currentRound?.number ?? null;
+      },
+      // The profile has no backend counterpart — no mediator-profile table
+      // exists — so it stays demo content on both paths rather than being
+      // fabricated from the mediador's real name.
+      buildProfile: () => buildMockMediatorProfile(),
+    })
+  : createMockMediatorService();
