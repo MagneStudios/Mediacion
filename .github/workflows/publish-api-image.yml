@@ -1,0 +1,80 @@
+name: publish-api-image
+
+# Builds the NestJS API image here and publishes it, so the VPS never builds it.
+#
+# The API was deliberately left out of publish-web-image.yml on the grounds that
+# it is small enough to keep building on the host. That stopped being true: the
+# deploy of e3131bd failed on the host at the `corepack install` step while the
+# same commit builds clean locally, and the same Dockerfile already documents two
+# earlier web builds dying there fetching the pnpm tarball over the host's broken
+# IPv6 egress. Building here removes the host from the equation for both images.
+#
+# Coolify pulls the tag below instead of building. Point the mediacion-api
+# resource at `ghcr.io/magnestudios/mediacion-api:latest` and switch its build
+# pack from Dockerfile to a registry image.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-api-image
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Required for `cache-to: type=gha`: the default docker driver cannot
+      # export a cache, and the build fails outright rather than skipping it.
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lowercased because a registry path must be, and the org is mixed case.
+      - name: Resolve the image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')-api" >> "$GITHUB_OUTPUT"
+
+      # No build args: unlike the web bundle, nothing is inlined at build time.
+      # Every value the API reads — DATABASE_URL, SUPABASE_JWT_SECRET, CRON_SECRET
+      # — is runtime configuration supplied by Coolify, which is why the same
+      # image is valid for any environment.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # An image that builds but ships no compiled output starts, fails to find
+      # its entrypoint and restart-loops, which reads as a runtime problem rather
+      # than a build one. Checking here keeps that from reaching a deploy.
+      #
+      # `nest build` emits under dist/src/ because the project's rootDir resolves
+      # to the package root, not to src/ — hence the path below.
+      - name: Verify the published image carries its compiled output
+        run: |
+          docker pull ${{ steps.image.outputs.name }}:${{ github.sha }}
+          docker run --rm --entrypoint sh ${{ steps.image.outputs.name }}:${{ github.sha }} -c '
+            test -f apps/api/dist/src/main.js || { echo "ERROR: main.js is absent." >&2; exit 1; }
+            test -d node_modules/@nestjs/core || { echo "ERROR: runtime dependencies are absent." >&2; exit 1; }
+            echo "published image carries its compiled output"
+          '
