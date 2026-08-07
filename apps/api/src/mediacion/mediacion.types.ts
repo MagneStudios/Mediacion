@@ -42,3 +42,16 @@ export type MediacionView = Pick<
   Mediacion,
   (typeof mediacionViewColumns)[number]
 >;
+
+/**
+ * A mediador as a party choosing one may see them.
+ *
+ * Deliberately a whitelist, not a `Pick<Usuario>` with fields removed: email,
+ * telefono and estudio_id must never travel here. A party picking a mediador
+ * needs a name to recognise, nothing more.
+ */
+export type MediadorOption = {
+  id: string;
+  nombre: string;
+  apellido: string;
+};

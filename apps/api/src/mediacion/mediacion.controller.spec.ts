@@ -14,17 +14,17 @@ import { MediacionController } from "./mediacion.controller";
 import { MediacionService } from "./mediacion.service";
 
 const parteA: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "parte",
 };
 const admin: AuthenticatedUser = {
-  id: "admin-1",
+  id: "f6a3266e-ad53-4628-8b1b-126064854c85",
   email: "admin@b.com",
   rol: "admin",
 };
 const mediador: AuthenticatedUser = {
-  id: "mediador-1",
+  id: "483ff6af-32f5-45c7-8387-2fc7287768e9",
   email: "med@b.com",
   rol: "mediador",
 };
@@ -75,7 +75,7 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(requestMediacion, jest.fn());
 
     const response = await request(app.getHttpServer())
-      .post("/casos/caso-1/mediacion")
+      .post("/casos/fc8f1934-c72c-49d4-88a5-202797b30da7/mediacion")
       .send({ mediadorId: mediador.id });
 
     expect(response.status).toBe(401);
@@ -85,8 +85,8 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
 
   it("lets an authenticated party POST a mediacion request and returns 201", async () => {
     const view = {
-      id: "mediacion-1",
-      caso_id: "caso-1",
+      id: "ff5c34d8-404f-4a62-81bf-0c1449b37225",
+      caso_id: "fc8f1934-c72c-49d4-88a5-202797b30da7",
       mediador_id: mediador.id,
       estado: "solicitada",
       ronda: 3,
@@ -97,14 +97,14 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(requestMediacion, jest.fn());
 
     const response = await request(app.getHttpServer())
-      .post("/casos/caso-1/mediacion")
+      .post("/casos/fc8f1934-c72c-49d4-88a5-202797b30da7/mediacion")
       .set("Authorization", `Bearer ${parteA.id}`)
       .send({ mediadorId: mediador.id });
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual(view);
     expect(requestMediacion).toHaveBeenCalledWith(
-      "caso-1",
+      "fc8f1934-c72c-49d4-88a5-202797b30da7",
       parteA.id,
       mediador.id,
     );
@@ -116,7 +116,7 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(jest.fn(), updateEstado);
 
     const response = await request(app.getHttpServer())
-      .patch("/mediacion/mediacion-1")
+      .patch("/mediacion/ff5c34d8-404f-4a62-81bf-0c1449b37225")
       .send({ estado: "aceptada" });
 
     expect(response.status).toBe(401);
@@ -129,7 +129,7 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(jest.fn(), updateEstado);
 
     const response = await request(app.getHttpServer())
-      .patch("/mediacion/mediacion-1")
+      .patch("/mediacion/ff5c34d8-404f-4a62-81bf-0c1449b37225")
       .set("Authorization", `Bearer ${parteA.id}`)
       .send({ estado: "aceptada" });
 
@@ -140,8 +140,8 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
 
   it("lets the assigned mediador PATCH to aceptada and returns 200", async () => {
     const view = {
-      id: "mediacion-1",
-      caso_id: "caso-1",
+      id: "ff5c34d8-404f-4a62-81bf-0c1449b37225",
+      caso_id: "fc8f1934-c72c-49d4-88a5-202797b30da7",
       mediador_id: mediador.id,
       estado: "aceptada",
       ronda: 3,
@@ -152,14 +152,14 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(jest.fn(), updateEstado);
 
     const response = await request(app.getHttpServer())
-      .patch("/mediacion/mediacion-1")
+      .patch("/mediacion/ff5c34d8-404f-4a62-81bf-0c1449b37225")
       .set("Authorization", `Bearer ${mediador.id}`)
       .send({ estado: "aceptada" });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(view);
     expect(updateEstado).toHaveBeenCalledWith(
-      "mediacion-1",
+      "ff5c34d8-404f-4a62-81bf-0c1449b37225",
       mediador,
       "aceptada",
     );
@@ -175,7 +175,7 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(jest.fn(), updateEstado);
 
     const response = await request(app.getHttpServer())
-      .patch("/mediacion/mediacion-1")
+      .patch("/mediacion/ff5c34d8-404f-4a62-81bf-0c1449b37225")
       .set("Authorization", `Bearer ${mediador.id}`)
       .send({ estado: "aceptada" });
 
@@ -185,8 +185,8 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
 
   it("lets an admin PATCH to activa and returns 200", async () => {
     const view = {
-      id: "mediacion-1",
-      caso_id: "caso-1",
+      id: "ff5c34d8-404f-4a62-81bf-0c1449b37225",
+      caso_id: "fc8f1934-c72c-49d4-88a5-202797b30da7",
       mediador_id: mediador.id,
       estado: "activa",
       ronda: 3,
@@ -197,7 +197,7 @@ describe("/casos/:casoId/mediacion and PATCH /mediacion/:id end-to-end", () => {
     const app = await bootstrapApp(jest.fn(), updateEstado);
 
     const response = await request(app.getHttpServer())
-      .patch("/mediacion/mediacion-1")
+      .patch("/mediacion/ff5c34d8-404f-4a62-81bf-0c1449b37225")
       .set("Authorization", `Bearer ${admin.id}`)
       .send({ estado: "activa" });
 

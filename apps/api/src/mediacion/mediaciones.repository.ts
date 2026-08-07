@@ -7,6 +7,7 @@ import type {
   EstadoMediacion,
   Mediacion,
   MediacionView,
+  MediadorOption,
 } from "./mediacion.types";
 import {
   estadoMediacionAceptada,
@@ -41,6 +42,25 @@ export function buildCurrentRondaActualQuery(
   casoId: string,
 ) {
   return db.selectFrom("casos").select("ronda_actual").where("id", "=", casoId);
+}
+
+export function buildFindByCasoIdQuery(db: Kysely<Database>, casoId: string) {
+  return db
+    .selectFrom("mediaciones")
+    .select([...mediacionViewColumns])
+    .where("caso_id", "=", casoId)
+    .orderBy("fecha_solicitud", "desc")
+    .limit(1);
+}
+
+export function buildListMediadoresQuery(db: Kysely<Database>) {
+  return db
+    .selectFrom("usuarios")
+    .select(["id", "nombre", "apellido"])
+    .where("rol", "=", "mediador")
+    .where("activo", "=", true)
+    .orderBy("apellido", "asc")
+    .orderBy("nombre", "asc");
 }
 
 export function buildFindActivaByCasoIdQuery(
@@ -93,6 +113,15 @@ export class MediacionesRepository {
       casoId,
     ).executeTakeFirst();
     return row?.ronda_actual;
+  }
+
+  /** The most recent mediacion for a caso, whatever its estado — including rechazada/finalizada, which a party still needs to see. */
+  findByCasoId(casoId: string): Promise<MediacionView | undefined> {
+    return buildFindByCasoIdQuery(this.kysely, casoId).executeTakeFirst();
+  }
+
+  listMediadores(): Promise<MediadorOption[]> {
+    return buildListMediadoresQuery(this.kysely).execute();
   }
 
   findActivaByCasoId(casoId: string): Promise<Mediacion | undefined> {

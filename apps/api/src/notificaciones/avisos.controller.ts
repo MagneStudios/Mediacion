@@ -1,4 +1,12 @@
-import { Controller, Get, Inject, Param, Patch, Post } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AvisosService } from "./avisos.service";
@@ -26,7 +34,7 @@ export class AvisosController {
 
   @Patch(":id/leida")
   markOwnRead(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<NotificacionView> {
     return this.avisosService.markOwnRead(id, caller.id);

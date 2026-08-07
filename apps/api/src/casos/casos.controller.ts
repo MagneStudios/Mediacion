@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from "@nestjs/common";
@@ -45,7 +46,7 @@ export class CasosController {
 
   @Get(":id")
   getCaseDetail(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<CaseDetail> {
     return this.casosService.getCaseDetail(id, caller.id);
@@ -53,7 +54,7 @@ export class CasosController {
 
   @Patch(":id/plazo")
   setPlazo(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: PlazoDto,
   ): Promise<PlazoState> {
@@ -62,7 +63,7 @@ export class CasosController {
 
   @Get(":id/plazo")
   getPlazo(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PlazoState> {
     return this.casosService.getPlazo(id, caller.id);
@@ -70,7 +71,7 @@ export class CasosController {
 
   @Patch(":id/estado")
   setEstado(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: EstadoCasoDto,
   ): Promise<CaseEstado> {
@@ -79,7 +80,7 @@ export class CasosController {
 
   @Get(":id/categorias")
   listCategorias(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<CategoriaItem[]> {
     return this.casosService.listCategorias(id, caller.id);

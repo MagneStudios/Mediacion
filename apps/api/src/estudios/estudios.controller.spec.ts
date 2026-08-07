@@ -17,27 +17,27 @@ import { EstudiosRepository } from "./estudios.repository";
 import { EstudiosService } from "./estudios.service";
 
 const estudioAUser: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "estudio",
 };
 const estudioBUser: AuthenticatedUser = {
-  id: "user-b",
+  id: "2549140f-3853-4bd8-8593-0f68ab627390",
   email: "b@b.com",
   rol: "estudio",
 };
 const parteUser: AuthenticatedUser = {
-  id: "user-parte",
+  id: "c162106b-c6f2-414b-8220-1d58bbcffbb1",
   email: "parte@b.com",
   rol: "parte",
 };
 const mediadorUser: AuthenticatedUser = {
-  id: "user-mediador",
+  id: "ff98c117-2489-44e9-8cc7-1cd54c769927",
   email: "mediador@b.com",
   rol: "mediador",
 };
 const adminUser: AuthenticatedUser = {
-  id: "user-admin",
+  id: "7c10223c-5106-48f3-8d16-c4eb18aed5c3",
   email: "admin@b.com",
   rol: "admin",
 };
@@ -51,8 +51,10 @@ const knownUsers = [
 ];
 
 const estudioByUser: Record<string, string> = {
-  "user-a": "estudio-a",
-  "user-b": "estudio-b",
+  "ba513e5d-1619-4430-8d09-0b44b34598d5":
+    "9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1",
+  "2549140f-3853-4bd8-8593-0f68ab627390":
+    "993fae44-dbb0-4d81-86ef-9b6b7570a2da",
 };
 
 function createFakeMembershipService() {
@@ -86,15 +88,15 @@ describe("EstudiosController end-to-end isolation", () => {
 
   beforeEach(async () => {
     listCasosByCarpeta = jest.fn((estudioId: string) => {
-      if (estudioId === "estudio-a") {
+      if (estudioId === "9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1") {
         return Promise.resolve([
           {
-            id: "caso-a1",
+            id: "5778d5d8-18f8-41df-8cef-fec3e4c4b8e2",
             nombre: "Divorcio A",
             estado: "nuevo",
             metodo: "mediacion",
             created_at: "now",
-            carpeta_id: "carpeta-a1",
+            carpeta_id: "72d7b015-cd45-4d52-8353-13592c4f8313",
             carpeta_nombre: "Familia",
           },
         ]);
@@ -103,7 +105,7 @@ describe("EstudiosController end-to-end isolation", () => {
     });
     createCarpeta = jest.fn((estudioId: string, nombre: string) =>
       Promise.resolve({
-        id: "carpeta-new",
+        id: "066b3483-4108-4a38-8e6c-cba375f03b9e",
         estudio_id: estudioId,
         nombre,
         created_at: "now",
@@ -177,7 +179,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("rejects unauthenticated GET /estudios/:id/casos with 401", async () => {
     const response = await request(app.getHttpServer()).get(
-      "/estudios/estudio-a/casos",
+      "/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos",
     );
 
     expect(response.status).toBe(401);
@@ -186,7 +188,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("rejects a parte caller with 403 and never touches the repository", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a/casos")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos")
       .set("Authorization", `Bearer ${parteUser.id}`);
 
     expect(response.status).toBe(403);
@@ -195,7 +197,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("rejects a mediador caller with 403", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a/casos")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos")
       .set("Authorization", `Bearer ${mediadorUser.id}`);
 
     expect(response.status).toBe(403);
@@ -203,16 +205,19 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("returns the caller's own casos grouped by carpeta", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a/casos")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos")
       .set("Authorization", `Bearer ${estudioAUser.id}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
       {
-        carpeta: { id: "carpeta-a1", nombre: "Familia" },
+        carpeta: {
+          id: "72d7b015-cd45-4d52-8353-13592c4f8313",
+          nombre: "Familia",
+        },
         casos: [
           {
-            id: "caso-a1",
+            id: "5778d5d8-18f8-41df-8cef-fec3e4c4b8e2",
             nombre: "Divorcio A",
             estado: "nuevo",
             metodo: "mediacion",
@@ -225,38 +230,47 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("returns 404 (not 403) when estudio B's caller targets estudio A's casos, leaking nothing", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a/casos")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos")
       .set("Authorization", `Bearer ${estudioBUser.id}`);
 
     expect(response.status).toBe(404);
     expect(JSON.stringify(response.body)).not.toContain("Familia");
-    expect(JSON.stringify(response.body)).not.toContain("caso-a1");
+    expect(JSON.stringify(response.body)).not.toContain(
+      "5778d5d8-18f8-41df-8cef-fec3e4c4b8e2",
+    );
     expect(listCasosByCarpeta).not.toHaveBeenCalled();
   });
 
   it("lets an admin read any estudio's casos regardless of their own estudio_id", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a/casos")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/casos")
       .set("Authorization", `Bearer ${adminUser.id}`);
 
     expect(response.status).toBe(200);
-    expect(listCasosByCarpeta).toHaveBeenCalledWith("estudio-a");
+    expect(listCasosByCarpeta).toHaveBeenCalledWith(
+      "9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1",
+    );
   });
 
   it("creates a carpeta scoped to the caller's own estudio", async () => {
     const response = await request(app.getHttpServer())
-      .post("/estudios/estudio-a/carpetas")
+      .post("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/carpetas")
       .set("Authorization", `Bearer ${estudioAUser.id}`)
       .send({ nombre: "Familia" });
 
     expect(response.status).toBe(201);
-    expect(createCarpeta).toHaveBeenCalledWith("estudio-a", "Familia");
-    expect(response.body).toEqual({ id: "carpeta-new" });
+    expect(createCarpeta).toHaveBeenCalledWith(
+      "9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1",
+      "Familia",
+    );
+    expect(response.body).toEqual({
+      id: "066b3483-4108-4a38-8e6c-cba375f03b9e",
+    });
   });
 
   it("returns 404 and creates no carpeta when estudio B targets estudio A", async () => {
     const response = await request(app.getHttpServer())
-      .post("/estudios/estudio-a/carpetas")
+      .post("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/carpetas")
       .set("Authorization", `Bearer ${estudioBUser.id}`)
       .send({ nombre: "Familia" });
 
@@ -266,7 +280,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("rejects an empty nombre with 400 and creates no carpeta", async () => {
     const response = await request(app.getHttpServer())
-      .post("/estudios/estudio-a/carpetas")
+      .post("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/carpetas")
       .set("Authorization", `Bearer ${estudioAUser.id}`)
       .send({ nombre: "  " });
 
@@ -276,7 +290,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("returns the caller's own marca_config", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1")
       .set("Authorization", `Bearer ${estudioAUser.id}`);
 
     expect(response.status).toBe(200);
@@ -285,7 +299,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("returns 404 when estudio B's caller reads estudio A's marca_config", async () => {
     const response = await request(app.getHttpServer())
-      .get("/estudios/estudio-a")
+      .get("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1")
       .set("Authorization", `Bearer ${estudioBUser.id}`);
 
     expect(response.status).toBe(404);
@@ -294,20 +308,23 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("fully replaces the caller's own marca_config", async () => {
     const response = await request(app.getHttpServer())
-      .patch("/estudios/estudio-a/marca-config")
+      .patch("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/marca-config")
       .set("Authorization", `Bearer ${estudioAUser.id}`)
       .send({ color: "#000" });
 
     expect(response.status).toBe(200);
-    expect(updateMarcaConfig).toHaveBeenCalledWith("estudio-a", {
-      color: "#000",
-    });
+    expect(updateMarcaConfig).toHaveBeenCalledWith(
+      "9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1",
+      {
+        color: "#000",
+      },
+    );
     expect(response.body).toEqual({ marca_config: { color: "#000" } });
   });
 
   it("rejects a non-object marca_config payload with 400 and does not modify anything", async () => {
     const response = await request(app.getHttpServer())
-      .patch("/estudios/estudio-a/marca-config")
+      .patch("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/marca-config")
       .set("Authorization", `Bearer ${estudioAUser.id}`)
       .set("Content-Type", "application/json")
       .send('"a-string"');
@@ -318,7 +335,7 @@ describe("EstudiosController end-to-end isolation", () => {
 
   it("returns 404 and never modifies estudio A when estudio B PATCHes estudio A's marca_config", async () => {
     const response = await request(app.getHttpServer())
-      .patch("/estudios/estudio-a/marca-config")
+      .patch("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/marca-config")
       .set("Authorization", `Bearer ${estudioBUser.id}`)
       .send({ color: "#000" });
 
@@ -378,7 +395,7 @@ describe("POST /estudios/:id/carpetas pg-error mapping end-to-end", () => {
     await app.init();
 
     const response = await request(app.getHttpServer())
-      .post("/estudios/estudio-a/carpetas")
+      .post("/estudios/9e93c3cd-c7e4-426c-8cbb-ba213aafd7b1/carpetas")
       .set("Authorization", `Bearer ${adminUser.id}`)
       .send({ nombre: "Familia" });
 

@@ -15,22 +15,22 @@ import { ItemsService } from "./items.service";
 import type { CreateItemDto, Item, UpdateItemDto } from "./items.types";
 
 const parteA: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "parte",
 };
 const parteB: AuthenticatedUser = {
-  id: "user-b",
+  id: "2549140f-3853-4bd8-8593-0f68ab627390",
   email: "b@b.com",
   rol: "parte",
 };
 const strangerC: AuthenticatedUser = {
-  id: "user-c",
+  id: "1518a6cb-60d9-47f9-88cd-75629068ee85",
   email: "c@b.com",
   rol: "parte",
 };
 
-const sharedCasoId = "caso-shared";
+const sharedCasoId = "c0287c71-3a9c-4120-8cbf-14bb9e3a5ec9";
 const casoMembers = new Set([parteA.id, parteB.id]);
 
 describe("/casos/:id/items and /items/:id end-to-end — RN-01 adversarial matrix", () => {
@@ -41,7 +41,9 @@ describe("/casos/:id/items and /items/:id end-to-end — RN-01 adversarial matri
       createOwn: jest.fn(
         async (dto: CreateItemDto, casoId: string, callerId: string) => {
           const item = {
-            id: `item-${nextId++}`,
+            // Valid v4 UUIDs: the controller now rejects a malformed :id with 400
+            // before the handler runs, so a fixture id must be shaped like a real one.
+            id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`,
             caso_id: casoId,
             parte_id: callerId,
             categoria: dto.categoria,
@@ -248,7 +250,7 @@ describe("/casos/:id/items and /items/:id end-to-end — RN-01 adversarial matri
       .get(`/items/${aItemId}`)
       .set("Authorization", `Bearer ${parteB.id}`);
     const nonExistentAttempt = await request(app.getHttpServer())
-      .get("/items/does-not-exist")
+      .get("/items/b6957d04-6266-43da-8854-974e02e35fdd")
       .set("Authorization", `Bearer ${parteB.id}`);
 
     expect(foreignAttempt.status).toBe(404);

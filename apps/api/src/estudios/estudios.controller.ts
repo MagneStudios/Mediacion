@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from "@nestjs/common";
@@ -28,7 +29,7 @@ export class EstudiosController {
 
   @Get(":id/casos")
   listCasos(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<CasosByCarpeta[]> {
     return this.estudiosService.listCasos(caller.id, caller.rol, id);
@@ -36,7 +37,7 @@ export class EstudiosController {
 
   @Post(":id/carpetas")
   createCarpeta(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: CreateCarpetaDto,
   ): Promise<CarpetaCreated> {
@@ -45,7 +46,7 @@ export class EstudiosController {
 
   @Get(":id")
   getMarcaConfig(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<{ marca_config: MarcaConfig }> {
     return this.estudiosService.getMarcaConfig(caller.id, caller.rol, id);
@@ -53,7 +54,7 @@ export class EstudiosController {
 
   @Patch(":id/marca-config")
   updateMarcaConfig(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: unknown,
   ): Promise<{ marca_config: MarcaConfig }> {

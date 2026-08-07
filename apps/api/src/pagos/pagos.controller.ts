@@ -1,4 +1,4 @@
-import { Controller, Inject, Param, Post } from "@nestjs/common";
+import { Controller, Inject, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { PagosService } from "./pagos.service";
@@ -13,7 +13,7 @@ export class PagosController {
   @Post(":id/pago")
   createPreference(
     @CurrentUser() caller: AuthenticatedUser,
-    @Param("id") suscripcionId: string,
+    @Param("id", ParseUUIDPipe) suscripcionId: string,
   ): Promise<PreferenceResult> {
     return this.pagosService.createPreference(suscripcionId, caller.id);
   }

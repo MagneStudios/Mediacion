@@ -21,26 +21,28 @@ function allowAllPlanLimit() {
 }
 
 const parteA: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "parte",
 };
 const stranger: AuthenticatedUser = {
-  id: "user-c",
+  id: "1518a6cb-60d9-47f9-88cd-75629068ee85",
   email: "c@b.com",
   rol: "parte",
 };
 
 describe("POST/GET /casos end-to-end isolation", () => {
   const casoPartesByCase: Record<string, Set<string>> = {
-    "caso-x": new Set(["user-a"]),
+    "88102e52-cdd5-44da-8ec3-7b9e8e8a7073": new Set([
+      "ba513e5d-1619-4430-8d09-0b44b34598d5",
+    ]),
   };
   const casesById: Record<
     string,
     { id: string; nombre: string; estado: string; metodo: string }
   > = {
-    "caso-x": {
-      id: "caso-x",
+    "88102e52-cdd5-44da-8ec3-7b9e8e8a7073": {
+      id: "88102e52-cdd5-44da-8ec3-7b9e8e8a7073",
       nombre: "Divorcio",
       estado: "nuevo",
       metodo: "mediacion",
@@ -126,13 +128,15 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const app = await bootstrapApp();
 
     const response = await request(app.getHttpServer())
-      .get("/casos/caso-x")
-      .set("Authorization", "Bearer user-a");
+      .get("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5");
 
-    const stored = casesById["caso-x"] as { plazo?: string | null };
+    const stored = casesById["88102e52-cdd5-44da-8ec3-7b9e8e8a7073"] as {
+      plazo?: string | null;
+    };
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      ...casesById["caso-x"],
+      ...casesById["88102e52-cdd5-44da-8ec3-7b9e8e8a7073"],
       semaforo: computeSemaforo(
         stored.plazo ? new Date(stored.plazo) : null,
         new Date(),
@@ -146,8 +150,8 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const app = await bootstrapApp();
 
     const response = await request(app.getHttpServer())
-      .get("/casos/caso-x")
-      .set("Authorization", "Bearer user-c");
+      .get("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073")
+      .set("Authorization", "Bearer 1518a6cb-60d9-47f9-88cd-75629068ee85");
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -172,13 +176,16 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const response = await request(app.getHttpServer())
-      .patch("/casos/caso-x/plazo")
-      .set("Authorization", "Bearer user-a")
+      .patch("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073/plazo")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
       .send({ plazo: future.toISOString() });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(
-      expect.objectContaining({ id: "caso-x", plazo: future.toISOString() }),
+      expect.objectContaining({
+        id: "88102e52-cdd5-44da-8ec3-7b9e8e8a7073",
+        plazo: future.toISOString(),
+      }),
     );
     await app.close();
   });
@@ -188,8 +195,8 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const response = await request(app.getHttpServer())
-      .patch("/casos/caso-x/plazo")
-      .set("Authorization", "Bearer user-c")
+      .patch("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073/plazo")
+      .set("Authorization", "Bearer 1518a6cb-60d9-47f9-88cd-75629068ee85")
       .send({ plazo: future.toISOString() });
 
     expect(response.status).toBe(404);
@@ -203,11 +210,13 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const app = await bootstrapApp();
 
     const response = await request(app.getHttpServer())
-      .get("/casos/caso-x/plazo")
-      .set("Authorization", "Bearer user-a");
+      .get("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073/plazo")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5");
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(expect.objectContaining({ id: "caso-x" }));
+    expect(response.body).toEqual(
+      expect.objectContaining({ id: "88102e52-cdd5-44da-8ec3-7b9e8e8a7073" }),
+    );
     await app.close();
   });
 
@@ -215,8 +224,8 @@ describe("POST/GET /casos end-to-end isolation", () => {
     const app = await bootstrapApp();
 
     const response = await request(app.getHttpServer())
-      .get("/casos/caso-x/plazo")
-      .set("Authorization", "Bearer user-c");
+      .get("/casos/88102e52-cdd5-44da-8ec3-7b9e8e8a7073/plazo")
+      .set("Authorization", "Bearer 1518a6cb-60d9-47f9-88cd-75629068ee85");
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -300,14 +309,14 @@ describe("POST /casos pg-error mapping end-to-end", () => {
         'duplicate key value violates unique constraint "caso_partes_caso_id_usuario_id_key"',
     };
     const fakeKysely = createFakeKyselyWithParteRejection(
-      { id: "caso-1", estado: "nuevo" },
+      { id: "fc8f1934-c72c-49d4-88a5-202797b30da7", estado: "nuevo" },
       pgError,
     );
     const app = await bootstrapAppWithRealRepository(fakeKysely);
 
     const response = await request(app.getHttpServer())
       .post("/casos")
-      .set("Authorization", "Bearer user-a")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
       .send({ nombre: "Divorcio", metodo: "mediacion" });
 
     expect(response.status).toBe(409);
