@@ -1,4 +1,4 @@
-import { __testDeriveAgreementState } from '../agreements.service';
+import { __mockForceAgreementFailure, __testDeriveAgreementState, agreementsService } from '../agreements.service';
 import type { SharedAgreement, SharedSignerStatus } from '../../types/agreement';
 
 function makeAgreement(overrides: Partial<SharedAgreement> = {}): SharedAgreement {
@@ -201,5 +201,30 @@ describe('buildAgreementState — authoritative completed estado', () => {
     expect(state.allSignaturesComplete).toBe(false);
     expect(state.waitingForOtherParty).toBe(true);
     expect(state.readOnly).toBe(false);
+  });
+});
+
+describe('agreement mutation concurrency', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it.each([
+    ['prepareSignatureDocument', () => agreementsService.prepareSignatureDocument('case-concurrent')],
+    ['submitOwnMockSignature', () => agreementsService.submitOwnMockSignature('case-concurrent', 'agreement-concurrent')],
+  ] as const)('shares one in-flight %s operation between concurrent callers', async (operation, invoke) => {
+    jest.useFakeTimers();
+    __mockForceAgreementFailure(operation);
+
+    const resultsPromise = Promise.allSettled([invoke(), invoke()]);
+    await jest.runAllTimersAsync();
+    const results = await resultsPromise;
+
+    expect(results).toHaveLength(2);
+    expect(results.every((result) => result.status === 'rejected')).toBe(true);
+    expect(results.map((result) => (result.status === 'rejected' ? result.reason.message : null))).toEqual([
+      `agreement_${operation === 'prepareSignatureDocument' ? 'preparation' : 'signature'}_failed`,
+      `agreement_${operation === 'prepareSignatureDocument' ? 'preparation' : 'signature'}_failed`,
+    ]);
   });
 });

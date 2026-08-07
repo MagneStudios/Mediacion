@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: semanticColors.surface.sunken,
     borderRadius: radii.lg,
-    padding: spacing.sm,
+    padding: spacing.md,
   },
   textColumn: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xxs,
   },
 });

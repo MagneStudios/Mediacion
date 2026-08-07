@@ -97,6 +97,8 @@ export function __testDeriveAgreementState(agreement: SharedAgreement, signers: 
 
 /** Concurrent callers for the same caseId share one in-flight materialization, so two near-simultaneous reads can never create two agreements. */
 const materializationInFlight: Record<string, Promise<SharedAgreement | null> | undefined> = {};
+const preparationInFlight: Record<string, Promise<AgreementState> | undefined> = {};
+const signatureInFlight: Record<string, Promise<AgreementState> | undefined> = {};
 
 /**
  * Deterministic mock materialization: an agreement only ever comes into
@@ -185,89 +187,114 @@ export function createMockAgreementsService(): AgreementsService {
     },
 
     async prepareSignatureDocument(caseId) {
-      if (failures.consume('prepareSignatureDocument')) {
-        return rejectAfter('agreement_preparation_failed', 600);
+      const existing = preparationInFlight[caseId];
+      if (existing) return existing;
+
+      const operation = (async () => {
+        if (failures.consume('prepareSignatureDocument')) {
+          return rejectAfter('agreement_preparation_failed', 600);
+        }
+
+        const agreement = await ensureAgreementFromAcceptedProposal(caseId);
+        if (!agreement) return rejectAfter('agreement_not_found', 300);
+        // Only 'borrador' → 'enviado_a_firma' is allowed here — this alone
+        // rejects duplicate preparation and any read-only state ('firmado',
+        // 'con_aviso'), and there is no backward transition anywhere in this
+        // file.
+        if (agreement.estado !== 'borrador') {
+          return rejectAfter('agreement_not_preparable', 300);
+        }
+
+        const startedAt = new Date().toISOString();
+        const updated: SharedAgreement = { ...agreement, estado: 'enviado_a_firma' };
+
+        const committed = await delay(updated, 1200);
+        const readyAt = new Date().toISOString();
+        const withReadyAt: SharedAgreement = { ...committed, readyAt };
+
+        // Only mutate after the mock "request" resolves — a forced failure
+        // above never leaves estado flipped or readyAt set.
+        const index = mockAgreements.findIndex((a) => a.id === agreement.id);
+        mockAgreements[index] = withReadyAt;
+        appendHistory(agreement.id, 'preparation_started', 'borrador', startedAt);
+        appendHistory(agreement.id, 'document_ready', 'enviado_a_firma', readyAt);
+        return buildAgreementState(withReadyAt);
+      })();
+
+      preparationInFlight[caseId] = operation;
+      try {
+        return await operation;
+      } finally {
+        if (preparationInFlight[caseId] === operation) delete preparationInFlight[caseId];
       }
-
-      const agreement = await ensureAgreementFromAcceptedProposal(caseId);
-      if (!agreement) return rejectAfter('agreement_not_found', 300);
-      // Only 'borrador' → 'enviado_a_firma' is allowed here — this alone
-      // rejects duplicate preparation and any read-only state ('firmado',
-      // 'con_aviso'), and there is no backward transition anywhere in this
-      // file.
-      if (agreement.estado !== 'borrador') {
-        return rejectAfter('agreement_not_preparable', 300);
-      }
-
-      const startedAt = new Date().toISOString();
-      const updated: SharedAgreement = { ...agreement, estado: 'enviado_a_firma' };
-
-      const committed = await delay(updated, 1200);
-      const readyAt = new Date().toISOString();
-      const withReadyAt: SharedAgreement = { ...committed, readyAt };
-
-      // Only mutate after the mock "request" resolves — a forced failure
-      // above never leaves estado flipped or readyAt set.
-      const index = mockAgreements.findIndex((a) => a.id === agreement.id);
-      mockAgreements[index] = withReadyAt;
-      appendHistory(agreement.id, 'preparation_started', 'borrador', startedAt);
-      appendHistory(agreement.id, 'document_ready', 'enviado_a_firma', readyAt);
-      return buildAgreementState(withReadyAt);
     },
 
     async submitOwnMockSignature(caseId, agreementId) {
-      if (failures.consume('submitOwnMockSignature')) {
-        return rejectAfter('agreement_signature_failed', 700);
-      }
+      const operationKey = `${caseId}:${agreementId}`;
+      const existing = signatureInFlight[operationKey];
+      if (existing) return existing;
 
-      const agreement = getAgreementForCase(caseId);
-      // Reject mismatched/stale agreement IDs and any case/agreement mismatch.
-      if (!agreement || agreement.id !== agreementId || agreement.caseId !== caseId) {
-        return rejectAfter('agreement_mismatch', 300);
-      }
-      if (agreement.estado !== 'enviado_a_firma') {
-        return rejectAfter('agreement_not_signable', 300);
-      }
-      const signers = getSigners(agreement.id);
-      const own = signers.find((signer) => signer.role === 'authenticated_party');
-      if (own?.status === 'firmado') {
-        return rejectAfter('agreement_already_signed', 300);
-      }
+      const operation = (async () => {
+        if (failures.consume('submitOwnMockSignature')) {
+          return rejectAfter('agreement_signature_failed', 700);
+        }
 
-      const ownSignedAt = new Date().toISOString();
-      const updatedOwn: SharedSignerStatus = { role: 'authenticated_party', status: 'firmado', signedAt: ownSignedAt };
-      const committedOwn = await delay(updatedOwn, 800);
+        const agreement = getAgreementForCase(caseId);
+        // Reject mismatched/stale agreement IDs and any case/agreement mismatch.
+        if (!agreement || agreement.id !== agreementId || agreement.caseId !== caseId) {
+          return rejectAfter('agreement_mismatch', 300);
+        }
+        if (agreement.estado !== 'enviado_a_firma') {
+          return rejectAfter('agreement_not_signable', 300);
+        }
+        const signers = getSigners(agreement.id);
+        const own = signers.find((signer) => signer.role === 'authenticated_party');
+        if (own?.status === 'firmado') {
+          return rejectAfter('agreement_already_signed', 300);
+        }
 
-      // Commit the own signature first — a forced failure above is the only
-      // thing that can prevent this. Everything below only ever runs once
-      // this mutation has already succeeded.
-      const ownIndex = signers.findIndex((signer) => signer.role === 'authenticated_party');
-      const nextSigners = [...signers];
-      nextSigners[ownIndex] = committedOwn;
-      mockSigners[agreement.id] = nextSigners;
-      appendHistory(agreement.id, 'own_signature_registered', agreement.estado, committedOwn.signedAt);
+        const ownSignedAt = new Date().toISOString();
+        const updatedOwn: SharedSignerStatus = { role: 'authenticated_party', status: 'firmado', signedAt: ownSignedAt };
+        const committedOwn = await delay(updatedOwn, 800);
 
-      // Reveal + apply the simulated other-party signature only now — never
-      // before the authenticated party's own signature has been committed.
-      const otherDecision = simulatedOtherPartySignature(caseId);
-      if (otherDecision === 'firmado') {
-        const otherSignedAt = new Date().toISOString();
-        const otherIndex = nextSigners.findIndex((signer) => signer.role === 'other_party');
-        nextSigners[otherIndex] = { role: 'other_party', status: 'firmado', signedAt: otherSignedAt };
+        // Commit the own signature first — a forced failure above is the only
+        // thing that can prevent this. Everything below only ever runs once
+        // this mutation has already succeeded.
+        const ownIndex = signers.findIndex((signer) => signer.role === 'authenticated_party');
+        const nextSigners = [...signers];
+        nextSigners[ownIndex] = committedOwn;
         mockSigners[agreement.id] = nextSigners;
+        appendHistory(agreement.id, 'own_signature_registered', agreement.estado, committedOwn.signedAt);
 
-        const completedAgreement: SharedAgreement = { ...agreement, estado: 'firmado', completedAt: otherSignedAt };
-        const agreementIndex = mockAgreements.findIndex((a) => a.id === agreement.id);
-        mockAgreements[agreementIndex] = completedAgreement;
-        appendHistory(agreement.id, 'both_signatures_completed', 'firmado', otherSignedAt);
-        return buildAgreementState(completedAgreement);
+        // Reveal + apply the simulated other-party signature only now — never
+        // before the authenticated party's own signature has been committed.
+        const otherDecision = simulatedOtherPartySignature(caseId);
+        if (otherDecision === 'firmado') {
+          const otherSignedAt = new Date().toISOString();
+          const otherIndex = nextSigners.findIndex((signer) => signer.role === 'other_party');
+          nextSigners[otherIndex] = { role: 'other_party', status: 'firmado', signedAt: otherSignedAt };
+          mockSigners[agreement.id] = nextSigners;
+
+          const completedAgreement: SharedAgreement = { ...agreement, estado: 'firmado', completedAt: otherSignedAt };
+          const agreementIndex = mockAgreements.findIndex((a) => a.id === agreement.id);
+          mockAgreements[agreementIndex] = completedAgreement;
+          appendHistory(agreement.id, 'both_signatures_completed', 'firmado', otherSignedAt);
+          return buildAgreementState(completedAgreement);
+        }
+
+        // Else: the simulated other party hasn't signed in this demo
+        // scenario — estado stays 'enviado_a_firma'; buildAgreementState
+        // reports waitingForOtherParty: true instead.
+        appendHistory(agreement.id, 'waiting_for_other_party', agreement.estado);
+        return buildAgreementState(agreement);
+      })();
+
+      signatureInFlight[operationKey] = operation;
+      try {
+        return await operation;
+      } finally {
+        if (signatureInFlight[operationKey] === operation) delete signatureInFlight[operationKey];
       }
-
-      // Else: the simulated other party hasn't signed in this demo
-      // scenario — estado stays 'enviado_a_firma'; buildAgreementState
-      // reports waitingForOtherParty: true instead.
-      appendHistory(agreement.id, 'waiting_for_other_party', agreement.estado);
-      return buildAgreementState(agreement);
     },
 
     async getAgreementHistory(caseId) {

@@ -38,7 +38,7 @@ export function NotificationPreferenceRow({
         onValueChange={onValueChange}
         disabled={disabled}
         accessibilityLabel={accessibilityLabel ?? label}
-        trackColor={{ false: semanticColors.border.default, true: semanticColors.text.primary }}
+        trackColor={{ false: semanticColors.border.default, true: semanticColors.action.primaryBg }}
         thumbColor={semanticColors.surface.card}
       />
     </View>
@@ -55,17 +55,15 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   label: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
-    lineHeight: 17,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });

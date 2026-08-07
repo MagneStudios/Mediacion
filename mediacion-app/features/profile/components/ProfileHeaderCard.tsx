@@ -1,8 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, StatusPill, type StatusPillStatus } from '../../../design-system';
+import { Avatar, Card, StatusPill, type StatusPillStatus } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
-import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -15,7 +14,7 @@ export type ProfileHeaderCardProps = {
 
 export function ProfileHeaderCard({ displayName, roleLabel, statusLabel, statusVisual }: ProfileHeaderCardProps) {
   return (
-    <View style={styles.container}>
+    <Card style={styles.container}>
       <Avatar name={displayName} size="lg" />
       <View style={styles.body}>
         <Text style={styles.name} accessibilityRole="header">{displayName}</Text>
@@ -24,7 +23,7 @@ export function ProfileHeaderCard({ displayName, roleLabel, statusLabel, statusV
           <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -33,26 +32,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.xl,
     padding: spacing.lg,
   },
   body: {
     flex: 1,
+    minWidth: 0,
     gap: spacing.xxs,
   },
   name: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
-    lineHeight: 30,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   role: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   badges: {

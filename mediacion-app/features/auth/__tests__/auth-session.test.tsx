@@ -26,11 +26,12 @@ function Probe() {
 }
 
 function renderProvider(authService: AuthService) {
-  return render(
+  const result = render(
     <AuthSessionProvider authService={authService}>
       <Probe />
     </AuthSessionProvider>,
-  ) as unknown as Promise<{ unmount: () => void }>;
+  );
+  return result;
 }
 
 describe('AuthSessionProvider', () => {

@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, SelectableCard } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -36,36 +36,43 @@ export default function CaseCreateMethodScreen() {
       <Stack.Screen options={{ title: '' }} />
       <CaseCreationProgress step={2} total={4} label={t('caseCreation.progress', { step: 2, total: 4 })} />
 
-      <Text style={styles.title} accessibilityRole="header">
-        {t('caseCreation.method.title')}
-      </Text>
-      <Text style={styles.subtitle}>{t('caseCreation.method.subtitle')}</Text>
+      <View style={styles.intro}>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('caseCreation.method.title')}
+        </Text>
+        <Text style={styles.subtitle}>{t('caseCreation.method.subtitle')}</Text>
+      </View>
 
-      {METHODS.map((metodo) => (
-        <SelectableCard
-          key={metodo}
-          icon={getMethodIcon(metodo)}
-          title={t(`methods.${metodo}`)}
-          description={t(`caseCreation.method.descriptions.${metodo}`)}
-          selected={draft.metodo === metodo}
-          selectedLabel={t('caseCreation.method.selected')}
-          onPress={() => setMetodo(metodo)}
-        />
-      ))}
+      <View style={styles.options} accessibilityRole="radiogroup">
+        {METHODS.map((metodo) => (
+          <SelectableCard
+            key={metodo}
+            icon={getMethodIcon(metodo)}
+            title={t(`methods.${metodo}`)}
+            description={t(`caseCreation.method.descriptions.${metodo}`)}
+            selected={draft.metodo === metodo}
+            selectedLabel={t('caseCreation.method.selected')}
+            onPress={() => setMetodo(metodo)}
+          />
+        ))}
+      </View>
 
-      <Button variant="primary" fullWidth disabled={!draft.metodo} onPress={handleContinue}>
-        {t('caseCreation.method.continue')}
-      </Button>
-      <Button
-        variant="tertiary"
-        fullWidth
-        onPress={() => {
-          blurActiveElement();
-          router.back();
-        }}
-      >
-        {t('caseCreation.method.back')}
-      </Button>
+      <View style={styles.actions}>
+        <Button variant="primary" size="lg" fullWidth disabled={!draft.metodo} onPress={handleContinue}>
+          {t('caseCreation.method.continue')}
+        </Button>
+        <Button
+          variant="tertiary"
+          size="lg"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.back();
+          }}
+        >
+          {t('caseCreation.method.back')}
+        </Button>
+      </View>
     </ScrollView>
   );
 }
@@ -76,20 +83,25 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
+  },
+  intro: {
+    gap: spacing.xs,
+  },
+  options: {
+    gap: spacing.sm,
+  },
+  actions: {
+    gap: spacing.xs,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   subtitle: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
     color: semanticColors.text.secondary,
-    marginTop: -spacing.sm,
   },
 });

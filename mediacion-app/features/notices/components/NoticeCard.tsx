@@ -74,6 +74,10 @@ export function NoticeCard({
   const showMarkRead = !actionable && !read && onMarkRead != null;
   const showFooter = caseLine != null || showMarkRead || actionable;
   const categoryTone = getNoticeCategoryTone(category);
+  // The info-tone card tints its whole background the same soft blue as the
+  // default unread-pill fill — on that surface the pill needs a white fill to
+  // stay legible as a distinct marker instead of blending into the card.
+  const onTintedSurface = !read && categoryTone === 'info';
 
   const content = (
     <>
@@ -84,7 +88,7 @@ export function NoticeCard({
           <Text style={styles.dot}>·</Text>
           <Text style={styles.timeLabel}>{dateLabel}</Text>
           {!read ? (
-            <View style={styles.unreadPill} accessibilityLabel={unreadLabel}>
+            <View style={[styles.unreadPill, onTintedSurface && styles.unreadPillOnTint]} accessibilityLabel={unreadLabel}>
               <View style={styles.unreadDot} />
               <Text style={styles.unreadText}>{unreadLabel}</Text>
             </View>
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     borderWidth: 1,
     borderColor: semanticColors.border.default,
-    borderLeftWidth: 5,
+
   },
   cardWide: {
     padding: spacing.lg,
@@ -187,23 +191,18 @@ const styles = StyleSheet.create({
   },
   accentUnread: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.text.primary,
   },
   accentWarning: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.status.warningFg,
   },
   accentInfo: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.action.primaryBg,
   },
   accentSuccess: {
     borderColor: semanticColors.border.default,
-    borderLeftColor: semanticColors.status.successFg,
   },
   accentRead: {
-    borderColor: semanticColors.border.default,
-    borderLeftColor: 'transparent',
+    borderColor: semanticColors.border.soft,
   },
 
   /* ---- header line ---- */
@@ -242,6 +241,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: semanticColors.border.soft,
   },
+  unreadPillOnTint: {
+    backgroundColor: semanticColors.surface.card,
+    borderColor: semanticColors.border.default,
+  },
   unreadDot: {
     width: UNREAD_DOT_SIZE,
     height: UNREAD_DOT_SIZE,
@@ -275,7 +278,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: -0.2,
     lineHeight: 24,
     color: semanticColors.text.primary,
@@ -326,9 +328,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   openIndicator: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: semanticColors.surface.sunken,

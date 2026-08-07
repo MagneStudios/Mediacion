@@ -56,42 +56,39 @@ export function NegotiationSummaryCard({ caseId }: NegotiationSummaryCardProps) 
 
   return (
     <View style={styles.section}>
+      <Text style={styles.sectionLabel} accessibilityRole="header">
+        {t('negotiation.sectionTitle')}
+      </Text>
       <Card style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardHeaderLabel} accessibilityRole="header">{t('negotiation.sectionTitle')}</Text>
-          {summary ? (
-            <StatusPill status={summary.status}>{t(summary.statusKey)}</StatusPill>
-          ) : null}
-        </View>
-
-        <View style={styles.cardBody}>
-          {status === 'loading' ? (
-            <Text style={styles.description}>{t('common.loading')}</Text>
-          ) : status === 'error' || !state ? (
-            <>
-              <Text style={styles.description}>{t('negotiation.summary.error.title')}</Text>
-              <Button variant="secondary" size="sm" onPress={reload}>
-                {t('common.retry')}
-              </Button>
-            </>
-          ) : summary ? (
-            <>
+        {status === 'loading' ? (
+          <Text style={styles.description}>{t('common.loading')}</Text>
+        ) : status === 'error' || !state ? (
+          <>
+            <Text style={styles.description}>{t('negotiation.summary.error.title')}</Text>
+            <Button variant="secondary" size="sm" onPress={reload}>
+              {t('common.retry')}
+            </Button>
+          </>
+        ) : summary ? (
+          <>
+            <View style={styles.row}>
               <Text style={styles.title}>{t(summary.titleKey)}</Text>
-              <Text style={styles.description}>{t(summary.descriptionKey)}</Text>
-            </>
-          ) : null}
+              <StatusPill status={summary.status}>{t(summary.statusKey)}</StatusPill>
+            </View>
+            <Text style={styles.description}>{t(summary.descriptionKey)}</Text>
+          </>
+        ) : null}
 
-          <Button
-            variant="secondary"
-            fullWidth
-            onPress={() => {
-              blurActiveElement();
-              router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } });
-            }}
-          >
-            {t('negotiation.summary.viewAction')}
-          </Button>
-        </View>
+        <Button
+          variant="secondary"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.push({ pathname: '/case/[id]/negotiation', params: { id: caseId } });
+          }}
+        >
+          {t('negotiation.summary.viewAction')}
+        </Button>
       </Card>
     </View>
   );
@@ -101,38 +98,26 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing.xs,
   },
-  card: {
-    borderRadius: 14,
-    padding: 0,
-    gap: 0,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: semanticColors.surface.sunken,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.border.soft,
-  },
-  cardHeaderLabel: {
+  sectionLabel: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 12,
-    color: semanticColors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    color: semanticColors.text.quaternary,
   },
-  cardBody: {
+  card: {
+    borderRadius: 14,
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
   },
   title: {
     flex: 1,
     fontFamily: typography.cardTitle.fontFamily,
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
   },

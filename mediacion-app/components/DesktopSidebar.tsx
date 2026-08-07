@@ -1,6 +1,6 @@
 import { useRouter, usePathname, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '../design-system/components/Icon';
 import { colors, semanticColors } from '../design-system/tokens/colors';
@@ -11,6 +11,18 @@ import { typography } from '../design-system/tokens/typography';
 import { useUnreadNotices } from '../features/notices/hooks/useUnreadNotices';
 import { getDesktopNavigationSection, type DesktopNavigationSection } from '../utils/get-desktop-navigation-section';
 import { blurActiveElement } from '../utils/blur-active-element';
+
+if (Platform.OS === 'web') {
+  try {
+    const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-mediacion', 'sidebar-focus-visible');
+    styleTag.textContent =
+      `[data-testid="mediacion-sidebar-item"]:focus-visible{outline:2px solid ${semanticColors.border.focus};outline-offset:2px}`;
+    document.head.appendChild(styleTag);
+  } catch {
+    /* SSR / non-browser — safe no-op */
+  }
+}
 
 const MAX_BADGE_COUNT = 9;
 
@@ -66,6 +78,7 @@ export function DesktopSidebar() {
           return (
             <Pressable
               key={item.section}
+              testID="mediacion-sidebar-item"
               onPress={() => handleNavigate(item.href)}
               accessibilityRole="link"
               accessibilityLabel={accessibleLabel}

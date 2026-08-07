@@ -1,11 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, LoadingState, ResponsiveColumns } from '@/design-system';
+import { Button, ErrorState, Icon, LoadingState, ResponsiveColumns, StatusPill } from '@/design-system';
+import type { StatusPillStatus } from '@/design-system/components/StatusPill';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
+import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -25,13 +27,31 @@ const SUMMARY_KEY_BY_ELIGIBILITY = {
   read_only: 'readOnly',
 } as const;
 
+const STATUS_BY_ELIGIBILITY: Record<keyof typeof SUMMARY_KEY_BY_ELIGIBILITY, StatusPillStatus> = {
+  unavailable_before_round_3: 'neutral',
+  available: 'neutral',
+  pending: 'info',
+  assigned: 'success',
+  unavailable: 'neutral',
+  read_only: 'neutral',
+};
+
 export default function MediatorDashboardScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { status, state, reload, requestStatus, requestMediator, resetRequestStatus } = useMediator(caseId);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
+
+  useEffect(() => {
+    setConfirmVisible(false);
+    resetRequestStatus();
+  }, [caseId, resetRequestStatus]);
+
+  useEffect(() => {
+    if (state?.eligibility !== 'available') setConfirmVisible(false);
+  }, [state?.eligibility]);
 
   if (status === 'loading') {
     return (
@@ -57,33 +77,50 @@ export default function MediatorDashboardScreen() {
   };
 
   const handleConfirmRequest = async () => {
-    await requestMediator();
-    setConfirmVisible(false);
+    const succeeded = await requestMediator();
+    if (succeeded) setConfirmVisible(false);
   };
 
   const summaryKey = SUMMARY_KEY_BY_ELIGIBILITY[state.eligibility];
+  const statusVisual = STATUS_BY_ELIGIBILITY[state.eligibility];
 
   const primaryColumn = (
     <>
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading} accessibilityRole="header">
-          {t('mediator.explainer.title')}
-        </Text>
-        <Text style={styles.bodyText}>{t('mediator.explainer.helpsBody')}</Text>
-        <Text style={styles.bodyText}>{t('mediator.explainer.decisionBody')}</Text>
-        <Text style={styles.bodyText}>{t('mediator.explainer.privacyBody')}</Text>
-        <Text style={styles.bodyText}>{t('mediator.explainer.demoBody')}</Text>
+      <View style={styles.explainer}>
+        <View style={styles.sectionHeadingRow}>
+          <Icon name="scale" size={20} color={semanticColors.text.secondary} />
+          <Text style={styles.sectionHeading} accessibilityRole="header">
+            {t('mediator.explainer.title')}
+          </Text>
+        </View>
+        <View style={styles.explainerBody}>
+          <Text style={styles.bodyText}>{t('mediator.explainer.helpsBody')}</Text>
+          <Text style={styles.bodyText}>{t('mediator.explainer.decisionBody')}</Text>
+          <Text style={styles.bodyText}>{t('mediator.explainer.privacyBody')}</Text>
+          <Text style={styles.bodyText}>{t('mediator.explainer.demoBody')}</Text>
+        </View>
       </View>
 
       <View style={styles.statusSection} accessibilityLiveRegion="polite" accessibilityRole="text">
-        <Text style={styles.statusTitle} accessibilityRole="header">
-          {t(`mediator.summary.${summaryKey}.title`)}
-        </Text>
+        <View style={styles.statusHeader}>
+          <Text style={styles.statusTitle} accessibilityRole="header">
+            {t(`mediator.summary.${summaryKey}.title`)}
+          </Text>
+          <StatusPill status={statusVisual}>{t(`mediator.summary.${summaryKey}.status`)}</StatusPill>
+        </View>
         <Text style={styles.bodyText}>{t(`mediator.summary.${summaryKey}.description`)}</Text>
       </View>
 
       {state.eligibility === 'available' ? (
-        <Button variant="secondary" fullWidth onPress={openConfirm} loading={requestStatus === 'pending'} loadingLabel={t('common.loading')}>
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          onPress={openConfirm}
+          loading={requestStatus === 'pending'}
+          loadingLabel={t('common.loading')}
+          accessibilityLabel={t('mediator.summary.requestAction')}
+        >
           {t('mediator.summary.requestAction')}
         </Button>
       ) : null}
@@ -92,13 +129,16 @@ export default function MediatorDashboardScreen() {
 
   const secondaryColumn = (
     <>
-      <PrivacyNotice>{t('mediator.dashboard.privacyNotice')}</PrivacyNotice>
-      <MediatorDemoNotice title={t('mediator.demoNotice.title')} body={t('mediator.demoNotice.body')} />
+      <View style={styles.notices}>
+        <PrivacyNotice>{t('mediator.dashboard.privacyNotice')}</PrivacyNotice>
+        <MediatorDemoNotice title={t('mediator.demoNotice.title')} body={t('mediator.demoNotice.body')} />
+      </View>
 
       {state.mediator ? <SharedMediatorProfileCard profile={state.mediator} assignedAt={state.mediation?.acceptedAt} /> : null}
 
       <Button
         variant="tertiary"
+        size="lg"
         fullWidth
         onPress={() => {
           blurActiveElement();
@@ -117,7 +157,7 @@ export default function MediatorDashboardScreen() {
     >
       <Stack.Screen options={{ title: t('mediator.dashboard.title') }} />
 
-      <Text style={styles.title} accessibilityRole="header">
+      <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
         {t('mediator.dashboard.title')}
       </Text>
 
@@ -148,38 +188,59 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
-  section: {
+  titleWide: {
+    ...typography.displayLg,
+  },
+  explainer: {
+    gap: spacing.sm,
+  },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   sectionHeading: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
+    flex: 1,
+  },
+  explainerBody: {
+    gap: spacing.sm,
   },
   statusSection: {
-    gap: spacing.xxs,
-    backgroundColor: semanticColors.surface.sunken,
-    borderRadius: 14,
-    padding: spacing.md,
+    gap: spacing.xs,
+    backgroundColor: semanticColors.surface.card,
+    borderColor: semanticColors.border.default,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
   statusTitle: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
   },
   bodyText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
+  },
+  notices: {
+    gap: spacing.sm,
   },
 });

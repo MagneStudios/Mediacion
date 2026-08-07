@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
@@ -40,9 +41,8 @@ export function SharedAgreementCard({
       <View style={styles.body}>
         <Text style={styles.summary}>{summary}</Text>
 
-        {terms.map((term, index) => (
+        {terms.map((term) => (
           <View key={term.id}>
-            {index > 0 ? <View style={styles.termDivider} /> : null}
             <SharedAgreementTermCard title={term.title} description={term.description} />
           </View>
         ))}
@@ -60,12 +60,13 @@ export function SharedAgreementCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: 0,
     overflow: 'hidden',
   },
   headerBar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
@@ -77,10 +78,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flexShrink: 1,
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 20,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   body: {
@@ -88,15 +86,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   summary: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
-  },
-  termDivider: {
-    height: 1,
-    backgroundColor: semanticColors.border.soft,
-    marginVertical: spacing.xxs,
   },
   rationale: {
     marginTop: spacing.xxs,
@@ -106,17 +97,11 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   rationaleLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...typography.eyebrow,
     color: semanticColors.text.tertiary,
   },
   rationaleText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
     fontStyle: 'italic',
   },

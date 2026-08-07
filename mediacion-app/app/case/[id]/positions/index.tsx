@@ -94,21 +94,27 @@ export default function OwnPositionsScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
         contentContainerStyle={[styles.listContent, getResponsiveContentStyle({ maxWidth: contentWidths.standard, horizontalPadding })]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.title} accessibilityRole="header">
-              {t('positions.dashboard.title')}
-            </Text>
-            <PrivacyNotice>{t('positions.dashboard.supportingCopy')}</PrivacyNotice>
+            <View style={styles.intro}>
+              <Text style={styles.title} accessibilityRole="header">
+                {t('positions.dashboard.title')}
+              </Text>
+              <PrivacyNotice>{t('positions.dashboard.supportingCopy')}</PrivacyNotice>
+            </View>
             {positionsResult.status === 'success' && items.length > 0 ? (
               <Text style={styles.summary}>
                 {t('positions.dashboard.summary', { count: items.length })}
               </Text>
             ) : null}
-            {canManage ? (
+            {canManage && positionsResult.status === 'success' && items.length > 0 ? (
               <Button
                 variant="primary"
+                size="lg"
                 fullWidth
                 iconLeft={<Icon name="plus" size={16} color={semanticColors.action.primaryFg} />}
                 onPress={() => {
@@ -156,10 +162,11 @@ export default function OwnPositionsScreen() {
                 canManage ? (
                   <Button
                     variant="primary"
+                    size="lg"
                     onPress={() => {
-                  blurActiveElement();
-                  router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
-                }}
+                      blurActiveElement();
+                      router.push({ pathname: '/case/[id]/positions/create', params: { id: caseId } });
+                    }}
                   >
                     {t('positions.empty.action')}
                   </Button>
@@ -196,22 +203,23 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   listContent: {
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
     flexGrow: 1,
   },
   header: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  intro: {
+    gap: spacing.md,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   summary: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
+    ...typography.bodySm,
     color: semanticColors.text.tertiary,
   },
 });

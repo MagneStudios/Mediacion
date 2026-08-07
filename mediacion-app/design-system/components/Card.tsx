@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -13,6 +14,18 @@ import { semanticColors } from '../tokens/colors';
 import { radii } from '../tokens/radii';
 import { shadows } from '../tokens/elevation';
 import { spacing } from '../tokens/spacing';
+
+if (Platform.OS === 'web') {
+  try {
+    const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-mediacion', 'card-focus-visible');
+    styleTag.textContent =
+      `[data-testid="mediacion-card"]:focus-visible{outline:2px solid ${semanticColors.border.focus};outline-offset:2px}`;
+    document.head.appendChild(styleTag);
+  } catch {
+    /* SSR / non-browser — safe no-op */
+  }
+}
 
 export type CardVariant = 'default' | 'featured' | 'tinted' | 'guidance' | 'mockup' | 'banner' | 'trust';
 
@@ -107,6 +120,7 @@ export function Card({
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState}
+      testID="mediacion-card"
       style={({ pressed }) => [
         styles.base,
         base,

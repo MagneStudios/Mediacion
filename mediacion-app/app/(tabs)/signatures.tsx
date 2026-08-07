@@ -140,7 +140,6 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 14,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     color: semanticColors.text.secondary,
@@ -158,7 +157,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: typography.eyebrow.fontFamily,
     fontSize: 13,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     color: semanticColors.text.tertiary,

@@ -76,22 +76,26 @@ export function PositionFormFields({
   const isEconomic = category === 'economico';
 
   return (
-    <>
+    <View style={styles.form}>
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{t('positions.category.sectionTitle')}</Text>
-        <Text style={styles.sectionHint}>{t('positions.category.privacyHint')}</Text>
-        {CATEGORIES.map((value) => (
-          <SelectableCard
-            key={value}
-            icon={CATEGORY_ICON[value]}
-            title={t(`positions.category.${value}.label`)}
-            description={t(`positions.category.${value}.description`)}
-            selected={category === value}
-            selectedLabel={t('positions.category.selected')}
-            onPress={() => !disabled && onSelectCategory(value)}
-            accessibilityHint={categoryError}
-          />
-        ))}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>{t('positions.category.sectionTitle')}</Text>
+          <Text style={styles.sectionHint}>{t('positions.category.privacyHint')}</Text>
+        </View>
+        <View style={styles.options} accessibilityRole="radiogroup">
+          {CATEGORIES.map((value) => (
+            <SelectableCard
+              key={value}
+              icon={CATEGORY_ICON[value]}
+              title={t(`positions.category.${value}.label`)}
+              description={t(`positions.category.${value}.description`)}
+              selected={category === value}
+              selectedLabel={t('positions.category.selected')}
+              onPress={() => !disabled && onSelectCategory(value)}
+              accessibilityHint={categoryError}
+            />
+          ))}
+        </View>
         {categoryError ? (
           <Text style={styles.errorText} accessibilityRole="alert">
             {categoryError}
@@ -144,24 +148,26 @@ export function PositionFormFields({
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>{t('positions.concession.sectionTitle')}</Text>
-        <SelectableCard
-          icon="check"
-          title={t('positions.concession.canConcedeTitle')}
-          description={t('positions.concession.canConcedeDescription')}
-          selected={canConcede === true}
-          selectedLabel={t('positions.category.selected')}
-          onPress={() => !disabled && onSelectConcede(true)}
-          accessibilityHint={concedeError}
-        />
-        <SelectableCard
-          icon="x"
-          title={t('positions.concession.cannotConcedeTitle')}
-          description={t('positions.concession.cannotConcedeDescription')}
-          selected={canConcede === false}
-          selectedLabel={t('positions.category.selected')}
-          onPress={() => !disabled && onSelectConcede(false)}
-          accessibilityHint={concedeError}
-        />
+        <View style={styles.options} accessibilityRole="radiogroup">
+          <SelectableCard
+            icon="check"
+            title={t('positions.concession.canConcedeTitle')}
+            description={t('positions.concession.canConcedeDescription')}
+            selected={canConcede === true}
+            selectedLabel={t('positions.category.selected')}
+            onPress={() => !disabled && onSelectConcede(true)}
+            accessibilityHint={concedeError}
+          />
+          <SelectableCard
+            icon="x"
+            title={t('positions.concession.cannotConcedeTitle')}
+            description={t('positions.concession.cannotConcedeDescription')}
+            selected={canConcede === false}
+            selectedLabel={t('positions.category.selected')}
+            onPress={() => !disabled && onSelectConcede(false)}
+            accessibilityHint={concedeError}
+          />
+        </View>
         {concedeError ? (
           <Text style={styles.errorText} accessibilityRole="alert">
             {concedeError}
@@ -180,28 +186,33 @@ export function PositionFormFields({
           />
         ) : null}
       </View>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  form: {
+    gap: spacing.xxl,
+  },
   section: {
+    gap: spacing.md,
+  },
+  sectionHeader: {
+    gap: spacing.xxs,
+  },
+  options: {
     gap: spacing.sm,
   },
   sectionLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 13,
+    ...typography.eyebrow,
     color: semanticColors.text.primary,
   },
   sectionHint: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
-    marginTop: -spacing.xs,
   },
   errorText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
+    ...typography.caption,
     color: semanticColors.status.errorFg,
   },
 });

@@ -35,7 +35,7 @@ const mediacionNavigationTheme: Theme = {
     card: colors.surface1,
     text: colors.ink,
     border: colors.hairline,
-    notification: colors.mediationAqua,
+    notification: colors.primary,
   },
   fonts: {
     regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },

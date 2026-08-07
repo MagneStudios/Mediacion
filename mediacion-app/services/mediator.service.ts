@@ -39,11 +39,12 @@ export type MediatorService = {
   getMediatorActivity(caseId: string): Promise<MediatorActivityItem[]>;
 };
 
-/** In-memory only — cleared on app restart, never written to disk, never logged. At most one mediation record per case (duplicate requests are rejected). */
+/** In-memory only — cleared on app restart, never written to disk, never logged. At most one mediation record per case. */
 const mockMediations: Record<string, MockMediation> = {};
 
 /** In-memory only. Case-scoped milestone feed backing getMediatorActivity() — distinct from the app-wide Actividad timeline (see appendMediatorActivity in activity.service.ts for the 3-key subset also mirrored there). */
 const mockMediatorMilestones: Record<string, MediatorActivityItem[]> = {};
+const requestMediatorInFlight: Record<string, Promise<MediatorState> | undefined> = {};
 
 const failures = createFailureController<'requestMediator'>();
 
@@ -72,6 +73,76 @@ function buildMediatorState(caseId: string, mediation: MockMediation | null, neg
   };
 }
 
+async function requestMediatorOnce(caseId: string): Promise<MediatorState> {
+  if (failures.consume('requestMediator')) {
+    return rejectAfter('mediator_request_failed', 700);
+  }
+
+  const detail = mockCaseDetails[caseId];
+  if (!detail) return rejectAfter('mediator_case_not_found', 300);
+
+  const negotiationState = await negotiationService.getNegotiationState(caseId);
+  const roundNumber = negotiationState.currentRound?.number ?? null;
+  const existing = mockMediations[caseId] ?? null;
+  const eligibility = getMediatorEligibility(detail.estado, roundNumber, existing);
+
+  if (eligibility !== 'available' || roundNumber == null) {
+    return rejectAfter('mediator_not_eligible', 300);
+  }
+
+  const outcome = resolveMediatorAssignment(caseId);
+  const requestedAt = new Date().toISOString();
+  const mediation: MockMediation = {
+    id: generateMockMediationId(),
+    caseId,
+    estado: outcome,
+    ronda: roundNumber,
+    requestedAt,
+    acceptedAt: outcome === 'aceptada' ? requestedAt : undefined,
+  };
+
+  const committed = await delay(mediation, 900);
+  const latestNegotiationState = await negotiationService.getNegotiationState(caseId);
+  const latestRoundNumber = latestNegotiationState.currentRound?.number ?? null;
+  const latestEligibility = getMediatorEligibility(mockCaseDetails[caseId]?.estado ?? 'nuevo', latestRoundNumber, mockMediations[caseId] ?? null);
+  if (latestEligibility !== 'available' || latestRoundNumber !== roundNumber) {
+    return rejectAfter('mediator_not_eligible', 0);
+  }
+  mockMediations[caseId] = committed;
+
+  appendMilestone(caseId, 'request_submitted');
+  if (outcome === 'aceptada') {
+    appendMilestone(caseId, 'mediator_assigned');
+  } else if (outcome === 'solicitada') {
+    appendMilestone(caseId, 'request_pending');
+  } else {
+    appendMilestone(caseId, 'request_unavailable');
+  }
+
+  try {
+    await appendMediatorNotice({ caseId, eventKey: 'mediator_request_submitted' });
+    if (outcome === 'aceptada') {
+      await appendMediatorNotice({ caseId, eventKey: 'mediator_assigned' });
+    } else if (outcome === 'solicitada') {
+      await appendMediatorNotice({ caseId, eventKey: 'mediator_request_pending' });
+    } else {
+      await appendMediatorNotice({ caseId, eventKey: 'mediator_unavailable' });
+    }
+  } catch {
+    // Best-effort mock side effect — never surfaced, never rolled back.
+  }
+  try {
+    await appendMediatorActivity({ caseId, eventKey: 'mediator_requested' });
+    if (outcome === 'aceptada') {
+      await appendMediatorActivity({ caseId, eventKey: 'mediator_assigned' });
+    }
+  } catch {
+    // Best-effort mock side effect — never surfaced, never rolled back.
+  }
+
+  return buildMediatorState(caseId, committed, latestNegotiationState);
+}
+
 export function createMockMediatorService(): MediatorService {
   return {
     async getMediatorState(caseId) {
@@ -83,87 +154,16 @@ export function createMockMediatorService(): MediatorService {
     },
 
     async requestMediator(caseId) {
-      if (failures.consume('requestMediator')) {
-        return rejectAfter('mediator_request_failed', 700);
-      }
+      const inFlight = requestMediatorInFlight[caseId];
+      if (inFlight) return inFlight;
 
-      const detail = mockCaseDetails[caseId];
-      if (!detail) return rejectAfter('mediator_case_not_found', 300);
-
-      const negotiationState = await negotiationService.getNegotiationState(caseId);
-      const roundNumber = negotiationState.currentRound?.number ?? null;
-      const existing = mockMediations[caseId] ?? null;
-      const eligibility = getMediatorEligibility(detail.estado, roundNumber, existing);
-
-      // Single eligibility gate — the same function the UI uses — rejects
-      // all of: case not in an active negotiation state, round < 3, an
-      // already-existing mediation (pending/assigned/unavailable/finalizada
-      // all fail 'available'), and any agreed/terminal case.
-      if (eligibility !== 'available' || roundNumber == null) {
-        return rejectAfter('mediator_not_eligible', 300);
-      }
-
-      // Calculate the complete final next state before the single commit —
-      // the deterministic outcome is resolved now, only after every
-      // rejection path above has already been ruled out, and applied
-      // directly into the one record that gets committed. A pending
-      // outcome commits 'solicitada' as-is; an 'aceptada'/'rechazada'
-      // outcome is decided and written in this same mutation, never as a
-      // follow-up update to an already-committed 'solicitada' record.
-      const outcome = resolveMediatorAssignment(caseId);
-      const requestedAt = new Date().toISOString();
-      const mediation: MockMediation = {
-        id: generateMockMediationId(),
-        caseId,
-        estado: outcome,
-        ronda: roundNumber,
-        requestedAt,
-        acceptedAt: outcome === 'aceptada' ? requestedAt : undefined,
-      };
-
-      const committed = await delay(mediation, 900);
-      // Only written after the mock "request" resolves — a forced failure
-      // above never leaves a partial mediation record behind.
-      mockMediations[caseId] = committed;
-
-      appendMilestone(caseId, 'request_submitted');
-      if (outcome === 'aceptada') {
-        appendMilestone(caseId, 'mediator_assigned');
-      } else if (outcome === 'solicitada') {
-        appendMilestone(caseId, 'request_pending');
-      } else {
-        appendMilestone(caseId, 'request_unavailable');
-      }
-
-      // Best-effort side effects only, strictly after the commit above —
-      // a notice/activity failure here never rolls back the already-
-      // committed mediation record. Deterministic dedup keys (caseId +
-      // eventKey) inside each narrow append function make a retried call
-      // idempotent, so this can never create duplicate side effects.
+      const operation = requestMediatorOnce(caseId);
+      requestMediatorInFlight[caseId] = operation;
       try {
-        await appendMediatorNotice({ caseId, eventKey: 'mediator_request_submitted' });
-        if (outcome === 'aceptada') {
-          await appendMediatorNotice({ caseId, eventKey: 'mediator_assigned' });
-        } else if (outcome === 'solicitada') {
-          await appendMediatorNotice({ caseId, eventKey: 'mediator_request_pending' });
-        } else {
-          await appendMediatorNotice({ caseId, eventKey: 'mediator_unavailable' });
-        }
-      } catch {
-        // Best-effort mock side effect — never surfaced, never rolled back.
+        return await operation;
+      } finally {
+        if (requestMediatorInFlight[caseId] === operation) delete requestMediatorInFlight[caseId];
       }
-      try {
-        await appendMediatorActivity({ caseId, eventKey: 'mediator_requested' });
-        if (outcome === 'aceptada') {
-          await appendMediatorActivity({ caseId, eventKey: 'mediator_assigned' });
-        }
-        // 'accompaniment_started' is only ever appended if estado
-        // transitions to 'activa' — no path in this phase does that.
-      } catch {
-        // Best-effort mock side effect — never surfaced, never rolled back.
-      }
-
-      return buildMediatorState(caseId, committed, negotiationState);
     },
 
     async getMediatorActivity(caseId) {

@@ -35,6 +35,12 @@ export const contentWidths = {
   standard: 1040,
   /** Multi-column dashboards and two-column case/negotiation/agreement layouts. */
   wide: 1240,
+  /** Two-column dashboard grids (e.g. cases at `isWide`) — a notch past `wide` so two cards get real breathing room. */
+  dashboardWide: 1280,
+  /** Three-column dashboard grids (e.g. cases at `isExtraWide`). */
+  dashboardExtraWide: 1640,
+  /** Workspace views (case detail, notices with sidebar) — explicit wide cap for screens that stretch beyond standard dashboard layouts. */
+  workspaceWide: 1480,
 } as const;
 
 export type ContentWidthToken = keyof typeof contentWidths;

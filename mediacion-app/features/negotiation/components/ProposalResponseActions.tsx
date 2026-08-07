@@ -19,10 +19,10 @@ export type ProposalResponseActionsProps = {
 export function ProposalResponseActions({ acceptLabel, rejectLabel, onAccept, onReject, disabled }: ProposalResponseActionsProps) {
   return (
     <View style={styles.row}>
-      <Button variant="primary" fullWidth onPress={onAccept} disabled={disabled}>
+      <Button variant="primary" size="lg" fullWidth onPress={onAccept} disabled={disabled}>
         {acceptLabel}
       </Button>
-      <Button variant="secondary" fullWidth onPress={onReject} disabled={disabled}>
+      <Button variant="secondary" size="lg" fullWidth onPress={onReject} disabled={disabled}>
         {rejectLabel}
       </Button>
     </View>

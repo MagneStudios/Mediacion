@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Icon, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -79,7 +80,7 @@ export function PositionCard({
               accessibilityRole="button"
               accessibilityLabel={editAccessibilityLabel}
               hitSlop={8}
-              style={styles.iconButton}
+              style={({ pressed }) => [styles.iconButton, pressed ? styles.iconButtonPressed : null]}
             >
               <Icon name="pencil" size={17} color={semanticColors.text.secondary} />
             </Pressable>
@@ -88,7 +89,7 @@ export function PositionCard({
               accessibilityRole="button"
               accessibilityLabel={deleteAccessibilityLabel}
               hitSlop={8}
-              style={styles.iconButton}
+              style={({ pressed }) => [styles.iconButton, pressed ? styles.iconButtonPressed : null]}
             >
               <Icon name="trash-2" size={17} color={semanticColors.status.errorFg} />
             </Pressable>
@@ -101,8 +102,8 @@ export function PositionCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
   },
   row: {
     flexDirection: 'row',
@@ -117,14 +118,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   category: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
+    ...typography.eyebrow,
     color: semanticColors.text.quaternary,
   },
   name: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 16,
-    letterSpacing: -0.2,
+    ...typography.bodyLg,
     color: semanticColors.text.primary,
   },
   actions: {
@@ -134,13 +132,15 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 44,
     height: 44,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconButtonPressed: {
+    backgroundColor: semanticColors.surface.sunken,
+  },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   footer: {

@@ -48,7 +48,7 @@ export function AgreementExportAction({
   if (disabled) {
     return (
       <View style={styles.container}>
-        <Button variant="secondary" fullWidth disabled>
+        <Button variant="secondary" size="lg" fullWidth disabled>
           {actionLabel}
         </Button>
         {disabledReason ? <Text style={styles.disabledReason}>{disabledReason}</Text> : null}
@@ -74,7 +74,7 @@ export function AgreementExportAction({
   }
 
   return (
-    <Button variant="secondary" fullWidth onPress={onExport}>
+    <Button variant="secondary" size="lg" fullWidth onPress={onExport}>
       {actionLabel}
     </Button>
   );
@@ -85,20 +85,15 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   disabledReason: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   successTitle: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   successBody: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });
