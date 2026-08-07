@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, StatusPill } from '../../../design-system';
+import { Button, Card, ErrorState, StatusPill } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
@@ -22,7 +22,7 @@ export type AgreementSummaryCardProps = {
 export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { status, state } = useAgreement(caseId);
+  const { status, state, reload } = useAgreement(caseId);
 
   if (status === 'loading') {
     return (
@@ -37,7 +37,20 @@ export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
     );
   }
 
-  if (status === 'error' || !state) {
+  if (status === 'error') {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel} accessibilityRole="header">
+          {t('agreement.sectionTitle')}
+        </Text>
+        <Card style={styles.card}>
+          <ErrorState title={t('states.error.title')} retryLabel={t('states.error.retry')} onRetry={reload} />
+        </Card>
+      </View>
+    );
+  }
+
+  if (!state) {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionLabel} accessibilityRole="header">
@@ -66,7 +79,19 @@ export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
       <Card style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.title}>{t('agreement.summary.title')}</Text>
-          <StatusPill status={state.allSignaturesComplete ? 'success' : 'info'}>{statusLabel}</StatusPill>
+          <StatusPill
+            status={
+              state.agreement.estado === 'con_aviso'
+                ? 'warning'
+                : state.agreement.estado === 'firmado'
+                  ? 'success'
+                  : state.agreement.estado === 'enviado_a_firma'
+                    ? 'info'
+                    : 'neutral'
+            }
+          >
+            {statusLabel}
+          </StatusPill>
         </View>
         <Text style={styles.description}>{t('agreement.summary.body')}</Text>
         <Button

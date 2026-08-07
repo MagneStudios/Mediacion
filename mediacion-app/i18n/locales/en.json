@@ -729,6 +729,20 @@
         "title": "Your private positions are ready",
         "body": "You already entered private information for this case. Only you can see it."
       }
+    },
+    "events": {
+      "invitacionEnviada": {
+        "title": "Invitation sent",
+        "body": "An invitation was sent for the other party to join the case."
+      },
+      "vencimiento": {
+        "title": "Deadline approaching",
+        "body": "A deadline on this case is close to expiring or has expired."
+      },
+      "generic": {
+        "title": "Process update",
+        "body": "There is an update on this case."
+      }
     }
   },
   "positions": {

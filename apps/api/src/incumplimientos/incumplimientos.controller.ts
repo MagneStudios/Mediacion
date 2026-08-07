@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { IncumplimientosService } from "./incumplimientos.service";
@@ -16,7 +24,7 @@ export class IncumplimientosController {
 
   @Post("acuerdos/:id/incumplimiento")
   registerBreach(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: RegisterIncumplimientoDto,
   ): Promise<IncumplimientoView> {
@@ -25,7 +33,7 @@ export class IncumplimientosController {
 
   @Get("acuerdos/:id/incumplimientos")
   listForAcuerdo(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<IncumplimientoView[]> {
     return this.incumplimientosService.listForAcuerdo(id, caller.id);

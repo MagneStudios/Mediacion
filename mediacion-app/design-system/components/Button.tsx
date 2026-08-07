@@ -60,6 +60,18 @@ const VARIANT_BG_PRESSED: Record<ButtonVariant, string> = {
   destructive: semanticColors.status.errorBgPressed,
 };
 
+// Pointer-hover feedback for web — a dedicated tone a step lighter than the
+// pressed state, so pressing still reads as a distinct, stronger reaction to
+// the hover a pointer user already saw. Native Pressable never reports
+// `hovered`, so this is a no-op off-web.
+const VARIANT_BG_HOVER: Record<ButtonVariant, string> = {
+  primary: semanticColors.action.primaryBgHover,
+  secondary: semanticColors.action.secondaryBgHover,
+  tertiary: 'rgba(23, 50, 74, 0.05)',
+  ai: semanticColors.action.aiBgHover,
+  destructive: semanticColors.status.errorBgHover,
+};
+
 const VARIANT_FG: Record<ButtonVariant, string> = {
   primary: semanticColors.action.primaryFg,
   secondary: semanticColors.action.secondaryFg,
@@ -104,13 +116,18 @@ export function Button({
       accessibilityLabel={accessibilityLabel ?? loadingLabel}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       testID="mediacion-button"
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.base,
         {
           minHeight: sizeStyle.minHeight,
           paddingHorizontal: sizeStyle.paddingHorizontal,
           gap: sizeStyle.gap,
-          backgroundColor: pressed && !isDisabled ? VARIANT_BG_PRESSED[variant] : bg,
+          backgroundColor:
+            pressed && !isDisabled
+              ? VARIANT_BG_PRESSED[variant]
+              : hovered && !isDisabled
+                ? VARIANT_BG_HOVER[variant]
+                : bg,
           borderColor: border,
           width: fullWidth ? '100%' : undefined,
         },

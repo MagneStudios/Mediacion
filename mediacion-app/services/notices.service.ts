@@ -1,7 +1,10 @@
 import { buildInitialNotices } from '../mocks/notices';
 import type { AppNotice, NoticeFilter, NoticeListItem, NoticePriority } from '../types/notice';
+import { createBackedNoticesService } from './api/notices.backed-service';
+import { backend } from './backend-instance';
 import { casesService } from './cases.service';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
+import { getUnreadCountSnapshot, setUnreadCount, subscribeToUnreadCount } from './notices-unread-store';
 
 /**
  * Replaceable service boundary for the Avisos (notice center) feature.
@@ -30,32 +33,16 @@ export function __mockForceNoticesFailure(operation: 'markNoticeRead' | 'markAll
 }
 
 /**
- * Tiny focused external store for the live tab badge — no dependency, no
- * Context/Provider. Listeners are notified only from this file's own two
- * mutations below, so the badge can never go stale regardless of which
- * screen triggered the change.
+ * The tab-badge store moved to notices-unread-store.ts so the API-backed
+ * implementation can feed it too — a real backend cannot be read synchronously,
+ * which the old "recount the mock array" snapshot assumed. Re-exported here so
+ * `useUnreadNotices` keeps importing from the same place.
  */
-type Listener = () => void;
-let unreadListeners: Listener[] = [];
+export { getUnreadCountSnapshot, subscribeToUnreadCount };
+
+/** Recomputes the badge from the mock array. The API-backed path uses the server's count instead. */
 function notifyUnreadListeners(): void {
-  unreadListeners.forEach((listener) => listener());
-}
-export function subscribeToUnreadCount(listener: Listener): () => void {
-  unreadListeners.push(listener);
-  return () => {
-    unreadListeners = unreadListeners.filter((existing) => existing !== listener);
-  };
-}
-/**
- * Synchronous snapshot for useSyncExternalStore — reads the same
- * `mockNotices` array as every async method below, so it's always
- * consistent with them. Also used as the getServerSnapshot (see
- * useUnreadNotices) since it's already deterministic: the array is freshly
- * seeded, identically, on both server and client, with no persisted state
- * to diverge.
- */
-export function getUnreadCountSnapshot(): number {
-  return mockNotices.filter((notice) => !notice.read).length;
+  setUnreadCount(mockNotices.filter((notice) => !notice.read).length);
 }
 
 async function resolveCaseTitle(caseId: string | undefined): Promise<string | undefined> {
@@ -120,8 +107,18 @@ export function createMockNoticesService(): NoticesService {
   };
 }
 
-/** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const noticesService: NoticesService = createMockNoticesService();
+/** Default instance consumed by the feature hooks — the single place where the real API is swapped in. */
+export const noticesService: NoticesService = backend
+  ? createBackedNoticesService(backend.notices, (caseId) => casesService.getCaseTitle(caseId))
+  : createMockNoticesService();
+
+// The mock path seeds the badge from its fixtures, which the old synchronous
+// snapshot recomputed on every read. The API-backed path deliberately does not
+// seed: its first real count arrives from the server, and a guessed badge in the
+// meantime would be worse than none.
+if (!backend) {
+  notifyUnreadListeners();
+}
 
 const MEDIATOR_NOTICE_EVENT_KEYS = [
   'mediator_request_submitted',
@@ -171,6 +168,11 @@ export type StrictMediatorNoticeInput = { caseId: string; eventKey: MediatorNoti
  * mediator state.
  */
 export async function appendMediatorNotice(input: StrictMediatorNoticeInput): Promise<AppNotice | null> {
+  // The API owns the notificaciones table and exposes no create endpoint — only
+  // list/read/mark. Writing to the mock array while the rest of the screen reads
+  // the server would put a notice on screen that vanishes on the next refresh,
+  // so against a real backend this stays the no-op its contract already allows.
+  if (backend) return null;
   if (!MEDIATOR_NOTICE_EVENT_KEYS.includes(input.eventKey)) return null;
 
   const title = await casesService.getCaseTitle(input.caseId);
@@ -223,6 +225,8 @@ export type StrictCaseNoticeInput = { caseId: string; eventKey: CaseNoticeEventK
  * (never throws) on any validation failure or duplicate.
  */
 export async function appendCaseNotice(input: StrictCaseNoticeInput): Promise<AppNotice | null> {
+  // Same reason as appendMediatorNotice: no server-side create endpoint exists.
+  if (backend) return null;
   if (!CASE_NOTICE_EVENT_KEYS.includes(input.eventKey)) return null;
 
   const title = await casesService.getCaseTitle(input.caseId);

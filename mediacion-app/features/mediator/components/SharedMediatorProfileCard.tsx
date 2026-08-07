@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Card, Icon } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { SharedMediatorProfile } from '../../../types/mediator';
@@ -26,12 +27,16 @@ export function SharedMediatorProfileCard({ profile, assignedAt }: SharedMediato
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Icon name="user" size={20} color={semanticColors.text.secondary} />
-        <View style={styles.headerText}>
-          <Text style={styles.name} accessibilityRole="header">
-            {profile.displayName}
-          </Text>
-          <Text style={styles.role}>{t(profile.roleLabelKey)}</Text>
+        <View style={styles.identity}>
+          <View style={styles.iconContainer}>
+            <Icon name="user" size={20} color={semanticColors.text.secondary} />
+          </View>
+          <View style={styles.headerText}>
+            <Text style={styles.name} accessibilityRole="header">
+              {profile.displayName}
+            </Text>
+            <Text style={styles.role}>{t(profile.roleLabelKey)}</Text>
+          </View>
         </View>
         <Badge variant="neutral">{t('mediator.profile.demoLabel')}</Badge>
       </View>
@@ -54,54 +59,64 @@ export function SharedMediatorProfileCard({ profile, assignedAt }: SharedMediato
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.sm,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   header: {
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  identity: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    width: '100%',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: semanticColors.surface.sunken,
   },
   headerText: {
     flex: 1,
-    gap: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
   },
   name: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   role: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
+    ...typography.bodySm,
     color: semanticColors.text.tertiary,
   },
   summary: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   metaLabel: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 11,
+    ...typography.eyebrow,
     color: semanticColors.text.quaternary,
   },
   metaValue: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 12.5,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
+    flexShrink: 1,
+    textAlign: 'right',
   },
   notice: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 11.5,
-    lineHeight: 16,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });

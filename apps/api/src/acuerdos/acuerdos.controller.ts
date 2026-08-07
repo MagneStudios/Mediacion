@@ -4,6 +4,7 @@ import {
   Header,
   Inject,
   Param,
+  ParseUUIDPipe,
   Post,
   Res,
 } from "@nestjs/common";
@@ -25,7 +26,7 @@ export class AcuerdosController {
 
   @Post("casos/:casoId/acuerdo")
   generateAgreement(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<Acuerdo> {
     return this.acuerdosService.generateAgreement(casoId, caller.id);
@@ -33,7 +34,7 @@ export class AcuerdosController {
 
   @Get("casos/:casoId/acuerdo")
   getForCaso(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<{ acuerdo: Acuerdo; firmas: FirmaStatus[] }> {
     return this.acuerdosService.getForCaso(casoId, caller.id);
@@ -41,7 +42,7 @@ export class AcuerdosController {
 
   @Post("acuerdos/:id/firmar")
   sendToSignature(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<Acuerdo> {
     return this.acuerdosService.sendToSignature(id, caller.id);
@@ -50,7 +51,7 @@ export class AcuerdosController {
   @Get("acuerdos/:id/exportar")
   @Header("Content-Type", "text/plain; charset=utf-8")
   async exportAgreement(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Res({ passthrough: true }) response: ExportResponse,
   ): Promise<string> {
@@ -64,7 +65,7 @@ export class AcuerdosController {
 
   @Get("acuerdos/:id/firmas")
   listFirmas(
-    @Param("id") acuerdoId: string,
+    @Param("id", ParseUUIDPipe) acuerdoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<FirmaView[]> {
     return this.acuerdosService.listFirmas(acuerdoId, caller.id);

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, Icon } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { SharedSignerStatus } from '../../../types/agreement';
@@ -51,7 +52,7 @@ export function SignatureProgressCard({
       />
       {allSigned ? (
         <View style={styles.completionFooter}>
-          <Icon name="shield-check" size={16} color={semanticColors.ai.accent} />
+          <Icon name="shield-check" size={16} color={semanticColors.status.successFg} />
           <Text style={styles.completionText}>{signedStatusLabel}</Text>
         </View>
       ) : null}
@@ -61,16 +62,12 @@ export function SignatureProgressCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.md,
   },
   title: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    ...typography.eyebrow,
     color: semanticColors.text.tertiary,
   },
   completionFooter: {
@@ -83,9 +80,7 @@ const styles = StyleSheet.create({
     borderTopColor: semanticColors.border.soft,
   },
   completionText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    fontWeight: '600',
-    color: semanticColors.ai.accent,
+    ...typography.eyebrow,
+    color: semanticColors.status.successFg,
   },
 });

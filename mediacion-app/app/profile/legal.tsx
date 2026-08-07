@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
+import { typography } from '@/design-system/tokens/typography';
 import { LegalNoticeCard } from '@/features/profile/components/LegalNoticeCard';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
@@ -12,7 +13,7 @@ const SECTION_KEYS = ['terms', 'privacyNotice', 'aiNotice', 'signatureNotice', '
 
 export default function ProfileLegalScreen() {
   const { t } = useTranslation();
-  const { horizontalPadding } = useResponsiveLayout();
+  const { horizontalPadding, isWide } = useResponsiveLayout();
 
   return (
     <ScrollView
@@ -20,6 +21,10 @@ export default function ProfileLegalScreen() {
       contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.reading, horizontalPadding })]}
     >
       <Stack.Screen options={{ title: t('profile.legal.title') }} />
+
+      <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
+        {t('profile.legal.title')}
+      </Text>
 
       {SECTION_KEYS.map((key) => (
         <LegalNoticeCard
@@ -40,7 +45,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  title: {
+    ...typography.headline,
+    color: semanticColors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  titleWide: {
+    ...typography.displayLg,
   },
 });

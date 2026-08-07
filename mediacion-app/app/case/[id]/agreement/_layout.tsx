@@ -9,7 +9,8 @@ export default function AgreementLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.canvas },
         headerTintColor: colors.ink,
-        headerTitleStyle: { fontFamily: fontFamily.medium },
+        headerTitle: '',
+        headerTitleStyle: { fontFamily: fontFamily.semibold },
         headerShadowVisible: false,
       }}
     />

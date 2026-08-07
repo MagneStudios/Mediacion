@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -45,25 +46,23 @@ export function CaseReviewCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
   },
   row: {
-    gap: 2,
-    paddingVertical: spacing.xs,
+    gap: spacing.xxs,
+    paddingVertical: spacing.sm,
   },
   rowBorder: {
     borderTopWidth: 1,
     borderTopColor: semanticColors.border.soft,
   },
   label: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
+    ...typography.eyebrow,
     color: semanticColors.text.tertiary,
   },
   value: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 15,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
 });

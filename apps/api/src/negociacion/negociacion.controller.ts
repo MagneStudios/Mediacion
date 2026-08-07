@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { NegociacionService } from "./negociacion.service";
@@ -17,7 +25,7 @@ export class NegociacionController {
 
   @Post("casos/:casoId/propuestas")
   createPropuesta(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PropuestaView> {
     return this.negociacionService.generatePropuesta(casoId, caller.id);
@@ -25,7 +33,7 @@ export class NegociacionController {
 
   @Post("propuestas/:id/responder")
   responderPropuesta(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: RespuestaDto,
   ): Promise<PropuestaView> {
@@ -34,7 +42,7 @@ export class NegociacionController {
 
   @Get("casos/:casoId/propuestas")
   listPropuestas(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PropuestaDetail[]> {
     return this.negociacionService.listPropuestas(casoId, caller.id);

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -28,24 +29,24 @@ export function AgreementHistoryCard({ eventLabel, dateLabel }: AgreementHistory
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xs,
   },
   label: {
     flex: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
+    minWidth: 180,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   date: {
-    fontFamily: typography.mono.fontFamily,
-    fontSize: 11,
+    ...typography.caption,
     color: semanticColors.text.tertiary,
   },
 });

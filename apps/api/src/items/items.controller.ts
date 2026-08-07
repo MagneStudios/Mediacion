@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from "@nestjs/common";
@@ -23,7 +24,7 @@ export class ItemsController {
 
   @Post("casos/:casoId/items")
   createItem(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: CreateItemDto,
   ): Promise<OwnItem> {
@@ -32,7 +33,7 @@ export class ItemsController {
 
   @Get("casos/:casoId/items")
   listItems(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<OwnItem[]> {
     return this.itemsService.listOwnItems(casoId, caller.id);
@@ -40,7 +41,7 @@ export class ItemsController {
 
   @Get("items/:id")
   getItem(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<OwnItem> {
     return this.itemsService.getOwnItem(id, caller.id);
@@ -48,7 +49,7 @@ export class ItemsController {
 
   @Patch("items/:id")
   updateItem(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: UpdateItemDto,
   ): Promise<OwnItem> {
@@ -58,7 +59,7 @@ export class ItemsController {
   @Delete("items/:id")
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteItem(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<void> {
     return this.itemsService.deleteOwnItem(id, caller.id);

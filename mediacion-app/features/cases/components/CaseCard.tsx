@@ -63,7 +63,6 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
   const isFinished = caseSummary.statusLabelKey === 'signed';
   const contextualLabel = isFinished ? t('cases.resultLabel') : t('cases.nextActionLabel');
   const contextualIcon: 'check' | 'info' = isFinished ? 'check' : 'info';
-  const hasContextualBorder = contextualTone.border != null;
 
   const buttonVariant = buttonVariantFor(ctaKey, caseSummary.visualStatus);
 
@@ -95,7 +94,7 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
       </View>
 
       {/* 2. Title — strong visual weight, Stitch v6 card-title */}
-      <Text variant="cardTitle" style={[styles.title, isFinished && styles.titleFinished]}>
+      <Text variant="cardTitle" style={isFinished ? styles.titleFinished : undefined}>
         {caseSummary.title}
       </Text>
 
@@ -109,10 +108,6 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
         style={[
           styles.contextualBlock,
           { backgroundColor: contextualTone.bg },
-          hasContextualBorder && {
-            borderLeftWidth: 4,
-            borderLeftColor: contextualTone.border,
-          },
         ]}
       >
         <Icon name={contextualIcon} size={18} color={contextualTone.fg} />
@@ -179,11 +174,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     fontSize: 12,
     color: semanticColors.text.tertiary,
-  },
-  title: {
-    fontSize: 22,
-    letterSpacing: -0.2,
-    lineHeight: 28,
   },
   titleFinished: {
     color: semanticColors.text.secondary,

@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '../../../design-system/components/Badge';
+import { Card } from '../../../design-system/components/Card';
 import { semanticColors } from '../../../design-system/tokens/colors';
-import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
@@ -15,7 +15,7 @@ export type LegalNoticeCardProps = {
 /** One informational legal section — always carries the "Información general" badge, never a compliance claim. */
 export function LegalNoticeCard({ title, body, badgeLabel }: LegalNoticeCardProps) {
   return (
-    <View style={styles.container}>
+    <Card style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {title}
@@ -23,36 +23,31 @@ export function LegalNoticeCard({ title, body, badgeLabel }: LegalNoticeCardProp
         <Badge variant="neutral">{badgeLabel}</Badge>
       </View>
       <Text style={styles.body}>{body}</Text>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     gap: spacing.xs,
-    backgroundColor: semanticColors.surface.card,
-    borderColor: semanticColors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   title: {
-    flex: 1,
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 16,
-    letterSpacing: -0.2,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
   body: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13.5,
-    lineHeight: 20,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });

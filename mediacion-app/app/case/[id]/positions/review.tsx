@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -94,28 +94,31 @@ export default function ReviewPositionScreen() {
 
       <PrivacyNotice title={t('positions.review.privacyTitle')}>{t('positions.review.privacyBody')}</PrivacyNotice>
 
-      {status === 'error' ? (
-        <ErrorState
-          title={t('positions.review.saveError.title')}
-          retryLabel={t('positions.review.saveError.retry')}
-          onRetry={handleSave}
-        />
-      ) : (
-        <Button variant="primary" fullWidth onPress={handleSave} loading={status === 'submitting'} loadingLabel={t('positions.review.saving')}>
-          {t('positions.review.save')}
+      <View style={styles.actions}>
+        {status === 'error' ? (
+          <ErrorState
+            title={t('positions.review.saveError.title')}
+            retryLabel={t('positions.review.saveError.retry')}
+            onRetry={handleSave}
+          />
+        ) : (
+          <Button variant="primary" size="lg" fullWidth onPress={handleSave} loading={status === 'submitting'} loadingLabel={t('positions.review.saving')}>
+            {t('positions.review.save')}
+          </Button>
+        )}
+        <Button
+          variant="tertiary"
+          size="lg"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.back();
+          }}
+          disabled={status === 'submitting'}
+        >
+          {t('positions.review.edit')}
         </Button>
-      )}
-      <Button
-        variant="tertiary"
-        fullWidth
-        onPress={() => {
-          blurActiveElement();
-          router.back();
-        }}
-        disabled={status === 'submitting'}
-      >
-        {t('positions.review.edit')}
-      </Button>
+      </View>
     </ScrollView>
   );
 }
@@ -126,13 +129,16 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  actions: {
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
 });

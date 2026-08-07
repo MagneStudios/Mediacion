@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: radii.pill,
-    backgroundColor: colors.mediationAqua,
+    backgroundColor: colors.primary,
   },
   contextLabel: {
     fontFamily: typography.eyebrow.fontFamily,
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     color: semanticColors.text.tertiary,
   },
   avatar: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',

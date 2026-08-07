@@ -24,11 +24,12 @@ export default function AgreementSignScreen() {
   const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId);
 
   const [confirmed, setConfirmed] = useState(false);
+  const agreementId = state?.agreement.id;
 
-  // Reset the confirmation whenever a different case is opened.
+  // A confirmation applies only to the exact agreement the user reviewed.
   useEffect(() => {
     setConfirmed(false);
-  }, [caseId]);
+  }, [caseId, agreementId]);
 
   // Reset when leaving the screen.
   useFocusEffect(
@@ -93,7 +94,15 @@ export default function AgreementSignScreen() {
         rationale={agreement.rationale}
         rationaleLabel={t('agreement.detail.rationaleTitle')}
         statusLabel={t(`agreement.status.${agreement.estado}`)}
-        statusVisual={agreement.estado === 'enviado_a_firma' ? 'info' : 'neutral'}
+        statusVisual={
+          agreement.estado === 'con_aviso'
+            ? 'warning'
+            : agreement.estado === 'firmado'
+              ? 'success'
+              : agreement.estado === 'enviado_a_firma'
+                ? 'info'
+                : 'neutral'
+        }
       />
 
       <SignatureEnvironmentNotice title={t('agreement.environment.title')} body={t('agreement.environment.body')} />
@@ -109,6 +118,7 @@ export default function AgreementSignScreen() {
           ) : null}
           <Button
             variant="secondary"
+            size="lg"
             fullWidth
             onPress={() => {
               blurActiveElement();
@@ -127,24 +137,19 @@ export default function AgreementSignScreen() {
             disabled={signStatus === 'pending'}
           />
 
-          {signStatus === 'error' ? (
-            <ErrorState
-              title={t('agreement.sign.error.title')}
-              retryLabel={t('common.retry')}
-              onRetry={handleConfirmSignature}
-            />
-          ) : (
-            <Button
-              variant="primary"
-              fullWidth
-              onPress={handleConfirmSignature}
-              disabled={!confirmed}
-              loading={signStatus === 'pending'}
-              loadingLabel={t('common.loading')}
-            >
-              {t('agreement.sign.action')}
-            </Button>
-          )}
+          {signStatus === 'error' ? <ErrorState title={t('agreement.sign.error.title')} /> : null}
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={handleConfirmSignature}
+            disabled={!confirmed}
+            loading={signStatus === 'pending'}
+            loadingLabel={t('common.loading')}
+            accessibilityLabel={t('agreement.sign.action')}
+          >
+            {t('agreement.sign.action')}
+          </Button>
         </>
       ) : (
         <Text style={styles.bodyText}>{t('agreement.sign.notReady')}</Text>
@@ -159,28 +164,23 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.surface.canvas,
   },
   content: {
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
   },
   title: {
-    fontFamily: typography.headline.fontFamily,
-    fontSize: 24,
-    letterSpacing: -0.4,
+    ...typography.headline,
     color: semanticColors.text.primary,
   },
   bodyText: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
   section: {
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   sectionTitle: {
-    fontFamily: typography.cardTitle.fontFamily,
-    fontSize: 18,
-    letterSpacing: -0.2,
+    ...typography.cardTitle,
     color: semanticColors.text.primary,
   },
 });

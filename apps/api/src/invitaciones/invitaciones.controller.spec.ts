@@ -15,12 +15,12 @@ import { InvitacionesRepository } from "./invitaciones.repository";
 import { InvitacionesService } from "./invitaciones.service";
 
 const parteA: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "parte",
 };
 const parteB: AuthenticatedUser = {
-  id: "user-b",
+  id: "2549140f-3853-4bd8-8593-0f68ab627390",
   email: "b@b.com",
   rol: "parte",
 };
@@ -79,7 +79,7 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
 
     const response = await request(app.getHttpServer())
       .post("/casos/unirse")
-      .send({ token: "tok-1" });
+      .send({ token: "2acea42e-bb57-44d6-8ad3-aad955ec50af" });
 
     expect(response.status).toBe(401);
     await app.close();
@@ -90,23 +90,23 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
       rol_en_caso: "parte_a",
     });
     const createInvite = jest.fn().mockResolvedValue({
-      id: "inv-1",
+      id: "a1dc238a-c774-4d3d-841b-f32dce1112ce",
       tipo: "link",
-      token: "tok-1",
+      token: "2acea42e-bb57-44d6-8ad3-aad955ec50af",
       estado: "pendiente",
     });
     const app = await bootstrapApp({ assertMembership, createInvite });
 
     const response = await request(app.getHttpServer())
-      .post("/casos/caso-1/invitaciones")
-      .set("Authorization", "Bearer user-a")
+      .post("/casos/fc8f1934-c72c-49d4-88a5-202797b30da7/invitaciones")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
       .send({ tipo: "link" });
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
-      id: "inv-1",
+      id: "a1dc238a-c774-4d3d-841b-f32dce1112ce",
       tipo: "link",
-      token: "tok-1",
+      token: "2acea42e-bb57-44d6-8ad3-aad955ec50af",
       estado: "pendiente",
     });
     await app.close();
@@ -119,8 +119,8 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
     const app = await bootstrapApp({ assertMembership });
 
     const response = await request(app.getHttpServer())
-      .post("/casos/caso-1/invitaciones")
-      .set("Authorization", "Bearer user-b")
+      .post("/casos/fc8f1934-c72c-49d4-88a5-202797b30da7/invitaciones")
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
       .send({ tipo: "link" });
 
     expect(response.status).toBe(403);
@@ -142,8 +142,8 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
     const app = await bootstrapApp({ assertMembership });
 
     const response = await request(app.getHttpServer())
-      .post("/casos/caso-1/invitaciones")
-      .set("Authorization", "Bearer user-b")
+      .post("/casos/fc8f1934-c72c-49d4-88a5-202797b30da7/invitaciones")
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
       .send({ tipo: "link" });
 
     expect(response.status).toBe(404);
@@ -151,9 +151,10 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
   });
 
   it("activates a case on a successful join, returning the activated case", async () => {
-    const joinCase = jest
-      .fn()
-      .mockResolvedValue({ id: "caso-1", estado: "activo" });
+    const joinCase = jest.fn().mockResolvedValue({
+      id: "fc8f1934-c72c-49d4-88a5-202797b30da7",
+      estado: "activo",
+    });
     const app = await bootstrapApp({
       assertMembership: jest.fn(),
       joinCase,
@@ -161,12 +162,19 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
 
     const response = await request(app.getHttpServer())
       .post("/casos/unirse")
-      .set("Authorization", "Bearer user-b")
-      .send({ token: "tok-1" });
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
+      .send({ token: "2acea42e-bb57-44d6-8ad3-aad955ec50af" });
 
     expect(response.status).toBe(201);
-    expect(response.body).toEqual({ id: "caso-1", estado: "activo" });
-    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
+    expect(response.body).toEqual({
+      id: "fc8f1934-c72c-49d4-88a5-202797b30da7",
+      estado: "activo",
+    });
+    expect(joinCase).toHaveBeenCalledWith(
+      "2acea42e-bb57-44d6-8ad3-aad955ec50af",
+      "2549140f-3853-4bd8-8593-0f68ab627390",
+      "b@b.com",
+    );
     await app.close();
   });
 
@@ -183,8 +191,8 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
 
     const response = await request(app.getHttpServer())
       .post("/casos/unirse")
-      .set("Authorization", "Bearer user-b")
-      .send({ token: "tok-1" });
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
+      .send({ token: "2acea42e-bb57-44d6-8ad3-aad955ec50af" });
 
     expect(response.status).toBe(404);
     await app.close();
@@ -204,11 +212,15 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
 
     const response = await request(app.getHttpServer())
       .post("/casos/unirse")
-      .set("Authorization", "Bearer user-b")
-      .send({ token: "tok-1" });
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
+      .send({ token: "2acea42e-bb57-44d6-8ad3-aad955ec50af" });
 
     expect(response.status).toBe(403);
-    expect(joinCase).toHaveBeenCalledWith("tok-1", "user-b", "b@b.com");
+    expect(joinCase).toHaveBeenCalledWith(
+      "2acea42e-bb57-44d6-8ad3-aad955ec50af",
+      "2549140f-3853-4bd8-8593-0f68ab627390",
+      "b@b.com",
+    );
     await app.close();
   });
 });

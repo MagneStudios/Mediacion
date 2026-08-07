@@ -20,7 +20,7 @@ export function PrivacyNotice({ children, icon = 'lock', title }: PrivacyNoticeP
     <View style={styles.container}>
       <Icon name={icon} size={15} color={semanticColors.text.tertiary} />
       <View style={styles.textColumn}>
-        {title ? <Text style={styles.title}>{title}</Text> : null}
+        {title ? <Text style={styles.title} accessibilityRole="header">{title}</Text> : null}
         <Text style={styles.text}>{children}</Text>
       </View>
     </View>

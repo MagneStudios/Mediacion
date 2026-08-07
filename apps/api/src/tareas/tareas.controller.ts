@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from "@nestjs/common";
@@ -25,7 +26,7 @@ export class TareasController {
 
   @Get("casos/:casoId/tareas")
   listForCaso(
-    @Param("casoId") casoId: string,
+    @Param("casoId", ParseUUIDPipe) casoId: string,
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<TareaView[]> {
     return this.tareasService.listForCaso(casoId, caller.id);
@@ -33,7 +34,7 @@ export class TareasController {
 
   @Patch("tareas/:id")
   updateEstado(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: UpdateTareaEstadoDto,
   ): Promise<TareaView> {
@@ -42,7 +43,7 @@ export class TareasController {
 
   @Post("tareas/:id/calendario")
   addToCalendar(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Body() body: CalendarEventDto,
   ): Promise<TareaCalendarEvent> {

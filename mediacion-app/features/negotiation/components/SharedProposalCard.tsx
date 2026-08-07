@@ -4,6 +4,7 @@ import { Card, Divider, StatusPill } from '../../../design-system';
 import { Text } from '../../../design-system/components/Text';
 import type { StatusPillStatus } from '../../../design-system/components/StatusPill';
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import type { MeetingPointEntry } from '../../../types/negotiation';
 import { MeetingPointRow } from './MeetingPointRow';
@@ -60,7 +61,7 @@ export function SharedProposalCard({
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text variant="cardTitle" style={styles.title} accessibilityRole="header" numberOfLines={2}>
+        <Text variant="cardTitle" style={styles.title} accessibilityRole="header">
           {title}
         </Text>
         <StatusPill status={statusVisual}>{statusLabel}</StatusPill>
@@ -129,9 +130,9 @@ export function SharedProposalCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    padding: spacing.md,
-    gap: spacing.xs,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     minWidth: 180,
   },
   meetingPointSectionTitle: {
-    marginTop: spacing.xxs,
+    marginTop: spacing.xs,
   },
   pending: {
     flexDirection: 'row',
@@ -157,6 +158,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   rationale: {
-    gap: 2,
+    gap: spacing.xxs,
   },
 });

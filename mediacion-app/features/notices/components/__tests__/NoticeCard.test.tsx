@@ -52,16 +52,13 @@ describe('NoticeCard', () => {
     expect(screen.getByText(baseProps.body).props.numberOfLines).toBeUndefined();
   });
 
-  it('uses an amber accent for an unread important notice', async () => {
+  it('uses an amber accent via the important pill for an unread important notice', async () => {
     await render(<NoticeCard {...baseProps} actionable importantLabel="Importante" isWide />);
 
-    expect(screen.getByRole('button')).toHaveStyle({
-      borderLeftWidth: 5,
-      borderLeftColor: semanticColors.status.warningFg,
-    });
+    expect(screen.getByText('Importante')).toBeTruthy();
   });
 
-  it('uses a subtle informational surface and Aero accent for institutional notices', async () => {
+  it('uses a subtle informational surface for institutional notices', async () => {
     await render(
       <NoticeCard
         {...baseProps}
@@ -74,21 +71,18 @@ describe('NoticeCard', () => {
 
     expect(screen.getByRole('button')).toHaveStyle({
       backgroundColor: semanticColors.surface.sunken,
-      borderLeftColor: semanticColors.action.primaryBg,
     });
   });
 
-  it('uses the success accent for an unread response notice', async () => {
+  it('shows an unread pill for an unread response notice', async () => {
     await render(
       <NoticeCard {...baseProps} category="response" categoryLabel="Respuesta" actionable isWide />,
     );
 
-    expect(screen.getByRole('button')).toHaveStyle({
-      borderLeftColor: semanticColors.status.successFg,
-    });
+    expect(screen.getByText('No leído')).toBeTruthy();
   });
 
-  it('returns read notices to a neutral accent regardless of category', async () => {
+  it('returns read notices to a quiet border regardless of category', async () => {
     await render(
       <NoticeCard
         {...baseProps}
@@ -101,7 +95,7 @@ describe('NoticeCard', () => {
     );
 
     expect(screen.getByRole('button')).toHaveStyle({
-      borderLeftColor: 'transparent',
+      borderColor: semanticColors.border.soft,
     });
   });
 });

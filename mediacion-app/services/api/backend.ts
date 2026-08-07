@@ -3,8 +3,13 @@ import { createClient as createSupabaseJsClient, type SupabaseClient } from '@su
 
 import { isApiConfigured, readAppEnv, type EnvSource } from '@/config/env';
 
+import { createApiActivityService, type ApiActivityService } from './activity.api-service';
+import { createApiAgreementsService, type ApiAgreementsService } from './agreements.api-service';
 import { createApiCasesService, type ApiCasesService } from './cases.api-service';
 import { createHttpClient, type HttpClient } from './http-client';
+import { createApiMediatorService, type ApiMediatorService } from './mediator.api-service';
+import { createApiNegotiationService, type ApiNegotiationService } from './negotiation.api-service';
+import { createApiNoticesService, type ApiNoticesService } from './notices.api-service';
 import { createApiPositionsService, type PositionsApiService } from './positions.api-service';
 import { createApiProfileService, type ProfileApiService } from './profile.api-service';
 import { createSupabaseAuthService, type AuthService } from '../auth/auth.service';
@@ -15,6 +20,11 @@ export type Backend = {
   cases: ApiCasesService;
   positions: PositionsApiService;
   profile: ProfileApiService;
+  notices: ApiNoticesService;
+  activity: ApiActivityService;
+  negotiation: ApiNegotiationService;
+  agreements: ApiAgreementsService;
+  mediator: ApiMediatorService;
 };
 
 /** Seams so a suite can build the stack without a network or native storage. */
@@ -73,5 +83,10 @@ export function createBackend(
     cases: createApiCasesService(http),
     positions: createApiPositionsService(http),
     profile: createApiProfileService(http),
+    notices: createApiNoticesService(http),
+    activity: createApiActivityService(http),
+    negotiation: createApiNegotiationService(http),
+    agreements: createApiAgreementsService(http),
+    mediator: createApiMediatorService(http),
   };
 }

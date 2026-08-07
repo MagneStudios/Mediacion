@@ -19,10 +19,39 @@ export function useNegotiation(caseId: string) {
   const [state, setState] = useState<NegotiationState | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const mountedRef = useRef(true);
+  const startRoundInFlightRef = useRef<object | null>(null);
+  const generateInFlightRef = useRef<object | null>(null);
+  const respondInFlightRef = useRef<object | null>(null);
+  const mutationRevisionRef = useRef(0);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
 
   const [startRoundStatus, setStartRoundStatus] = useState<MutationStatus>('idle');
   const [generateStatus, setGenerateStatus] = useState<MutationStatus>('idle');
   const [respondStatus, setRespondStatus] = useState<MutationStatus>('idle');
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+    hasLoadedOnceRef.current = false;
+    mutationRevisionRef.current += 1;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    startRoundInFlightRef.current = null;
+    generateInFlightRef.current = null;
+    respondInFlightRef.current = null;
+    setStartRoundStatus('idle');
+    setGenerateStatus('idle');
+    setRespondStatus('idle');
+  }, [caseId]);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -31,11 +60,19 @@ export function useNegotiation(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    negotiationService.getNegotiationState(caseId).then((result) => {
-      if (cancelled) return;
-      setState(result);
-      setStatus('success');
-    });
+    const revision = mutationRevisionRef.current;
+    if (startRoundInFlightRef.current || generateInFlightRef.current || respondInFlightRef.current) return;
+    negotiationService
+      .getNegotiationState(caseId)
+      .then((result) => {
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
+        setState(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        // A focus refresh is best-effort: keep the last successful state.
+      });
     return () => {
       cancelled = true;
     };
@@ -43,18 +80,21 @@ export function useNegotiation(caseId: string) {
 
   useEffect(() => {
     let cancelled = false;
+    const revision = mutationRevisionRef.current;
     setStatus('loading');
     hasLoadedOnceRef.current = false;
     negotiationService
       .getNegotiationState(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
         setState(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -69,43 +109,88 @@ export function useNegotiation(caseId: string) {
     }, [fetchSilently]),
   );
 
+  const refreshAfterMutation = useCallback(async (revision: number) => {
+    try {
+      const result = await negotiationService.getNegotiationState(caseId);
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return false;
+      setResultCaseId(caseId);
+      setState(result);
+      setStatus('success');
+      return true;
+    } catch {
+      if (mountedRef.current && activeCaseIdRef.current === caseId && mutationRevisionRef.current === revision) {
+        setResultCaseId(caseId);
+        setStatus('error');
+      }
+      return false;
+    }
+  }, [caseId]);
+
   const startNextRound = useCallback(async () => {
-    if (startRoundStatus === 'pending') return;
+    if (startRoundInFlightRef.current) return;
+    const operation = {};
+    startRoundInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
+    const revision = mutationRevisionRef.current;
     setStartRoundStatus('pending');
     try {
       await negotiationService.startNextRound(caseId);
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || startRoundInFlightRef.current !== operation) return;
       setStartRoundStatus('idle');
-      fetchSilently();
+      await refreshAfterMutation(revision);
     } catch {
-      setStartRoundStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId && startRoundInFlightRef.current === operation) {
+        setStartRoundStatus('error');
+      }
+    } finally {
+      if (startRoundInFlightRef.current === operation) startRoundInFlightRef.current = null;
     }
-  }, [caseId, startRoundStatus, fetchSilently]);
+  }, [caseId, refreshAfterMutation]);
 
   const generateProposal = useCallback(async () => {
-    if (generateStatus === 'pending') return;
+    if (generateInFlightRef.current) return;
+    const operation = {};
+    generateInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
+    const revision = mutationRevisionRef.current;
     setGenerateStatus('pending');
     try {
       await negotiationService.generateSharedProposal(caseId);
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId || generateInFlightRef.current !== operation) return;
       setGenerateStatus('idle');
-      fetchSilently();
+      await refreshAfterMutation(revision);
     } catch {
-      setGenerateStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId && generateInFlightRef.current === operation) {
+        setGenerateStatus('error');
+      }
+    } finally {
+      if (generateInFlightRef.current === operation) generateInFlightRef.current = null;
     }
-  }, [caseId, generateStatus, fetchSilently]);
+  }, [caseId, refreshAfterMutation]);
 
   const submitResponse = useCallback(
     async (proposalId: string, decision: DecisionPropuesta) => {
-      if (respondStatus === 'pending') return;
+      if (respondInFlightRef.current) return;
+      const operation = {};
+      respondInFlightRef.current = operation;
+      mutationRevisionRef.current += 1;
       setRespondStatus('pending');
       try {
         const result = await negotiationService.submitOwnProposalResponse(caseId, proposalId, decision);
+        if (!mountedRef.current || activeCaseIdRef.current !== caseId || respondInFlightRef.current !== operation) return;
+        setResultCaseId(caseId);
         setState(result);
+        setStatus('success');
         setRespondStatus('idle');
       } catch {
-        setRespondStatus('error');
+        if (mountedRef.current && activeCaseIdRef.current === caseId && respondInFlightRef.current === operation) {
+          setRespondStatus('error');
+        }
+      } finally {
+        if (respondInFlightRef.current === operation) respondInFlightRef.current = null;
       }
     },
-    [caseId, respondStatus],
+    [caseId],
   );
 
   /** Call when opening a fresh confirmation dialog, so a previous attempt's error doesn't appear to already apply to this one. */
@@ -114,8 +199,8 @@ export function useNegotiation(caseId: string) {
   }, []);
 
   return {
-    status,
-    state,
+    status: resultCaseId === caseId ? status : 'loading',
+    state: resultCaseId === caseId ? state : undefined,
     reload,
     startRoundStatus,
     startNextRound,

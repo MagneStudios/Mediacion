@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { semanticColors } from '../../../design-system/tokens/colors';
+import { radii } from '../../../design-system/tokens/radii';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { CaseDetail } from '../../../types/case';
@@ -49,7 +50,7 @@ const DOT_SIZE = 3;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: semanticColors.surface.sunken,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.sm,
   },

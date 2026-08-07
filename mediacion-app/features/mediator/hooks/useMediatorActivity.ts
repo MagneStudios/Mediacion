@@ -12,6 +12,13 @@ export function useMediatorActivity(caseId: string) {
   const [items, setItems] = useState<MediatorActivityItem[]>([]);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+    hasLoadedOnceRef.current = false;
+  }
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -20,11 +27,17 @@ export function useMediatorActivity(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    mediatorService.getMediatorActivity(caseId).then((result) => {
-      if (cancelled) return;
-      setItems(result);
-      setStatus('success');
-    });
+    mediatorService
+      .getMediatorActivity(caseId)
+      .then((result) => {
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
+        setItems(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        // A focus refresh is best-effort: keep the last successful activity.
+      });
     return () => {
       cancelled = true;
     };
@@ -37,13 +50,15 @@ export function useMediatorActivity(caseId: string) {
     mediatorService
       .getMediatorActivity(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setItems(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -58,5 +73,9 @@ export function useMediatorActivity(caseId: string) {
     }, [fetchSilently]),
   );
 
-  return { status, items, reload };
+  return {
+    status: resultCaseId === caseId ? status : 'loading',
+    items: resultCaseId === caseId && status === 'success' ? items : [],
+    reload,
+  };
 }

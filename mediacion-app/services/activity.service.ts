@@ -1,5 +1,7 @@
 import { buildInitialActivity } from '../mocks/activity';
 import type { ActivityEventKey, ActivityItem, ActivityListItem } from '../types/activity';
+import { createBackedActivityService } from './api/activity.backed-service';
+import { backend } from './backend-instance';
 import { casesService } from './cases.service';
 import { delay } from './mock-utils';
 
@@ -43,8 +45,13 @@ export function createMockActivityService(): ActivityService {
   };
 }
 
-/** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const activityService: ActivityService = createMockActivityService();
+/** Default instance consumed by the feature hooks — the single place where the real API is swapped in. */
+export const activityService: ActivityService = backend
+  ? createBackedActivityService(backend.activity, async () => {
+      const cases = await casesService.listCases();
+      return cases.map((summary) => ({ id: summary.id, title: summary.title }));
+    })
+  : createMockActivityService();
 
 const MEDIATOR_ACTIVITY_EVENT_KEYS = ['mediator_requested', 'mediator_assigned', 'accompaniment_started'] as const satisfies readonly ActivityEventKey[];
 export type MediatorActivityEventKey = (typeof MEDIATOR_ACTIVITY_EVENT_KEYS)[number];
@@ -66,6 +73,10 @@ export type StrictMediatorActivityInput = { caseId: string; eventKey: MediatorAc
  * state.
  */
 export async function appendMediatorActivity(input: StrictMediatorActivityInput): Promise<ActivityItem | null> {
+  // The feed is a projection of the server's `auditoria` table, which the API
+  // writes through database triggers and exposes read-only. Appending to the
+  // mock array here would show a milestone that disappears on the next refresh.
+  if (backend) return null;
   if (!MEDIATOR_ACTIVITY_EVENT_KEYS.includes(input.eventKey)) return null;
 
   const title = await casesService.getCaseTitle(input.caseId);
@@ -104,6 +115,8 @@ export type StrictCaseActivityInput = { caseId: string; eventKey: CaseActivityEv
  * failure or duplicate.
  */
 export async function appendCaseActivity(input: StrictCaseActivityInput): Promise<ActivityItem | null> {
+  // Same reason as appendMediatorActivity: the timeline is server-owned and read-only.
+  if (backend) return null;
   if (!CASE_ACTIVITY_EVENT_KEYS.includes(input.eventKey)) return null;
 
   const title = await casesService.getCaseTitle(input.caseId);

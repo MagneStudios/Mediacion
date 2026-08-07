@@ -30,24 +30,23 @@ export function CaseCreationProgress({ step, total, label }: CaseCreationProgres
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.xxs,
+    gap: spacing.xs,
   },
   label: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 12,
+    ...typography.eyebrow,
     color: semanticColors.text.tertiary,
   },
   segments: {
     flexDirection: 'row',
-    gap: 4,
+    gap: spacing.xxs,
   },
   segment: {
     flex: 1,
-    height: 4,
+    height: 5,
     borderRadius: radii.pill,
     backgroundColor: semanticColors.surface.sunken,
   },
   segmentFilled: {
-    backgroundColor: semanticColors.text.primary,
+    backgroundColor: semanticColors.action.primaryBg,
   },
 });

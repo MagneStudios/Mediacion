@@ -6,6 +6,7 @@ import type {
   EstadoMediacion,
   Mediacion,
   MediacionView,
+  MediadorOption,
 } from "./mediacion.types";
 import {
   estadoMediacionAceptada,
@@ -211,6 +212,49 @@ export class MediacionService {
       mediadorId,
       rondaActual,
     );
+  }
+
+  /**
+   * The caso's mediacion as a party sees it, or null when none was ever
+   * requested — which is a legitimate state, not an error, and is why this
+   * answers null instead of 404.
+   *
+   * Membership is asserted first, so a stranger gets the same caso_not_found a
+   * nonexistent caso would: whether a caso has a mediacion is itself private.
+   */
+  async getForCaso(
+    casoId: string,
+    callerId: string,
+  ): Promise<MediacionView | null> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    const mediacion = await this.mediacionesRepository.findByCasoId(casoId);
+    return mediacion ?? null;
+  }
+
+  /**
+   * Mediadores a party may request. Requires membership in the caso the request
+   * is for, so the roster is not a public directory of every mediador in the
+   * system — and it never includes a mediador who is already a party to that
+   * caso, which `requestMediacion` would reject anyway.
+   */
+  async listMediadoresForCaso(
+    casoId: string,
+    callerId: string,
+  ): Promise<MediadorOption[]> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    const mediadores = await this.mediacionesRepository.listMediadores();
+    const eligibility = await Promise.all(
+      mediadores.map(async (mediador) => ({
+        mediador,
+        isParty: await this.mediacionesRepository.existsCasoParte(
+          casoId,
+          mediador.id,
+        ),
+      })),
+    );
+    return eligibility
+      .filter(({ mediador, isParty }) => !isParty && mediador.id !== callerId)
+      .map(({ mediador }) => mediador);
   }
 
   async updateEstado(

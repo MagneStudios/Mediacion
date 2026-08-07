@@ -12,7 +12,7 @@ import { PagosController } from "./pagos.controller";
 import { PagosService } from "./pagos.service";
 
 const parteA: AuthenticatedUser = {
-  id: "user-a",
+  id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
   email: "a@b.com",
   rol: "parte",
 };
@@ -55,15 +55,18 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
     const app = await bootstrapApp(createPreference);
 
     const response = await request(app.getHttpServer())
-      .post("/suscripciones/sus-1/pago")
-      .set("Authorization", "Bearer user-a")
+      .post("/suscripciones/4053e52d-c4b3-4bb3-8bf6-ca41c9caa8f1/pago")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
       .send();
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
       init_point: "https://mp.example.com/pref-1",
     });
-    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
+    expect(createPreference).toHaveBeenCalledWith(
+      "4053e52d-c4b3-4bb3-8bf6-ca41c9caa8f1",
+      parteA.id,
+    );
     await app.close();
   });
 
@@ -72,7 +75,7 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
     const app = await bootstrapApp(createPreference);
 
     const response = await request(app.getHttpServer())
-      .post("/suscripciones/sus-1/pago")
+      .post("/suscripciones/4053e52d-c4b3-4bb3-8bf6-ca41c9caa8f1/pago")
       .send();
 
     expect(response.status).toBe(401);
@@ -92,12 +95,15 @@ describe("POST /suscripciones/:id/pago end-to-end", () => {
     const app = await bootstrapApp(createPreference);
 
     const response = await request(app.getHttpServer())
-      .post("/suscripciones/sus-1/pago")
-      .set("Authorization", "Bearer user-a")
+      .post("/suscripciones/4053e52d-c4b3-4bb3-8bf6-ca41c9caa8f1/pago")
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
       .send();
 
     expect(response.status).toBe(404);
-    expect(createPreference).toHaveBeenCalledWith("sus-1", parteA.id);
+    expect(createPreference).toHaveBeenCalledWith(
+      "4053e52d-c4b3-4bb3-8bf6-ca41c9caa8f1",
+      parteA.id,
+    );
     await app.close();
   });
 });

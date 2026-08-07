@@ -19,8 +19,31 @@ export function useMediator(caseId: string) {
   const [state, setState] = useState<MediatorState | null>(null);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
+  const activeCaseIdRef = useRef(caseId);
+  const mountedRef = useRef(true);
+  const requestInFlightRef = useRef<object | null>(null);
+  const mutationRevisionRef = useRef(0);
+  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
 
   const [requestStatus, setRequestStatus] = useState<MutationStatus>('idle');
+
+  if (activeCaseIdRef.current !== caseId) {
+    activeCaseIdRef.current = caseId;
+    hasLoadedOnceRef.current = false;
+    mutationRevisionRef.current += 1;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    requestInFlightRef.current = null;
+    setRequestStatus('idle');
+  }, [caseId]);
 
   const reload = useCallback(() => {
     setStatus('loading');
@@ -29,11 +52,19 @@ export function useMediator(caseId: string) {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    mediatorService.getMediatorState(caseId).then((result) => {
-      if (cancelled) return;
-      setState(result);
-      setStatus('success');
-    });
+    const revision = mutationRevisionRef.current;
+    if (requestInFlightRef.current) return;
+    mediatorService
+      .getMediatorState(caseId)
+      .then((result) => {
+        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
+        setResultCaseId(caseId);
+        setState(result);
+        setStatus('success');
+      })
+      .catch(() => {
+        // A focus refresh is best-effort: keep the last successful state.
+      });
     return () => {
       cancelled = true;
     };
@@ -46,13 +77,15 @@ export function useMediator(caseId: string) {
     mediatorService
       .getMediatorState(caseId)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setState(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || activeCaseIdRef.current !== caseId) return;
+        setResultCaseId(caseId);
         setStatus('error');
       });
     return () => {
@@ -69,21 +102,38 @@ export function useMediator(caseId: string) {
 
   /** Duplicate submissions are a guarded no-op — a second call while one is already in flight does nothing. */
   const requestMediator = useCallback(async () => {
-    if (requestStatus === 'pending') return;
+    if (requestInFlightRef.current) return false;
+    const operation = {};
+    requestInFlightRef.current = operation;
+    mutationRevisionRef.current += 1;
     setRequestStatus('pending');
     try {
       const result = await mediatorService.requestMediator(caseId);
+      if (!mountedRef.current || activeCaseIdRef.current !== caseId) return false;
+      setResultCaseId(caseId);
       setState(result);
+      setStatus('success');
       setRequestStatus('idle');
+      return true;
     } catch {
-      setRequestStatus('error');
+      if (mountedRef.current && activeCaseIdRef.current === caseId) setRequestStatus('error');
+      return false;
+    } finally {
+      if (requestInFlightRef.current === operation) requestInFlightRef.current = null;
     }
-  }, [caseId, requestStatus]);
+  }, [caseId]);
 
   /** Call when opening a fresh confirmation dialog, so a previous attempt's error doesn't appear to already apply to this one. */
   const resetRequestStatus = useCallback(() => {
     setRequestStatus('idle');
   }, []);
 
-  return { status, state, reload, requestStatus, requestMediator, resetRequestStatus };
+  return {
+    status: resultCaseId === caseId ? status : 'loading',
+    state: resultCaseId === caseId ? state : null,
+    reload,
+    requestStatus,
+    requestMediator,
+    resetRequestStatus,
+  };
 }

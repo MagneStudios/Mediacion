@@ -23,20 +23,17 @@ export function SharedAgreementTermCard({ title, description }: SharedAgreementT
 
 const styles = StyleSheet.create({
   container: {
-    gap: 2,
-    paddingVertical: spacing.xs,
+    gap: spacing.xxs,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: semanticColors.border.soft,
   },
   title: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
+    ...typography.body,
     color: semanticColors.text.primary,
   },
   description: {
-    fontFamily: typography.bodySm.fontFamily,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.bodySm,
     color: semanticColors.text.secondary,
   },
 });
