@@ -121,6 +121,43 @@ describe('createSupabaseAuthService', () => {
       expect(JSON.stringify(signUp.mock.calls[0][0])).not.toContain('rol');
     });
 
+    it('R-05: includes numero_matricula in metadata when provided', async () => {
+      const signUp = jest.fn().mockResolvedValue({ data: { session }, error: null });
+      const service = createSupabaseAuthService(buildClient({ signUp }));
+
+      await service.signUp({
+        email: 'a@b.com',
+        password: 'secret',
+        nombre: 'Ana',
+        apellido: 'Perez',
+        numeroMatricula: 'CPACF 12345',
+      });
+
+      expect(signUp).toHaveBeenCalledWith({
+        email: 'a@b.com',
+        password: 'secret',
+        options: { data: { nombre: 'Ana', apellido: 'Perez', numero_matricula: 'CPACF 12345' } },
+      });
+    });
+
+    it('R-05: omits numero_matricula entirely when not provided, rather than sending an empty value', async () => {
+      const signUp = jest.fn().mockResolvedValue({ data: { session }, error: null });
+      const service = createSupabaseAuthService(buildClient({ signUp }));
+
+      await service.signUp({
+        email: 'a@b.com',
+        password: 'secret',
+        nombre: 'Ana',
+        apellido: 'Perez',
+      });
+
+      expect(signUp).toHaveBeenCalledWith({
+        email: 'a@b.com',
+        password: 'secret',
+        options: { data: { nombre: 'Ana', apellido: 'Perez' } },
+      });
+    });
+
     it('returns null when the project requires e-mail confirmation first', async () => {
       const service = createSupabaseAuthService(
         buildClient({

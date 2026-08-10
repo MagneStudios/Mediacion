@@ -20,7 +20,16 @@ type Draft = {
   idioma: PreferredLanguage;
   communicationPreference: CommunicationPreference;
   accessibilityPreference: AccessibilityPreference;
+  numeroMatricula: string;
+  matriculaUrl: string | undefined;
 };
+
+/** R-05: no file-picker dependency is installed, so "attaching" a file is a
+ * fixed-delay simulation, never a real filesystem/document read — matches
+ * the existing `AgreementExportAction`/"preparar evento" idiom of never
+ * claiming a real artifact exists in this mock. */
+const mockMatriculaAttachmentUrl = 'mock://matriculas/adjunto-demo.pdf';
+const matriculaAttachmentDelayMs = 800;
 
 export default function ProfileEditScreen() {
   const { t } = useTranslation();
@@ -29,6 +38,7 @@ export default function ProfileEditScreen() {
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [savedOnce, setSavedOnce] = useState(false);
+  const [attaching, setAttaching] = useState(false);
   // Seed the draft only once, from the first successful load — a later
   // silent focus-refresh must never overwrite an in-progress edit.
   const seededRef = useRef(false);
@@ -41,6 +51,8 @@ export default function ProfileEditScreen() {
         idioma: profile.idioma,
         communicationPreference: profile.communicationPreference,
         accessibilityPreference: profile.accessibilityPreference,
+        numeroMatricula: profile.numeroMatricula ?? '',
+        matriculaUrl: profile.matriculaUrl,
       });
       seededRef.current = true;
     }
@@ -82,6 +94,18 @@ export default function ProfileEditScreen() {
   const handleSave = async () => {
     await updateProfile(draft);
     setSavedOnce(true);
+  };
+
+  const handleAttachMatricula = async () => {
+    if (attaching) return;
+    setAttaching(true);
+    await new Promise((resolve) => setTimeout(resolve, matriculaAttachmentDelayMs));
+    updateDraft({ matriculaUrl: mockMatriculaAttachmentUrl });
+    setAttaching(false);
+  };
+
+  const handleRemoveMatricula = () => {
+    updateDraft({ matriculaUrl: undefined });
   };
 
   return (
@@ -154,6 +178,29 @@ export default function ProfileEditScreen() {
         />
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('profile.edit.matriculaSection')}</Text>
+        <Text style={styles.matriculaHint}>{t('profile.edit.matriculaHint')}</Text>
+        <Input
+          label={t('profile.edit.matriculaNumberLabel')}
+          placeholder={t('profile.edit.matriculaNumberPlaceholder')}
+          value={draft.numeroMatricula}
+          onChangeText={(value) => updateDraft({ numeroMatricula: value })}
+        />
+        {draft.matriculaUrl ? (
+          <View style={styles.matriculaAttached}>
+            <Text style={styles.matriculaAttachedText}>{t('profile.edit.matriculaAttached')}</Text>
+            <Button variant="tertiary" size="sm" onPress={handleRemoveMatricula}>
+              {t('profile.edit.matriculaRemove')}
+            </Button>
+          </View>
+        ) : (
+          <Button variant="secondary" fullWidth onPress={handleAttachMatricula} loading={attaching} loadingLabel={t('profile.edit.matriculaAttaching')}>
+            {t('profile.edit.matriculaAttach')}
+          </Button>
+        )}
+      </View>
+
       <View style={styles.actions}>
         {updateStatus === 'error' ? (
           <ErrorState title={t('profile.edit.error.title')} retryLabel={t('profile.edit.error.retry')} onRetry={handleSave} />
@@ -204,6 +251,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.eyebrow,
     color: semanticColors.text.tertiary,
+  },
+  matriculaHint: {
+    ...typography.bodySm,
+    color: semanticColors.text.secondary,
+    marginTop: -spacing.xs,
+  },
+  matriculaAttached: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  matriculaAttachedText: {
+    ...typography.bodySm,
+    color: semanticColors.text.primary,
+    flexShrink: 1,
   },
   actions: {
     gap: spacing.sm,

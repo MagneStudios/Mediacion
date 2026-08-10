@@ -14,6 +14,14 @@
  * computed from `deactivationRequestedAt` instead — a documented
  * simplification, not a backend mirror of `fecha_baja` itself.
  *
+ * `numeroMatricula`/`matriculaUrl` mirror `usuarios.numero_matricula` /
+ * `usuarios.matricula_url` exactly (R-05, added post-reunión 07/08) — a
+ * professional license number and a private-bucket attachment, neither
+ * verified. `matriculaUrl` never holds a real file anywhere in this mock
+ * (no file-picker dependency is installed): "attaching" one is simulated,
+ * exactly like every other document/export action in this app (see
+ * `AgreementExportAction`, `tasks.calendar`'s "preparar evento").
+ *
  * FRONTEND-ONLY MOCK STATE (no backend equivalent exists yet — a future
  * backend-integration phase must not assume these fields persist as-is):
  * - communicationPreference
@@ -40,10 +48,23 @@ export type MockProfile = {
   deactivationRequestedAt?: string;
   /** R-06: set alongside `deactivationRequestedAt` — see the type-level doc comment for how this mock derives it. */
   depuracionProgramadaAt?: string;
+  /** R-05: professional license number — optional, no format enforced (the backend doesn't define one either). */
+  numeroMatricula?: string;
+  /** R-05: set only once `uploadMatriculaAttachment` (profile.service.ts) "completes" — see the type-level doc comment. */
+  matriculaUrl?: string;
 };
 
 export type UpdateProfileInput = Partial<
-  Pick<MockProfile, 'nombre' | 'apellido' | 'idioma' | 'communicationPreference' | 'accessibilityPreference'>
+  Pick<
+    MockProfile,
+    | 'nombre'
+    | 'apellido'
+    | 'idioma'
+    | 'communicationPreference'
+    | 'accessibilityPreference'
+    | 'numeroMatricula'
+    | 'matriculaUrl'
+  >
 >;
 
 /**

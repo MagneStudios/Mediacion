@@ -5,6 +5,8 @@ export type SignUpInput = {
   password: string;
   nombre: string;
   apellido: string;
+  /** R-05: optional professional license number, sent defensively — `handle_new_user` doesn't read it yet (backend TODO), so it's simply ignored until it does. */
+  numeroMatricula?: string;
 };
 
 export type SignInInput = {
@@ -61,12 +63,22 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
      * trigger copies them into `public.usuarios` on signup. Without them the
      * provisioned row would carry empty names. `rol` is deliberately not sent:
      * it defaults to `parte` in the trigger and must not be client-selectable.
+     * `numero_matricula` (R-05) travels the same way but is sent defensively —
+     * the trigger doesn't read it yet (backend TODO); it's simply dropped
+     * until it does, and re-editable afterward from the profile screen
+     * regardless.
      */
-    async signUp({ email, password, nombre, apellido }): Promise<Session | null> {
+    async signUp({ email, password, nombre, apellido, numeroMatricula }): Promise<Session | null> {
       const { data, error } = await client.auth.signUp({
         email,
         password,
-        options: { data: { nombre, apellido } },
+        options: {
+          data: {
+            nombre,
+            apellido,
+            ...(numeroMatricula ? { numero_matricula: numeroMatricula } : {}),
+          },
+        },
       });
       if (error) {
         throw new AuthError(error.message);
