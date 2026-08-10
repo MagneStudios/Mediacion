@@ -41,7 +41,9 @@ describe("PlanLimitService", () => {
   });
 
   it("never blocks when the caller's active plan limite_casos is null (unlimited)", async () => {
-    const executeTakeFirst = jest.fn().mockResolvedValue({ limite_casos: null });
+    const executeTakeFirst = jest
+      .fn()
+      .mockResolvedValue({ limite_casos: null });
     const { service } = buildService({ executeTakeFirst });
 
     await expect(
