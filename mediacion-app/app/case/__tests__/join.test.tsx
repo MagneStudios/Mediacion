@@ -58,7 +58,7 @@ describe('CaseJoinScreen', () => {
   });
 
   it('redeems the code and navigates to the joined case', async () => {
-    mockJoinCase.mockResolvedValue({ id: 'caso-123', estado: 'activo' });
+    mockJoinCase.mockResolvedValue({ id: 'caso-123', estado: 'activo', requiresPayment: false });
     await renderScreen();
 
     await fireEvent.changeText(input(), 'TOKEN-ABC');
@@ -68,6 +68,16 @@ describe('CaseJoinScreen', () => {
     // replace, not push: the token is spent, so returning to this screen could
     // only fail.
     expect(mockReplace).toHaveBeenCalledWith('/case/caso-123');
+  });
+
+  it('R-07: navigates to the payment-required gate instead of the case when the invitation put the payment on the joining party', async () => {
+    mockJoinCase.mockResolvedValue({ id: 'caso-123', estado: 'activo', requiresPayment: true });
+    await renderScreen();
+
+    await fireEvent.changeText(input(), 'TOKEN-ABC');
+    await fireEvent.press(submit());
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/case/caso-123/payment-required'));
   });
 
   it('shows the error state when redemption is rejected, and never navigates', async () => {

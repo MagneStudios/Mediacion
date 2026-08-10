@@ -29,7 +29,12 @@ export default function CaseJoinScreen() {
       const joined = await casesService.joinCase(token);
       // `replace`, not `push`: once the token is redeemed this screen has
       // nothing left to do, and going back to it would only fail.
-      router.replace(`/case/${joined.id}`);
+      // R-07: the invitador may have set "pagás vos" on this invitation —
+      // gate straight into the payment-required screen instead of the case
+      // itself, mirroring the backend's planned gate on this same endpoint.
+      router.replace(
+        joined.requiresPayment ? `/case/${joined.id}/payment-required` : `/case/${joined.id}`,
+      );
     } catch (error) {
       // R-04: expired is the one distinction worth surfacing — the server
       // still treats unknown and already-redeemed tokens uniformly (that

@@ -20,10 +20,11 @@ function stubApi(overrides: Partial<ApiCasesService> = {}): ApiCasesService {
         token: 'tok',
         emailDestino: null,
         estado: 'pendiente',
+        pagoACargo: 'invitador',
         createdAt: '2026-07-30T00:00:00.000Z',
       }) as CaseInvitation,
     getCaseTitle: async () => 'Custodia',
-    joinCase: async () => ({ id: 'caso-1', estado: 'activo' }),
+    joinCase: async () => ({ id: 'caso-1', estado: 'activo', requiresPayment: false }),
     ...overrides,
   };
 }
@@ -46,13 +47,13 @@ describe('createBackedCasesService', () => {
 
     it('returns the invitation this session created for that case', async () => {
       const service = createBackedCasesService(stubApi());
-      const created = await service.createInvitation({ casoId: 'caso-1', tipo: 'email' });
+      const created = await service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitador' });
       await expect(service.getInvitation('caso-1')).resolves.toEqual(created);
     });
 
     it('does not leak one case’s invitation into another', async () => {
       const service = createBackedCasesService(stubApi());
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'email' });
+      await service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitador' });
       await expect(service.getInvitation('caso-2')).resolves.toBeNull();
     });
 
@@ -66,8 +67,8 @@ describe('createBackedCasesService', () => {
           },
         }),
       );
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'email' });
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'email' });
+      await service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitador' });
+      await service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitador' });
       await expect(service.getInvitation('caso-1')).resolves.toMatchObject({ id: 'inv-2' });
     });
   });
@@ -111,7 +112,7 @@ describe('createBackedCasesService', () => {
       }),
     );
     await expect(
-      service.createInvitation({ casoId: 'caso-1', tipo: 'email' }),
+      service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitador' }),
     ).rejects.toThrow('rejected');
     await expect(service.getInvitation('caso-1')).resolves.toBeNull();
   });

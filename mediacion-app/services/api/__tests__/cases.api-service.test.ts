@@ -132,11 +132,13 @@ describe('createApiCasesService', () => {
         casoId: 'caso-1',
         tipo: 'email',
         emailDestino: 'b@c.com',
+        pagoACargo: 'invitador',
       });
 
       expect(calls[0].options?.body).toEqual({
         tipo: 'email',
         email_destino: 'b@c.com',
+        pago_a_cargo: 'invitador',
       });
     });
 
@@ -149,9 +151,9 @@ describe('createApiCasesService', () => {
       }));
       const service = createApiCasesService(http, () => now);
 
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'link' });
+      await service.createInvitation({ casoId: 'caso-1', tipo: 'link', pagoACargo: 'invitado' });
 
-      expect(calls[0].options?.body).toEqual({ tipo: 'link' });
+      expect(calls[0].options?.body).toEqual({ tipo: 'link', pago_a_cargo: 'invitado' });
     });
 
     it('completes the fields the api does not return, because no read endpoint exists', async () => {
@@ -166,17 +168,19 @@ describe('createApiCasesService', () => {
       const invitation = await service.createInvitation({
         casoId: 'caso-1',
         tipo: 'link',
+        pagoACargo: 'invitador',
       });
 
       expect(invitation.caseId).toBe('caso-1');
       expect(invitation.emailDestino).toBeNull();
+      expect(invitation.pagoACargo).toBe('invitador');
       expect(invitation.createdAt).toBe(now.toISOString());
     });
   });
 
   describe('joinCase', () => {
     it('posts the token to the join endpoint', async () => {
-      const { http, calls } = buildHttp(() => ({ id: 'caso-1', estado: 'activo' }));
+      const { http, calls } = buildHttp(() => ({ id: 'caso-1', estado: 'activo', requiresPayment: false }));
       const service = createApiCasesService(http, () => now);
 
       await service.joinCase('tok-123');

@@ -278,6 +278,15 @@
     }
   },
   "billing": {
+    "paymentRequired": {
+      "title": "Necesitás una suscripción activa",
+      "body": "Quien te invitó eligió que vos te hagas cargo de la suscripción para acceder a este caso.",
+      "viewPlansAction": "Ver planes",
+      "demoBypass": {
+        "description": "Solo en esta demostración podés continuar sin pagar.",
+        "action": "Continuar de todos modos (demo)"
+      }
+    },
     "myPlan": {
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
@@ -371,7 +380,19 @@
     "invite": {
       "title": "Invitá a la contraparte",
       "subtitle": "Elegí cómo querés compartir el acceso a este caso.",
+      "pagoACargo": {
+        "sectionTitle": "¿Quién paga la suscripción?",
+        "invitador": {
+          "title": "Yo pago",
+          "description": "La suscripción queda a tu cargo."
+        },
+        "invitado": {
+          "title": "Paga la otra parte",
+          "description": "La otra parte va a tener que suscribirse para acceder al caso."
+        }
+      },
       "method": {
+        "sectionTitle": "¿Cómo querés invitar?",
         "link": {
           "title": "Enlace",
           "description": "Compartí un enlace de invitación por el medio que prefieras."

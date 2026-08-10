@@ -63,10 +63,17 @@ export type CasesService = {
   joinCase(token: string): Promise<JoinedCase>;
 };
 
-/** What `joinCase` resolves to — the shape `POST /casos/unirse` returns. */
+/**
+ * What `joinCase` resolves to — the shape `POST /casos/unirse` returns.
+ * `requiresPayment` (R-07) is true when the redeemed invitation set
+ * `pago_a_cargo: 'invitado'` — the caller (see app/case/join.tsx) gates
+ * case access behind a subscription checkout in that case, mirroring the
+ * backend's own planned gate on this same endpoint.
+ */
 export type JoinedCase = {
   id: string;
   estado: string;
+  requiresPayment: boolean;
 };
 
 /**
@@ -97,6 +104,7 @@ const mockInvitations: Record<string, CaseInvitation> = {
     token: 'EXPIRA-DEMO',
     emailDestino: null,
     estado: 'expirada',
+    pagoACargo: 'invitador',
     createdAt: new Date(Date.now() - 73 * 60 * 60 * 1000).toISOString(),
   },
 };
@@ -160,6 +168,7 @@ export function createMockCasesService(): CasesService {
               : null,
         emailDestino: input.tipo === 'email' ? (input.emailDestino ?? null) : null,
         estado: 'pendiente',
+        pagoACargo: input.pagoACargo,
         createdAt: new Date().toISOString(),
       };
 
@@ -233,7 +242,10 @@ export function createMockCasesService(): CasesService {
       // transition simulateInvitationAcceptance already models. Reusing it keeps
       // one definition of that transition instead of two that can drift.
       const detail = await this.simulateInvitationAcceptance(match.caseId);
-      return { id: detail.id, estado: detail.estado };
+      // R-07: the invitation set who owes the subscription payment at
+      // creation time — the party redeeming it now finds out only here,
+      // never earlier (a link/code carries no payment info by itself).
+      return { id: detail.id, estado: detail.estado, requiresPayment: match.pagoACargo === 'invitado' };
     },
   };
 }
