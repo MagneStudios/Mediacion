@@ -7,6 +7,7 @@ import type {
   CreateInvitationInput,
 } from '../types/case';
 import { mockCaseDetails, mockCases } from '../mocks/cases';
+import { codeInvitationExpired } from './api/api-error';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { createBackedCasesService } from './api/cases.backed-service';
 import { backend } from './backend-instance';
@@ -80,8 +81,25 @@ export function __mockForceNextFailure(operation: 'createCase' | 'createInvitati
   failures.force(operation);
 }
 
-/** In-memory only — cleared on app restart, never written to disk. Keyed by caseId (one invitation per case for mock purposes). */
-const mockInvitations: Record<string, CaseInvitation> = {};
+/**
+ * In-memory only — cleared on app restart, never written to disk. Keyed by
+ * caseId (one invitation per case for mock purposes). Pre-seeded with
+ * `case-4`'s invitation (R-04): it never got redeemed inside the 72 h TTL,
+ * so both the case (`mocks/cases.ts`) and this invitation already show as
+ * expired — this is what lets `joinCase('EXPIRA-DEMO')` demonstrate the
+ * "invitación vencida" screen without waiting a real 72 hours in-session.
+ */
+const mockInvitations: Record<string, CaseInvitation> = {
+  'case-4': {
+    id: 'invitation-case-4',
+    caseId: 'case-4',
+    tipo: 'codigo',
+    token: 'EXPIRA-DEMO',
+    emailDestino: null,
+    estado: 'expirada',
+    createdAt: new Date(Date.now() - 73 * 60 * 60 * 1000).toISOString(),
+  },
+};
 
 export function createMockCasesService(): CasesService {
   return {
@@ -201,6 +219,14 @@ export function createMockCasesService(): CasesService {
       );
       if (!match) {
         return rejectAfter('invitation_not_found', 600);
+      }
+
+      // R-04: an expired invitation is a known token, not an unknown one —
+      // it gets its own rejection reason so the join screen can show
+      // "esta invitación venció" instead of the generic "check the code"
+      // message (retrying can never succeed against an expired token).
+      if (match.estado === 'expirada') {
+        return rejectAfter(codeInvitationExpired, 600);
       }
 
       // Joining is what moves a case out of 'nuevo', which is exactly the

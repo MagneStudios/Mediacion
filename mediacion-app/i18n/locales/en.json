@@ -302,6 +302,11 @@
         }
       }
     },
+    "expired": {
+      "title": "The invitation expired",
+      "description": "72 hours passed and the other party never joined, so this case is now closed. Start a new case to try again.",
+      "createCaseAction": "Start a new case"
+    },
     "positions": {
       "title": "My private positions",
       "supportingCopy": "Only you can see this information. The other party will not have access to your values or conditions.",
@@ -318,6 +323,10 @@
     "error": {
       "title": "We couldn't complete this action right now",
       "description": "Check the link or code and try again."
+    },
+    "expired": {
+      "title": "This invitation expired",
+      "description": "More than 72 hours passed since it was sent. Ask the other party to send you a new invitation."
     }
   },
   "cases": {
@@ -340,6 +349,7 @@
       "proposalReady": "Proposal ready",
       "signed": "Signed",
       "awaitingCounterparty": "Waiting for the other party",
+      "expired": "Invitation expired",
       "sla": "SLA {{hours}} h"
     },
     "round": "Round {{number}}",
@@ -357,7 +367,8 @@
       "inReview": "The process is still moving forward.",
       "proposalReady": "There's a proposal waiting for your response.",
       "signed": "The agreement was signed by both parties.",
-      "awaitingCounterparty": "Waiting for the other party to join the case."
+      "awaitingCounterparty": "Waiting for the other party to join the case.",
+      "expired": "Nobody joined in time. Start a new case to continue."
     },
     "cta": {
       "continue": "Continue case",

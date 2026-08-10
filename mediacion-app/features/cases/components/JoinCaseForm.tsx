@@ -5,7 +5,7 @@ import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
-export type JoinCaseFormStatus = 'idle' | 'submitting' | 'error';
+export type JoinCaseFormStatus = 'idle' | 'submitting' | 'error' | 'expired';
 
 export type JoinCaseFormProps = {
   value: string;
@@ -21,6 +21,14 @@ export type JoinCaseFormProps = {
   errorTitle: string;
   errorDescription?: string;
   retryLabel: string;
+  /**
+   * R-04: shown instead of `errorTitle`/`errorDescription` when the
+   * invitation is known but past its 72 h TTL. No retry action is offered —
+   * unlike a generic failure, resubmitting the same expired token can never
+   * succeed.
+   */
+  expiredTitle: string;
+  expiredDescription?: string;
 };
 
 /**
@@ -43,6 +51,8 @@ export function JoinCaseForm({
   errorTitle,
   errorDescription,
   retryLabel,
+  expiredTitle,
+  expiredDescription,
 }: JoinCaseFormProps) {
   const isSubmitting = status === 'submitting';
   const canSubmit = value.trim().length > 0 && !isSubmitting;
@@ -64,7 +74,11 @@ export function JoinCaseForm({
         autoCorrect={false}
       />
 
-      {status === 'error' ? (
+      {status === 'expired' ? (
+        // No onRetry/retryLabel on purpose — an expired token cannot become
+        // valid by resubmitting it.
+        <ErrorState title={expiredTitle} description={expiredDescription} />
+      ) : status === 'error' ? (
         <ErrorState title={errorTitle} description={errorDescription} retryLabel={retryLabel} onRetry={onSubmit} />
       ) : (
         <Button

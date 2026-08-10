@@ -40,6 +40,21 @@ export const mockCases: CaseSummary[] = [
     statusLabelKey: 'signed',
     slaHours: null,
   },
+  {
+    // R-04: nobody joined within the 72 h invitation window, so the sweep
+    // job moved the case straight from `nuevo` to `expirado` (a valid
+    // transition per `validate_caso_estado_transition`). No counterparty
+    // ever joined — `counterpartyName` stays null, same as an awaiting case.
+    id: 'case-4',
+    title: 'Régimen de visitas',
+    counterpartyName: null,
+    estado: 'expirado',
+    metodo: 'negociacion',
+    roundNumber: null,
+    visualStatus: 'error',
+    statusLabelKey: 'expired',
+    slaHours: null,
+  },
 ];
 
 export const mockCaseDetails: Record<string, CaseDetail> = {
@@ -54,5 +69,9 @@ export const mockCaseDetails: Record<string, CaseDetail> = {
   'case-3': {
     ...mockCases[2],
     caseCode: 'CASO-2026-0287',
+  },
+  'case-4': {
+    ...mockCases[3],
+    caseCode: 'CASO-2026-0198',
   },
 };

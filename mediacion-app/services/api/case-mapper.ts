@@ -73,6 +73,12 @@ export function toStatusLabelKey(
   estado: EstadoCaso,
   hasCounterparty: boolean,
 ): CaseStatusLabelKey {
+  // Checked before the counterparty gate: a case that expired while still
+  // awaiting a counterparty (R-04, `nuevo → expirado`) reads as "expired",
+  // never as "waiting" — nothing further will happen on it.
+  if (estado === 'expirado') {
+    return 'expired';
+  }
   if (!hasCounterparty) {
     return 'awaitingCounterparty';
   }

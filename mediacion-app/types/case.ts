@@ -18,7 +18,8 @@ export type EstadoCaso =
   | 'acordado'
   | 'cerrado'
   | 'terminado'
-  | 'vencido';
+  | 'vencido'
+  | 'expirado';
 
 /** Resolution method chosen for a case. Matches the `metodo_caso` enum. */
 export type MetodoCaso = 'negociacion' | 'conciliacion' | 'mediacion';
@@ -39,7 +40,7 @@ export type CaseVisualStatus = 'success' | 'warning' | 'error' | 'info' | 'neutr
  * show a different label depending on what's pending for this party.
  * Keys match `cases.status.*` in the i18n resources.
  */
-export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty';
+export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty' | 'expired';
 
 export type CaseSummary = {
   id: string;

@@ -302,6 +302,11 @@
         }
       }
     },
+    "expired": {
+      "title": "La invitación venció",
+      "description": "Pasaron 72 horas y la otra parte no se unió, así que este caso quedó cerrado. Creá un caso nuevo para volver a intentarlo.",
+      "createCaseAction": "Crear un caso nuevo"
+    },
     "positions": {
       "title": "Mis posiciones privadas",
       "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
@@ -318,6 +323,10 @@
     "error": {
       "title": "No pudimos completar esta acción por ahora",
       "description": "Revisá el enlace o código e intentá de nuevo."
+    },
+    "expired": {
+      "title": "Esta invitación venció",
+      "description": "Pasaron más de 72 horas desde que se envió. Pedile a la otra parte que te envíe una invitación nueva."
     }
   },
   "cases": {
@@ -340,6 +349,7 @@
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
       "awaitingCounterparty": "Esperando a la contraparte",
+      "expired": "Invitación vencida",
       "sla": "SLA {{hours}} h"
     },
     "round": "Ronda {{number}}",
@@ -357,7 +367,8 @@
       "inReview": "El proceso sigue en curso.",
       "proposalReady": "Hay una propuesta esperando tu respuesta.",
       "signed": "El acuerdo fue firmado por ambas partes.",
-      "awaitingCounterparty": "Esperando a que la contraparte se una al caso."
+      "awaitingCounterparty": "Esperando a que la contraparte se una al caso.",
+      "expired": "Nadie se unió a tiempo. Creá un caso nuevo para continuar."
     },
     "cta": {
       "continue": "Continuar caso",

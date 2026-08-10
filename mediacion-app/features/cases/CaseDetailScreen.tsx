@@ -103,6 +103,12 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   }
 
   const isAwaitingCounterparty = detail.estado === 'nuevo';
+  // R-04: the 72 h invitation window closed with nobody joining — the sweep
+  // job already moved the case to 'expirado'. Deliberately a dead end, not
+  // another awaiting-counterparty variant: no "ver invitación"/"simular
+  // aceptación" affordance renders here, because resending is blocked on an
+  // expired case by design (per the plan: "requiere crear caso nuevo").
+  const isExpired = detail.estado === 'expirado';
 
   const positionsSection = (() => {
     const eligibility = getPositionEligibility(detail.estado);
@@ -164,7 +170,29 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
     >
       <CaseDetailHeader detail={detail} isWide={isWide} />
 
-      {isAwaitingCounterparty ? (
+      {isExpired ? (
+        <Card style={styles.awaitingGuidanceCard}>
+          <View style={styles.awaitingGuidanceHeader}>
+            <View style={styles.awaitingGuidanceIconWrap}>
+              <Icon name="alert-circle" size={22} color={semanticColors.status.errorFg} />
+            </View>
+            <View style={styles.awaitingGuidanceTextCol}>
+              <Text style={styles.awaitingGuidanceTitle}>{t('caseDetail.expired.title')}</Text>
+              <Text style={styles.bodyText}>{t('caseDetail.expired.description')}</Text>
+            </View>
+          </View>
+          <Button
+            variant="primary"
+            fullWidth
+            onPress={() => {
+              blurActiveElement();
+              router.push('/case/create');
+            }}
+          >
+            {t('caseDetail.expired.createCaseAction')}
+          </Button>
+        </Card>
+      ) : isAwaitingCounterparty ? (
         <View style={styles.awaitingSection}>
           <Card style={styles.awaitingGuidanceCard}>
             <View style={styles.awaitingGuidanceHeader}>

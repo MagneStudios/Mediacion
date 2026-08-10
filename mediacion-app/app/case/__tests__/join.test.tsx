@@ -81,6 +81,18 @@ describe('CaseJoinScreen', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
+  it('shows the expired state, not the generic error, when the token is a known-expired invitation', async () => {
+    mockJoinCase.mockRejectedValue(new Error('invitation_expired'));
+    await renderScreen();
+
+    await fireEvent.changeText(input(), 'EXPIRA-DEMO');
+    await fireEvent.press(submit());
+
+    await waitFor(() => expect(screen.getByText(i18n.t('caseJoin.expired.title'))).toBeTruthy());
+    expect(screen.queryByText(i18n.t('caseJoin.error.title'))).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('clears a previous error as soon as the code is edited', async () => {
     mockJoinCase.mockRejectedValue(new Error('invitation_not_found'));
     await renderScreen();
@@ -91,6 +103,18 @@ describe('CaseJoinScreen', () => {
 
     await fireEvent.changeText(input(), 'WRONG-CORRECTED');
     expect(screen.queryByText(i18n.t('caseJoin.error.title'))).toBeNull();
+  });
+
+  it('clears a previous expired state as soon as the code is edited', async () => {
+    mockJoinCase.mockRejectedValue(new Error('invitation_expired'));
+    await renderScreen();
+
+    await fireEvent.changeText(input(), 'EXPIRA-DEMO');
+    await fireEvent.press(submit());
+    await waitFor(() => expect(screen.getByText(i18n.t('caseJoin.expired.title'))).toBeTruthy());
+
+    await fireEvent.changeText(input(), 'EXPIRA-DEMO-CORRECTED');
+    expect(screen.queryByText(i18n.t('caseJoin.expired.title'))).toBeNull();
   });
 
   // Double submission is not asserted here on purpose. Holding the screen in
