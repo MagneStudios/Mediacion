@@ -78,3 +78,18 @@ export function generateMockMediatorEventId(): string {
 export function generateMockPlanId(): string {
   return `plan-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock suscripciones-row identifier for the in-memory session store (R-09 checkout). */
+export function generateMockSubscriptionId(): string {
+  return `subscription-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock pagos-row identifier for the in-memory session store (R-09 checkout). */
+export function generateMockPaymentId(): string {
+  return `payment-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock facturas-row identifier for the in-memory session store (R-09 checkout). */
+export function generateMockInvoiceId(): string {
+  return `invoice-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

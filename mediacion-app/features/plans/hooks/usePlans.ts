@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { plansService } from '../../../../services/plans.service';
-import type { Plan } from '../../../../types/plan';
+import { plansService } from '../../../services/plans.service';
+import type { Plan } from '../../../types/plan';
 
 export type UsePlansResult =
   | { status: 'loading'; plans: undefined }
@@ -11,10 +11,12 @@ export type UsePlansResult =
   | { status: 'success'; plans: Plan[]; refresh: () => void };
 
 /**
- * R-10 admin plan list. Mirrors `useOwnPositions`'s shape: a focus-triggered
- * silent refresh picks up plans created/edited/deleted on the
- * create/edit screens without re-flashing a loading state, and `refresh` is
- * exposed directly for the in-place delete mutation.
+ * Full plan list — shared by the R-10 admin ABM (`app/admin/planes`) and
+ * the R-09 party-facing checkout (`app/profile/plan`), both reading the
+ * same `GET /planes`-backed service. Mirrors `useOwnPositions`'s shape: a
+ * focus-triggered silent refresh picks up plans created/edited/deleted
+ * elsewhere without re-flashing a loading state, and `refresh` is exposed
+ * directly for an in-place mutation (delete, in the admin screen).
  */
 export function usePlans(): UsePlansResult {
   const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'success'>('loading');

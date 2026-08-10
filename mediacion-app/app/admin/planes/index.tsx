@@ -10,7 +10,7 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { DeletePlanDialog } from '@/features/admin/planes/components/DeletePlanDialog';
 import { PlanCard } from '@/features/admin/planes/components/PlanCard';
-import { usePlans } from '@/features/admin/planes/hooks/usePlans';
+import { usePlans } from '@/features/plans/hooks/usePlans';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { plansService } from '@/services/plans.service';
 import type { Plan } from '@/types/plan';

@@ -277,6 +277,58 @@
       }
     }
   },
+  "billing": {
+    "myPlan": {
+      "title": "My plan",
+      "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
+      "noSubscription": "You don't have an active plan yet. Pick one to get started.",
+      "currentBadge": "Current plan",
+      "subscribeAction": "Subscribe",
+      "error": {
+        "title": "We couldn't load your plan"
+      }
+    },
+    "checkout": {
+      "title": "Subscribe to the {{nombre}} plan",
+      "description": "Review the amount before confirming. The total already includes the applicable taxes.",
+      "breakdown": {
+        "neto": "Net price",
+        "iva": "VAT",
+        "otrosImpuestos": "Other taxes",
+        "total": "Total to pay"
+      },
+      "sandboxNotice": "This is a test environment: no real charge is made.",
+      "payAction": "Pay (simulated)",
+      "paying": "Processing the payment…",
+      "notFound": {
+        "title": "We couldn't find this plan"
+      },
+      "error": {
+        "title": "We couldn't process the payment"
+      }
+    },
+    "receipt": {
+      "title": "Receipt",
+      "description": "Your payment was recorded in this test environment. Here is the receipt detail.",
+      "numero": "Receipt No. {{numero}}",
+      "downloadAction": "Download receipt",
+      "downloading": {
+        "title": "Preparing the receipt",
+        "body": "The detail will be ready in a moment."
+      },
+      "downloadSuccess": {
+        "title": "Receipt ready",
+        "body": "The receipt was prepared in this test environment. No real file was downloaded."
+      },
+      "downloadError": {
+        "title": "We couldn't prepare the receipt"
+      },
+      "notFound": {
+        "title": "We couldn't find this receipt"
+      },
+      "backToPlanAction": "Back to my plan"
+    }
+  },
   "caseCreation": {
     "progress": "Step {{step}} of {{total}}",
     "basicInfo": {
@@ -1017,6 +1069,10 @@
       "legal": {
         "label": "Legal",
         "description": "Terms, notices, and general information"
+      },
+      "plan": {
+        "label": "My plan",
+        "description": "Your subscription and payment receipts"
       },
       "account": {
         "label": "Account",

@@ -21,7 +21,7 @@ jest.mock('@/services/plans.service', () => ({
 
 let mockResult: unknown;
 const mockRefresh = jest.fn();
-jest.mock('@/features/admin/planes/hooks/usePlans', () => ({
+jest.mock('@/features/plans/hooks/usePlans', () => ({
   usePlans: () => mockResult,
 }));
 

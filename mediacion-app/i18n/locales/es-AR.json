@@ -277,6 +277,58 @@
       }
     }
   },
+  "billing": {
+    "myPlan": {
+      "title": "Mi plan",
+      "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
+      "noSubscription": "Todavía no tenés un plan activo. Elegí uno para empezar.",
+      "currentBadge": "Plan actual",
+      "subscribeAction": "Suscribirme",
+      "error": {
+        "title": "No pudimos cargar tu plan"
+      }
+    },
+    "checkout": {
+      "title": "Suscribirte al plan {{nombre}}",
+      "description": "Revisá el importe antes de confirmar. El total ya incluye los impuestos correspondientes.",
+      "breakdown": {
+        "neto": "Precio neto",
+        "iva": "IVA",
+        "otrosImpuestos": "Otros impuestos",
+        "total": "Total a pagar"
+      },
+      "sandboxNotice": "Este es un entorno de prueba: no se realiza ningún cobro real.",
+      "payAction": "Pagar (simulado)",
+      "paying": "Procesando el pago…",
+      "notFound": {
+        "title": "No encontramos este plan"
+      },
+      "error": {
+        "title": "No pudimos procesar el pago"
+      }
+    },
+    "receipt": {
+      "title": "Comprobante",
+      "description": "Tu pago quedó registrado en este entorno de prueba. Este es el detalle del comprobante.",
+      "numero": "Comprobante N.º {{numero}}",
+      "downloadAction": "Descargar comprobante",
+      "downloading": {
+        "title": "Preparando el comprobante",
+        "body": "El detalle va a estar listo en un instante."
+      },
+      "downloadSuccess": {
+        "title": "Comprobante listo",
+        "body": "El comprobante se preparó en este entorno de prueba. No se descargó ningún archivo real."
+      },
+      "downloadError": {
+        "title": "No pudimos preparar el comprobante"
+      },
+      "notFound": {
+        "title": "No encontramos este comprobante"
+      },
+      "backToPlanAction": "Volver a mi plan"
+    }
+  },
   "caseCreation": {
     "progress": "Paso {{step}} de {{total}}",
     "basicInfo": {
@@ -1017,6 +1069,10 @@
       "legal": {
         "label": "Legales",
         "description": "Términos, avisos e información general"
+      },
+      "plan": {
+        "label": "Mi plan",
+        "description": "Tu suscripción y comprobantes de pago"
       },
       "account": {
         "label": "Cuenta",
