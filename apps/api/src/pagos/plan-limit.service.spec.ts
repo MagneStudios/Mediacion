@@ -40,6 +40,15 @@ describe("PlanLimitService", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("never blocks when the caller's active plan limite_casos is null (unlimited)", async () => {
+    const executeTakeFirst = jest.fn().mockResolvedValue({ limite_casos: null });
+    const { service } = buildService({ executeTakeFirst });
+
+    await expect(
+      service.assertCanCreateCase("user-1"),
+    ).resolves.toBeUndefined();
+  });
+
   it("rejects when the caller already has as many casos as the plan's limite_casos", async () => {
     const executeTakeFirst = jest.fn().mockResolvedValue({ limite_casos: 5 });
     const { service } = buildService({
