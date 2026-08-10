@@ -1,6 +1,13 @@
-import { createMockProfileService } from '../profile.service';
+import { __resetMockProfile, createMockProfileService } from '../profile.service';
 
 describe('requestAccountDeactivationMock — R-06 depuración scheduling', () => {
+  // The mock store is module-level, not per-instance — createMockProfileService()
+  // returns methods over the shared store, not a fresh one each call.
+  // Resetting between tests is what actually isolates them.
+  beforeEach(() => {
+    __resetMockProfile();
+  });
+
   it('sets depuracionProgramadaAt six months after the request timestamp', async () => {
     const service = createMockProfileService();
     const result = await service.requestAccountDeactivationMock();

@@ -1,4 +1,87 @@
 {
+  "admin": {
+    "planes": {
+      "title": "Plans",
+      "description": "Manage the available subscription plans: price and case, folder, and AI-iteration limits.",
+      "createAction": "Create plan",
+      "error": {
+        "title": "We couldn't load the plans"
+      },
+      "empty": {
+        "title": "No plans yet",
+        "description": "Create the first plan so it becomes available for subscriptions."
+      },
+      "card": {
+        "casosLabel": "Cases",
+        "carpetasLabel": "Folders",
+        "iteracionesLabel": "AI iterations",
+        "editAccessibilityLabel": "Edit plan {{nombre}}",
+        "deleteAccessibilityLabel": "Delete plan {{nombre}}"
+      },
+      "limit": {
+        "unlimited": "Unlimited"
+      },
+      "delete": {
+        "title": "Delete this plan?",
+        "body": "You're about to delete the \"{{nombre}}\" plan. This action cannot be undone.",
+        "confirm": "Delete plan",
+        "cancel": "Cancel",
+        "error": {
+          "title": "We couldn't delete the plan"
+        }
+      },
+      "create": {
+        "title": "Create plan",
+        "save": "Save plan"
+      },
+      "edit": {
+        "title": "Edit plan",
+        "save": "Save changes",
+        "notFound": {
+          "title": "We couldn't find this plan"
+        }
+      },
+      "form": {
+        "basicInfo": {
+          "sectionTitle": "Plan details"
+        },
+        "nombreLabel": "Plan name",
+        "nombrePlaceholder": "e.g. estudio",
+        "nombreError": "Enter a name for the plan",
+        "nombreTakenError": "A plan with that name already exists",
+        "precioLabel": "Price",
+        "precioHint": "Net price, without taxes. Taxes are calculated separately at checkout.",
+        "precioRequiredError": "Enter a price",
+        "precioInvalidError": "Enter a valid price",
+        "limitRequiredError": "Enter a limit",
+        "limitInvalidError": "Enter a valid whole number",
+        "limitNegativeError": "The limit cannot be negative",
+        "saveError": {
+          "title": "We couldn't save the plan"
+        },
+        "unlimitedOption": {
+          "title": "Unlimited",
+          "description": "No cap for this plan"
+        },
+        "limitedOption": {
+          "title": "With a limit",
+          "description": "Set a maximum number"
+        },
+        "limiteCasos": {
+          "sectionTitle": "Cases",
+          "numberLabel": "Maximum number of cases"
+        },
+        "limiteCarpetas": {
+          "sectionTitle": "Folders",
+          "numberLabel": "Maximum number of folders"
+        },
+        "limiteIteracionesIa": {
+          "sectionTitle": "AI iterations",
+          "numberLabel": "Maximum number of iterations"
+        }
+      }
+    }
+  },
   "activity": {
     "title": "Process activity",
     "empty": {
@@ -938,6 +1021,10 @@
       "account": {
         "label": "Account",
         "description": "Session and account deactivation"
+      },
+      "adminPlanes": {
+        "label": "Plans",
+        "description": "Manage subscription plans"
       }
     },
     "summary": {

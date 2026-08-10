@@ -1,4 +1,87 @@
 {
+  "admin": {
+    "planes": {
+      "title": "Planes",
+      "description": "Gestioná los planes de suscripción disponibles: precio y límites de casos, carpetas e iteraciones de IA.",
+      "createAction": "Crear plan",
+      "error": {
+        "title": "No pudimos cargar los planes"
+      },
+      "empty": {
+        "title": "Todavía no hay planes",
+        "description": "Creá el primer plan para que quede disponible en las suscripciones."
+      },
+      "card": {
+        "casosLabel": "Casos",
+        "carpetasLabel": "Carpetas",
+        "iteracionesLabel": "Iteraciones de IA",
+        "editAccessibilityLabel": "Editar plan {{nombre}}",
+        "deleteAccessibilityLabel": "Eliminar plan {{nombre}}"
+      },
+      "limit": {
+        "unlimited": "Ilimitado"
+      },
+      "delete": {
+        "title": "¿Eliminar este plan?",
+        "body": "Vas a eliminar el plan \"{{nombre}}\". Esta acción no se puede deshacer.",
+        "confirm": "Eliminar plan",
+        "cancel": "Cancelar",
+        "error": {
+          "title": "No pudimos eliminar el plan"
+        }
+      },
+      "create": {
+        "title": "Crear plan",
+        "save": "Guardar plan"
+      },
+      "edit": {
+        "title": "Editar plan",
+        "save": "Guardar cambios",
+        "notFound": {
+          "title": "No encontramos este plan"
+        }
+      },
+      "form": {
+        "basicInfo": {
+          "sectionTitle": "Datos del plan"
+        },
+        "nombreLabel": "Nombre del plan",
+        "nombrePlaceholder": "por ejemplo: estudio",
+        "nombreError": "Ingresá un nombre para el plan",
+        "nombreTakenError": "Ya existe un plan con ese nombre",
+        "precioLabel": "Precio",
+        "precioHint": "Precio neto, sin impuestos. Los impuestos se calculan aparte en el checkout.",
+        "precioRequiredError": "Ingresá un precio",
+        "precioInvalidError": "Ingresá un precio válido",
+        "limitRequiredError": "Ingresá un límite",
+        "limitInvalidError": "Ingresá un número entero válido",
+        "limitNegativeError": "El límite no puede ser negativo",
+        "saveError": {
+          "title": "No pudimos guardar el plan"
+        },
+        "unlimitedOption": {
+          "title": "Ilimitado",
+          "description": "No hay tope para este plan"
+        },
+        "limitedOption": {
+          "title": "Con límite",
+          "description": "Definí un número máximo"
+        },
+        "limiteCasos": {
+          "sectionTitle": "Casos",
+          "numberLabel": "Cantidad máxima de casos"
+        },
+        "limiteCarpetas": {
+          "sectionTitle": "Carpetas",
+          "numberLabel": "Cantidad máxima de carpetas"
+        },
+        "limiteIteracionesIa": {
+          "sectionTitle": "Iteraciones de IA",
+          "numberLabel": "Cantidad máxima de iteraciones"
+        }
+      }
+    }
+  },
   "activity": {
     "title": "Actividad del proceso",
     "empty": {
@@ -938,6 +1021,10 @@
       "account": {
         "label": "Cuenta",
         "description": "Sesión y baja de cuenta"
+      },
+      "adminPlanes": {
+        "label": "Planes",
+        "description": "Administrar planes de suscripción"
       }
     },
     "summary": {

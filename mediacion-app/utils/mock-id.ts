@@ -73,3 +73,8 @@ export function generateMockMediationId(): string {
 export function generateMockMediatorEventId(): string {
   return `mediator-event-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock subscription-plan identifier for the in-memory session store (R-10 admin ABM). */
+export function generateMockPlanId(): string {
+  return `plan-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

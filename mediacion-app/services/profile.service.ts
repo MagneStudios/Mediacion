@@ -38,6 +38,13 @@ let mockNotificationPreferences: NotificationPreferences = buildInitialNotificat
  */
 let mockSessionActive = true;
 
+/** Test-only: resets the in-memory store back to its initial seed. Never imported by a screen. */
+export function __resetMockProfile(): void {
+  mockProfile = buildInitialProfile();
+  mockNotificationPreferences = buildInitialNotificationPreferences();
+  mockSessionActive = true;
+}
+
 const failures = createFailureController<
   'updateProfile' | 'updateNotificationPreferences' | 'requestAccountDeactivationMock'
 >();
