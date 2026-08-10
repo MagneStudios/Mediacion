@@ -29,6 +29,7 @@ const defaultPreferences: NotificationPreferences = {
 const deactivationResult: AccountActionResult = {
   status: 'requested',
   requestedAt: '2026-07-30T12:00:00.000Z',
+  depuracionProgramadaAt: '2027-01-30T12:00:00.000Z',
 };
 
 function stubApi(overrides: Partial<ProfileApiService> = {}): ProfileApiService {
@@ -133,6 +134,7 @@ describe('createBackedProfileService', () => {
       const already: AccountActionResult = {
         status: 'already_requested',
         requestedAt: deactivationResult.requestedAt,
+        depuracionProgramadaAt: deactivationResult.depuracionProgramadaAt,
       };
       const service = createBackedProfileService(
         stubApi({ requestAccountDeactivation: async () => already }),

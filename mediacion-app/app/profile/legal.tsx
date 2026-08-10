@@ -9,7 +9,7 @@ import { typography } from '@/design-system/tokens/typography';
 import { LegalNoticeCard } from '@/features/profile/components/LegalNoticeCard';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
-const SECTION_KEYS = ['terms', 'privacyNotice', 'aiNotice', 'signatureNotice', 'noAdvice'] as const;
+const SECTION_KEYS = ['terms', 'privacyNotice', 'aiNotice', 'signatureNotice', 'retention', 'noAdvice'] as const;
 
 export default function ProfileLegalScreen() {
   const { t } = useTranslation();

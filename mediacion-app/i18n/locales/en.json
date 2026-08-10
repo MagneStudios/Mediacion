@@ -1088,6 +1088,10 @@
       "noAdvice": {
         "title": "No legal advice",
         "body": "Nothing shown in this app constitutes legal advice. The final version must be reviewed by the legal team before publication."
+      },
+      "retention": {
+        "title": "Retention and account deactivation",
+        "body": "When an account is deactivated, your personal data is anonymized (not deleted) after 6 months. Your cases and agreements are kept so the other party can keep accessing them, and you'll show up as \"Deactivated user\". The other party is notified when this happens. This content does not constitute legal advice."
       }
     },
     "account": {
@@ -1117,6 +1121,7 @@
         "cancel": "Cancel",
         "close": "Close",
         "requestedNotice": "The request was registered in this demonstration on {{date}}.",
+        "depuracionNotice": "If the deactivation is confirmed, your personal data gets anonymized on {{date}}. Your cases and agreements are kept for the other party.",
         "alreadyRequestedTitle": "We already have your request",
         "alreadyRequestedBody": "The request was registered in this demonstration on {{date}}. No new request was created.",
         "error": {

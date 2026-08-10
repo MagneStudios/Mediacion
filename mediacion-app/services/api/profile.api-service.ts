@@ -139,6 +139,11 @@ export function createApiProfileService(http: HttpClient): ProfileApiService {
     },
 
     requestAccountDeactivation(): Promise<AccountActionResult> {
+      // R-06: `depuracionProgramadaAt` is an unchecked cast like every other
+      // field here — if `/me/desactivacion` doesn't send it yet, this
+      // resolves to `undefined` at runtime despite the type, and the
+      // account screen already treats it as optional-in-practice (falsy →
+      // no depuración notice), so that's a silent no-op, not a crash.
       return http.request<AccountActionResult>('/me/desactivacion', { method: 'POST' });
     },
   };

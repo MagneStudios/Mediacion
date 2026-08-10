@@ -1088,6 +1088,10 @@
       "noAdvice": {
         "title": "Sin asesoramiento legal",
         "body": "Nada de lo mostrado en esta aplicación constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal antes de su publicación."
+      },
+      "retention": {
+        "title": "Retención y baja de cuenta",
+        "body": "Cuando se da de baja una cuenta, tus datos personales se anonimizan (no se borran) a los 6 meses. Tus casos y acuerdos se conservan para que la otra parte pueda seguir accediendo a ellos, y vas a figurar como \"Usuario dado de baja\". La otra parte recibe un aviso cuando esto ocurre. Este contenido no constituye asesoramiento legal."
       }
     },
     "account": {
@@ -1117,6 +1121,7 @@
         "cancel": "Cancelar",
         "close": "Cerrar",
         "requestedNotice": "La solicitud quedó registrada en esta demostración el {{date}}.",
+        "depuracionNotice": "Si se confirma la baja, tus datos personales se anonimizan el {{date}}. Tus casos y acuerdos se conservan para la otra parte.",
         "alreadyRequestedTitle": "Ya registramos tu solicitud",
         "alreadyRequestedBody": "La solicitud quedó registrada en esta demostración el {{date}}. No se generó una nueva solicitud.",
         "error": {
