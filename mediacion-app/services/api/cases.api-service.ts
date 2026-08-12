@@ -28,7 +28,7 @@ export type ApiCasesService = {
   createCase(input: CreateCaseInput): Promise<CaseSummary>;
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
   getCaseTitle(caseId: string): Promise<string | null>;
-  joinCase(token: string): Promise<{ id: string; estado: string }>;
+  joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }>;
 };
 
 /** A caso the caller cannot see and a caso that does not exist are the same 404. */
@@ -90,11 +90,16 @@ export function createApiCasesService(
           body: {
             tipo: input.tipo,
             ...(input.emailDestino ? { email_destino: input.emailDestino } : {}),
+            // R-07: `pago_a_cargo` is a backend TODO per the reunión plan —
+            // sent defensively so this call is already correct once the
+            // column/endpoint exist, and harmless (an unknown field) until then.
+            pago_a_cargo: input.pagoACargo,
           },
         },
       );
       // The API returns no caseId/createdAt, and there is no read endpoint for
-      // invitations, so those are completed locally from what we already know.
+      // invitations, so those are completed locally from what we already know
+      // — pagoACargo included, since it's exactly what we just sent.
       return {
         id: created.id,
         caseId: input.casoId,
@@ -102,6 +107,7 @@ export function createApiCasesService(
         token: created.token,
         emailDestino: input.emailDestino ?? null,
         estado: created.estado,
+        pagoACargo: input.pagoACargo,
         createdAt: clock().toISOString(),
       };
     },
@@ -111,7 +117,11 @@ export function createApiCasesService(
       return detail?.title ?? null;
     },
 
-    joinCase(token: string): Promise<{ id: string; estado: string }> {
+    joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }> {
+      // R-07: `requiresPayment` is an unchecked cast like every other field
+      // here — if the backend's `POST /casos/unirse` doesn't send it yet,
+      // this resolves to `undefined`, which the join screen already treats
+      // as falsy (no payment gate), a silent no-op rather than a crash.
       return http.request('/casos/unirse', { method: 'POST', body: { token } });
     },
   };

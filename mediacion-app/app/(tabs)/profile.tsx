@@ -122,8 +122,16 @@ export default function ProfileScreen() {
               <ProfileMenuItem compact={!isWide} icon="file-text" label={t('profile.menu.legal.label')} description={t('profile.menu.legal.description')} onPress={() => { blurActiveElement(); router.push('/profile/legal'); }} />
             </View>
             <View style={isWide ? styles.optionItem : undefined}>
+              <ProfileMenuItem compact={!isWide} icon="wallet" label={t('profile.menu.plan.label')} description={t('profile.menu.plan.description')} onPress={() => { blurActiveElement(); router.push('/profile/plan'); }} />
+            </View>
+            <View style={isWide ? styles.optionItem : undefined}>
               <ProfileMenuItem compact={!isWide} icon="settings" label={t('profile.menu.account.label')} description={t('profile.menu.account.description')} onPress={() => { blurActiveElement(); router.push('/profile/account'); }} />
             </View>
+            {profile.rol === 'admin' ? (
+              <View style={isWide ? styles.optionItem : undefined}>
+                <ProfileMenuItem compact={!isWide} icon="wallet" label={t('profile.menu.adminPlanes.label')} description={t('profile.menu.adminPlanes.description')} onPress={() => { blurActiveElement(); router.push('/admin/planes'); }} />
+              </View>
+            ) : null}
           </View>
         </View>
       </View>

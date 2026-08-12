@@ -7,6 +7,7 @@ import type {
   CreateInvitationInput,
 } from '../types/case';
 import { mockCaseDetails, mockCases } from '../mocks/cases';
+import { codeInvitationExpired } from './api/api-error';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { createBackedCasesService } from './api/cases.backed-service';
 import { backend } from './backend-instance';
@@ -62,10 +63,17 @@ export type CasesService = {
   joinCase(token: string): Promise<JoinedCase>;
 };
 
-/** What `joinCase` resolves to — the shape `POST /casos/unirse` returns. */
+/**
+ * What `joinCase` resolves to — the shape `POST /casos/unirse` returns.
+ * `requiresPayment` (R-07) is true when the redeemed invitation set
+ * `pago_a_cargo: 'invitado'` — the caller (see app/case/join.tsx) gates
+ * case access behind a subscription checkout in that case, mirroring the
+ * backend's own planned gate on this same endpoint.
+ */
 export type JoinedCase = {
   id: string;
   estado: string;
+  requiresPayment: boolean;
 };
 
 /**
@@ -80,8 +88,26 @@ export function __mockForceNextFailure(operation: 'createCase' | 'createInvitati
   failures.force(operation);
 }
 
-/** In-memory only — cleared on app restart, never written to disk. Keyed by caseId (one invitation per case for mock purposes). */
-const mockInvitations: Record<string, CaseInvitation> = {};
+/**
+ * In-memory only — cleared on app restart, never written to disk. Keyed by
+ * caseId (one invitation per case for mock purposes). Pre-seeded with
+ * `case-4`'s invitation (R-04): it never got redeemed inside the 72 h TTL,
+ * so both the case (`mocks/cases.ts`) and this invitation already show as
+ * expired — this is what lets `joinCase('EXPIRA-DEMO')` demonstrate the
+ * "invitación vencida" screen without waiting a real 72 hours in-session.
+ */
+const mockInvitations: Record<string, CaseInvitation> = {
+  'case-4': {
+    id: 'invitation-case-4',
+    caseId: 'case-4',
+    tipo: 'codigo',
+    token: 'EXPIRA-DEMO',
+    emailDestino: null,
+    estado: 'expirada',
+    pagoACargo: 'invitador',
+    createdAt: new Date(Date.now() - 73 * 60 * 60 * 1000).toISOString(),
+  },
+};
 
 export function createMockCasesService(): CasesService {
   return {
@@ -142,6 +168,7 @@ export function createMockCasesService(): CasesService {
               : null,
         emailDestino: input.tipo === 'email' ? (input.emailDestino ?? null) : null,
         estado: 'pendiente',
+        pagoACargo: input.pagoACargo,
         createdAt: new Date().toISOString(),
       };
 
@@ -203,11 +230,22 @@ export function createMockCasesService(): CasesService {
         return rejectAfter('invitation_not_found', 600);
       }
 
+      // R-04: an expired invitation is a known token, not an unknown one —
+      // it gets its own rejection reason so the join screen can show
+      // "esta invitación venció" instead of the generic "check the code"
+      // message (retrying can never succeed against an expired token).
+      if (match.estado === 'expirada') {
+        return rejectAfter(codeInvitationExpired, 600);
+      }
+
       // Joining is what moves a case out of 'nuevo', which is exactly the
       // transition simulateInvitationAcceptance already models. Reusing it keeps
       // one definition of that transition instead of two that can drift.
       const detail = await this.simulateInvitationAcceptance(match.caseId);
-      return { id: detail.id, estado: detail.estado };
+      // R-07: the invitation set who owes the subscription payment at
+      // creation time — the party redeeming it now finds out only here,
+      // never earlier (a link/code carries no payment info by itself).
+      return { id: detail.id, estado: detail.estado, requiresPayment: match.pagoACargo === 'invitado' };
     },
   };
 }

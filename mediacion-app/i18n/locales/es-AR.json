@@ -1,4 +1,87 @@
 {
+  "admin": {
+    "planes": {
+      "title": "Planes",
+      "description": "Gestioná los planes de suscripción disponibles: precio y límites de casos, carpetas e iteraciones de IA.",
+      "createAction": "Crear plan",
+      "error": {
+        "title": "No pudimos cargar los planes"
+      },
+      "empty": {
+        "title": "Todavía no hay planes",
+        "description": "Creá el primer plan para que quede disponible en las suscripciones."
+      },
+      "card": {
+        "casosLabel": "Casos",
+        "carpetasLabel": "Carpetas",
+        "iteracionesLabel": "Iteraciones de IA",
+        "editAccessibilityLabel": "Editar plan {{nombre}}",
+        "deleteAccessibilityLabel": "Eliminar plan {{nombre}}"
+      },
+      "limit": {
+        "unlimited": "Ilimitado"
+      },
+      "delete": {
+        "title": "¿Eliminar este plan?",
+        "body": "Vas a eliminar el plan \"{{nombre}}\". Esta acción no se puede deshacer.",
+        "confirm": "Eliminar plan",
+        "cancel": "Cancelar",
+        "error": {
+          "title": "No pudimos eliminar el plan"
+        }
+      },
+      "create": {
+        "title": "Crear plan",
+        "save": "Guardar plan"
+      },
+      "edit": {
+        "title": "Editar plan",
+        "save": "Guardar cambios",
+        "notFound": {
+          "title": "No encontramos este plan"
+        }
+      },
+      "form": {
+        "basicInfo": {
+          "sectionTitle": "Datos del plan"
+        },
+        "nombreLabel": "Nombre del plan",
+        "nombrePlaceholder": "por ejemplo: estudio",
+        "nombreError": "Ingresá un nombre para el plan",
+        "nombreTakenError": "Ya existe un plan con ese nombre",
+        "precioLabel": "Precio",
+        "precioHint": "Precio neto, sin impuestos. Los impuestos se calculan aparte en el checkout.",
+        "precioRequiredError": "Ingresá un precio",
+        "precioInvalidError": "Ingresá un precio válido",
+        "limitRequiredError": "Ingresá un límite",
+        "limitInvalidError": "Ingresá un número entero válido",
+        "limitNegativeError": "El límite no puede ser negativo",
+        "saveError": {
+          "title": "No pudimos guardar el plan"
+        },
+        "unlimitedOption": {
+          "title": "Ilimitado",
+          "description": "No hay tope para este plan"
+        },
+        "limitedOption": {
+          "title": "Con límite",
+          "description": "Definí un número máximo"
+        },
+        "limiteCasos": {
+          "sectionTitle": "Casos",
+          "numberLabel": "Cantidad máxima de casos"
+        },
+        "limiteCarpetas": {
+          "sectionTitle": "Carpetas",
+          "numberLabel": "Cantidad máxima de carpetas"
+        },
+        "limiteIteracionesIa": {
+          "sectionTitle": "Iteraciones de IA",
+          "numberLabel": "Cantidad máxima de iteraciones"
+        }
+      }
+    }
+  },
   "activity": {
     "title": "Actividad del proceso",
     "empty": {
@@ -162,6 +245,9 @@
   "auth": {
     "apellidoLabel": "Apellido",
     "apellidoPlaceholder": "Tu apellido",
+    "numeroMatriculaLabel": "Número de matrícula (opcional)",
+    "numeroMatriculaHint": "Solo si sos profesional matriculado. No se verifica.",
+    "numeroMatriculaPlaceholder": "Por ejemplo: CPACF 12345",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "tu@correo.com",
     "newPasswordPlaceholder": "Elegí una contraseña",
@@ -192,6 +278,67 @@
         "title": "Revisá tu correo",
         "description": "Te enviamos un enlace para confirmar tu cuenta. Cuando lo confirmes, vas a poder iniciar sesión."
       }
+    }
+  },
+  "billing": {
+    "paymentRequired": {
+      "title": "Necesitás una suscripción activa",
+      "body": "Quien te invitó eligió que vos te hagas cargo de la suscripción para acceder a este caso.",
+      "viewPlansAction": "Ver planes",
+      "demoBypass": {
+        "description": "Solo en esta demostración podés continuar sin pagar.",
+        "action": "Continuar de todos modos (demo)"
+      }
+    },
+    "myPlan": {
+      "title": "Mi plan",
+      "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
+      "noSubscription": "Todavía no tenés un plan activo. Elegí uno para empezar.",
+      "currentBadge": "Plan actual",
+      "subscribeAction": "Suscribirme",
+      "error": {
+        "title": "No pudimos cargar tu plan"
+      }
+    },
+    "checkout": {
+      "title": "Suscribirte al plan {{nombre}}",
+      "description": "Revisá el importe antes de confirmar. El total ya incluye los impuestos correspondientes.",
+      "breakdown": {
+        "neto": "Precio neto",
+        "iva": "IVA",
+        "otrosImpuestos": "Otros impuestos",
+        "total": "Total a pagar"
+      },
+      "sandboxNotice": "Este es un entorno de prueba: no se realiza ningún cobro real.",
+      "payAction": "Pagar (simulado)",
+      "paying": "Procesando el pago…",
+      "notFound": {
+        "title": "No encontramos este plan"
+      },
+      "error": {
+        "title": "No pudimos procesar el pago"
+      }
+    },
+    "receipt": {
+      "title": "Comprobante",
+      "description": "Tu pago quedó registrado en este entorno de prueba. Este es el detalle del comprobante.",
+      "numero": "Comprobante N.º {{numero}}",
+      "downloadAction": "Descargar comprobante",
+      "downloading": {
+        "title": "Preparando el comprobante",
+        "body": "El detalle va a estar listo en un instante."
+      },
+      "downloadSuccess": {
+        "title": "Comprobante listo",
+        "body": "El comprobante se preparó en este entorno de prueba. No se descargó ningún archivo real."
+      },
+      "downloadError": {
+        "title": "No pudimos preparar el comprobante"
+      },
+      "notFound": {
+        "title": "No encontramos este comprobante"
+      },
+      "backToPlanAction": "Volver a mi plan"
     }
   },
   "caseCreation": {
@@ -236,7 +383,19 @@
     "invite": {
       "title": "Invitá a la contraparte",
       "subtitle": "Elegí cómo querés compartir el acceso a este caso.",
+      "pagoACargo": {
+        "sectionTitle": "¿Quién paga la suscripción?",
+        "invitador": {
+          "title": "Yo pago",
+          "description": "La suscripción queda a tu cargo."
+        },
+        "invitado": {
+          "title": "Paga la otra parte",
+          "description": "La otra parte va a tener que suscribirse para acceder al caso."
+        }
+      },
       "method": {
+        "sectionTitle": "¿Cómo querés invitar?",
         "link": {
           "title": "Enlace",
           "description": "Compartí un enlace de invitación por el medio que prefieras."
@@ -302,6 +461,11 @@
         }
       }
     },
+    "expired": {
+      "title": "La invitación venció",
+      "description": "Pasaron 72 horas y la otra parte no se unió, así que este caso quedó cerrado. Creá un caso nuevo para volver a intentarlo.",
+      "createCaseAction": "Crear un caso nuevo"
+    },
     "positions": {
       "title": "Mis posiciones privadas",
       "supportingCopy": "Solo vos podés ver esta información. La contraparte no tendrá acceso a tus valores ni condiciones.",
@@ -318,6 +482,10 @@
     "error": {
       "title": "No pudimos completar esta acción por ahora",
       "description": "Revisá el enlace o código e intentá de nuevo."
+    },
+    "expired": {
+      "title": "Esta invitación venció",
+      "description": "Pasaron más de 72 horas desde que se envió. Pedile a la otra parte que te envíe una invitación nueva."
     }
   },
   "cases": {
@@ -340,6 +508,7 @@
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
       "awaitingCounterparty": "Esperando a la contraparte",
+      "expired": "Invitación vencida",
       "sla": "SLA {{hours}} h"
     },
     "round": "Ronda {{number}}",
@@ -357,7 +526,8 @@
       "inReview": "El proceso sigue en curso.",
       "proposalReady": "Hay una propuesta esperando tu respuesta.",
       "signed": "El acuerdo fue firmado por ambas partes.",
-      "awaitingCounterparty": "Esperando a que la contraparte se una al caso."
+      "awaitingCounterparty": "Esperando a que la contraparte se una al caso.",
+      "expired": "Nadie se unió a tiempo. Creá un caso nuevo para continuar."
     },
     "cta": {
       "continue": "Continuar caso",
@@ -924,9 +1094,17 @@
         "label": "Legales",
         "description": "Términos, avisos e información general"
       },
+      "plan": {
+        "label": "Mi plan",
+        "description": "Tu suscripción y comprobantes de pago"
+      },
       "account": {
         "label": "Cuenta",
         "description": "Sesión y baja de cuenta"
+      },
+      "adminPlanes": {
+        "label": "Planes",
+        "description": "Administrar planes de suscripción"
       }
     },
     "summary": {
@@ -959,6 +1137,14 @@
       "accessibilitySystemDescription": "Usa el tamaño de texto del dispositivo",
       "accessibilityLargerText": "Texto más grande (preferencia)",
       "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
+      "matriculaSection": "Matrícula profesional",
+      "matriculaHint": "Opcional. La matrícula no se verifica: lo que da validez al acuerdo es la firma digital, no este dato.",
+      "matriculaNumberLabel": "Número de matrícula",
+      "matriculaNumberPlaceholder": "Por ejemplo: CPACF 12345",
+      "matriculaAttach": "Adjuntar matrícula (simulado)",
+      "matriculaAttaching": "Adjuntando…",
+      "matriculaAttached": "Matrícula adjunta en esta demostración.",
+      "matriculaRemove": "Quitar adjunto",
       "save": "Guardar cambios",
       "saved": "Los cambios se guardaron en esta demostración.",
       "error": {
@@ -1077,6 +1263,10 @@
       "noAdvice": {
         "title": "Sin asesoramiento legal",
         "body": "Nada de lo mostrado en esta aplicación constituye asesoramiento legal. La versión final deberá ser revisada por el equipo legal antes de su publicación."
+      },
+      "retention": {
+        "title": "Retención y baja de cuenta",
+        "body": "Cuando se da de baja una cuenta, tus datos personales se anonimizan (no se borran) a los 6 meses. Tus casos y acuerdos se conservan para que la otra parte pueda seguir accediendo a ellos, y vas a figurar como \"Usuario dado de baja\". La otra parte recibe un aviso cuando esto ocurre. Este contenido no constituye asesoramiento legal."
       }
     },
     "account": {
@@ -1106,6 +1296,7 @@
         "cancel": "Cancelar",
         "close": "Cerrar",
         "requestedNotice": "La solicitud quedó registrada en esta demostración el {{date}}.",
+        "depuracionNotice": "Si se confirma la baja, tus datos personales se anonimizan el {{date}}. Tus casos y acuerdos se conservan para la otra parte.",
         "alreadyRequestedTitle": "Ya registramos tu solicitud",
         "alreadyRequestedBody": "La solicitud quedó registrada en esta demostración el {{date}}. No se generó una nueva solicitud.",
         "error": {

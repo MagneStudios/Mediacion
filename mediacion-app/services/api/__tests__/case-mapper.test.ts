@@ -79,6 +79,14 @@ describe('toStatusLabelKey', () => {
   it('falls back to inReview for an active case', () => {
     expect(toStatusLabelKey('activo', true)).toBe('inReview');
   });
+
+  it('reports expired for an expired case even without a counterparty (R-04)', () => {
+    expect(toStatusLabelKey('expirado', false)).toBe('expired');
+  });
+
+  it('reports expired over awaitingCounterparty — checked first, not the counterparty gate', () => {
+    expect(toStatusLabelKey('expirado', true)).toBe('expired');
+  });
 });
 
 describe('toCounterpartyName', () => {

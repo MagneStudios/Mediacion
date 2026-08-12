@@ -38,6 +38,13 @@ let mockNotificationPreferences: NotificationPreferences = buildInitialNotificat
  */
 let mockSessionActive = true;
 
+/** Test-only: resets the in-memory store back to its initial seed. Never imported by a screen. */
+export function __resetMockProfile(): void {
+  mockProfile = buildInitialProfile();
+  mockNotificationPreferences = buildInitialNotificationPreferences();
+  mockSessionActive = true;
+}
+
 const failures = createFailureController<
   'updateProfile' | 'updateNotificationPreferences' | 'requestAccountDeactivationMock'
 >();
@@ -46,6 +53,19 @@ export function __mockForceProfileFailure(
   operation: 'updateProfile' | 'updateNotificationPreferences' | 'requestAccountDeactivationMock',
 ): void {
   failures.force(operation);
+}
+
+/**
+ * R-06: the anonymization job runs 6 months after baja by default (10 years
+ * for a user with an active subscription — not modeled here, since this app
+ * has no subscription state at all yet; see `MockProfile`'s doc comment).
+ */
+const depuracionWindowMonths = 6;
+
+function addMonths(iso: string, months: number): string {
+  const date = new Date(iso);
+  date.setMonth(date.getMonth() + months);
+  return date.toISOString();
 }
 
 export function createMockProfileService(): ProfileService {
@@ -94,17 +114,21 @@ export function createMockProfileService(): ProfileService {
       if (failures.consume('requestAccountDeactivationMock')) {
         return rejectAfter('account_deactivation_failed', 600);
       }
-      // Idempotent: a second call always returns the original timestamp —
+      // Idempotent: a second call always returns the original timestamps —
       // never a new mutation, never a new record. `activo` is never flipped
       // here — a deactivation *request* is not a real backend deactivation.
-      if (mockProfile.deactivationRequestedAt) {
+      if (mockProfile.deactivationRequestedAt && mockProfile.depuracionProgramadaAt) {
         const requestedAt = mockProfile.deactivationRequestedAt;
-        return delay({ status: 'already_requested', requestedAt }, 300);
+        const depuracionProgramadaAt = mockProfile.depuracionProgramadaAt;
+        return delay({ status: 'already_requested', requestedAt, depuracionProgramadaAt }, 300);
       }
       const requestedAt = new Date().toISOString();
-      const committed = await delay(requestedAt, 700);
-      mockProfile = { ...mockProfile, deactivationRequestedAt: committed };
-      return { status: 'requested', requestedAt: committed };
+      // R-06: computed in the same build-next-state step as requestedAt, so
+      // a forced failure above never leaves one set without the other.
+      const depuracionProgramadaAt = addMonths(requestedAt, depuracionWindowMonths);
+      const committed = await delay({ requestedAt, depuracionProgramadaAt }, 700);
+      mockProfile = { ...mockProfile, deactivationRequestedAt: committed.requestedAt, depuracionProgramadaAt: committed.depuracionProgramadaAt };
+      return { status: 'requested', ...committed };
     },
   };
 }

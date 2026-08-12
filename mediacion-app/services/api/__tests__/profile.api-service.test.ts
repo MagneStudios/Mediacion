@@ -79,6 +79,21 @@ describe('toMockProfile', () => {
       expect(profile).not.toHaveProperty(leaked);
     }
   });
+
+  it('R-05: maps numero_matricula to numeroMatricula when GET /me sends it', () => {
+    const profile = toMockProfile({ ...apiProfile, numero_matricula: 'CPACF 12345' }, defaultLocalOnlyProfileState);
+    expect(profile.numeroMatricula).toBe('CPACF 12345');
+  });
+
+  it('R-05: leaves numeroMatricula undefined when GET /me does not send it yet (backend TODO)', () => {
+    const profile = toMockProfile(apiProfile, defaultLocalOnlyProfileState);
+    expect(profile.numeroMatricula).toBeUndefined();
+  });
+
+  it('R-05: carries the local matriculaUrl through — there is no real upload endpoint', () => {
+    const profile = toMockProfile(apiProfile, { ...defaultLocalOnlyProfileState, matriculaUrl: 'mock://matriculas/adjunto-demo.pdf' });
+    expect(profile.matriculaUrl).toBe('mock://matriculas/adjunto-demo.pdf');
+  });
 });
 
 describe('splitProfileUpdate', () => {
@@ -110,6 +125,27 @@ describe('splitProfileUpdate', () => {
 
     expect(Object.keys(persistable)).toEqual(['nombre']);
   });
+
+  it('R-05: routes numeroMatricula to the api as numero_matricula (snake_case)', () => {
+    const { persistable } = splitProfileUpdate({ numeroMatricula: 'CPACF 12345' });
+    expect(persistable).toEqual({ numero_matricula: 'CPACF 12345' });
+  });
+
+  it('R-05: keeps matriculaUrl local — there is no PATCH /me support for it', () => {
+    const { persistable, local } = splitProfileUpdate({ matriculaUrl: 'mock://matriculas/adjunto-demo.pdf' });
+    expect(persistable).toEqual({});
+    expect(local).toEqual({ matriculaUrl: 'mock://matriculas/adjunto-demo.pdf' });
+  });
+
+  it('R-05: an explicit matriculaUrl: undefined (removing the attachment) is still routed to local, not dropped', () => {
+    const { local } = splitProfileUpdate({ matriculaUrl: undefined, nombre: 'Ana' });
+    expect(local).toHaveProperty('matriculaUrl', undefined);
+  });
+
+  it('R-05: matriculaUrl absent from the patch entirely stays out of local too', () => {
+    const { local } = splitProfileUpdate({ nombre: 'Ana' });
+    expect(local).not.toHaveProperty('matriculaUrl');
+  });
 });
 
 describe('createApiProfileService', () => {
@@ -132,6 +168,18 @@ describe('createApiProfileService', () => {
 
     expect(calls[0].options?.method).toBe('PATCH');
     expect(calls[0].options?.body).toEqual({ nombre: 'Ana Maria' });
+  });
+
+  it('R-05: PATCHes numero_matricula, never touching matriculaUrl (no such column)', async () => {
+    const { http, calls } = buildHttp(() => apiProfile);
+
+    await createApiProfileService(http).updateProfile({
+      numeroMatricula: 'CPACF 12345',
+      matriculaUrl: 'mock://matriculas/adjunto-demo.pdf',
+    });
+
+    expect(calls[0].options?.method).toBe('PATCH');
+    expect(calls[0].options?.body).toEqual({ numero_matricula: 'CPACF 12345' });
   });
 
   it('does not PATCH at all for a local-only edit, which the api would reject', async () => {

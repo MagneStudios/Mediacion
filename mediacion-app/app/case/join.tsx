@@ -9,6 +9,7 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { JoinCaseForm, type JoinCaseFormStatus } from '@/features/cases/components/JoinCaseForm';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
+import { isInvitationExpiredError } from '@/utils/is-invitation-expired-error';
 
 export default function CaseJoinScreen() {
   const { t } = useTranslation();
@@ -28,21 +29,29 @@ export default function CaseJoinScreen() {
       const joined = await casesService.joinCase(token);
       // `replace`, not `push`: once the token is redeemed this screen has
       // nothing left to do, and going back to it would only fail.
-      router.replace(`/case/${joined.id}`);
-    } catch {
-      // Deliberately one error state. The server distinguishes unknown,
-      // already-redeemed and expired tokens, but telling someone holding an
-      // invitation which of those it was is an enumeration oracle, and the
-      // recovery is the same in every case: check the code and try again.
-      setStatus('error');
+      // R-07: the invitador may have set "pagás vos" on this invitation —
+      // gate straight into the payment-required screen instead of the case
+      // itself, mirroring the backend's planned gate on this same endpoint.
+      router.replace(
+        joined.requiresPayment ? `/case/${joined.id}/payment-required` : `/case/${joined.id}`,
+      );
+    } catch (error) {
+      // R-04: expired is the one distinction worth surfacing — the server
+      // still treats unknown and already-redeemed tokens uniformly (that
+      // stays an enumeration oracle otherwise), but an expired invitation
+      // is one the person genuinely held, and "check the code and try
+      // again" is actively misleading advice for it: no code fixes an
+      // elapsed 72 h window, only a brand-new invitation does.
+      setStatus(isInvitationExpiredError(error) ? 'expired' : 'error');
     }
   }, [status, token]);
 
   const handleChangeText = useCallback((next: string) => {
     setToken(next);
-    // Clears the error as soon as the code changes, so a stale failure does not
-    // sit under a value the user has already corrected.
-    setStatus((current) => (current === 'error' ? 'idle' : current));
+    // Clears the error/expired state as soon as the code changes, so a
+    // stale failure does not sit under a value the user has already
+    // corrected.
+    setStatus((current) => (current === 'error' || current === 'expired' ? 'idle' : current));
   }, []);
 
   return (
@@ -68,6 +77,8 @@ export default function CaseJoinScreen() {
           errorTitle={t('caseJoin.error.title')}
           errorDescription={t('caseJoin.error.description')}
           retryLabel={t('common.retry')}
+          expiredTitle={t('caseJoin.expired.title')}
+          expiredDescription={t('caseJoin.expired.description')}
         />
       </ScrollView>
     </KeyboardAvoidingView>

@@ -175,6 +175,52 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Expired case state (estado === 'expirado', R-04)
+// ---------------------------------------------------------------------------
+describe('CaseDetailScreen — expired', () => {
+  beforeEach(() => {
+    mockDetail = buildDetail({
+      estado: 'expirado',
+      visualStatus: 'error',
+      statusLabelKey: 'expired',
+      counterpartyName: null,
+      roundNumber: null,
+    });
+    mockStatus = 'success';
+  });
+
+  it('shows the expired status pill in the header', async () => {
+    await renderScreen();
+    const elements = screen.getAllByText(t('cases.status.expired'));
+    expect(elements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows the expired guidance card with a create-case action', async () => {
+    await renderScreen();
+    expect(screen.getByText(t('caseDetail.expired.title'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.expired.description'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.expired.createCaseAction'))).toBeTruthy();
+  });
+
+  it('navigates to case creation when the create-case action is pressed', async () => {
+    await renderScreen();
+    screen.getByRole('button', { name: t('caseDetail.expired.createCaseAction') }).props.onClick?.({} as never);
+    expect(mockRoutePush).toHaveBeenCalledWith('/case/create');
+  });
+
+  it('does not show the view-invitation or simulate-acceptance actions', async () => {
+    await renderScreen();
+    expect(screen.queryByText(t('caseDetail.awaitingCounterparty.viewInvitation'))).toBeNull();
+    expect(screen.queryByText(t('caseDetail.awaitingCounterparty.simulateAcceptance.action'))).toBeNull();
+  });
+
+  it('does not show the positions section', async () => {
+    await renderScreen();
+    expect(screen.queryByText(t('caseDetail.positions.title'))).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Active case state
 // ---------------------------------------------------------------------------
 describe('CaseDetailScreen — active case', () => {

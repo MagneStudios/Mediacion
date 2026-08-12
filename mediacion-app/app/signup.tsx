@@ -25,6 +25,8 @@ export default function SignUpScreen() {
   // public.usuarios. Skipping them creates a real user with an empty name.
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
+  // R-05: optional, unlike nombre/apellido — never gates form submission.
+  const [numeroMatricula, setNumeroMatricula] = useState('');
 
   const onSuccess = useCallback(() => {
     setSubmitted(true);
@@ -38,8 +40,14 @@ export default function SignUpScreen() {
 
   const submitFn = useCallback(
     ({ email, password }: { email: string; password: string }) =>
-      signUp({ email, password, nombre: nombre.trim(), apellido: apellido.trim() }),
-    [signUp, nombre, apellido],
+      signUp({
+        email,
+        password,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        numeroMatricula: numeroMatricula.trim() || undefined,
+      }),
+    [signUp, nombre, apellido, numeroMatricula],
   );
 
   const form = useAuthForm(submitFn, t('auth.signUp.genericError'), onSuccess);
@@ -106,6 +114,14 @@ export default function SignUpScreen() {
                   value={apellido}
                   onChangeText={setApellido}
                   autoComplete="family-name"
+                  editable={form.status !== 'submitting'}
+                />
+                <Input
+                  label={t('auth.numeroMatriculaLabel')}
+                  hint={t('auth.numeroMatriculaHint')}
+                  placeholder={t('auth.numeroMatriculaPlaceholder')}
+                  value={numeroMatricula}
+                  onChangeText={setNumeroMatricula}
                   editable={form.status !== 'submitting'}
                 />
               </>

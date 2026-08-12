@@ -54,6 +54,9 @@ export default function ProfileAccountScreen() {
 
   const requestedAt = deactivationResult?.requestedAt ?? profile?.deactivationRequestedAt;
   const alreadyRequested = Boolean(requestedAt);
+  // R-06: only meaningful once a deactivation was actually requested —
+  // never shown for an active account with no pending request.
+  const depuracionProgramadaAt = deactivationResult?.depuracionProgramadaAt ?? profile?.depuracionProgramadaAt;
 
   const openSignOutDialog = () => {
     resetSignOutStatus();
@@ -106,7 +109,18 @@ export default function ProfileAccountScreen() {
       <AccountActionCard
         title={t('profile.account.deactivation.cardTitle')}
         description={t('profile.account.deactivation.cardDescription')}
-        noticeText={alreadyRequested && requestedAt ? t('profile.account.deactivation.requestedNotice', { date: formatRequestDate(requestedAt) }) : undefined}
+        noticeText={
+          alreadyRequested && requestedAt
+            ? [
+                t('profile.account.deactivation.requestedNotice', { date: formatRequestDate(requestedAt) }),
+                depuracionProgramadaAt
+                  ? t('profile.account.deactivation.depuracionNotice', { date: formatRequestDate(depuracionProgramadaAt) })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join('\n\n')
+            : undefined
+        }
       >
         <Button
           variant={alreadyRequested ? 'tertiary' : 'destructive'}

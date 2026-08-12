@@ -18,7 +18,8 @@ export type EstadoCaso =
   | 'acordado'
   | 'cerrado'
   | 'terminado'
-  | 'vencido';
+  | 'vencido'
+  | 'expirado';
 
 /** Resolution method chosen for a case. Matches the `metodo_caso` enum. */
 export type MetodoCaso = 'negociacion' | 'conciliacion' | 'mediacion';
@@ -28,6 +29,13 @@ export type TipoInvitacion = 'link' | 'codigo' | 'email';
 
 /** Invitation lifecycle. Matches the `estado_invitacion` enum. */
 export type EstadoInvitacion = 'pendiente' | 'aceptada' | 'rechazada' | 'expirada';
+
+/**
+ * R-07 (cambios reunión 07/08): who owes the subscription payment tied to
+ * this invitation. Matches `invitaciones.pago_a_cargo` exactly. Set once,
+ * at invitation-creation time — never changed afterward.
+ */
+export type PagoACargo = 'invitador' | 'invitado';
 
 /** Visual status vocabulary consumed by <StatusPill />. Never the source of truth for case state — only a presentation mapping. */
 export type CaseVisualStatus = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'ai';
@@ -39,7 +47,7 @@ export type CaseVisualStatus = 'success' | 'warning' | 'error' | 'info' | 'neutr
  * show a different label depending on what's pending for this party.
  * Keys match `cases.status.*` in the i18n resources.
  */
-export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty';
+export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty' | 'expired';
 
 export type CaseSummary = {
   id: string;
@@ -67,6 +75,7 @@ export type CaseInvitation = {
   token: string | null;
   emailDestino: string | null;
   estado: EstadoInvitacion;
+  pagoACargo: PagoACargo;
   createdAt: string;
 };
 
@@ -80,4 +89,5 @@ export type CreateInvitationInput = {
   casoId: string;
   tipo: TipoInvitacion;
   emailDestino?: string;
+  pagoACargo: PagoACargo;
 };

@@ -1,4 +1,87 @@
 {
+  "admin": {
+    "planes": {
+      "title": "Plans",
+      "description": "Manage the available subscription plans: price and case, folder, and AI-iteration limits.",
+      "createAction": "Create plan",
+      "error": {
+        "title": "We couldn't load the plans"
+      },
+      "empty": {
+        "title": "No plans yet",
+        "description": "Create the first plan so it becomes available for subscriptions."
+      },
+      "card": {
+        "casosLabel": "Cases",
+        "carpetasLabel": "Folders",
+        "iteracionesLabel": "AI iterations",
+        "editAccessibilityLabel": "Edit plan {{nombre}}",
+        "deleteAccessibilityLabel": "Delete plan {{nombre}}"
+      },
+      "limit": {
+        "unlimited": "Unlimited"
+      },
+      "delete": {
+        "title": "Delete this plan?",
+        "body": "You're about to delete the \"{{nombre}}\" plan. This action cannot be undone.",
+        "confirm": "Delete plan",
+        "cancel": "Cancel",
+        "error": {
+          "title": "We couldn't delete the plan"
+        }
+      },
+      "create": {
+        "title": "Create plan",
+        "save": "Save plan"
+      },
+      "edit": {
+        "title": "Edit plan",
+        "save": "Save changes",
+        "notFound": {
+          "title": "We couldn't find this plan"
+        }
+      },
+      "form": {
+        "basicInfo": {
+          "sectionTitle": "Plan details"
+        },
+        "nombreLabel": "Plan name",
+        "nombrePlaceholder": "e.g. estudio",
+        "nombreError": "Enter a name for the plan",
+        "nombreTakenError": "A plan with that name already exists",
+        "precioLabel": "Price",
+        "precioHint": "Net price, without taxes. Taxes are calculated separately at checkout.",
+        "precioRequiredError": "Enter a price",
+        "precioInvalidError": "Enter a valid price",
+        "limitRequiredError": "Enter a limit",
+        "limitInvalidError": "Enter a valid whole number",
+        "limitNegativeError": "The limit cannot be negative",
+        "saveError": {
+          "title": "We couldn't save the plan"
+        },
+        "unlimitedOption": {
+          "title": "Unlimited",
+          "description": "No cap for this plan"
+        },
+        "limitedOption": {
+          "title": "With a limit",
+          "description": "Set a maximum number"
+        },
+        "limiteCasos": {
+          "sectionTitle": "Cases",
+          "numberLabel": "Maximum number of cases"
+        },
+        "limiteCarpetas": {
+          "sectionTitle": "Folders",
+          "numberLabel": "Maximum number of folders"
+        },
+        "limiteIteracionesIa": {
+          "sectionTitle": "AI iterations",
+          "numberLabel": "Maximum number of iterations"
+        }
+      }
+    }
+  },
   "activity": {
     "title": "Process activity",
     "empty": {
@@ -162,6 +245,9 @@
   "auth": {
     "apellidoLabel": "Last name",
     "apellidoPlaceholder": "Your last name",
+    "numeroMatriculaLabel": "License number (optional)",
+    "numeroMatriculaHint": "Only if you're a licensed professional. Not verified.",
+    "numeroMatriculaPlaceholder": "e.g. CPACF 12345",
     "emailLabel": "Email",
     "emailPlaceholder": "you@email.com",
     "newPasswordPlaceholder": "Choose a password",
@@ -192,6 +278,67 @@
         "title": "Check your email",
         "description": "We sent you a link to confirm your account. Once confirmed, you'll be able to sign in."
       }
+    }
+  },
+  "billing": {
+    "paymentRequired": {
+      "title": "You need an active subscription",
+      "body": "Whoever invited you chose for you to cover the subscription to access this case.",
+      "viewPlansAction": "View plans",
+      "demoBypass": {
+        "description": "Only in this demonstration can you continue without paying.",
+        "action": "Continue anyway (demo)"
+      }
+    },
+    "myPlan": {
+      "title": "My plan",
+      "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
+      "noSubscription": "You don't have an active plan yet. Pick one to get started.",
+      "currentBadge": "Current plan",
+      "subscribeAction": "Subscribe",
+      "error": {
+        "title": "We couldn't load your plan"
+      }
+    },
+    "checkout": {
+      "title": "Subscribe to the {{nombre}} plan",
+      "description": "Review the amount before confirming. The total already includes the applicable taxes.",
+      "breakdown": {
+        "neto": "Net price",
+        "iva": "VAT",
+        "otrosImpuestos": "Other taxes",
+        "total": "Total to pay"
+      },
+      "sandboxNotice": "This is a test environment: no real charge is made.",
+      "payAction": "Pay (simulated)",
+      "paying": "Processing the payment…",
+      "notFound": {
+        "title": "We couldn't find this plan"
+      },
+      "error": {
+        "title": "We couldn't process the payment"
+      }
+    },
+    "receipt": {
+      "title": "Receipt",
+      "description": "Your payment was recorded in this test environment. Here is the receipt detail.",
+      "numero": "Receipt No. {{numero}}",
+      "downloadAction": "Download receipt",
+      "downloading": {
+        "title": "Preparing the receipt",
+        "body": "The detail will be ready in a moment."
+      },
+      "downloadSuccess": {
+        "title": "Receipt ready",
+        "body": "The receipt was prepared in this test environment. No real file was downloaded."
+      },
+      "downloadError": {
+        "title": "We couldn't prepare the receipt"
+      },
+      "notFound": {
+        "title": "We couldn't find this receipt"
+      },
+      "backToPlanAction": "Back to my plan"
     }
   },
   "caseCreation": {
@@ -236,7 +383,19 @@
     "invite": {
       "title": "Invite the other party",
       "subtitle": "Choose how you'd like to share access to this case.",
+      "pagoACargo": {
+        "sectionTitle": "Who pays for the subscription?",
+        "invitador": {
+          "title": "I pay",
+          "description": "The subscription stays on you."
+        },
+        "invitado": {
+          "title": "The other party pays",
+          "description": "The other party will need to subscribe to access the case."
+        }
+      },
       "method": {
+        "sectionTitle": "How do you want to invite?",
         "link": {
           "title": "Link",
           "description": "Share an invitation link through whichever channel you prefer."
@@ -302,6 +461,11 @@
         }
       }
     },
+    "expired": {
+      "title": "The invitation expired",
+      "description": "72 hours passed and the other party never joined, so this case is now closed. Start a new case to try again.",
+      "createCaseAction": "Start a new case"
+    },
     "positions": {
       "title": "My private positions",
       "supportingCopy": "Only you can see this information. The other party will not have access to your values or conditions.",
@@ -318,6 +482,10 @@
     "error": {
       "title": "We couldn't complete this action right now",
       "description": "Check the link or code and try again."
+    },
+    "expired": {
+      "title": "This invitation expired",
+      "description": "More than 72 hours passed since it was sent. Ask the other party to send you a new invitation."
     }
   },
   "cases": {
@@ -340,6 +508,7 @@
       "proposalReady": "Proposal ready",
       "signed": "Signed",
       "awaitingCounterparty": "Waiting for the other party",
+      "expired": "Invitation expired",
       "sla": "SLA {{hours}} h"
     },
     "round": "Round {{number}}",
@@ -357,7 +526,8 @@
       "inReview": "The process is still moving forward.",
       "proposalReady": "There's a proposal waiting for your response.",
       "signed": "The agreement was signed by both parties.",
-      "awaitingCounterparty": "Waiting for the other party to join the case."
+      "awaitingCounterparty": "Waiting for the other party to join the case.",
+      "expired": "Nobody joined in time. Start a new case to continue."
     },
     "cta": {
       "continue": "Continue case",
@@ -924,9 +1094,17 @@
         "label": "Legal",
         "description": "Terms, notices, and general information"
       },
+      "plan": {
+        "label": "My plan",
+        "description": "Your subscription and payment receipts"
+      },
       "account": {
         "label": "Account",
         "description": "Session and account deactivation"
+      },
+      "adminPlanes": {
+        "label": "Plans",
+        "description": "Manage subscription plans"
       }
     },
     "summary": {
@@ -959,6 +1137,14 @@
       "accessibilitySystemDescription": "Uses your device's text size",
       "accessibilityLargerText": "Larger text (preference)",
       "accessibilityLargerTextDescription": "This preference is saved only in this demonstration. It doesn't change the app's text size yet.",
+      "matriculaSection": "Professional license",
+      "matriculaHint": "Optional. The license isn't verified: the digital signature is what makes the agreement valid, not this field.",
+      "matriculaNumberLabel": "License number",
+      "matriculaNumberPlaceholder": "e.g. CPACF 12345",
+      "matriculaAttach": "Attach license (simulated)",
+      "matriculaAttaching": "Attaching…",
+      "matriculaAttached": "License attached in this demonstration.",
+      "matriculaRemove": "Remove attachment",
       "save": "Save changes",
       "saved": "Your changes were saved in this demonstration.",
       "error": {
@@ -1077,6 +1263,10 @@
       "noAdvice": {
         "title": "No legal advice",
         "body": "Nothing shown in this app constitutes legal advice. The final version must be reviewed by the legal team before publication."
+      },
+      "retention": {
+        "title": "Retention and account deactivation",
+        "body": "When an account is deactivated, your personal data is anonymized (not deleted) after 6 months. Your cases and agreements are kept so the other party can keep accessing them, and you'll show up as \"Deactivated user\". The other party is notified when this happens. This content does not constitute legal advice."
       }
     },
     "account": {
@@ -1106,6 +1296,7 @@
         "cancel": "Cancel",
         "close": "Close",
         "requestedNotice": "The request was registered in this demonstration on {{date}}.",
+        "depuracionNotice": "If the deactivation is confirmed, your personal data gets anonymized on {{date}}. Your cases and agreements are kept for the other party.",
         "alreadyRequestedTitle": "We already have your request",
         "alreadyRequestedBody": "The request was registered in this demonstration on {{date}}. No new request was created.",
         "error": {

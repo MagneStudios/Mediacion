@@ -17,6 +17,8 @@ describe('JoinCaseForm', () => {
     errorTitle: "We couldn't complete this action right now",
     errorDescription: 'Check the link or code and try again.',
     retryLabel: 'Retry',
+    expiredTitle: 'This invitation expired',
+    expiredDescription: 'Ask the other party to send you a new invitation.',
   };
 
   afterEach(() => {
@@ -93,6 +95,16 @@ describe('JoinCaseForm', () => {
       await render(<JoinCaseForm {...baseProps} value="ABC-123" status="error" onSubmit={onSubmit} />);
       screen.getByRole('button', { name: 'Retry' }).props.onClick?.({} as never);
       expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('expired', () => {
+    it('renders the expired state instead of the submit button, with no retry action', async () => {
+      await render(<JoinCaseForm {...baseProps} value="ABC-123" status="expired" />);
+      expect(screen.getByText('This invitation expired')).toBeTruthy();
+      expect(screen.getByText('Ask the other party to send you a new invitation.')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Join case' })).toBeNull();
     });
   });
 

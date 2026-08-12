@@ -8,7 +8,11 @@ import type {
 
 import type { HttpClient } from './http-client';
 
-/** What `GET /me` actually returns. Wider than the screen needs, on purpose. */
+/**
+ * What `GET /me` actually returns. Wider than the screen needs, on purpose.
+ * `numero_matricula` (R-05) is optional because `GET /me` may not select it
+ * yet (backend TODO) — absent reads as `undefined`, never fabricated.
+ */
 export type ApiMeProfile = {
   id: string;
   rol: RolUsuario;
@@ -20,17 +24,21 @@ export type ApiMeProfile = {
   verif_biometrica: string;
   estudio_id: string | null;
   activo: boolean;
+  numero_matricula?: string | null;
 };
 
 /**
  * Fields the profile screen renders that no column backs today. They are held
  * in memory so the UI keeps working, and they are deliberately NOT sent to
  * `PATCH /me` — the API would reject them, and pretending they persist would
- * be a lie to the user.
+ * be a lie to the user. `matriculaUrl` (R-05) belongs here rather than on
+ * `ApiMeProfile`: there is no real upload endpoint anywhere in this app (no
+ * file-picker dependency installed), so it can never be more than a
+ * same-session placeholder — see `MockProfile`'s doc comment.
  */
 export type LocalOnlyProfileState = Pick<
   MockProfile,
-  'communicationPreference' | 'accessibilityPreference' | 'deactivationRequestedAt'
+  'communicationPreference' | 'accessibilityPreference' | 'deactivationRequestedAt' | 'matriculaUrl'
 >;
 
 export const defaultLocalOnlyProfileState: LocalOnlyProfileState = {
@@ -55,13 +63,18 @@ export function toMockProfile(
     rol: row.rol,
     idioma: toPreferredLanguage(row.idioma),
     activo: row.activo,
+    ...(row.numero_matricula ? { numeroMatricula: row.numero_matricula } : {}),
     ...local,
   };
 }
 
-export type PersistableProfilePatch = Partial<
-  Pick<MockProfile, 'nombre' | 'apellido' | 'idioma'>
->;
+/** The exact `PATCH /me` body shape — snake_case, matching the real columns, not `MockProfile`'s camelCase. */
+export type PersistableProfilePatch = {
+  nombre?: string;
+  apellido?: string;
+  idioma?: MockProfile['idioma'];
+  numero_matricula?: string;
+};
 
 /** Splits a screen-level edit into what the API stores and what stays local. */
 export function splitProfileUpdate(input: UpdateProfileInput): {
@@ -78,6 +91,11 @@ export function splitProfileUpdate(input: UpdateProfileInput): {
   if (input.idioma !== undefined) {
     persistable.idioma = input.idioma;
   }
+  if (input.numeroMatricula !== undefined) {
+    // R-05: sent defensively — the API doesn't accept this column via PATCH
+    // /me yet (backend TODO), so this is a no-op there until it does.
+    persistable.numero_matricula = input.numeroMatricula;
+  }
 
   const local: Partial<LocalOnlyProfileState> = {};
   if (input.communicationPreference !== undefined) {
@@ -85,6 +103,13 @@ export function splitProfileUpdate(input: UpdateProfileInput): {
   }
   if (input.accessibilityPreference !== undefined) {
     local.accessibilityPreference = input.accessibilityPreference;
+  }
+  // `'matriculaUrl' in input`, not `!== undefined`: removing an attachment
+  // patches it to `undefined` explicitly (see app/profile/edit.tsx's
+  // handleRemoveMatricula), which a `!== undefined` check would
+  // indistinguishably treat as "field not touched" and silently drop.
+  if ('matriculaUrl' in input) {
+    local.matriculaUrl = input.matriculaUrl;
   }
 
   return { persistable, local };
@@ -139,6 +164,11 @@ export function createApiProfileService(http: HttpClient): ProfileApiService {
     },
 
     requestAccountDeactivation(): Promise<AccountActionResult> {
+      // R-06: `depuracionProgramadaAt` is an unchecked cast like every other
+      // field here — if `/me/desactivacion` doesn't send it yet, this
+      // resolves to `undefined` at runtime despite the type, and the
+      // account screen already treats it as optional-in-practice (falsy →
+      // no depuración notice), so that's a silent no-op, not a crash.
       return http.request<AccountActionResult>('/me/desactivacion', { method: 'POST' });
     },
   };

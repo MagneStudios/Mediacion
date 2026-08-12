@@ -38,6 +38,7 @@ const CTA_KEY: Record<CaseStatusLabelKey, 'continue' | 'respond' | 'view'> = {
   proposalReady: 'respond',
   signed: 'view',
   awaitingCounterparty: 'view',
+  expired: 'view',
 };
 
 function buttonVariantFor(ctaKey: 'continue' | 'respond' | 'view', visualStatus: CaseVisualStatus): 'primary' | 'ai' | 'secondary' {

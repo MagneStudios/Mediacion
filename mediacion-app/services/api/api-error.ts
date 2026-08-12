@@ -29,6 +29,10 @@ export const codePropuestaAlreadyExists = 'propuesta_already_exists';
 export const codeBothPartiesRequired = 'both_parties_required';
 export const codeInvalidToken = 'invalid_token';
 export const codeNetworkUnavailable = 'network_unavailable';
+/** R-04: an invitation token that existed but is past its TTL (72 h) — kept
+ * distinct from `codeInvalidToken` so the join screen can show "this
+ * invitation expired" instead of a generic "check the code" message. */
+export const codeInvitationExpired = 'invitation_expired';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';
