@@ -29,7 +29,7 @@ EXPECTED_TABLES = [
     "carpetas", "suscripciones", "pagos", "casos", "caso_partes",
     "invitaciones", "items", "rondas", "propuestas", "respuestas_propuesta",
     "mediaciones", "acuerdos", "firmas", "tareas", "incumplimientos",
-    "notificaciones", "auditoria", "facturas", "envios_email",
+    "notificaciones", "auditoria",
 ]
 
 EXPECTED_FUNCTIONS = [
@@ -62,7 +62,6 @@ RLS_TABLES = [
     "propuestas", "respuestas_propuesta", "mediaciones", "acuerdos",
     "firmas", "tareas", "incumplimientos", "notificaciones",
     "configuracion", "auditoria", "planes", "inversores",
-    "facturas", "envios_email",
 ]
 
 RESULTS = []
@@ -155,7 +154,7 @@ def main():
         print()
         print("=== Catalog Seeds ===")
         check("Planes seeded", cur, "SELECT COUNT(*) FROM planes", 4, "4 plans expected")
-        check("Configuracion seeded", cur, "SELECT COUNT(*) FROM configuracion", 7, "7 config entries expected")
+        check("Configuracion seeded", cur, "SELECT COUNT(*) FROM configuracion", 5, "5 config entries expected")
 
         # 6. updated_at triggers count
         print()
@@ -167,7 +166,7 @@ def main():
         """)
         check("updated_at triggers installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='set_updated_at'",
-              17, "17 tables have set_updated_at")
+              16, "16 tables have set_updated_at")
 
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",

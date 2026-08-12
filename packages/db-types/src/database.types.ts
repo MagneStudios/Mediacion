@@ -334,91 +334,6 @@ export type Database = {
           },
         ];
       };
-      envios_email: {
-        Row: {
-          created_at: string;
-          id: string;
-          intentos: number;
-          notificacion_id: string;
-          ultimo_error: string | null;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          intentos?: number;
-          notificacion_id: string;
-          ultimo_error?: string | null;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          intentos?: number;
-          notificacion_id?: string;
-          ultimo_error?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "envios_email_notificacion_id_fkey";
-            columns: ["notificacion_id"];
-            isOneToOne: false;
-            referencedRelation: "notificaciones";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      facturas: {
-        Row: {
-          cae: string | null;
-          created_at: string;
-          estado: string;
-          id: string;
-          impuestos: string | null;
-          iva: string | null;
-          neto: string | null;
-          numero: string | null;
-          pago_id: string;
-          total: string;
-          url_pdf: string | null;
-        };
-        Insert: {
-          cae?: string | null;
-          created_at?: string;
-          estado?: string;
-          id?: string;
-          impuestos?: string | null;
-          iva?: string | null;
-          neto?: string | null;
-          numero?: string | null;
-          pago_id: string;
-          total: string;
-          url_pdf?: string | null;
-        };
-        Update: {
-          cae?: string | null;
-          created_at?: string;
-          estado?: string;
-          id?: string;
-          impuestos?: string | null;
-          iva?: string | null;
-          neto?: string | null;
-          numero?: string | null;
-          pago_id?: string;
-          total?: string;
-          url_pdf?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "facturas_pago_id_fkey";
-            columns: ["pago_id"];
-            isOneToOne: false;
-            referencedRelation: "pagos";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       firmas: {
         Row: {
           acuerdo_id: string;
@@ -541,7 +456,6 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_invitacion"];
           fecha_envio: string | null;
           id: string;
-          pago_a_cargo: string | null;
           tipo: Database["public"]["Enums"]["tipo_invitacion"];
           token: string | null;
           updated_at: string;
@@ -553,7 +467,6 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_invitacion"];
           fecha_envio?: string | null;
           id?: string;
-          pago_a_cargo?: string | null;
           tipo: Database["public"]["Enums"]["tipo_invitacion"];
           token?: string | null;
           updated_at?: string;
@@ -565,7 +478,6 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_invitacion"];
           fecha_envio?: string | null;
           id?: string;
-          pago_a_cargo?: string | null;
           tipo?: Database["public"]["Enums"]["tipo_invitacion"];
           token?: string | null;
           updated_at?: string;
@@ -797,7 +709,7 @@ export type Database = {
           created_at: string;
           id: string;
           limite_carpetas: number;
-          limite_casos: number | null;
+          limite_casos: number;
           limite_iteraciones_ia: number;
           nombre: string;
           precio: number;
@@ -807,7 +719,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           limite_carpetas: number;
-          limite_casos?: number | null;
+          limite_casos: number;
           limite_iteraciones_ia: number;
           nombre: string;
           precio: number;
@@ -817,7 +729,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           limite_carpetas?: number;
-          limite_casos?: number | null;
+          limite_casos?: number;
           limite_iteraciones_ia?: number;
           nombre?: string;
           precio?: number;
@@ -1078,18 +990,14 @@ export type Database = {
           consentimiento_envelope_id: string | null;
           consentimiento_fecha: string | null;
           created_at: string;
-          depuracion_programada_at: string | null;
           documento: string | null;
           desactivacion_solicitada_at: string | null;
           email: string;
           estudio_id: string | null;
-          fecha_baja: string | null;
           id: string;
           idioma: string | null;
           nombre: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
-          numero_matricula: string | null;
-          matricula_url: string | null;
           preferencias_notificacion: Json;
           telefono: string | null;
           updated_at: string;
@@ -1103,18 +1011,14 @@ export type Database = {
           consentimiento_envelope_id?: string | null;
           consentimiento_fecha?: string | null;
           created_at?: string;
-          depuracion_programada_at?: string | null;
           documento?: string | null;
           desactivacion_solicitada_at?: string | null;
           email: string;
           estudio_id?: string | null;
-          fecha_baja?: string | null;
           id: string;
           idioma?: string | null;
           nombre: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
-          numero_matricula?: string | null;
-          matricula_url?: string | null;
           preferencias_notificacion?: Json;
           telefono?: string | null;
           updated_at?: string;
@@ -1128,18 +1032,14 @@ export type Database = {
           consentimiento_envelope_id?: string | null;
           consentimiento_fecha?: string | null;
           created_at?: string;
-          depuracion_programada_at?: string | null;
           documento?: string | null;
           desactivacion_solicitada_at?: string | null;
           email?: string;
           estudio_id?: string | null;
-          fecha_baja?: string | null;
           id?: string;
           idioma?: string | null;
           nombre?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
-          numero_matricula?: string | null;
-          matricula_url?: string | null;
           preferencias_notificacion?: Json;
           telefono?: string | null;
           updated_at?: string;
@@ -1360,7 +1260,6 @@ export const Constants = {
         "cerrado",
         "terminado",
         "vencido",
-        "expirado",
       ],
       estado_invitacion: ["pendiente", "aceptada", "rechazada", "expirada"],
       estado_mediacion: [
