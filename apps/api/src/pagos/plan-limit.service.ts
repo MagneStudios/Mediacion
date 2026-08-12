@@ -12,7 +12,7 @@ type CaseLimitScope =
   | { type: "estudio"; id: string };
 
 type ActiveCaseLimit = {
-  limiteCasos: number | null;
+  limiteCasos: number;
   scope: CaseLimitScope;
 };
 
@@ -32,11 +32,7 @@ export class PlanLimitService {
 
   async assertCanCreateCase(callerId: string): Promise<void> {
     const activeLimit = await this.resolveActiveCaseLimit(callerId);
-    if (
-      !activeLimit ||
-      activeLimit.limiteCasos === unlimitedLimit ||
-      activeLimit.limiteCasos === null
-    ) {
+    if (!activeLimit || activeLimit.limiteCasos === unlimitedLimit) {
       return;
     }
     const count = await this.countCases(activeLimit.scope);

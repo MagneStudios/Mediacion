@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-08-10
+> Última actualización: 2026-07-28
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 24 tablas |
+| RLS | Habilitado en las 22 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 55001, DB 55002, Studio 55003) |
 
@@ -43,18 +43,10 @@ supabase/migrations/
 ├── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
 ├── 20260728120000_usuarios_consentimiento.sql       # consentimiento_fecha + consentimiento_envelope_id en usuarios
 ├── 20260728200000_function_search_path.sql     # SET search_path en 11 funciones
-├── 20260728210000_rls_auth_initplan.sql        # (SELECT auth.uid()) en RLS policies
-├── 20260729180000_inversores_select_admin_only.sql  # inversores SELECT solo admin
-├── 20260729190000_is_admin_initplan.sql       # is_admin() con initplan
-├── 20260730130000_audit_trigger_qualify_auditoria.sql  # audit trigger califica auditoria
-├── 20260730180000_backend_gap_features.sql    # features gap del backend
-├── 20260810120000_cambios_reunion_07_08.sql   # reunion 07/08: expirado, facturas, envios_email, pago_a_cargo, plan estudio
-├── 20260811130000_linter_security_revoke.sql  # REVOKE EXECUTE triggers + helpers (anon/PUBLIC); hardening inversores_insert_anon
-├── 20260811140000_linter_perf_consolidate_policies.sql  # 1 policy SELECT por tabla (firmas, items, notificaciones, usuarios)
-└── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
+└── 20260728210000_rls_auth_initplan.sql        # (SELECT auth.uid()) en RLS policies
 ```
 
-## Modelo de datos (24 tablas)
+## Modelo de datos (22 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -82,17 +74,15 @@ supabase/migrations/
 - `incumplimientos` — avisos de incumplimiento
 
 ### Monetización
-- `planes` — catálogo público (base, simple, plus, estudio; `limite_casos` NULL = ilimitado)
+- `planes` — catálogo público (base, simple, plus, estudio)
 - `suscripciones` — FK XOR (usuario_id ↔ estudio_id)
 - `pagos` — confirmados por webhook de Mercado Pago
-- `facturas` — facturación por pago (neto, IVA, impuestos, CAE, URL PDF)
 
 ### Sistema
 - `notificaciones` — email/push
-- `envios_email` — rastreo de envíos por notificación (intentos, último error)
 - `inversores` — formulario público de captación
 - `auditoria` — log inmutable de acciones sensibles
-- `configuracion` — key-value para settings del sistema (incluye `impuestos` AR y `invitacion_ttl_horas`)
+- `configuracion` — key-value para settings del sistema
 
 ## Decisiones de diseño
 
@@ -174,8 +164,8 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 ### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 66/66 PASS
-- 24 tablas, 13 funciones, 19 enums, 24 RLS, 4 planes, 7 configs, 17 updated_at triggers, 9 audit triggers
+**Schema validation (smoke_migrations.py):** 64/64 PASS
+- 22 tablas, 12 funciones, 19 enums, 22 RLS, 4 planes, 5 configs, 16 updated_at triggers, 9 audit triggers
 
 **RLS validation (validate_rls.py):** 13/13 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
@@ -196,16 +186,15 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 24 tablas, 19 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 24 archivos SQL aplicados y testeados |
+| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 22 tablas, 19 enums, relaciones y notas |
+| Fase 2 — Migraciones | ✅ Cerrada | 17 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 66/66 smoke + 13/13 RLS |
+| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 64/64 smoke + 13/13 RLS |
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
-| Reunión 07/08 (R-04…R-12) | ✅ Implementado | expirado, facturas, envios_email, pago_a_cargo, plan estudio 25.00 |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
 
 ### Pendiente del cliente (a confirmar)
-- Precios y límites finales de los planes (restantes: base, simple, plus)
+- Precios y límites finales de los planes
 - Calendario nativo vs proveedor externo
