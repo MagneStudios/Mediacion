@@ -48,7 +48,10 @@ supabase/migrations/
 ├── 20260729190000_is_admin_initplan.sql       # is_admin() con initplan
 ├── 20260730130000_audit_trigger_qualify_auditoria.sql  # audit trigger califica auditoria
 ├── 20260730180000_backend_gap_features.sql    # features gap del backend
-└── 20260810120000_cambios_reunion_07_08.sql   # reunion 07/08: expirado, facturas, envios_email, pago_a_cargo, plan estudio
+├── 20260810120000_cambios_reunion_07_08.sql   # reunion 07/08: expirado, facturas, envios_email, pago_a_cargo, plan estudio
+├── 20260811130000_linter_security_revoke.sql  # REVOKE EXECUTE triggers + helpers (anon/PUBLIC); hardening inversores_insert_anon
+├── 20260811140000_linter_perf_consolidate_policies.sql  # 1 policy SELECT por tabla (firmas, items, notificaciones, usuarios)
+└── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
 ```
 
 ## Modelo de datos (24 tablas)
