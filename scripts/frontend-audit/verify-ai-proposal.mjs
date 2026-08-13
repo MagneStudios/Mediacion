@@ -20,7 +20,7 @@ for (const width of widths) {
     if (msg.type() === "error") consoleErrors.push(msg.text());
   });
   page.on("pageerror", (err) =>
-    consoleErrors.push("pageerror: " + err.message),
+    consoleErrors.push(`pageerror: ${err.message}`),
   );
 
   await page.goto(`${BASE_URL}/case/case-2/negotiation`, {

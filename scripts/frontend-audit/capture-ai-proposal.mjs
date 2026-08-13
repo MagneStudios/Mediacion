@@ -133,10 +133,10 @@ try {
   await ctaLocator.click();
   await page.waitForTimeout(800);
   const url = page.url();
-  console.log("URL_AFTER_CARD_CLICK=" + url);
+  console.log(`URL_AFTER_CARD_CLICK=${url}`);
   const match = url.match(/\/case\/([^/?]+)/);
   const newCaseId = match ? decodeURIComponent(match[1]) : null;
-  console.log("NEW_CASE_ID=" + newCaseId);
+  console.log(`NEW_CASE_ID=${newCaseId}`);
 
   // The product exposes no in-app link into /negotiation for a case still
   // in 'nuevo' (negotiation/positions/mediator sections are hidden until
