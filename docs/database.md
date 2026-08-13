@@ -42,6 +42,7 @@ supabase/migrations/
 ├── 20260728000000_notificaciones_estado_enum.sql    # notificaciones.estado TEXT → enum
 ├── 20260728010000_write_rls_notif_incump_tareas.sql # INSERT/UPDATE RLS notif/incump/tareas
 ├── 20260728120000_usuarios_consentimiento.sql       # consentimiento_fecha + consentimiento_envelope_id en usuarios
+├── 20260728130000_tareas_acuerdo_generation_unique.sql  # UNIQUE tareas(acuerdo_id, descripcion) — idempotencia RN-14
 ├── 20260728200000_function_search_path.sql     # SET search_path en 11 funciones
 ├── 20260728210000_rls_auth_initplan.sql        # (SELECT auth.uid()) en RLS policies
 ├── 20260729180000_inversores_select_admin_only.sql  # inversores SELECT solo admin
@@ -197,7 +198,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 24 tablas, 19 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 24 archivos SQL aplicados y testeados |
+| Fase 2 — Migraciones | ✅ Cerrada | 27 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
 | Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 66/66 smoke + 13/13 RLS |
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
