@@ -45,6 +45,28 @@ def run_test(name, cur, user_id, sql, expected, description=""):
     return passed
 
 
+def run_denied_test(name, cur, user_id, sql, role="anon", description=""):
+    """Ejecuta un SQL con un rol que NO tiene EXECUTE sobre las funciones
+    helper (anon tras el REVOKE de 20260811130000) y espera permiso denegado."""
+    cur.execute(f"SET role = '{role}'")
+    cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"{role}\"}}'")
+    denied = False
+    try:
+        cur.execute(sql)
+        cur.fetchall()
+    except psycopg2.errors.InsufficientPrivilege:
+        denied = True
+    except psycopg2.Error:
+        denied = False
+    cur.execute("RESET role")
+    cur.execute("RESET request.jwt.claims")
+
+    status = "PASS" if denied else "FAIL"
+    RESULTS.append({"name": name, "status": status, "expected": True, "actual": denied})
+    print(f"  [{status}] {name}: expected=denied, actual={denied}" + (f" ({description})" if description else ""))
+    return denied
+
+
 def get_user_ids(cur):
     """Obtiene IDs de usuarios de prueba creados por test_01_setup.sql."""
     ids = {}
@@ -156,7 +178,25 @@ def main():
             )
 
         print()
-        print("=== Helper Functions ===")
+        print("=== Helper Functions (EXECUTE revocado a anon) ===")
+        if "parte_a" in ids:
+            run_denied_test(
+                "is_part_of_case(Parte A) denied for anon",
+                cur, ids["parte_a"],
+                f"SELECT is_part_of_case('{caso_id}')",
+                role="anon",
+                description="EXECUTE revocado a anon — helpers solo para authenticated",
+            )
+        if "admin" in ids:
+            run_denied_test(
+                "is_admin(Admin) denied for anon",
+                cur, ids["admin"],
+                "SELECT is_admin()",
+                role="anon",
+            )
+
+        print()
+        print("=== Helper Functions (funcionan como authenticated) ===")
         if "parte_a" in ids:
             run_test(
                 "is_part_of_case(Parte A) = true",
@@ -191,6 +231,23 @@ def main():
                 cur, ids["parte_a"],
                 "SELECT is_admin()",
                 False,
+            )
+
+        print()
+        print("=== Helper functions funcionan vía policies (items) ===")
+        if "admin" in ids:
+            run_test(
+                "Admin sees all items (is_admin via policy)",
+                cur, ids["admin"],
+                f"SELECT COUNT(*) FROM items WHERE caso_id = '{caso_id}'",
+                2, "Admin access via is_admin() dentro de items_select",
+            )
+        if "mediador" in ids:
+            run_test(
+                "Mediator sees items via is_mediator_of_case",
+                cur, ids["mediador"],
+                f"SELECT COUNT(*) FROM items WHERE caso_id = '{caso_id}'",
+                2, "Mediator access via is_mediator_of_case() dentro de items_select",
             )
 
         # --- Summary ---
