@@ -20,7 +20,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 | Auth | Supabase Auth nativo (`auth.uid()`) |
 | RLS | Habilitado en las 24 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
-| Config local | `supabase/config.toml` (puertos: API 55001, DB 55002, Studio 55003) |
+| Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
 ## Archivos de migración
 
@@ -52,7 +52,8 @@ supabase/migrations/
 ├── 20260810120000_cambios_reunion_07_08.sql   # reunion 07/08: expirado, facturas, envios_email, pago_a_cargo, plan estudio
 ├── 20260811130000_linter_security_revoke.sql  # REVOKE EXECUTE triggers + helpers (anon/PUBLIC); hardening inversores_insert_anon
 ├── 20260811140000_linter_perf_consolidate_policies.sql  # 1 policy SELECT por tabla (firmas, items, notificaciones, usuarios)
-└── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
+├── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
+└── 20260814160000_grants_schema_public.sql   # GRANT USAGE schema public a roles JWT (stack Coolify)
 ```
 
 ## Modelo de datos (24 tablas)
@@ -198,9 +199,9 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 24 tablas, 19 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 27 archivos SQL aplicados y testeados |
+| Fase 2 — Migraciones | ✅ Cerrada | 28 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 66/66 smoke + 13/13 RLS |
+| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 66/66 smoke + 17/17 RLS |
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 | Reunión 07/08 (R-04…R-12) | ✅ Implementado | expirado, facturas, envios_email, pago_a_cargo, plan estudio 25.00 |
 

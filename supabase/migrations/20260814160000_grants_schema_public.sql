@@ -1,0 +1,22 @@
+-- ============================================================
+-- Proyecto Mediación — Migration: grants del schema public
+-- Fecha: 2026-08-14
+-- Origen: docs/changelogs-db/2026-08-14.md (Pendiente 4)
+--   El stack self-hosted de Coolify (producción-de-prueba) arranca con el
+--   ACL del schema public vacío: anon/authenticated/service_role no tienen
+--   USAGE, por lo que las policies RLS jamás se evalúan para roles JWT:
+--   una query sin calificar falla con "relation does not exist" (el schema
+--   inaccesible se saltea en el search_path) y una calificada con
+--   "permission denied for schema public". La API funciona hoy porque
+--   corre como postgres (bypassrls), pero el acceso con tokens JWT
+--   (auth.uid() / rol authenticated) queda inutilizado.
+--   Esta migración restaura los grants estándar de Supabase sobre el
+--   schema. Los GRANT por objeto ya viven en las migraciones de cada
+--   tabla/función (filosofía del repo: grants explícitos por objeto).
+--   No se agregan ALTER DEFAULT PRIVILEGES: los objetos futuros siguen
+--   declarando sus grants explícitamente en su migración.
+-- Reglas: idempotente (GRANT re-aplicable). No toca ACL de objetos ni datos.
+-- Rollback: REVOKE USAGE ON SCHEMA public FROM postgres, anon, authenticated, service_role;
+-- ============================================================
+
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;

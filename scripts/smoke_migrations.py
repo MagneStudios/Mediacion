@@ -21,7 +21,7 @@ import psycopg2
 
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:55002/postgres",
+    "postgresql://postgres:postgres@localhost:57002/postgres",
 )
 
 EXPECTED_TABLES = [
