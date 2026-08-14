@@ -643,6 +643,45 @@ export type Database = {
           },
         ];
       };
+      legal_documents: {
+        Row: {
+          contenido: string;
+          created_at: string;
+          id: string;
+          is_substantial: boolean;
+          resumen_cambios: string | null;
+          tipo: string;
+          updated_at: string;
+          valid_from: string;
+          valid_to: string | null;
+          version: string;
+        };
+        Insert: {
+          contenido: string;
+          created_at?: string;
+          id?: string;
+          is_substantial?: boolean;
+          resumen_cambios?: string | null;
+          tipo: string;
+          updated_at?: string;
+          valid_from?: string;
+          valid_to?: string | null;
+          version: string;
+        };
+        Update: {
+          contenido?: string;
+          created_at?: string;
+          id?: string;
+          is_substantial?: boolean;
+          resumen_cambios?: string | null;
+          tipo?: string;
+          updated_at?: string;
+          valid_from?: string;
+          valid_to?: string | null;
+          version?: string;
+        };
+        Relationships: [];
+      };
       mediaciones: {
         Row: {
           caso_id: string;
@@ -962,6 +1001,45 @@ export type Database = {
           },
         ];
       };
+      solicitudes_arrepentimiento: {
+        Row: {
+          codigo: string | null;
+          created_at: string;
+          detalle: string;
+          email: string;
+          estado: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id: string;
+          nombre: string;
+          received_at: string;
+          updated_at: string;
+          usuario_id: string | null;
+        };
+        Insert: {
+          codigo?: string | null;
+          created_at?: string;
+          detalle: string;
+          email: string;
+          estado?: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id?: string;
+          nombre: string;
+          received_at?: string;
+          updated_at?: string;
+          usuario_id?: string | null;
+        };
+        Update: {
+          codigo?: string | null;
+          created_at?: string;
+          detalle?: string;
+          email?: string;
+          estado?: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id?: string;
+          nombre?: string;
+          received_at?: string;
+          updated_at?: string;
+          usuario_id?: string | null;
+        };
+        Relationships: [];
+      };
       suscripciones: {
         Row: {
           created_at: string;
@@ -1071,6 +1149,42 @@ export type Database = {
           },
         ];
       };
+      user_agreements: {
+        Row: {
+          accepted: boolean;
+          accepted_at: string;
+          created_at: string;
+          document_type: string;
+          document_version: string;
+          id: string;
+          ip: string;
+          user_agent: string;
+          user_id: string;
+        };
+        Insert: {
+          accepted: boolean;
+          accepted_at?: string;
+          created_at?: string;
+          document_type: string;
+          document_version: string;
+          id?: string;
+          ip: string;
+          user_agent: string;
+          user_id: string;
+        };
+        Update: {
+          accepted?: boolean;
+          accepted_at?: string;
+          created_at?: string;
+          document_type?: string;
+          document_version?: string;
+          id?: string;
+          ip?: string;
+          user_agent?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       usuarios: {
         Row: {
           activo: boolean;
@@ -1162,6 +1276,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      has_accepted_current: {
+        Args: { p_user_id: string; p_document_type: string };
+        Returns: boolean;
+      };
       is_admin: { Args: never; Returns: boolean };
       is_estudio: { Args: never; Returns: boolean };
       is_mediator_of_case: { Args: { case_uuid: string }; Returns: boolean };
@@ -1182,6 +1300,11 @@ export type Database = {
         | "personalizado";
       decision_propuesta: "acepta" | "rechaza";
       estado_acuerdo: "borrador" | "enviado_a_firma" | "firmado" | "con_aviso";
+      estado_arrepentimiento:
+        | "recibida"
+        | "en_proceso"
+        | "resuelta"
+        | "rechazada";
       estado_caso:
         | "nuevo"
         | "activo"
@@ -1352,6 +1475,12 @@ export const Constants = {
       ],
       decision_propuesta: ["acepta", "rechaza"],
       estado_acuerdo: ["borrador", "enviado_a_firma", "firmado", "con_aviso"],
+      estado_arrepentimiento: [
+        "recibida",
+        "en_proceso",
+        "resuelta",
+        "rechazada",
+      ],
       estado_caso: [
         "nuevo",
         "activo",

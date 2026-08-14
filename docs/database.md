@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-08-10
+> Última actualización: 2026-08-14
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 24 tablas |
+| RLS | Habilitado en las 27 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
@@ -53,10 +53,11 @@ supabase/migrations/
 ├── 20260811130000_linter_security_revoke.sql  # REVOKE EXECUTE triggers + helpers (anon/PUBLIC); hardening inversores_insert_anon
 ├── 20260811140000_linter_perf_consolidate_policies.sql  # 1 policy SELECT por tabla (firmas, items, notificaciones, usuarios)
 ├── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
-└── 20260814160000_grants_schema_public.sql   # GRANT USAGE schema public a roles JWT (stack Coolify)
+├── 20260814160000_grants_schema_public.sql   # GRANT USAGE schema public a roles JWT (stack Coolify)
+└── 20260814170000_tyc_legal.sql    # Módulo legal: legal_documents, user_agreements (append-only), solicitudes_arrepentimiento, estado_arrepentimiento, has_accepted_current, trigger anti-contratación, 3 policies, seeds terms/privacy v1.0
 ```
 
-## Modelo de datos (24 tablas)
+## Modelo de datos (27 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -96,6 +97,11 @@ supabase/migrations/
 - `auditoria` — log inmutable de acciones sensibles
 - `configuracion` — key-value para settings del sistema (incluye `impuestos` AR y `invitacion_ttl_horas`)
 
+### Módulo legal (TyC)
+- `legal_documents` — texto legal versionado (terms/privacy) en la base; una sola versión vigente por tipo (partial unique); lectura pública (anon/authenticated) solo de la vigente
+- `user_agreements` — log append-only real de aceptaciones: INSERT solo service_role/postgres, SELECT propio vía RLS, UPDATE/DELETE rechazados por trigger para todos los roles (incluido service_role, que bypasea RLS)
+- `solicitudes_arrepentimiento` — traza del POST público /legal/arrepentimiento (Res. 424/2020); `codigo` ARR-0001… por trigger; sin policies (solo roles de servidor)
+
 ## Decisiones de diseño
 
 | Decisión | Razón |
@@ -107,6 +113,10 @@ supabase/migrations/
 | RLS + GRANTS | RLS filtra filas; GRANTS dan acceso a nivel tabla a roles authenticated/anon/service_role |
 | `planes` e `inversores` con policies permisivas | Catálogo público y formulario público — lectura para todos |
 | Funciones helper SECURITY DEFINER | `is_part_of_case`, `is_mediator_of_case`, `is_admin` bypassan RLS internamente |
+| `user_agreements` append-only | UPDATE/DELETE rechazados por trigger para todos los roles; `service_role` con `bypassrls` también lo sufre |
+| No contratar sin aceptación | Trigger `validate_suscripcion_aceptacion` en `suscripciones`: usuario_id exige aceptación vigente de terms (`has_accepted_current`) |
+| Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
+| `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno |
 
 ## Comandos útiles
 
@@ -135,10 +145,10 @@ docker exec -it supabase_db_Mediacion psql -U postgres -d postgres
 ### Scripts Python
 
 ```bash
-# Verificar schema (56 checks: tablas, funciones, enums, RLS, triggers, seeds)
+# Verificar schema (72 checks: tablas, funciones, enums, RLS, triggers, seeds)
 python scripts/smoke_migrations.py
 
-# Validar RLS multi-rol (13 checks: items, casos, suscripciones, helper functions)
+# Validar RLS multi-rol (24 checks: items, casos, suscripciones, helper functions, módulo legal)
 python scripts/validate_rls.py
 
 # Generar datos de prueba con Faker
@@ -173,15 +183,17 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_13_backend_migrations.sql` | UNIQUE acuerdos, propuestas, máquina de estados propuesta, mediaciones write RLS |
 | `test_14_bug41_regression.sql` | Regression bug #4.1: transición activo→en_negociacion + idempotencia |
 | `test_15_e2e_flow_full.sql` | E2E full: 17 pasos (A-Q) cubriendo toda la máquina de estados + auditoría |
+| `test_16_tyc_legal.sql` | Módulo legal: has_accepted_current, append-only (UPDATE/DELETE), trigger anti-contratación, codigo ARR, única vigente |
 
 ### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 66/66 PASS
-- 24 tablas, 13 funciones, 19 enums, 24 RLS, 4 planes, 7 configs, 17 updated_at triggers, 9 audit triggers
+**Schema validation (smoke_migrations.py):** 72/72 PASS
+- 27 tablas, 13 funciones (incluye has_accepted_current), 20 enums, 27 RLS, 4 planes, 7 configs, 2 legal docs, 19 updated_at triggers, 11 audit triggers
 
-**RLS validation (validate_rls.py):** 13/13 PASS
+**RLS validation (validate_rls.py):** 24/24 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
 - Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos
+- Módulo legal: anon lee legal_documents vigente; cada usuario ve solo sus user_agreements; INSERT/has_accepted_current denegados a authenticated
 
 **SQL tests (15 tests — setup + 12 standalone + 2 E2E):**
 - RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
@@ -198,12 +210,13 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 24 tablas, 19 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 28 archivos SQL aplicados y testeados |
+| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 27 tablas, 20 enums, relaciones y notas |
+| Fase 2 — Migraciones | ✅ Cerrada | 29 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ✅ Cerrada | 15 tests SQL + 66/66 smoke + 17/17 RLS |
+| Fase 4 — QA/E2E | ✅ Cerrada | 16 tests SQL + 72/72 smoke + 24/24 RLS |
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 | Reunión 07/08 (R-04…R-12) | ✅ Implementado | expirado, facturas, envios_email, pago_a_cargo, plan estudio 25.00 |
+| Módulo legal (TyC) | ✅ Implementado | legal_documents, user_agreements append-only, solicitudes_arrepentimiento, trigger anti-contratación, seeds v1.0 (texto con [COMPLETAR] pendientes de Administración) |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
