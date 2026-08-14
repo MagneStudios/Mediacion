@@ -20,7 +20,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 | Auth | Supabase Auth nativo (`auth.uid()`) |
 | RLS | Habilitado en las 24 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
-| Config local | `supabase/config.toml` (puertos: API 55001, DB 55002, Studio 55003) |
+| Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
 ## Archivos de migración
 
