@@ -298,6 +298,16 @@
       "subscribeAction": "Suscribirme",
       "error": {
         "title": "No pudimos cargar tu plan"
+      },
+      "cancel": {
+        "action": "Dar de baja mi suscripción",
+        "dialogTitle": "¿Querés dar de baja tu suscripción?",
+        "dialogBody": "Se cancela el cobro que se repite cada mes. Vas a poder usar la aplicación hasta el final del período que ya pagaste. Tu cuenta y tus casos no se borran.",
+        "confirm": "Sí, dar de baja",
+        "keep": "Mantener mi plan",
+        "error": {
+          "title": "No pudimos dar de baja tu suscripción"
+        }
       }
     },
     "checkout": {
@@ -1353,6 +1363,68 @@
       "error": {
         "title": "No pudimos preparar el evento de calendario"
       }
+    }
+  },
+  "legal": {
+    "terms": {
+      "title": "Términos y Condiciones"
+    },
+    "privacy": {
+      "title": "Política de Privacidad"
+    },
+    "document": {
+      "updatedAt": "Última actualización: {{date}}",
+      "versionLabel": "Versión {{version}}",
+      "error": {
+        "title": "No pudimos cargar el documento"
+      },
+      "empty": {
+        "title": "El documento todavía no está publicado",
+        "description": "Volvé a intentarlo más tarde."
+      }
+    },
+    "acceptance": {
+      "required": "Leí y acepto los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>.",
+      "requiredA11yLabel": "Acepto los Términos y Condiciones y la Política de Privacidad",
+      "marketing": "Quiero recibir novedades y promociones por email. (Opcional)",
+      "marketingA11yLabel": "Quiero recibir novedades y promociones por email. Opcional."
+    },
+    "reacceptance": {
+      "title": "Cambiamos los Términos y Condiciones",
+      "description": "Hubo un cambio importante. Para seguir usando la aplicación, leé el texto nuevo y aceptalo.",
+      "summaryTitle": "Qué cambió",
+      "acceptAction": "Leí y acepto los nuevos términos",
+      "error": {
+        "title": "No pudimos registrar tu aceptación"
+      }
+    },
+    "withdrawal": {
+      "title": "Botón de arrepentimiento",
+      "linkLabel": "Arrepentimiento",
+      "buttonLabel": "Botón de arrepentimiento",
+      "description": "Si contrataste hace menos de 10 días, podés arrepentirte y cancelar sin costo y sin dar explicaciones. Completá este formulario y te respondemos por email. No hace falta tener cuenta ni iniciar sesión.",
+      "nombreLabel": "Nombre y apellido",
+      "nombrePlaceholder": "Tu nombre completo",
+      "detalleLabel": "Qué contrataste",
+      "detalleHint": "Contanos qué plan o servicio querés cancelar y, si la tenés, la fecha de la compra.",
+      "detallePlaceholder": "Por ejemplo: plan Estudio, contratado el 10 de agosto",
+      "submitAction": "Enviar solicitud",
+      "success": {
+        "title": "Recibimos tu solicitud",
+        "body": "Tu número de seguimiento es {{id}}. La recibimos el {{date}}. Te vamos a responder por email."
+      },
+      "error": {
+        "title": "No pudimos enviar tu solicitud"
+      }
+    },
+    "company": {
+      "title": "Datos de la empresa",
+      "razonSocial": "Razón social",
+      "domicilio": "Domicilio",
+      "contacto": "Contacto",
+      "plazoRespuesta": "Respondemos consultas y reclamos dentro de los {{dias}} días hábiles.",
+      "pendingValue": "Dato pendiente de publicación",
+      "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
     }
   }
 }

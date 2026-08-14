@@ -34,15 +34,27 @@ export type BillingService = {
    * nothing left this sandbox.
    */
   prepareInvoiceDownload(invoiceId: string): Promise<void>;
+  /**
+   * Botón de baja online (Ley 24.240 art. 10 ter, instructivo TyC §5):
+   * cancels the recurring charge by the same medium the user contracted.
+   * Distinct from account deactivation (`profile.service`'s R-06 flow) —
+   * this ends the billing relationship, not the account. The real thing is
+   * Backend's (docs/reparto-tyc-devs.md #20: cancel in Mercado Pago, cut
+   * recurrence, confirm by email — no endpoint exists yet); the mock flips
+   * the local subscription so the screen flow is real end-to-end.
+   */
+  cancelSubscription(): Promise<MockSubscription>;
 };
 
 /** In-memory only — cleared on app restart, never written to disk. */
 let currentSubscription: MockSubscription | null = null;
 const invoicesBySubscriptionId: Record<string, MockInvoice> = {};
 
-const failures = createFailureController<'subscribeToPlan' | 'prepareInvoiceDownload'>();
+const failures = createFailureController<'subscribeToPlan' | 'prepareInvoiceDownload' | 'cancelSubscription'>();
 
-export function __mockForceBillingFailure(operation: 'subscribeToPlan' | 'prepareInvoiceDownload'): void {
+export function __mockForceBillingFailure(
+  operation: 'subscribeToPlan' | 'prepareInvoiceDownload' | 'cancelSubscription',
+): void {
   failures.force(operation);
 }
 
@@ -114,6 +126,23 @@ export function createMockBillingService(): BillingService {
       const committed = await delay({ subscription, invoice }, 900);
       currentSubscription = committed.subscription;
       invoicesBySubscriptionId[committed.subscription.id] = committed.invoice;
+      return committed;
+    },
+
+    async cancelSubscription() {
+      if (failures.consume('cancelSubscription')) {
+        return rejectAfter('mock_cancel_subscription_failed', 600);
+      }
+      if (!currentSubscription || currentSubscription.estado !== 'activa') {
+        return rejectAfter('no_active_subscription', 300);
+      }
+      const cancelled: MockSubscription = {
+        ...currentSubscription,
+        estado: 'cancelada',
+        fechaFin: new Date().toISOString(),
+      };
+      const committed = await delay(cancelled, 700);
+      currentSubscription = committed;
       return committed;
     },
 

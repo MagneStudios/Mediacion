@@ -2,6 +2,7 @@ import { Link, Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { Button } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
@@ -9,7 +10,9 @@ import { typography } from '@/design-system/tokens/typography';
 import { useAuthSession } from '@/features/auth/auth-session';
 import { AuthForm } from '@/features/auth/components/AuthForm';
 import { useAuthForm } from '@/features/auth/useAuthForm';
+import { LegalFooter } from '@/features/legal/components/LegalFooter';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -60,6 +63,24 @@ export default function LoginScreen() {
             </Text>
           }
         />
+
+        {/*
+          Botón de arrepentimiento — Res. 424/2020 and instructivo TyC §5:
+          on the FIRST screen a visitor reaches, without registering or
+          logging in. Deliberately not tucked into the footer.
+        */}
+        <Button
+          variant="tertiary"
+          fullWidth
+          onPress={() => {
+            blurActiveElement();
+            router.push('/arrepentimiento');
+          }}
+        >
+          {t('legal.withdrawal.buttonLabel')}
+        </Button>
+
+        <LegalFooter />
       </ScrollView>
     </KeyboardAvoidingView>
   );

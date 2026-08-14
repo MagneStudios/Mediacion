@@ -8,11 +8,28 @@ import { backend } from '@/services/backend-instance';
 
 import { AuthSessionProvider, useAuthSession } from './auth-session';
 
-/** Routes reachable without a session. Everything else requires one. */
-const publicRoutes = ['/login', '/signup'];
+/**
+ * Auth entry screens: reachable without a session, and a signed-in user is
+ * bounced back home from them — there is nothing to do there with a session.
+ */
+const authRoutes = ['/login', '/signup'];
+
+/**
+ * Legal pages the instructivo TyC requires to be readable without
+ * registering or logging in (§1: the documents themselves; §5: the botón de
+ * arrepentimiento on the first screen, explicitly NOT behind the account).
+ * Unlike `authRoutes`, a signed-in user can visit these too.
+ */
+const legalRoutes = ['/terminos-y-condiciones', '/politica-de-privacidad', '/arrepentimiento'];
+
+const publicRoutes = [...authRoutes, ...legalRoutes];
+
+function matches(routes: string[], pathname: string): boolean {
+  return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
 
 function isPublic(pathname: string): boolean {
-  return publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  return matches(publicRoutes, pathname);
 }
 
 function Gate({ children }: { children: ReactNode }) {
@@ -31,7 +48,7 @@ function Gate({ children }: { children: ReactNode }) {
     return <Redirect href="/login" />;
   }
 
-  if (status === 'signedIn' && isPublic(pathname)) {
+  if (status === 'signedIn' && matches(authRoutes, pathname)) {
     return <Redirect href="/" />;
   }
 

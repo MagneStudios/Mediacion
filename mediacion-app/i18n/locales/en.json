@@ -298,6 +298,16 @@
       "subscribeAction": "Subscribe",
       "error": {
         "title": "We couldn't load your plan"
+      },
+      "cancel": {
+        "action": "Cancel my subscription",
+        "dialogTitle": "Cancel your subscription?",
+        "dialogBody": "This stops the monthly charge. You can keep using the app until the end of the period you already paid. Your account and your cases are not deleted.",
+        "confirm": "Yes, cancel it",
+        "keep": "Keep my plan",
+        "error": {
+          "title": "We could not cancel your subscription"
+        }
       }
     },
     "checkout": {
@@ -1353,6 +1363,68 @@
       "error": {
         "title": "We couldn't prepare the calendar event"
       }
+    }
+  },
+  "legal": {
+    "terms": {
+      "title": "Terms and Conditions"
+    },
+    "privacy": {
+      "title": "Privacy Policy"
+    },
+    "document": {
+      "updatedAt": "Last updated: {{date}}",
+      "versionLabel": "Version {{version}}",
+      "error": {
+        "title": "We could not load the document"
+      },
+      "empty": {
+        "title": "This document is not published yet",
+        "description": "Please try again later."
+      }
+    },
+    "acceptance": {
+      "required": "I have read and accept the <terms>Terms and Conditions</terms> and the <privacy>Privacy Policy</privacy>.",
+      "requiredA11yLabel": "I accept the Terms and Conditions and the Privacy Policy",
+      "marketing": "I want to receive news and offers by email. (Optional)",
+      "marketingA11yLabel": "I want to receive news and offers by email. Optional."
+    },
+    "reacceptance": {
+      "title": "We changed the Terms and Conditions",
+      "description": "There was an important change. To keep using the app, read the new text and accept it.",
+      "summaryTitle": "What changed",
+      "acceptAction": "I have read and accept the new terms",
+      "error": {
+        "title": "We could not record your acceptance"
+      }
+    },
+    "withdrawal": {
+      "title": "Withdrawal request",
+      "linkLabel": "Withdrawal",
+      "buttonLabel": "Withdrawal request",
+      "description": "If you purchased less than 10 days ago, you can withdraw and cancel at no cost, no questions asked. Fill in this form and we will reply by email. No account or sign-in needed.",
+      "nombreLabel": "Full name",
+      "nombrePlaceholder": "Your full name",
+      "detalleLabel": "What you purchased",
+      "detalleHint": "Tell us which plan or service you want to cancel and, if you have it, the purchase date.",
+      "detallePlaceholder": "For example: Estudio plan, purchased on August 10",
+      "submitAction": "Send request",
+      "success": {
+        "title": "We received your request",
+        "body": "Your tracking number is {{id}}. We received it on {{date}}. We will reply by email."
+      },
+      "error": {
+        "title": "We could not send your request"
+      }
+    },
+    "company": {
+      "title": "Company details",
+      "razonSocial": "Legal name",
+      "domicilio": "Address",
+      "contacto": "Contact",
+      "plazoRespuesta": "We answer questions and claims within {{dias}} business days.",
+      "pendingValue": "Pending publication",
+      "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
     }
   }
 }

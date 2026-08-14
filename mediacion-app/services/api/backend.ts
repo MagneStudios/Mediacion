@@ -7,6 +7,7 @@ import { createApiActivityService, type ApiActivityService } from './activity.ap
 import { createApiAgreementsService, type ApiAgreementsService } from './agreements.api-service';
 import { createApiCasesService, type ApiCasesService } from './cases.api-service';
 import { createHttpClient, type HttpClient } from './http-client';
+import { createApiLegalService, type ApiLegalService } from './legal.api-service';
 import { createApiMediatorService, type ApiMediatorService } from './mediator.api-service';
 import { createApiNegotiationService, type ApiNegotiationService } from './negotiation.api-service';
 import { createApiNoticesService, type ApiNoticesService } from './notices.api-service';
@@ -25,6 +26,12 @@ export type Backend = {
   negotiation: ApiNegotiationService;
   agreements: ApiAgreementsService;
   mediator: ApiMediatorService;
+  /**
+   * Written against the frozen `/legal/*` contract but not yet selected by
+   * `services/legal.service.ts` — the endpoints don't exist in `apps/api`
+   * yet (see that file's header for the activation plan).
+   */
+  legal: ApiLegalService;
 };
 
 /** Seams so a suite can build the stack without a network or native storage. */
@@ -88,5 +95,6 @@ export function createBackend(
     negotiation: createApiNegotiationService(http),
     agreements: createApiAgreementsService(http),
     mediator: createApiMediatorService(http),
+    legal: createApiLegalService(http),
   };
 }

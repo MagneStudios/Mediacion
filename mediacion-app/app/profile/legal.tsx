@@ -1,18 +1,21 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { LegalNoticeCard } from '@/features/profile/components/LegalNoticeCard';
+import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 const SECTION_KEYS = ['terms', 'privacyNotice', 'aiNotice', 'signatureNotice', 'retention', 'noAdvice'] as const;
 
 export default function ProfileLegalScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
   return (
@@ -25,6 +28,32 @@ export default function ProfileLegalScreen() {
       <Text style={[styles.title, isWide ? styles.titleWide : null]} accessibilityRole="header">
         {t('profile.legal.title')}
       </Text>
+
+      {/*
+        The full legal documents live on their own permanent public pages,
+        rendered from data (instructivo §1). The cards below are product
+        orientation, not the documents themselves.
+      */}
+      <View style={styles.documentLinks}>
+        <ProfileMenuItem
+          icon="file-text"
+          label={t('legal.terms.title')}
+          compact
+          onPress={() => {
+            blurActiveElement();
+            router.push('/terminos-y-condiciones');
+          }}
+        />
+        <ProfileMenuItem
+          icon="shield-check"
+          label={t('legal.privacy.title')}
+          compact
+          onPress={() => {
+            blurActiveElement();
+            router.push('/politica-de-privacidad');
+          }}
+        />
+      </View>
 
       {SECTION_KEYS.map((key) => (
         <LegalNoticeCard
@@ -56,5 +85,8 @@ const styles = StyleSheet.create({
   },
   titleWide: {
     ...typography.displayLg,
+  },
+  documentLinks: {
+    gap: spacing.sm,
   },
 });

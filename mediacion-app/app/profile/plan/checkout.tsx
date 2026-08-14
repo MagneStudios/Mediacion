@@ -9,8 +9,10 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { TaxBreakdownSummary } from '@/features/billing/components/TaxBreakdownSummary';
+import { AcceptanceCheckboxes } from '@/features/legal/components/AcceptanceCheckboxes';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { billingService } from '@/services/billing.service';
+import { legalService } from '@/services/legal.service';
 import { plansService } from '@/services/plans.service';
 import type { Plan } from '@/types/plan';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -28,6 +30,11 @@ export default function PlanCheckoutScreen() {
   const [fetchStatus, setFetchStatus] = useState<FetchStatus>('loading');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [payStatus, setPayStatus] = useState<PayStatus>('idle');
+  // Instructivo TyC §2: the checkout is a contracting point, so acceptance is
+  // asked here too — unchecked by default, and the pay button stays disabled
+  // until the mandatory one is ticked. Marketing remains optional.
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [marketingAccepted, setMarketingAccepted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,9 +87,16 @@ export default function PlanCheckoutScreen() {
   const breakdown = computeTaxBreakdown(plan.precio);
 
   const handlePay = async () => {
-    if (payStatus === 'submitting') return;
+    // The disabled button is UI courtesy; this guard covers programmatic
+    // calls. The real guarantee is the future DB constraint that rejects a
+    // contract without a current acceptance (docs/reparto-tyc-devs.md #11).
+    if (payStatus === 'submitting' || !termsAccepted) return;
     setPayStatus('submitting');
     try {
+      // Recorded before contracting so the server-side record exists when
+      // the subscription insert hits the acceptance constraint. The body
+      // only carries the marketing opt-in — IP/UA/version are server-side.
+      await legalService.registerAcceptance({ marketing: marketingAccepted });
       const { subscription } = await billingService.subscribeToPlan(plan.id);
       blurActiveElement();
       // replace, not push: a completed checkout has nothing left to do —
@@ -115,10 +129,26 @@ export default function PlanCheckoutScreen() {
 
       <Text style={styles.sandboxNotice}>{t('billing.checkout.sandboxNotice')}</Text>
 
+      <AcceptanceCheckboxes
+        termsAccepted={termsAccepted}
+        onChangeTerms={setTermsAccepted}
+        marketingAccepted={marketingAccepted}
+        onChangeMarketing={setMarketingAccepted}
+        disabled={payStatus === 'submitting'}
+      />
+
       {payStatus === 'error' ? (
         <ErrorState title={t('billing.checkout.error.title')} retryLabel={t('common.retry')} onRetry={handlePay} />
       ) : (
-        <Button variant="primary" size="lg" fullWidth onPress={handlePay} loading={payStatus === 'submitting'} loadingLabel={t('billing.checkout.paying')}>
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          onPress={handlePay}
+          disabled={!termsAccepted}
+          loading={payStatus === 'submitting'}
+          loadingLabel={t('billing.checkout.paying')}
+        >
           {t('billing.checkout.payAction')}
         </Button>
       )}

@@ -14,6 +14,7 @@ import 'react-native-reanimated';
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
 import { ErrorState } from '@/design-system';
 import { AuthGate } from '@/features/auth/AuthGate';
+import { ReacceptanceGate } from '@/features/legal/components/ReacceptanceGate';
 import { colors } from '@/design-system/tokens/colors';
 import { useDocumentLang } from '@/hooks/use-document-lang';
 import '@/i18n';
@@ -77,6 +78,13 @@ export default function RootLayout() {
         would lock everything behind a form that cannot succeed.
       */}
       <AuthGate>
+      {/*
+        ReacceptanceGate sits inside AuthGate: it covers the whole app with a
+        blocking overlay only when a substantial TyC change is pending
+        (instructivo §4.9). It fails open on errors — the DB constraint, not
+        this overlay, is the real enforcement.
+      */}
+      <ReacceptanceGate>
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -104,6 +112,7 @@ export default function RootLayout() {
           <Stack.Screen name="admin" options={{ headerShown: false }} />
         </Stack>
       </ResponsiveAppShell>
+      </ReacceptanceGate>
       </AuthGate>
       <StatusBar style="dark" />
     </ThemeProvider>
