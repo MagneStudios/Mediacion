@@ -11,7 +11,9 @@
 #     NUNCA se tipea inline en comandos.
 #   - NO usar vps_key.pem (está trackeada en git). Acceso con llave rotada.
 #   - Backup previo es OBLIGATORIO y bloqueante.
-#   - Solo `supabase db push`. Nunca SQL a mano en el SQL editor de Studio.
+#   - Push del delta: `supabase db push` o su equivalente probado (psql como
+#     supabase_admin + registro en schema_migrations — ver Tarea 3). Nunca SQL
+#     a mano en el SQL editor de Studio.
 #
 # Uso: bash staging-push-vps-agosto.sh
 #
@@ -24,20 +26,21 @@ STACKID="${STACKID:-qh5a6xd5ju7302obz5ozb74n}"          # stack id de Coolify
 DB_HOST="${DB_HOST:-supabase-db}"                       # alias interno de red
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-postgres}"
-DB_USER="${DB_USER:-postgres}"
+DB_USER="${DB_USER:-supabase_admin}"                  # postgres NO es superuser en Coolify
 CONTAINER="supabase-db-${STACKID}"
 NETWORK="${STACKID}"
-REPO_DIR="${REPO_DIR:-/root/Mediacion}"                 # ruta del repo en el VPS
+REPO_DIR="${REPO_DIR:-/root/mediacion-repo}"          # ruta real del repo en el VPS
 BRANCH="${BRANCH:-feat/supabase-db}"
 BACKUP_DIR="/root/backups"
 ENV_DB="/root/.env-db"                                  # env file del push (R4)
 VERIFY_ENV="/root/.env-verify"                          # env file de verificación
 DBURL_BASE="postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-# Estado remoto esperado ANTES del push (verificado el 2026-08)
-EXPECTED_MIGS="23"
-EXPECTED_LAST="20260730180000_backend_gap_features"
-EXPECTED_TABLES="22"
+# Estado remoto esperado ANTES del próximo push (verificado el 2026-08-14 tras
+# el push del delta de agosto + la migración de grants del schema public).
+EXPECTED_MIGS="28"
+EXPECTED_LAST="20260814160000_grants_schema_public"
+EXPECTED_TABLES="24"
 
 say() { printf '\n\033[1;36m== %s ==\033[0m\n' "$1"; }
 
@@ -132,20 +135,26 @@ echo "Migraciones de agosto en el repo:"
 ls -1 "$REPO_DIR"/supabase/migrations/202608*.sql
 
 # ---------------------------------------------------------------------------
-# Tarea 3 — Push del delta (solo `supabase db push`)
+# Tarea 3 — Push del delta
 # ---------------------------------------------------------------------------
-say "Tarea 3: supabase db push"
-# R4: password vía env-file → no queda en `ps` ni en el historial.
-printf 'SUPABASE_DB_URL=postgresql://%s:%s@%s:%s/%s?sslmode=disable\n' \
-  "$DB_USER" "$PGPASSWORD" "$DB_HOST" "$DB_PORT" "$DB_NAME" > "$ENV_DB"
-chmod 600 "$ENV_DB"
-docker run --rm \
-  --network "$NETWORK" \
-  --env-file "$ENV_DB" \
-  -v "$REPO_DIR":/repo \
-  -w /repo \
-  supabase/cli db push
-echo "db push terminó. Si el CLI se queja por major_version, ajustar config.toml en $REPO_DIR (gotcha 5)."
+say "Tarea 3: push del delta (psql + registro — equivalente a db push)"
+# NOTA 2026-08-14: la imagen Docker supabase/cli NO existe y el CLI v2 (binario
+# en /root/supabase-cli/supabase) no soporta db push contra este stack (exige
+# project ref y no resuelve drifts de nombres). Método probado: aplicar cada
+# migración pendiente con psql como supabase_admin (ON_ERROR_STOP) y registrarla
+# en supabase_migrations.schema_migrations (estado final idéntico a db push).
+for f in $(ls -1 "$REPO_DIR"/supabase/migrations/*.sql | sort); do
+  v="$(basename "$f" .sql)"
+  if [[ -n "$(psql_q "SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '$v';")" ]]; then
+    echo "  [skip] $v"
+    continue
+  fi
+  echo "  [apply] $v"
+  docker exec -i -e PGPASSWORD="$PGPASSWORD" "$CONTAINER" \
+    psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f - < "$f"
+  psql_q "INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ('$v', '${v#*_}');"
+done
+echo "Si hay drift de nombres en schema_migrations, ver docs/db-push-remoto.md (Parte 3)."
 
 # ---------------------------------------------------------------------------
 # Tarea 4 — Verificación remota
@@ -155,15 +164,17 @@ say "Tarea 4: verificación"
 echo "-- 4.1 Conteos --"
 MIGS="$(psql_q "SELECT count(*) FROM supabase_migrations.schema_migrations;")"
 TABLES="$(psql_q "SELECT count(*) FROM pg_tables WHERE schemaname='public';")"
-echo "schema_migrations=$MIGS (esperado 27)"
+echo "schema_migrations=$MIGS (esperado 28, con la de grants)"
 echo "tablas_public=$TABLES (esperado 24, con facturas y envios_email)"
 echo "-- Versiones de agosto registradas --"
 psql_q "SELECT version FROM supabase_migrations.schema_migrations WHERE version LIKE '202608%' ORDER BY version;"
-[[ "$MIGS" == "27" ]] || { echo "ERROR: no son 27 versiones."; exit 1; }
+[[ "$MIGS" == "28" ]] || { echo "ERROR: no son 28 versiones."; exit 1; }
 [[ "$TABLES" == "24" ]] || { echo "ERROR: no son 24 tablas."; exit 1; }
 
-# Env file compartido por los contenedores de verificación (password sin exponer)
-printf 'DATABASE_URL=%s?sslmode=disable\nPGPASSWORD=%s\n' "$DBURL_BASE" "$PGPASSWORD" > "$VERIFY_ENV"
+# Env file compartido por los contenedores de verificación (password sin exponer).
+# Si el password tiene caracteres especiales de URL (@ : / %), codificarlos.
+printf 'DATABASE_URL=postgresql://%s:%s@%s:%s/%s?sslmode=disable\nPGPASSWORD=%s\n' \
+  "$DB_USER" "$PGPASSWORD" "$DB_HOST" "$DB_PORT" "$DB_NAME" "$PGPASSWORD" > "$VERIFY_ENV"
 chmod 600 "$VERIFY_ENV"
 
 PYIMG="${PYIMG:-python:3.12-alpine}"
@@ -190,6 +201,7 @@ run_python "" "/scripts/smoke_migrations.py"
 
 echo "-- 4.3 validate_rls.py (esperado 17/17) --"
 # Fixtures de tmp/ aplicados SOLO si faltan (idempotente sobre staging).
+# tmp/ está gitignored → si no están en el repo del VPS, scp antes de correr.
 run_fixture() { # run_fixture <check-sql> <file> <desc>
   local n
   n="$(psql_q "$1")"
@@ -202,14 +214,20 @@ run_fixture() { # run_fixture <check-sql> <file> <desc>
   fi
 }
 run_fixture \
-  "SELECT count(*) FROM auth.users WHERE email IN ('partea@test.com','parteb@test.com','mediador@test.com','admin@test.com','no_parte@test.com');" \
-  "test_01_setup.sql" "usuarios de test"
+  "SELECT count(*) FROM auth.users WHERE email IN ('partea@test.com','parteb@test.com');" \
+  "test_01_setup.sql" "usuarios base (partea/parteb)"
 run_fixture \
   "SELECT count(*) FROM casos WHERE nombre = 'Custodia de hijos menores';" \
   "test_02_caso.sql" "caso de test"
 run_fixture \
   "SELECT count(*) FROM items WHERE caso_id = (SELECT id FROM casos WHERE nombre = 'Custodia de hijos menores' LIMIT 1);" \
   "test_03_items.sql" "items de test"
+run_fixture \
+  "SELECT count(*) FROM auth.users WHERE email IN ('mediador@test.com','admin@test.com','no_parte@test.com');" \
+  "test_10_rls_deep.sql" "usuarios RLS (mediador/admin/no_parte + vínculos)"
+run_fixture \
+  "SELECT count(*) FROM suscripciones WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa';" \
+  "test_11_helper_functions.sql" "helpers (estudio + suscripción parte A)"
 run_python "tmp" "/scripts/validate_rls.py"
 
 echo "-- 4.4 API (opcional, si la API corre en Coolify) --"
@@ -234,11 +252,11 @@ rm -f "$ENV_DB" "$VERIFY_ENV"
 echo "Env files temporales borrados. Backups: $BACKUP_DIR"
 
 say "Changelog obligatorio"
-echo "Registrar el resultado en docs/changelogs-db/2026-08-13.md (sección Pendientes → resuelta)"
-echo "o crear un changelog nuevo con la fecha de ejecución, indicando:"
+echo "Registrar el resultado en un changelog nuevo con la fecha de ejecución"
+echo "(ej. docs/changelogs-db/2026-08-14.md), indicando:"
 echo "  - backup tomado (nombre/ubicación: $DUMP_PATH)"
-echo "  - resultado del push (4 migraciones y sus versiones)"
-echo "  - verificación remota (27 versiones / 24 tablas / smoke / validate_rls)"
+echo "  - resultado del push (versiones aplicadas y registradas)"
+echo "  - verificación remota (28 versiones / 24 tablas / smoke / validate_rls)"
 echo "  - incidentes o rollback si los hubo"
 
 echo
