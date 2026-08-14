@@ -31,6 +31,7 @@ def connect():
 def run_test(name, cur, user_id, sql, expected, description=""):
     """Ejecuta un SQL con JWT simulado y compara el resultado."""
     cur.execute("SET role = 'authenticated'")
+    cur.execute("SET search_path = public")
     cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"authenticated\"}}'")
     cur.execute(sql)
     row = cur.fetchone()
@@ -49,6 +50,7 @@ def run_denied_test(name, cur, user_id, sql, role="anon", description=""):
     """Ejecuta un SQL con un rol que NO tiene EXECUTE sobre las funciones
     helper (anon tras el REVOKE de 20260811130000) y espera permiso denegado."""
     cur.execute(f"SET role = '{role}'")
+    cur.execute("SET search_path = public")
     cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"{role}\"}}'")
     denied = False
     try:
