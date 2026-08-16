@@ -195,4 +195,92 @@ describe("HttpMercadoPagoClient", () => {
       await expect(client.getPayment("123456")).rejects.toThrow("fetch failed");
     });
   });
+
+  describe("cancelSubscription", () => {
+    it("cancels the preapproval linked to the suscripcion by external_reference", async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              results: [{ id: "preapproval-1", status: "authorized" }],
+            }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await client.cancelSubscription("sus-1");
+
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.mercadopago.com/preapproval/search?external_reference=sus-1",
+      );
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        "https://api.mercadopago.com/preapproval/preapproval-1",
+      );
+      expect(fetchMock.mock.calls[1][1]).toMatchObject({
+        method: "PUT",
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+    });
+
+    it("does nothing when the suscripcion has no live preapproval, because one-off checkouts have nothing to cancel", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await client.cancelSubscription("sus-1");
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("skips a preapproval that is already cancelled", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            results: [{ id: "preapproval-1", status: "cancelled" }],
+          }),
+      });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await client.cancelSubscription("sus-1");
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws when the search fails, so the caller can compensate", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({ ok: false, status: 500 });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await expect(client.cancelSubscription("sus-1")).rejects.toThrow(
+        "Mercado Pago preapproval search failed with status 500",
+      );
+    });
+
+    it("throws when the cancellation itself fails", async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              results: [{ id: "preapproval-1", status: "authorized" }],
+            }),
+        })
+        .mockResolvedValueOnce({ ok: false, status: 409 });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await expect(client.cancelSubscription("sus-1")).rejects.toThrow(
+        "Mercado Pago subscription cancellation failed with status 409",
+      );
+    });
+  });
 });

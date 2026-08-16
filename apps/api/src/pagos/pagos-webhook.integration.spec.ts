@@ -24,6 +24,10 @@ class FixedMercadoPagoClient implements MercadoPagoClient {
   getPayment(): Promise<MercadoPagoPayment> {
     return Promise.resolve(this.payment);
   }
+
+  cancelSubscription(): Promise<void> {
+    return Promise.reject(new Error("not used in this integration test"));
+  }
 }
 
 async function insertAuthUser(

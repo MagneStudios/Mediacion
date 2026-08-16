@@ -21,6 +21,7 @@ export interface MercadoPagoClient {
     input: CreatePreferenceInput,
   ): Promise<CreatePreferenceOutput>;
   getPayment(paymentId: string): Promise<MercadoPagoPayment>;
+  cancelSubscription(suscripcionId: string): Promise<void>;
 }
 
 export const MERCADO_PAGO_CLIENT = Symbol("MERCADO_PAGO_CLIENT");
