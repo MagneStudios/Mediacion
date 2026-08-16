@@ -75,10 +75,16 @@ export function createApiLegalService(http: HttpClient): ApiLegalService {
       // The body carries ONLY the marketing opt-in. IP, user agent,
       // timestamp and current version are resolved by the server from the
       // request itself (instructivo error #3 — anything the client sends as
-      // proof is forgeable and useless as evidence).
+      // proof is forgeable and useless as evidence). The API enforces this:
+      // `assertValidAcceptanceBody` rejects any extra key with 400.
+      //
+      // The key is omitted, not sent as undefined: on re-acceptance the
+      // server must not rewrite the marketing choice made at signup, and
+      // "absent" is what expresses that.
+      const body = input.marketing === undefined ? {} : { marketing: input.marketing };
       await http.request<void>('/legal/aceptaciones', {
         method: 'POST',
-        body: { marketing: input.marketing },
+        body,
       });
     },
 

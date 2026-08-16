@@ -33,6 +33,13 @@ export const codeNetworkUnavailable = 'network_unavailable';
  * distinct from `codeInvalidToken` so the join screen can show "this
  * invitation expired" instead of a generic "check the code" message. */
 export const codeInvitationExpired = 'invitation_expired';
+/**
+ * No published version of a legal document (`GET /legal/documentos/:tipo`).
+ * A real, calm outcome — not a failure: the legal page renders its empty
+ * state for it, so the backed service maps this code to `undefined` rather
+ * than letting it surface as an error.
+ */
+export const codeLegalDocumentNotFound = 'legal_document_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

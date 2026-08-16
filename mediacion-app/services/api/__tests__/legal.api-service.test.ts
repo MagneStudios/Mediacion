@@ -3,7 +3,7 @@ import type { HttpClient, RequestOptions } from '../http-client';
 
 /** Records every request and replays canned responses — no network. */
 function fakeHttp(responses: Record<string, unknown>) {
-  const calls: Array<{ path: string; options?: RequestOptions }> = [];
+  const calls: { path: string; options?: RequestOptions }[] = [];
   const http: HttpClient = {
     async request<T>(path: string, options?: RequestOptions): Promise<T> {
       calls.push({ path, options });
@@ -54,6 +54,16 @@ describe('legal.api-service — frozen /legal/* contract', () => {
     // a client-supplied ip, userAgent or version would make the record
     // forgeable (instructivo error #3) — fails this test.
     expect(calls[0].options?.body).toEqual({ marketing: true });
+  });
+
+  it('omits the marketing key entirely on re-acceptance — absent means "do not rewrite the signup choice"', async () => {
+    const { http, calls } = fakeHttp({ '/legal/aceptaciones': undefined });
+    await createApiLegalService(http).registerAcceptance({});
+
+    // Not `{ marketing: undefined }`: the API's allow-list validation reads
+    // the key set, so the field has to be genuinely absent.
+    expect(calls[0].options?.body).toEqual({});
+    expect(Object.keys(calls[0].options?.body as object)).toHaveLength(0);
   });
 
   it('requestWithdrawal posts the public form and maps the receipt', async () => {

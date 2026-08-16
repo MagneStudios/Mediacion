@@ -1,4 +1,6 @@
 import { mockCompanyInfo, mockLegalDocuments } from '../mocks/legal';
+import { createBackedLegalService } from './api/legal.backed-service';
+import { backend } from './backend-instance';
 import type {
   AcceptanceInput,
   AcceptanceStatus,
@@ -13,23 +15,31 @@ import { createFailureController, delay, rejectAfter } from './mock-utils';
 
 /**
  * Legal module (TyC + Privacidad — instructivo Golosetti, reparto
- * `docs/reparto-tyc-devs.md`). Fully mock-only, no `services/api/legal.*`
- * counterpart active yet: neither the tables (`legal_documents`,
- * `user_agreements`) nor any `/legal/*` endpoint exist in `apps/api` or
- * `supabase/migrations` as of dev@4d42fe3 (verified: PR #100 brought the
- * legal *docs*, not the schema). This mirrors the `plans.service.ts`
- * precedent — built and tested against the frozen contract, swapped to the
- * real API without touching screens once DB/BE land theirs.
+ * `docs/reparto-tyc-devs.md`).
  *
- * The frozen contract this expects (reparto §05):
- * - `GET  /legal/documentos/:tipo`      → current version + `valid_from`
- * - `POST /legal/aceptaciones`          → body `{ marketing: boolean }` ONLY.
+ * **Live as of 16/08/2026.** DB landed the schema
+ * (`supabase/migrations/20260814170000_tyc_legal.sql`) and BE published the
+ * ficha of every function (`docs/fichas-legal-backend.md`), so the singleton
+ * at the bottom of this file now resolves to the real API whenever a backend
+ * is configured. The mock below stays as the offline/demo implementation —
+ * same role it has in `plans.service.ts` — and is what the tests exercise.
+ *
+ * The contract, unchanged from `docs/tyc-contrato-frontend.md` §3 and
+ * confirmed by BE without deviation:
+ * - `GET  /legal/documentos/:tipo`      → current version + `valid_from`;
+ *   `404 legal_document_not_found` when nothing is published (the backed
+ *   service maps it to `undefined`, which is this mock's empty answer too)
+ * - `POST /legal/aceptaciones`          → body `{ marketing?: boolean }` ONLY.
  *   IP, user agent, timestamp and version are read from the request
- *   server-side (instructivo error #3: client-supplied proof is forgeable).
- *   The DB constraint — not this call, not any checkbox — is what ultimately
- *   guarantees "no contratás sin aceptar" (reparto §00).
+ *   server-side (instructivo error #3: client-supplied proof is forgeable);
+ *   the API rejects any extra key with 400. The DB trigger — not this call,
+ *   not any checkbox — is what guarantees "no contratás sin aceptar".
  * - `GET  /legal/aceptaciones/vigente`  → what's pending, for the gate
  * - `POST /legal/arrepentimiento`       → public, no session (Res. 424/2020)
+ *
+ * `getCompanyInfo` has no endpoint on either side: the datos societarios are
+ * still pending from Administración, so both implementations serve the same
+ * all-null record and the UI says so out loud.
  */
 export type LegalService = {
   getCurrentDocument(tipo: LegalDocumentType): Promise<LegalDocument | undefined>;
@@ -112,5 +122,11 @@ export function createMockLegalService(): LegalService {
   };
 }
 
-/** Default instance consumed by the legal screens and checkboxes. */
-export const legalService: LegalService = createMockLegalService();
+/**
+ * Default instance consumed by the legal screens and checkboxes — the real
+ * API when one is configured, the mock otherwise (same selection idiom as
+ * `profile.service.ts` and `cases.service.ts`).
+ */
+export const legalService: LegalService = backend
+  ? createBackedLegalService(backend.legal)
+  : createMockLegalService();
