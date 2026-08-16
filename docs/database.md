@@ -54,7 +54,8 @@ supabase/migrations/
 ├── 20260811140000_linter_perf_consolidate_policies.sql  # 1 policy SELECT por tabla (firmas, items, notificaciones, usuarios)
 ├── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
 ├── 20260814160000_grants_schema_public.sql   # GRANT USAGE schema public a roles JWT (stack Coolify)
-└── 20260814170000_tyc_legal.sql    # Módulo legal: legal_documents, user_agreements (append-only), solicitudes_arrepentimiento, estado_arrepentimiento, has_accepted_current, trigger anti-contratación, 3 policies, seeds terms/privacy v1.0
+├── 20260814170000_tyc_legal.sql    # Módulo legal: legal_documents, user_agreements (append-only), solicitudes_arrepentimiento, estado_arrepentimiento, has_accepted_current, trigger anti-contratación, 3 policies, seeds terms/privacy v1.0
+└── 20260815120000_legal_avisos_contacto.sql  # avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto (canal de contacto), ambas de rol de servidor
 ```
 
 ## Modelo de datos (27 tablas)
@@ -101,6 +102,8 @@ supabase/migrations/
 - `legal_documents` — texto legal versionado (terms/privacy) en la base; una sola versión vigente por tipo (partial unique); lectura pública (anon/authenticated) solo de la vigente
 - `user_agreements` — log append-only real de aceptaciones: INSERT solo service_role/postgres, SELECT propio vía RLS, UPDATE/DELETE rechazados por trigger para todos los roles (incluido service_role, que bypasea RLS)
 - `solicitudes_arrepentimiento` — traza del POST público /legal/arrepentimiento (Res. 424/2020); `codigo` ARR-0001… por trigger; sin policies (solo roles de servidor)
+- `avisos_version_legal` — traza e idempotencia del aviso de cambio de versión (#15); UNIQUE (usuario_id, tipo, version) + `enviado_at` para separar "reclamado" de "entregado"; sin policies
+- `solicitudes_contacto` — canal de contacto público (#23); `codigo` CON-0001… por trigger; `received_at` es la fecha de ingreso que sostiene el plazo de respuesta declarado; sin policies
 
 ## Decisiones de diseño
 
@@ -114,6 +117,7 @@ supabase/migrations/
 | `planes` e `inversores` con policies permisivas | Catálogo público y formulario público — lectura para todos |
 | Funciones helper SECURITY DEFINER | `is_part_of_case`, `is_mediator_of_case`, `is_admin` bypassan RLS internamente |
 | `user_agreements` append-only | UPDATE/DELETE rechazados por trigger para todos los roles; `service_role` con `bypassrls` también lo sufre |
+| Aviso de versión sin duplicados | UNIQUE (usuario_id, tipo, version) en `avisos_version_legal`; el barrido inserta con ON CONFLICT DO NOTHING, no con un existence check en transacción |
 | No contratar sin aceptación | Trigger `validate_suscripcion_aceptacion` en `suscripciones`: usuario_id exige aceptación vigente de terms (`has_accepted_current`) |
 | Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
 | `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno |
@@ -217,6 +221,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 | Reunión 07/08 (R-04…R-12) | ✅ Implementado | expirado, facturas, envios_email, pago_a_cargo, plan estudio 25.00 |
 | Módulo legal (TyC) | ✅ Implementado | legal_documents, user_agreements append-only, solicitudes_arrepentimiento, trigger anti-contratación, seeds v1.0 (texto con [COMPLETAR] pendientes de Administración) |
+| Aviso de versión y contacto | ✅ Implementado | avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto, consumidas por el módulo `legal/` de la API |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)

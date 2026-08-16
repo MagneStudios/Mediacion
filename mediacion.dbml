@@ -574,6 +574,33 @@ Table solicitudes_arrepentimiento {
   Note: 'Traza del POST público /legal/arrepentimiento (Res. 424/2020). Sin policies RLS; escritura solo vía roles de servidor (service_role/postgres).'
 }
 
+Table avisos_version_legal {
+  id uuid [pk, default: `gen_random_uuid()`]
+  usuario_id uuid [not null, note: 'FK auth.users(id) ON DELETE RESTRICT — traza del cumplimiento del preaviso, se conserva']
+  tipo text [not null, note: "'terms' | 'privacy'"]
+  version text [not null, note: 'Versión publicada que se avisó']
+  notificado_at timestamptz [not null, default: `now()`, note: 'Cuándo se reclamó el aviso']
+  enviado_at timestamptz [note: 'NULL = reclamado pero el mail no salió; el barrido lo reintenta']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Traza e idempotencia del aviso de cambio de versión (#15). UNIQUE (usuario_id, tipo, version) es lo que impide el email duplicado: el barrido inserta con ON CONFLICT DO NOTHING, nunca con un existence check previo. Sin policies RLS; solo roles de servidor.'
+}
+
+Table solicitudes_contacto {
+  id uuid [pk, default: `gen_random_uuid()`]
+  codigo text [unique, note: 'CON-0001… generado por trigger (secuencia propia)']
+  nombre text [not null]
+  email text [not null]
+  mensaje text [not null]
+  received_at timestamptz [not null, default: `now()`, note: 'Fecha de ingreso: sostiene el plazo de respuesta declarado']
+  estado estado_arrepentimiento [not null, default: 'recibida']
+  usuario_id uuid [note: 'FK auth.users(id) ON DELETE SET NULL']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Canal de contacto público (#23). Espeja solicitudes_arrepentimiento y reutiliza su enum de estado. Sin policies RLS; escritura solo vía roles de servidor.'
+}
+
 // ============================================================
 // RELACIONES
 // ============================================================

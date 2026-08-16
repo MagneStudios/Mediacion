@@ -21,6 +21,10 @@ export type AppConfig = {
   apnsKey: string;
   cronSecret: string;
   corsOrigins: string[];
+  operacionesEmail: string;
+  legalAvisoDiasAnticipacion: number;
+  legalPublicRequestsPerWindow: number;
+  legalPublicWindowMs: number;
 };
 
 const defaultPort = 3000;
@@ -47,6 +51,10 @@ const placeholderSmtpPass = "dev-placeholder-smtp-pass";
 const placeholderFcmKey = "dev-placeholder-fcm-key";
 const placeholderApnsKey = "dev-placeholder-apns-key";
 const placeholderCronSecret = "dev-placeholder-cron-secret";
+const placeholderOperacionesEmail = "operaciones@dev-placeholder.test";
+const defaultLegalAvisoDiasAnticipacion = 10;
+const defaultLegalPublicRequestsPerWindow = 5;
+const defaultLegalPublicWindowMs = 3_600_000;
 const postgresUrlPattern = /^postgres(ql)?:\/\/.+/;
 
 function parsePortNumber(envVarName: string, rawPort: string): number {
@@ -107,6 +115,23 @@ function parseWithFallback(
     return rawValue;
   }
   return fallback;
+}
+
+function parsePositiveInteger(
+  envVarName: string,
+  rawValue: string | undefined,
+  fallback: number,
+): number {
+  if (!rawValue || rawValue.trim().length === 0) {
+    return fallback;
+  }
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(
+      `${envVarName} must be a positive integer, received: ${rawValue}`,
+    );
+  }
+  return parsed;
 }
 
 const originSeparator = ",";
@@ -239,6 +264,26 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     placeholderCronSecret,
   );
   const corsOrigins = parseCorsOrigins(environment.CORS_ORIGINS);
+  const operacionesEmail = parseOptionalCredential(
+    environment.OPERACIONES_EMAIL,
+    isTestEnv,
+    placeholderOperacionesEmail,
+  );
+  const legalAvisoDiasAnticipacion = parsePositiveInteger(
+    "LEGAL_AVISO_DIAS_ANTICIPACION",
+    environment.LEGAL_AVISO_DIAS_ANTICIPACION,
+    defaultLegalAvisoDiasAnticipacion,
+  );
+  const legalPublicRequestsPerWindow = parsePositiveInteger(
+    "LEGAL_PUBLIC_REQUESTS_PER_WINDOW",
+    environment.LEGAL_PUBLIC_REQUESTS_PER_WINDOW,
+    defaultLegalPublicRequestsPerWindow,
+  );
+  const legalPublicWindowMs = parsePositiveInteger(
+    "LEGAL_PUBLIC_WINDOW_MS",
+    environment.LEGAL_PUBLIC_WINDOW_MS,
+    defaultLegalPublicWindowMs,
+  );
   return {
     port,
     supabaseJwtSecret,
@@ -262,5 +307,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     apnsKey,
     cronSecret,
     corsOrigins,
+    operacionesEmail,
+    legalAvisoDiasAnticipacion,
+    legalPublicRequestsPerWindow,
+    legalPublicWindowMs,
   };
 }

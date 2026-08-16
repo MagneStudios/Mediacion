@@ -3,7 +3,17 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
-import type { CreateSuscripcionInput, Suscripcion } from "./pagos.types";
+import type {
+  CreateSuscripcionInput,
+  Suscripcion,
+  SuscripcionOwnership,
+} from "./pagos.types";
+import {
+  estadoSuscripcionActiva,
+  estadoSuscripcionCancelada,
+} from "./pagos.types";
+
+const ownershipColumns = ["id", "usuario_id", "estudio_id", "estado"] as const;
 
 @Injectable()
 export class SuscripcionesRepository {
@@ -19,6 +29,42 @@ export class SuscripcionesRepository {
       })
       .returningAll()
       .executeTakeFirstOrThrow()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  findOwnershipById(id: string): Promise<SuscripcionOwnership | undefined> {
+    return this.kysely
+      .selectFrom("suscripciones")
+      .select(ownershipColumns)
+      .where("id", "=", id)
+      .executeTakeFirst()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  cancelActiva(id: string, fechaFin: string): Promise<Suscripcion | undefined> {
+    return this.kysely
+      .updateTable("suscripciones")
+      .set({ estado: estadoSuscripcionCancelada, fecha_fin: fechaFin })
+      .where("id", "=", id)
+      .where("estado", "=", estadoSuscripcionActiva)
+      .returningAll()
+      .executeTakeFirst()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  restoreActiva(id: string): Promise<unknown> {
+    return this.kysely
+      .updateTable("suscripciones")
+      .set({ estado: estadoSuscripcionActiva, fecha_fin: null })
+      .where("id", "=", id)
+      .where("estado", "=", estadoSuscripcionCancelada)
+      .executeTakeFirst()
       .catch((error: unknown) => {
         throw toDomainError(error);
       });

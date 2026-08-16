@@ -32,6 +32,19 @@ export type CreateSuscripcionInput = {
 
 export type SuscripcionCreated = Pick<Suscripcion, "id" | "estado">;
 
+export const estadoSuscripcionCancelada: Suscripcion["estado"] = "cancelada";
+
+export type SuscripcionOwnership = Pick<
+  Suscripcion,
+  "id" | "usuario_id" | "estudio_id" | "estado"
+>;
+
+export type SuscripcionCancelada = {
+  id: string;
+  estado: Suscripcion["estado"];
+  fecha_fin: string | null;
+};
+
 export type Pago = Selectable<Database["pagos"]>;
 
 export type EstadoPago = Pago["estado"];

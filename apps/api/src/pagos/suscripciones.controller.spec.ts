@@ -19,6 +19,7 @@ const parteA: AuthenticatedUser = {
 describe("POST /suscripciones end-to-end", () => {
   async function bootstrapApp(
     createSuscripcion: jest.Mock,
+    cancelSuscripcion: jest.Mock = jest.fn(),
   ): Promise<INestApplication> {
     const usersRepository = {
       findAuthById: (id: string) =>
@@ -30,7 +31,7 @@ describe("POST /suscripciones end-to-end", () => {
       providers: [
         {
           provide: SuscripcionesService,
-          useValue: { createSuscripcion },
+          useValue: { createSuscripcion, cancelSuscripcion },
         },
         { provide: UsersRepository, useValue: usersRepository },
         {
@@ -79,6 +80,41 @@ describe("POST /suscripciones end-to-end", () => {
 
     expect(response.status).toBe(401);
     expect(createSuscripcion).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("cancels the caller's own subscription through POST /suscripciones/:id/baja", async () => {
+    const cancelSuscripcion = jest.fn().mockResolvedValue({
+      id: "sus-1",
+      estado: "cancelada",
+      fecha_fin: "2026-08-15T12:00:00.000Z",
+    });
+    const app = await bootstrapApp(jest.fn(), cancelSuscripcion);
+
+    const response = await request(app.getHttpServer())
+      .post("/suscripciones/sus-1/baja")
+      .set("Authorization", "Bearer user-a");
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      id: "sus-1",
+      estado: "cancelada",
+      fecha_fin: "2026-08-15T12:00:00.000Z",
+    });
+    expect(cancelSuscripcion).toHaveBeenCalledWith(parteA, "sus-1");
+    await app.close();
+  });
+
+  it("rejects an unauthenticated baja with 401", async () => {
+    const cancelSuscripcion = jest.fn();
+    const app = await bootstrapApp(jest.fn(), cancelSuscripcion);
+
+    const response = await request(app.getHttpServer()).post(
+      "/suscripciones/sus-1/baja",
+    );
+
+    expect(response.status).toBe(401);
+    expect(cancelSuscripcion).not.toHaveBeenCalled();
     await app.close();
   });
 });

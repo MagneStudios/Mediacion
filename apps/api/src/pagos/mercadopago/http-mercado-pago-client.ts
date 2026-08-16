@@ -12,10 +12,15 @@ const mercadoPagoRequestTimeoutMs = 30_000;
 const mercadoPagoBaseUrl = "https://api.mercadopago.com";
 const singleItemQuantity = 1;
 const defaultCurrencyId = "ARS";
+const cancelledPreapprovalStatus = "cancelled";
 
 type MercadoPagoPreferenceResponse = {
   id?: string;
   init_point?: string;
+};
+
+type MercadoPagoPreapprovalSearch = {
+  results?: { id?: string; status?: string }[];
 };
 
 type MercadoPagoPaymentResponse = {
@@ -81,6 +86,50 @@ export class HttpMercadoPagoClient implements MercadoPagoClient {
       externalReference: body.external_reference ?? null,
       transactionAmount: body.transaction_amount ?? 0,
     };
+  }
+
+  async cancelSubscription(suscripcionId: string): Promise<void> {
+    const preapprovalId = await this.findPreapprovalId(suscripcionId);
+    if (!preapprovalId) {
+      return;
+    }
+    const response = await fetch(
+      `${mercadoPagoBaseUrl}/preapproval/${preapprovalId}`,
+      {
+        method: "PUT",
+        headers: this.authHeaders(),
+        body: JSON.stringify({ status: cancelledPreapprovalStatus }),
+        signal: AbortSignal.timeout(mercadoPagoRequestTimeoutMs),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Mercado Pago subscription cancellation failed with status ${response.status}`,
+      );
+    }
+  }
+
+  private async findPreapprovalId(
+    suscripcionId: string,
+  ): Promise<string | undefined> {
+    const response = await fetch(
+      `${mercadoPagoBaseUrl}/preapproval/search?external_reference=${encodeURIComponent(suscripcionId)}`,
+      {
+        method: "GET",
+        headers: this.authHeaders(),
+        signal: AbortSignal.timeout(mercadoPagoRequestTimeoutMs),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Mercado Pago preapproval search failed with status ${response.status}`,
+      );
+    }
+    const body = (await response.json()) as MercadoPagoPreapprovalSearch;
+    const active = body.results?.find(
+      (result) => result.status !== cancelledPreapprovalStatus,
+    );
+    return typeof active?.id === "string" ? active.id : undefined;
   }
 
   private authHeaders(): Record<string, string> {
