@@ -169,4 +169,42 @@ Cualquier desvío del shape (nombre de campo, tipo, semántica de `marketing` au
 
 ---
 
+## 7 · Estado (16/08/2026) — FE activado
+
+Revisado el entregable de DB (`20260814170000_tyc_legal.sql` + decisiones del 14/08) y de BE (`docs/fichas-legal-backend.md`): **coinciden con §2 y §3 sin desvíos**. Dos cosas quedaron mejor que lo pedido y conviene dejarlas asentadas:
+
+- El append-only se garantiza con **trigger**, no solo con RLS. El razonamiento de DB es correcto y no estaba explícito en este doc: `service_role` tiene `bypassrls = true`, así que la RLS sola no lo cubre.
+- BE **rechaza con `400` cualquier clave extra** en el body de `POST /legal/aceptaciones`. Este doc solo pedía "el body lleva únicamente marketing"; ahora es una defensa activa del lado del servidor. El error #3 del instructivo queda cerrado por los dos lados.
+
+**FE activado** en `feat/frontend-tyc-activacion`: el singleton de `services/legal.service.ts` resuelve al backend cuando hay uno configurado. Ninguna pantalla cambió. Detalles de la integración:
+
+- `404 legal_document_not_found` se mapea a `undefined` → la página muestra el estado vacío ("todavía no está publicado"), no un error. Cualquier otro fallo sigue propagando con reintento.
+- El payload de aceptación **omite** la clave `marketing` cuando no vino (re-aceptación), en vez de mandarla como `undefined`: la validación del API lee el conjunto de claves.
+- `getCompanyInfo` no tiene endpoint en ningún lado y se resuelve local con el registro en nulls. La UI dice "Dato pendiente de publicación" hasta que Administración entregue.
+
+### 7.1 · Pendiente de BE: falta un endpoint de lectura de suscripciones
+
+`POST /suscripciones/:id/baja` está implementado y su ficha es clara, pero **FE todavía no lo puede consumir**. El inventario de billing en `apps/api` es:
+
+| Ruta | Estado |
+|---|---|
+| `GET /planes` | existe |
+| `POST /suscripciones` | existe |
+| `POST /suscripciones/:id/baja` | existe |
+| `POST /suscripciones/:id/pago` | existe |
+| **lectura de la suscripción vigente** | **no existe** |
+
+La pantalla "Mi plan" (`app/profile/plan/index.tsx`) decide si muestra el botón de baja —y de dónde saca el `:id`— a partir de `billingService.getCurrentSubscription()`, que hoy es mock puro: el id que devuelve es sintético (`generateMockSubscriptionId`). Llamar a `POST /suscripciones/<id-mock>/baja` daría `404 suscripcion_not_found`.
+
+**Lo que hace falta:** un `GET /suscripciones/vigente` (o `GET /me/suscripcion`) que devuelva la suscripción activa del caller — como mínimo `id`, `plan_id`, `estado`, `fecha_inicio`, `fecha_fin`, o `null` si no tiene. Con eso, conectar la baja real es un cambio chico y contenido en la capa de servicios.
+
+Mientras tanto el botón de baja queda contra el mock: el flujo de UI está construido y probado punta a punta, y no se cablea a la API hasta que exista la lectura — un botón que siempre devuelve 404 es peor que uno declaradamente simulado.
+
+### 7.2 · Superficie de BE que FE todavía no consume
+
+- `POST /legal/contacto` (punto #23 del instructivo, asignado a **BE + FE**): el endpoint está, la pantalla de formulario no. Es trabajo de FE pendiente de priorizar.
+- `GET /legal/aceptaciones/export`: admin-only, entregable de BE. FE no lo necesita salvo que Producto quiera una pantalla de administración.
+
+---
+
 *Dudas o cambios al contrato: responder sobre este doc o en el PR de la rama.*
