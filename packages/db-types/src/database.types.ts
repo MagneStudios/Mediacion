@@ -116,6 +116,36 @@ export type Database = {
           },
         ];
       };
+      avisos_version_legal: {
+        Row: {
+          created_at: string;
+          enviado_at: string | null;
+          id: string;
+          notificado_at: string;
+          tipo: string;
+          usuario_id: string;
+          version: string;
+        };
+        Insert: {
+          created_at?: string;
+          enviado_at?: string | null;
+          id?: string;
+          notificado_at?: string;
+          tipo: string;
+          usuario_id: string;
+          version: string;
+        };
+        Update: {
+          created_at?: string;
+          enviado_at?: string | null;
+          id?: string;
+          notificado_at?: string;
+          tipo?: string;
+          usuario_id?: string;
+          version?: string;
+        };
+        Relationships: [];
+      };
       carpetas: {
         Row: {
           created_at: string;
@@ -1033,6 +1063,45 @@ export type Database = {
           email?: string;
           estado?: Database["public"]["Enums"]["estado_arrepentimiento"];
           id?: string;
+          nombre?: string;
+          received_at?: string;
+          updated_at?: string;
+          usuario_id?: string | null;
+        };
+        Relationships: [];
+      };
+      solicitudes_contacto: {
+        Row: {
+          codigo: string | null;
+          created_at: string;
+          email: string;
+          estado: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id: string;
+          mensaje: string;
+          nombre: string;
+          received_at: string;
+          updated_at: string;
+          usuario_id: string | null;
+        };
+        Insert: {
+          codigo?: string | null;
+          created_at?: string;
+          email: string;
+          estado?: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id?: string;
+          mensaje: string;
+          nombre: string;
+          received_at?: string;
+          updated_at?: string;
+          usuario_id?: string | null;
+        };
+        Update: {
+          codigo?: string | null;
+          created_at?: string;
+          email?: string;
+          estado?: Database["public"]["Enums"]["estado_arrepentimiento"];
+          id?: string;
+          mensaje?: string;
           nombre?: string;
           received_at?: string;
           updated_at?: string;
