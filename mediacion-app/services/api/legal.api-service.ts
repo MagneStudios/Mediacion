@@ -1,6 +1,8 @@
 import type {
   AcceptanceInput,
   AcceptanceStatus,
+  ContactRequestInput,
+  ContactRequestResult,
   LegalDocument,
   LegalDocumentType,
   WithdrawalRequestInput,
@@ -52,7 +54,8 @@ export function toAcceptanceStatus(row: ApiAcceptanceStatus): AcceptanceStatus {
   };
 }
 
-export type ApiWithdrawalReceipt = {
+/** BE's `SolicitudReceipt` — same shape for arrepentimiento and contacto. */
+export type ApiSolicitudReceipt = {
   id: string;
   received_at: string;
 };
@@ -62,6 +65,7 @@ export type ApiLegalService = {
   registerAcceptance(input: AcceptanceInput): Promise<void>;
   getAcceptanceStatus(): Promise<AcceptanceStatus>;
   requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult>;
+  requestContact(input: ContactRequestInput): Promise<ContactRequestResult>;
 };
 
 export function createApiLegalService(http: HttpClient): ApiLegalService {
@@ -95,9 +99,19 @@ export function createApiLegalService(http: HttpClient): ApiLegalService {
 
     async requestWithdrawal(input) {
       // Public endpoint — must work without a session (Res. 424/2020).
-      const row = await http.request<ApiWithdrawalReceipt>('/legal/arrepentimiento', {
+      const row = await http.request<ApiSolicitudReceipt>('/legal/arrepentimiento', {
         method: 'POST',
         body: { nombre: input.nombre, email: input.email, detalle: input.detalle },
+      });
+      return { id: row.id, receivedAt: row.received_at };
+    },
+
+    async requestContact(input) {
+      // Also public: the contact channel has to be reachable by someone who
+      // is not (or is no longer) a customer — instructivo §5.
+      const row = await http.request<ApiSolicitudReceipt>('/legal/contacto', {
+        method: 'POST',
+        body: { nombre: input.nombre, email: input.email, mensaje: input.mensaje },
       });
       return { id: row.id, receivedAt: row.received_at };
     },

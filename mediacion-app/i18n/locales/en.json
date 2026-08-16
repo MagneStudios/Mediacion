@@ -1247,8 +1247,7 @@
         }
       },
       "contact": {
-        "action": "Contact support",
-        "notice": "This demo doesn't send any real message to support yet. There is no active contact channel."
+        "action": "Contact support"
       }
     },
     "legal": {
@@ -1425,6 +1424,25 @@
       "plazoRespuesta": "We answer questions and claims within {{dias}} business days.",
       "pendingValue": "Pending publication",
       "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
+    },
+    "contact": {
+      "title": "Contact",
+      "linkLabel": "Contact",
+      "description": "Send us your question or complaint and we will reply by email. No account or sign-in needed.",
+      "plazo": "We reply within {{dias}} business days.",
+      "nombreLabel": "Full name",
+      "nombrePlaceholder": "Your full name",
+      "mensajeLabel": "Your message",
+      "mensajeHint": "Tell us what you need. If it is about a case, add its code so we can find it faster.",
+      "mensajePlaceholder": "Write your question or complaint here",
+      "submitAction": "Send message",
+      "success": {
+        "title": "We received your message",
+        "body": "Your tracking number is {{id}}. We received it on {{date}} and will reply within {{dias}} business days."
+      },
+      "error": {
+        "title": "We could not send your message"
+      }
     }
   }
 }

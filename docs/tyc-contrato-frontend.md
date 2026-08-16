@@ -202,8 +202,20 @@ Mientras tanto el botón de baja queda contra el mock: el flujo de UI está cons
 
 ### 7.2 · Superficie de BE que FE todavía no consume
 
-- `POST /legal/contacto` (punto #23 del instructivo, asignado a **BE + FE**): el endpoint está, la pantalla de formulario no. Es trabajo de FE pendiente de priorizar.
 - `GET /legal/aceptaciones/export`: admin-only, entregable de BE. FE no lo necesita salvo que Producto quiera una pantalla de administración.
+
+---
+
+## 8 · Canal de contacto (punto #23) — cerrado
+
+`POST /legal/contacto` está consumido desde `app/contacto.tsx` (rama `feat/frontend-legal-contacto`). Con esto el punto #23 del instructivo, que el reparto asignaba a **BE + FE**, queda completo de los dos lados.
+
+- **Ruta pública** `/contacto`, en la allowlist de `AuthGate`: el requisito es un canal que alguien pueda alcanzar, y quien tiene un reclamo puede no tener cuenta o haberla cerrado.
+- **Plazo de respuesta declarado arriba del formulario**, leído de `CompanyInfo.plazoRespuestaDias`. Va antes de los campos y no debajo: una promesa que el usuario recién lee después de escribir no es una declaración.
+- **Acuse con el código `CON-nnnn` y la fecha del servidor.** Ese par es lo que hace auditable el plazo — la fecha de ingreso que BE registra es exactamente lo que sostiene el compromiso.
+- Alcanzable desde el footer de todas las páginas, desde la tarjeta de datos de empresa en `/arrepentimiento`, y desde Perfil → Ayuda. Ese último botón mostraba un aviso de demo que decía que **no** había canal de contacto; ahora abre el formulario real.
+
+**Nota sobre el mock:** los códigos de seguimiento del mock pasaron de `arr-0001` a `ARR-0001`/`CON-0001`, con secuencias separadas, para no divergir de los triggers de DB. Un código con otra forma en la demo que en producción es una diferencia que solo se descubre cuando alguien lo cita en un reclamo.
 
 ---
 

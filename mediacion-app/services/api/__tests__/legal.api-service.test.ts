@@ -80,6 +80,27 @@ describe('legal.api-service — frozen /legal/* contract', () => {
     expect(receipt).toEqual({ id: 'arr-1', receivedAt: '2026-08-14T12:00:00Z' });
   });
 
+  it('requestContact posts to /legal/contacto with mensaje, not detalle', async () => {
+    const { http, calls } = fakeHttp({
+      '/legal/contacto': { id: 'CON-0001', received_at: '2026-08-16T12:00:00Z' },
+    });
+    const receipt = await createApiLegalService(http).requestContact({
+      nombre: 'Ana',
+      email: 'ana@example.com',
+      mensaje: 'Mi consulta',
+    });
+
+    expect(calls[0].path).toBe('/legal/contacto');
+    // The field is `mensaje` here and `detalle` on arrepentimiento — the two
+    // public endpoints take different names for their free-text field.
+    expect(calls[0].options?.body).toEqual({
+      nombre: 'Ana',
+      email: 'ana@example.com',
+      mensaje: 'Mi consulta',
+    });
+    expect(receipt).toEqual({ id: 'CON-0001', receivedAt: '2026-08-16T12:00:00Z' });
+  });
+
   it('getCurrentDocument hits the per-type endpoint', async () => {
     const row = {
       tipo: 'privacy',

@@ -75,12 +75,31 @@ export type WithdrawalRequestInput = {
   detalle: string;
 };
 
-export type WithdrawalRequestResult = {
-  /** Tracking id the user can quote in a follow-up. */
+/**
+ * Canal de contacto (instructivo §5, punto #23) — also reachable without a
+ * session. Separate from the withdrawal request: this one is the general
+ * support channel with a declared response time, not a revocation.
+ */
+export type ContactRequestInput = {
+  nombre: string;
+  email: string;
+  mensaje: string;
+};
+
+/**
+ * Acknowledgement for a public request. Mirrors BE's `SolicitudReceipt`
+ * (`apps/api/src/legal/legal.types.ts`) — both `/legal/arrepentimiento` and
+ * `/legal/contacto` answer with this same shape.
+ */
+export type SolicitudReceipt = {
+  /** Tracking code the user can quote in a follow-up: `ARR-0001`, `CON-0001`. */
   id: string;
   /** ISO timestamp assigned by the server. */
   receivedAt: string;
 };
+
+export type WithdrawalRequestResult = SolicitudReceipt;
+export type ContactRequestResult = SolicitudReceipt;
 
 /**
  * Datos societarios (Ley 24.240 / instructivo §5). Values are `null` until

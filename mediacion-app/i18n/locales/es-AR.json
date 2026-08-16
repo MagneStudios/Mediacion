@@ -1247,8 +1247,7 @@
         }
       },
       "contact": {
-        "action": "Contactar a soporte",
-        "notice": "En esta demostración no se envía ningún mensaje real a soporte. Todavía no hay un canal de contacto activo."
+        "action": "Contactar a soporte"
       }
     },
     "legal": {
@@ -1425,6 +1424,25 @@
       "plazoRespuesta": "Respondemos consultas y reclamos dentro de los {{dias}} días hábiles.",
       "pendingValue": "Dato pendiente de publicación",
       "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
+    },
+    "contact": {
+      "title": "Contacto",
+      "linkLabel": "Contacto",
+      "description": "Escribinos tu consulta o reclamo y te respondemos por email. No hace falta tener cuenta ni iniciar sesión.",
+      "plazo": "Respondemos dentro de los {{dias}} días hábiles.",
+      "nombreLabel": "Nombre y apellido",
+      "nombrePlaceholder": "Tu nombre completo",
+      "mensajeLabel": "Tu consulta",
+      "mensajeHint": "Contanos qué necesitás. Si es sobre un caso, sumá el código para encontrarlo más rápido.",
+      "mensajePlaceholder": "Escribí acá tu consulta o reclamo",
+      "submitAction": "Enviar consulta",
+      "success": {
+        "title": "Recibimos tu consulta",
+        "body": "Tu número de seguimiento es {{id}}. La recibimos el {{date}} y te respondemos dentro de los {{dias}} días hábiles."
+      },
+      "error": {
+        "title": "No pudimos enviar tu consulta"
+      }
     }
   }
 }

@@ -31,6 +31,9 @@ export function LegalFooter() {
       <Link href="/arrepentimiento" style={styles.link} {...newTabProps}>
         {t('legal.withdrawal.linkLabel')}
       </Link>
+      <Link href="/contacto" style={styles.link} {...newTabProps}>
+        {t('legal.contact.linkLabel')}
+      </Link>
     </View>
   );
 }

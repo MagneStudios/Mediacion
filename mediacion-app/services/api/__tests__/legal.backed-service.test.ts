@@ -20,6 +20,7 @@ function fakeApi(overrides: Partial<ApiLegalService> = {}): ApiLegalService {
     registerAcceptance: jest.fn().mockResolvedValue(undefined),
     getAcceptanceStatus: jest.fn().mockResolvedValue({ pendientes: [], requiereReaceptacion: false }),
     requestWithdrawal: jest.fn().mockResolvedValue({ id: 'ARR-0001', receivedAt: '2026-08-16T12:00:00.000Z' }),
+    requestContact: jest.fn().mockResolvedValue({ id: 'CON-0001', receivedAt: '2026-08-16T12:00:00.000Z' }),
     ...overrides,
   };
 }
@@ -57,6 +58,18 @@ describe('legal.backed-service', () => {
     // choice made at signup.
     await service.registerAcceptance({});
     expect(registerAcceptance).toHaveBeenLastCalledWith({});
+  });
+
+  it('forwards the contact request to the public endpoint', async () => {
+    const requestContact = jest
+      .fn()
+      .mockResolvedValue({ id: 'CON-0007', receivedAt: '2026-08-16T12:00:00.000Z' });
+    const input = { nombre: 'Ana', email: 'ana@example.com', mensaje: 'Consulta' };
+
+    await expect(createBackedLegalService(fakeApi({ requestContact })).requestContact(input)).resolves.toEqual(
+      { id: 'CON-0007', receivedAt: '2026-08-16T12:00:00.000Z' },
+    );
+    expect(requestContact).toHaveBeenCalledWith(input);
   });
 
   it('serves the pending company info locally — there is no endpoint, and no invented data', async () => {

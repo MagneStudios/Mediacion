@@ -3,6 +3,8 @@ import type {
   AcceptanceInput,
   AcceptanceStatus,
   CompanyInfo,
+  ContactRequestInput,
+  ContactRequestResult,
   LegalDocument,
   LegalDocumentType,
   WithdrawalRequestInput,
@@ -55,6 +57,10 @@ export function createBackedLegalService(api: ApiLegalService): LegalService {
 
     requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult> {
       return api.requestWithdrawal(input);
+    },
+
+    requestContact(input: ContactRequestInput): Promise<ContactRequestResult> {
+      return api.requestContact(input);
     },
 
     async getCompanyInfo(): Promise<CompanyInfo> {

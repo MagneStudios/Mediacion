@@ -5,6 +5,8 @@ import type {
   AcceptanceInput,
   AcceptanceStatus,
   CompanyInfo,
+  ContactRequestInput,
+  ContactRequestResult,
   LegalDocument,
   LegalDocumentType,
   WithdrawalRequestInput,
@@ -36,6 +38,7 @@ import { createFailureController, delay, rejectAfter } from './mock-utils';
  *   not any checkbox — is what guarantees "no contratás sin aceptar".
  * - `GET  /legal/aceptaciones/vigente`  → what's pending, for the gate
  * - `POST /legal/arrepentimiento`       → public, no session (Res. 424/2020)
+ * - `POST /legal/contacto`              → public, canal de contacto (#23)
  *
  * `getCompanyInfo` has no endpoint on either side: the datos societarios are
  * still pending from Administración, so both implementations serve the same
@@ -46,10 +49,15 @@ export type LegalService = {
   registerAcceptance(input: AcceptanceInput): Promise<void>;
   getAcceptanceStatus(): Promise<AcceptanceStatus>;
   requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult>;
+  requestContact(input: ContactRequestInput): Promise<ContactRequestResult>;
   getCompanyInfo(): Promise<CompanyInfo>;
 };
 
-type FailableOperation = 'getCurrentDocument' | 'registerAcceptance' | 'requestWithdrawal';
+type FailableOperation =
+  | 'getCurrentDocument'
+  | 'registerAcceptance'
+  | 'requestWithdrawal'
+  | 'requestContact';
 
 const failures = createFailureController<FailableOperation>();
 
@@ -65,7 +73,15 @@ export function __resetMockLegalState(): void {
   acceptedTypes = new Set();
 }
 
+/** Trailing counter formatted the way BE's trigger does: `ARR-0001`. */
+function formatSolicitudCode(prefix: string, counter: number): string {
+  return `${prefix}-${String(counter).padStart(4, '0')}`;
+}
+
+// Mirror BE's per-table sequences: `ARR-0001…` and `CON-0001…` are generated
+// by their own triggers, so they never share a counter.
 let withdrawalCounter = 0;
+let contactCounter = 0;
 
 export function createMockLegalService(): LegalService {
   return {
@@ -109,9 +125,26 @@ export function createMockLegalService(): LegalService {
       withdrawalCounter += 1;
       return delay(
         {
-          id: `arr-${String(withdrawalCounter).padStart(4, '0')}`,
+          // Uppercase to match BE's trigger (`'ARR-' || lpad(...)`), so the
+          // tracking code a user reads in the demo has the same shape as the
+          // one they would quote in a real follow-up.
+          id: formatSolicitudCode('ARR', withdrawalCounter),
           receivedAt: new Date().toISOString(),
         },
+        600,
+      );
+    },
+
+    async requestContact(input) {
+      if (failures.consume('requestContact')) {
+        return rejectAfter('mock_request_contact_failed', 500);
+      }
+      if (!input.nombre.trim() || !input.email.trim() || !input.mensaje.trim()) {
+        return rejectAfter('contact_missing_fields', 300);
+      }
+      contactCounter += 1;
+      return delay(
+        { id: formatSolicitudCode('CON', contactCounter), receivedAt: new Date().toISOString() },
         600,
       );
     },

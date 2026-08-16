@@ -1,5 +1,4 @@
-import { Stack } from 'expo-router';
-import { useState } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
@@ -8,15 +7,15 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnvironmentNotice';
 import { HelpTopicCard } from '@/features/profile/components/HelpTopicCard';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 const TOPIC_KEYS = ['flow', 'privacy', 'afterAgreement', 'signatureSimulation', 'mediator'] as const;
 
 export default function ProfileHelpScreen() {
   const { t } = useTranslation();
-  const [showContactNotice, setShowContactNotice] = useState(false);
+  const router = useRouter();
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
   return (
@@ -38,12 +37,22 @@ export default function ProfileHelpScreen() {
         />
       ))}
 
-      <Button variant="secondary" size="lg" fullWidth onPress={() => setShowContactNotice(true)}>
+      {/*
+        Used to open a "there is no contact channel yet" demo notice. There
+        is one now (instructivo §5, punto #23), so this goes to the real
+        form instead of telling the user their message goes nowhere.
+      */}
+      <Button
+        variant="secondary"
+        size="lg"
+        fullWidth
+        onPress={() => {
+          blurActiveElement();
+          router.push('/contacto');
+        }}
+      >
         {t('profile.help.contact.action')}
       </Button>
-      {showContactNotice ? (
-        <DemoEnvironmentNotice title={t('profile.demoNotice.title')} body={t('profile.help.contact.notice')} />
-      ) : null}
     </ScrollView>
   );
 }
