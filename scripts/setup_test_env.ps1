@@ -10,13 +10,17 @@ $steps = @(
   @{ Name = "Caso (test_02)";        File = "tmp/test_02_caso.sql" },
   @{ Name = "Items (test_03)";       File = "tmp/test_03_items.sql" },
   @{ Name = "RLS deep (test_10)";    File = "tmp/test_10_rls_deep.sql" },
-  @{ Name = "Helper functions (test_11)"; File = "tmp/test_11_helper_functions.sql" }
+  @{ Name = "Helper functions (test_11)"; File = "tmp/test_11_helper_functions.sql" },
+  @{ Name = "Módulo legal (test_16)"; File = "tmp/test_16_tyc_legal.sql" }
 )
 
 foreach ($step in $steps) {
   Write-Host "`n[$($step.Name)]" -ForegroundColor Yellow
   $sql = Get-Content $step.File -Raw
-  $sql | docker exec -i supabase_db_Mediacion psql -U postgres -d postgres 2>&1
+  # Sin 2>&1: en PowerShell 5.1 los NOTICE (stderr de psql) se vuelven
+  # ErrorRecords y con ErrorActionPreference=Stop abortan el pipeline.
+  # Solo importa $LASTEXITCODE.
+  $sql | docker exec -i supabase_db_Mediacion psql -U postgres -d postgres
   if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR en $($step.Name)" -ForegroundColor Red
     exit 1

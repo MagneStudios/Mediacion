@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { semanticColors } from '../design-system/tokens/colors';
+import { LegalFooter } from '../features/legal/components/LegalFooter';
 import { useResponsiveLayout } from '../hooks/use-responsive-layout';
 import { DesktopSidebar } from './DesktopSidebar';
 import { DesktopTopbar } from './DesktopTopbar';
@@ -36,6 +37,10 @@ export function ResponsiveAppShell({ children }: ResponsiveAppShellProps) {
       <View style={styles.main}>
         <DesktopTopbar />
         <View style={styles.content}>{children}</View>
+        {/* Instructivo TyC §1.2: legal links in the footer of every page.
+            This covers the whole desktop shell; the narrow/native layout
+            carries LegalFooter on its auth screens instead. */}
+        <LegalFooter />
       </View>
     </View>
   );

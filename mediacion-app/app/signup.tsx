@@ -11,7 +11,10 @@ import { typography } from '@/design-system/tokens/typography';
 import { useAuthSession } from '@/features/auth/auth-session';
 import { AuthForm } from '@/features/auth/components/AuthForm';
 import { useAuthForm } from '@/features/auth/useAuthForm';
+import { AcceptanceCheckboxes } from '@/features/legal/components/AcceptanceCheckboxes';
+import { LegalFooter } from '@/features/legal/components/LegalFooter';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { legalService } from '@/services/legal.service';
 
 export default function SignUpScreen() {
   const { t } = useTranslation();
@@ -27,6 +30,11 @@ export default function SignUpScreen() {
   const [apellido, setApellido] = useState('');
   // R-05: optional, unlike nombre/apellido — never gates form submission.
   const [numeroMatricula, setNumeroMatricula] = useState('');
+  // Instructivo TyC §2: both start unchecked, never pre-ticked. Only the
+  // TyC+Privacidad one gates the submit; marketing is optional and its
+  // "no" is also a recorded answer.
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [marketingAccepted, setMarketingAccepted] = useState(false);
 
   const onSuccess = useCallback(() => {
     setSubmitted(true);
@@ -39,15 +47,26 @@ export default function SignUpScreen() {
   }, [router, status]);
 
   const submitFn = useCallback(
-    ({ email, password }: { email: string; password: string }) =>
-      signUp({
+    async ({ email, password }: { email: string; password: string }) => {
+      await signUp({
         email,
         password,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         numeroMatricula: numeroMatricula.trim() || undefined,
-      }),
-    [signUp, nombre, apellido, numeroMatricula],
+      });
+      // Best-effort: the client only reports the marketing opt-in — IP, user
+      // agent, timestamp and version are the server's to capture, and the
+      // guarantee that no one contracts without accepting is the future DB
+      // constraint, not this call. A failure here must not strand a user
+      // whose account already exists, so it does not fail the signup.
+      try {
+        await legalService.registerAcceptance({ marketing: marketingAccepted });
+      } catch {
+        // Server-side enforcement will re-request acceptance on first use.
+      }
+    },
+    [signUp, nombre, apellido, numeroMatricula, marketingAccepted],
   );
 
   const form = useAuthForm(submitFn, t('auth.signUp.genericError'), onSuccess);
@@ -97,7 +116,7 @@ export default function SignUpScreen() {
             submittingLabel={t('common.loading')}
             errorTitle={t('auth.signUp.error.title')}
             retryLabel={t('common.retry')}
-            extraFieldsValid={nombre.trim().length > 0 && apellido.trim().length > 0}
+            extraFieldsValid={nombre.trim().length > 0 && apellido.trim().length > 0 && termsAccepted}
             extraFields={
               <>
                 <Input
@@ -124,6 +143,13 @@ export default function SignUpScreen() {
                   onChangeText={setNumeroMatricula}
                   editable={form.status !== 'submitting'}
                 />
+                <AcceptanceCheckboxes
+                  termsAccepted={termsAccepted}
+                  onChangeTerms={setTermsAccepted}
+                  marketingAccepted={marketingAccepted}
+                  onChangeMarketing={setMarketingAccepted}
+                  disabled={form.status === 'submitting'}
+                />
               </>
             }
             footer={
@@ -136,6 +162,8 @@ export default function SignUpScreen() {
             }
           />
         )}
+
+        <LegalFooter />
       </ScrollView>
     </KeyboardAvoidingView>
   );

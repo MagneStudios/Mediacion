@@ -18,7 +18,7 @@ import psycopg2
 
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:55002/postgres",
+    "postgresql://postgres:postgres@localhost:57002/postgres",
 )
 
 RESULTS = []
@@ -28,10 +28,11 @@ def connect():
     return psycopg2.connect(DB_URL)
 
 
-def run_test(name, cur, user_id, sql, expected, description=""):
+def run_test(name, cur, user_id, sql, expected, description="", role="authenticated"):
     """Ejecuta un SQL con JWT simulado y compara el resultado."""
-    cur.execute("SET role = 'authenticated'")
-    cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"authenticated\"}}'")
+    cur.execute(f"SET role = '{role}'")
+    cur.execute("SET search_path = public")
+    cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"{role}\"}}'")
     cur.execute(sql)
     row = cur.fetchone()
     actual = row[0] if row else None
@@ -49,6 +50,7 @@ def run_denied_test(name, cur, user_id, sql, role="anon", description=""):
     """Ejecuta un SQL con un rol que NO tiene EXECUTE sobre las funciones
     helper (anon tras el REVOKE de 20260811130000) y espera permiso denegado."""
     cur.execute(f"SET role = '{role}'")
+    cur.execute("SET search_path = public")
     cur.execute(f"SET request.jwt.claims = '{{\"sub\": \"{user_id}\", \"role\": \"{role}\"}}'")
     denied = False
     try:
@@ -249,6 +251,59 @@ def main():
                 f"SELECT COUNT(*) FROM items WHERE caso_id = '{caso_id}'",
                 2, "Mediator access via is_mediator_of_case() dentro de items_select",
             )
+
+        print()
+        print("=== Módulo legal (TyC) ===")
+        run_test(
+            "anon ve legal_documents vigentes (terms+privacy)",
+            cur, ids.get("parte_a", ""),
+            "SELECT COUNT(*) FROM legal_documents WHERE valid_to IS NULL",
+            2, "Solo la versión vigente de cada tipo",
+            role="anon",
+        )
+        if "parte_a" in ids:
+            run_test(
+                "Parte A ve sus user_agreements (3)",
+                cur, ids["parte_a"],
+                "SELECT COUNT(*) FROM user_agreements WHERE user_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                3, "terms + privacy + marketing",
+            )
+        if "parte_b" in ids:
+            run_test(
+                "Parte B NO ve user_agreements de Parte A",
+                cur, ids["parte_b"],
+                "SELECT COUNT(*) FROM user_agreements WHERE user_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                0, "Aislamiento RLS entre usuarios",
+            )
+        if "non_member" in ids:
+            run_test(
+                "Non-member ve 0 user_agreements de Parte A",
+                cur, ids["non_member"],
+                "SELECT COUNT(*) FROM user_agreements WHERE user_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                0,
+            )
+            run_denied_test(
+                "INSERT user_agreements como authenticated (Parte A) denegado",
+                cur, ids["non_member"],
+                "INSERT INTO user_agreements (user_id, document_type, document_version, ip, user_agent, accepted) "
+                "VALUES ('d0000000-0000-0000-0000-000000000004', 'terms', 'v1.0', '127.0.0.1', 'test', true)",
+                role="authenticated",
+                description="sin GRANT INSERT para authenticated (solo service_role/postgres)",
+            )
+            run_denied_test(
+                "has_accepted_current denegado para authenticated",
+                cur, ids["non_member"],
+                "SELECT has_accepted_current('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'terms')",
+                role="authenticated",
+                description="EXECUTE solo para service_role/postgres (helper de servidor)",
+            )
+        run_test(
+            "has_accepted_current(A, terms) = true como service_role",
+            cur, "aaaaaaaa-aaaa-0000-0000-000000000000",
+            "SELECT has_accepted_current('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'terms')",
+            True,
+            role="service_role",
+        )
 
         # --- Summary ---
         print()

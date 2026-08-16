@@ -1,8 +1,9 @@
 import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
-import { ErrorState, LoadingState } from '@/design-system';
+import { Button, ConfirmationDialog, ErrorState, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
@@ -11,7 +12,10 @@ import { PlanOptionCard } from '@/features/billing/components/PlanOptionCard';
 import { useCurrentSubscription } from '@/features/billing/hooks/useCurrentSubscription';
 import { usePlans } from '@/features/plans/hooks/usePlans';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { billingService } from '@/services/billing.service';
 import { blurActiveElement } from '@/utils/blur-active-element';
+
+type CancelStatus = 'idle' | 'submitting' | 'error';
 
 export default function MyPlanScreen() {
   const { t } = useTranslation();
@@ -19,6 +23,22 @@ export default function MyPlanScreen() {
   const { horizontalPadding } = useResponsiveLayout();
   const subscriptionResult = useCurrentSubscription();
   const plansResult = usePlans();
+
+  const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
+  const [cancelStatus, setCancelStatus] = useState<CancelStatus>('idle');
+
+  const confirmCancel = async () => {
+    setCancelStatus('submitting');
+    try {
+      await billingService.cancelSubscription();
+      setCancelStatus('idle');
+      setCancelDialogVisible(false);
+      blurActiveElement();
+      subscriptionResult.reload();
+    } catch {
+      setCancelStatus('error');
+    }
+  };
 
   const loading = subscriptionResult.status === 'loading' || plansResult.status === 'loading';
   const failed = subscriptionResult.status === 'error' || plansResult.status === 'error';
@@ -81,6 +101,45 @@ export default function MyPlanScreen() {
           }}
         />
       ))}
+
+      {/*
+        Botón de baja online (instructivo TyC §5): same medium the user
+        contracted through, no phone call, no email. This ends the recurring
+        charge — account deactivation lives separately in profile/account.
+      */}
+      {subscriptionResult.subscription?.estado === 'activa' ? (
+        <Button
+          variant="destructive"
+          size="lg"
+          fullWidth
+          onPress={() => {
+            setCancelStatus('idle');
+            setCancelDialogVisible(true);
+          }}
+        >
+          {t('billing.myPlan.cancel.action')}
+        </Button>
+      ) : null}
+
+      <ConfirmationDialog
+        visible={cancelDialogVisible}
+        title={t('billing.myPlan.cancel.dialogTitle')}
+        icon="alert-circle"
+        destructive
+        confirmLabel={t('billing.myPlan.cancel.confirm')}
+        confirmVariant="destructive"
+        onConfirm={confirmCancel}
+        cancelLabel={t('billing.myPlan.cancel.keep')}
+        onCancel={() => {
+          if (cancelStatus === 'submitting') return;
+          setCancelDialogVisible(false);
+        }}
+        loading={cancelStatus === 'submitting'}
+        errorTitle={cancelStatus === 'error' ? t('billing.myPlan.cancel.error.title') : undefined}
+        retryLabel={t('common.retry')}
+      >
+        {t('billing.myPlan.cancel.dialogBody')}
+      </ConfirmationDialog>
     </ScrollView>
   );
 }
