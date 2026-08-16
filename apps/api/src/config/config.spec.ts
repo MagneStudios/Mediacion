@@ -583,4 +583,59 @@ describe("loadConfig", () => {
       expect(appConfig.corsOrigins).toEqual(["*"]);
     });
   });
+
+  describe("legal module settings", () => {
+    it("defaults the notice window to the 10 day legal minimum", () => {
+      const appConfig = loadConfig({ NODE_ENV: "test" });
+
+      expect(appConfig.legalAvisoDiasAnticipacion).toBe(10);
+      expect(appConfig.legalPublicRequestsPerWindow).toBe(5);
+      expect(appConfig.legalPublicWindowMs).toBe(3_600_000);
+    });
+
+    it("takes the notice window and the public rate limit from the environment", () => {
+      const appConfig = loadConfig({
+        NODE_ENV: "test",
+        LEGAL_AVISO_DIAS_ANTICIPACION: "15",
+        LEGAL_PUBLIC_REQUESTS_PER_WINDOW: "20",
+        LEGAL_PUBLIC_WINDOW_MS: "60000",
+      });
+
+      expect(appConfig.legalAvisoDiasAnticipacion).toBe(15);
+      expect(appConfig.legalPublicRequestsPerWindow).toBe(20);
+      expect(appConfig.legalPublicWindowMs).toBe(60_000);
+    });
+
+    it.each(["0", "-1", "diez", "1.5"])(
+      "throws when the notice window is %s",
+      (value) => {
+        expect(() =>
+          loadConfig({
+            NODE_ENV: "test",
+            LEGAL_AVISO_DIAS_ANTICIPACION: value,
+          }),
+        ).toThrow("LEGAL_AVISO_DIAS_ANTICIPACION must be a positive integer");
+      },
+    );
+
+    it("leaves the Operaciones mailbox empty outside test when it is not configured", () => {
+      const appConfig = loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "secret",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+        CRON_SECRET: "cron",
+      });
+
+      expect(appConfig.operacionesEmail).toBe("");
+    });
+
+    it("uses the configured Operaciones mailbox", () => {
+      const appConfig = loadConfig({
+        NODE_ENV: "test",
+        OPERACIONES_EMAIL: "operaciones@mediacion.test",
+      });
+
+      expect(appConfig.operacionesEmail).toBe("operaciones@mediacion.test");
+    });
+  });
 });

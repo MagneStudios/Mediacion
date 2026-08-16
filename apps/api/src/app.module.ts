@@ -18,6 +18,7 @@ import { IncumplimientosModule } from "./incumplimientos/incumplimientos.module"
 import { InversoresModule } from "./inversores/inversores.module";
 import { InvitacionesModule } from "./invitaciones/invitaciones.module";
 import { ItemsModule } from "./items/items.module";
+import { LegalModule } from "./legal/legal.module";
 import { MeModule } from "./me/me.module";
 import { MediacionModule } from "./mediacion/mediacion.module";
 import { MetricasModule } from "./metricas/metricas.module";
@@ -39,6 +40,7 @@ import { TareasModule } from "./tareas/tareas.module";
     InvitacionesModule,
     ItemsModule,
     AcuerdosModule,
+    LegalModule,
     ActividadModule,
     ConfiguracionModule,
     EstudiosModule,

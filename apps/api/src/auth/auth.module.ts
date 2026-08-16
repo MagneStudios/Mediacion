@@ -14,6 +14,6 @@ import { UsersRepository } from "./users.repository";
     AuthGuard,
     RolesGuard,
   ],
-  exports: [AuthGuard, RolesGuard, UsersRepository],
+  exports: [AuthGuard, RolesGuard, UsersRepository, TOKEN_VERIFIER],
 })
 export class AuthModule {}

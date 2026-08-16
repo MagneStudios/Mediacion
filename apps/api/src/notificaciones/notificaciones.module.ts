@@ -26,6 +26,6 @@ import { VencimientoScheduler } from "./vencimiento.scheduler";
     { provide: EMAIL_PROVIDER, useClass: SmtpEmailProvider },
     { provide: PUSH_PROVIDER, useClass: FcmApnsPushProvider },
   ],
-  exports: [NotificacionesService],
+  exports: [NotificacionesService, EMAIL_PROVIDER],
 })
 export class NotificacionesModule {}
