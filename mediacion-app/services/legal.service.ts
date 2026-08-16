@@ -78,6 +78,29 @@ function formatSolicitudCode(prefix: string, counter: number): string {
   return `${prefix}-${String(counter).padStart(4, '0')}`;
 }
 
+/**
+ * "In force right now", matching `LegalRepository.findVigente` exactly:
+ * `valid_from <= now AND (valid_to IS NULL OR valid_to > now)`.
+ *
+ * The `valid_from` half is not decorative. Publishing a version schedules it
+ * ahead of time — the aviso job looks for rows with `valid_from > now()` and
+ * mails users the required 10 days in advance — so a mock that only checked
+ * `valid_to === null` would show the new text the moment it is seeded, days
+ * before it legally applies. That is the one scenario this whole flow exists
+ * to get right.
+ */
+function isVigente(doc: LegalDocument, now: number): boolean {
+  const from = doc.validFrom ? Date.parse(doc.validFrom) : Number.NaN;
+  if (Number.isNaN(from) || from > now) {
+    return false;
+  }
+  if (doc.validTo === null) {
+    return true;
+  }
+  const to = Date.parse(doc.validTo);
+  return Number.isNaN(to) ? false : to > now;
+}
+
 // Mirror BE's per-table sequences: `ARR-0001…` and `CON-0001…` are generated
 // by their own triggers, so they never share a counter.
 let withdrawalCounter = 0;
@@ -89,9 +112,8 @@ export function createMockLegalService(): LegalService {
       if (failures.consume('getCurrentDocument')) {
         return rejectAfter('mock_get_legal_document_failed', 400);
       }
-      const current = mockLegalDocuments.find(
-        (doc) => doc.tipo === tipo && doc.validTo === null,
-      );
+      const now = Date.now();
+      const current = mockLegalDocuments.find((doc) => doc.tipo === tipo && isVigente(doc, now));
       return delay(current, 400);
     },
 
@@ -106,11 +128,15 @@ export function createMockLegalService(): LegalService {
     },
 
     async getAcceptanceStatus() {
-      const pendientes = mockLegalDocuments
-        .filter((doc) => doc.validTo === null && !acceptedTypes.has(doc.tipo))
+      const now = Date.now();
+      // Only versions already in force can be pending: a scheduled one is
+      // not something the user can fail to have accepted yet.
+      const vigentes = mockLegalDocuments.filter((doc) => isVigente(doc, now));
+      const pendientes = vigentes
+        .filter((doc) => !acceptedTypes.has(doc.tipo))
         .map((doc) => doc.tipo);
-      const requiereReaceptacion = mockLegalDocuments.some(
-        (doc) => doc.validTo === null && doc.isSubstantial && !acceptedTypes.has(doc.tipo),
+      const requiereReaceptacion = vigentes.some(
+        (doc) => doc.isSubstantial && !acceptedTypes.has(doc.tipo),
       );
       return delay({ pendientes, requiereReaceptacion }, 300);
     },

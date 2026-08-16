@@ -1443,6 +1443,10 @@
       "error": {
         "title": "We could not send your message"
       }
+    },
+    "rateLimited": {
+      "title": "Please wait a moment",
+      "description": "We received several submissions from this connection in a short time. Try again in a few minutes. If it is urgent, email us."
     }
   }
 }

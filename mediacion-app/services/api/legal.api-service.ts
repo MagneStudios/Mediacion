@@ -24,7 +24,8 @@ export type ApiLegalDocument = {
   tipo: LegalDocumentType;
   version: string;
   contenido: string;
-  valid_from: string;
+  /** Nullable on the wire: BE normalizes timestamps and returns null for unusable values. */
+  valid_from: string | null;
   valid_to: string | null;
   is_substantial: boolean;
   resumen_cambios: string | null;
@@ -57,7 +58,7 @@ export function toAcceptanceStatus(row: ApiAcceptanceStatus): AcceptanceStatus {
 /** BE's `SolicitudReceipt` — same shape for arrepentimiento and contacto. */
 export type ApiSolicitudReceipt = {
   id: string;
-  received_at: string;
+  received_at: string | null;
 };
 
 export type ApiLegalService = {

@@ -54,6 +54,8 @@ export default function ArrepentimientoScreen() {
         submittingLabel={t('common.loading')}
         errorTitle={t('legal.withdrawal.error.title')}
         retryLabel={t('common.retry')}
+        rateLimitedTitle={t('legal.rateLimited.title')}
+        rateLimitedDescription={t('legal.rateLimited.description')}
         successTitle={t('legal.withdrawal.success.title')}
         buildSuccessBody={({ id, date }) => t('legal.withdrawal.success.body', { id, date })}
         onSubmit={({ nombre, email, mensaje }) =>

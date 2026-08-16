@@ -6,9 +6,10 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import i18n from '@/i18n';
+import { codeTooManyRequests, hasCode } from '@/services/api/api-error';
 import type { SolicitudReceipt } from '@/types/legal';
 
-type SubmitStatus = 'idle' | 'submitting' | 'error' | 'success';
+type SubmitStatus = 'idle' | 'submitting' | 'error' | 'rateLimited' | 'success';
 
 export type PublicRequestFormProps = {
   /** Label/hint/placeholder for the free-text field (detalle, mensaje…). */
@@ -23,6 +24,14 @@ export type PublicRequestFormProps = {
   submittingLabel: string;
   errorTitle: string;
   retryLabel: string;
+  /**
+   * Shown when the public rate limiter answers 429. Deliberately without a
+   * retry action: the next attempt inside the window fails too, and a button
+   * that cannot work reads as a broken system on a channel people reach with
+   * a complaint.
+   */
+  rateLimitedTitle: string;
+  rateLimitedDescription: string;
   successTitle: string;
   /** Receives the tracking code and the formatted server timestamp. */
   buildSuccessBody: (receipt: { id: string; date: string }) => string;
@@ -30,8 +39,15 @@ export type PublicRequestFormProps = {
   onSubmit: (input: { nombre: string; email: string; mensaje: string }) => Promise<SolicitudReceipt>;
 };
 
-function formatReceivedAt(iso: string): string {
+function formatReceivedAt(iso: string | null): string {
   const locale = i18n.language === 'en' ? 'en-US' : 'es-AR';
+  // `normalizeTimestamp` on the server returns null for anything unusable,
+  // and BE types `received_at` accordingly. The column is NOT NULL so this
+  // should not happen — but `new Date(null)` is the epoch, and an
+  // acknowledgement dated 1 January 1970 is worse than one with no date.
+  if (!iso) {
+    return '';
+  }
   try {
     return new Intl.DateTimeFormat(locale, {
       day: '2-digit',
@@ -69,6 +85,8 @@ export function PublicRequestForm({
   submittingLabel,
   errorTitle,
   retryLabel,
+  rateLimitedTitle,
+  rateLimitedDescription,
   successTitle,
   buildSuccessBody,
   onSubmit,
@@ -96,8 +114,8 @@ export function PublicRequestForm({
       });
       setReceipt(result);
       setStatus('success');
-    } catch {
-      setStatus('error');
+    } catch (error) {
+      setStatus(hasCode(error, codeTooManyRequests) ? 'rateLimited' : 'error');
     }
   };
 
@@ -148,6 +166,15 @@ export function PublicRequestForm({
         <ErrorState title={errorTitle} retryLabel={retryLabel} onRetry={handleSubmit} />
       ) : null}
 
+      {status === 'rateLimited' ? (
+        <Card>
+          <Text style={styles.rateLimitedTitle} accessibilityRole="header">
+            {rateLimitedTitle}
+          </Text>
+          <Text style={styles.successBody}>{rateLimitedDescription}</Text>
+        </Card>
+      ) : null}
+
       <Button
         variant="primary"
         size="lg"
@@ -164,6 +191,11 @@ export function PublicRequestForm({
 }
 
 const styles = StyleSheet.create({
+  rateLimitedTitle: {
+    ...typography.cardTitle,
+    color: semanticColors.status.warningFg,
+    marginBottom: spacing.sm,
+  },
   successTitle: {
     ...typography.cardTitle,
     color: semanticColors.text.primary,

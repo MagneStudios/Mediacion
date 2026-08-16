@@ -40,6 +40,14 @@ export const codeInvitationExpired = 'invitation_expired';
  * than letting it surface as an error.
  */
 export const codeLegalDocumentNotFound = 'legal_document_not_found';
+/**
+ * The per-IP limiter on the two public legal routes (`rate-limiter.ts`,
+ * window configured by `LEGAL_PUBLIC_WINDOW_MS`). Distinct from a generic
+ * failure on purpose: retrying immediately is guaranteed to fail again, so
+ * the public forms say "esperá un momento" instead of offering a retry that
+ * cannot work.
+ */
+export const codeTooManyRequests = 'too_many_requests';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

@@ -1443,6 +1443,10 @@
       "error": {
         "title": "No pudimos enviar tu consulta"
       }
+    },
+    "rateLimited": {
+      "title": "Esperá un momento",
+      "description": "Recibimos varios envíos desde esta conexión en poco tiempo. Probá de nuevo en unos minutos. Si es urgente, escribinos por email."
     }
   }
 }

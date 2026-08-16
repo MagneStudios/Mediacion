@@ -23,8 +23,14 @@ export type LegalDocumentScreenProps = {
 
 type FetchStatus = 'loading' | 'error' | 'empty' | 'success';
 
-function formatUpdatedAt(iso: string): string {
+function formatUpdatedAt(iso: string | null): string {
   const locale = i18n.language === 'en' ? 'en-US' : 'es-AR';
+  // Same guard as the request acknowledgement: BE types `valid_from` as
+  // nullable because `normalizeTimestamp` can return null, and a legal page
+  // claiming it was last updated in 1970 discredits the whole document.
+  if (!iso) {
+    return '';
+  }
   try {
     // UTC on purpose: `valid_from` marks the calendar day a version was
     // published. Formatted in local time, a midnight-UTC timestamp would

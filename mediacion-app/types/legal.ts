@@ -30,8 +30,13 @@ export type LegalDocument = {
   version: string;
   /** Full normalized text. "## X. TITLE" lines are section headings. */
   contenido: string;
-  /** ISO timestamp. The visible "última actualización" date comes from here. */
-  validFrom: string;
+  /**
+   * ISO timestamp. The visible "última actualización" date comes from here.
+   * Nullable to match BE, whose `normalizeTimestamp` returns null for an
+   * unusable value — the column is NOT NULL, so this is a guard, not a case
+   * the UI is expected to hit.
+   */
+  validFrom: string | null;
   /** ISO timestamp, null while the version is the current one. */
   validTo: string | null;
   /** Substantial changes force a blocking re-acceptance (instructivo §4.9). */
@@ -94,8 +99,8 @@ export type ContactRequestInput = {
 export type SolicitudReceipt = {
   /** Tracking code the user can quote in a follow-up: `ARR-0001`, `CON-0001`. */
   id: string;
-  /** ISO timestamp assigned by the server. */
-  receivedAt: string;
+  /** ISO timestamp assigned by the server. Nullable for the same reason as `validFrom`. */
+  receivedAt: string | null;
 };
 
 export type WithdrawalRequestResult = SolicitudReceipt;

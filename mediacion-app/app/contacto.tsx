@@ -76,6 +76,8 @@ export default function ContactoScreen() {
         submittingLabel={t('common.loading')}
         errorTitle={t('legal.contact.error.title')}
         retryLabel={t('common.retry')}
+        rateLimitedTitle={t('legal.rateLimited.title')}
+        rateLimitedDescription={t('legal.rateLimited.description')}
         successTitle={t('legal.contact.success.title')}
         buildSuccessBody={({ id, date }) =>
           t('legal.contact.success.body', { id, date, dias: plazoDias })

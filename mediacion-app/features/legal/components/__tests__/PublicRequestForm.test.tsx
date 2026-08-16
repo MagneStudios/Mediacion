@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { ApiError, codeTooManyRequests } from '@/services/api/api-error';
+
 import { PublicRequestForm } from '../PublicRequestForm';
 
 const labels = {
@@ -13,6 +15,8 @@ const labels = {
   submittingLabel: 'Enviando…',
   errorTitle: 'No pudimos enviar tu consulta',
   retryLabel: 'Reintentar',
+  rateLimitedTitle: 'Esperá un momento',
+  rateLimitedDescription: 'Recibimos varios envíos desde esta conexión.',
   successTitle: 'Recibimos tu consulta',
 };
 
@@ -97,6 +101,33 @@ describe('PublicRequestForm', () => {
     await waitFor(() => expect(screen.getByText(labels.successTitle)).toBeTruthy());
     expect(screen.queryByText(labels.submitLabel)).toBeNull();
     expect(screen.queryByPlaceholderText(labels.messagePlaceholder)).toBeNull();
+  });
+
+  it('shows its own message on 429 — and no retry, which inside the window cannot work', async () => {
+    const onSubmit = jest
+      .fn()
+      .mockRejectedValue(new ApiError(codeTooManyRequests, 'Too many requests', 429));
+    await renderForm(onSubmit);
+    await fillAll();
+    await fireEvent.press(screen.getByText(labels.submitLabel));
+
+    await waitFor(() => expect(screen.getByText(labels.rateLimitedTitle)).toBeTruthy());
+    expect(screen.getByText(labels.rateLimitedDescription)).toBeTruthy();
+    // The generic error and its retry must not appear: on a complaints
+    // channel, a button that keeps failing reads as a broken system.
+    expect(screen.queryByText(labels.errorTitle)).toBeNull();
+    expect(screen.queryByText(labels.retryLabel)).toBeNull();
+  });
+
+  it('renders the acknowledgement without a date when the server sends none, never the epoch', async () => {
+    const onSubmit = jest.fn().mockResolvedValue({ id: 'CON-0009', receivedAt: null });
+    await renderForm(onSubmit);
+    await fillAll();
+    await fireEvent.press(screen.getByText(labels.submitLabel));
+
+    await waitFor(() => expect(screen.getByText(labels.successTitle)).toBeTruthy());
+    expect(screen.getByText(/CON-0009/)).toBeTruthy();
+    expect(screen.queryByText(/1970/)).toBeNull();
   });
 
   it('offers a retry that resends, and keeps what the user typed', async () => {

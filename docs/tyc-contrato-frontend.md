@@ -219,4 +219,33 @@ Mientras tanto el botón de baja queda contra el mock: el flujo de UI está cons
 
 ---
 
+## 9 · Pendiente de BE: exponer la versión programada (punto #16)
+
+Repasando `docs/fichas-legal-backend.md` y `agents/back/AGENTS.md` apareció una mitad del punto #16 que no está construida y **hoy no se puede construir**.
+
+El reparto asigna a FE el punto 16 completo: *"**Aviso in-product** + re-aceptación bloqueante si el cambio es sustancial"*, y §05 lo repite en la tabla de fronteras (*"Publicación de versión → DB → BE → FE (banner)"*). El instructivo §4.8 pide avisar los cambios *"por email a todos los usuarios activos **y con un aviso dentro del producto**"*.
+
+FE tiene la re-aceptación bloqueante, que actúa **cuando la versión ya entró en vigencia**. Falta el banner de los 10 días previos, y no hay forma de alimentarlo: `LegalRepository.findVigente` filtra `valid_from <= now`, así que `GET /legal/documentos/:tipo` nunca devuelve una versión programada. BE tiene el dato — el tipo `PublicacionProgramada` existe y `legal-avisos.scheduler.ts` lo consulta — pero ninguna ruta lo expone.
+
+**Lo que haría falta:** `GET /legal/documentos/:tipo/programada` (o un flag en el endpoint actual) que devuelva, si existe, la versión con `valid_from > now`:
+
+```json
+{ "tipo": "terms", "version": "v2.0", "valid_from": "2026-09-01T00:00:00Z", "is_substantial": true, "resumen_cambios": "Cambió cómo se cobra el servicio." }
+```
+
+Con eso el banner es trabajo chico de FE: leer la versión programada, mostrar desde cuándo rige y el resumen, y desaparecer solo cuando `valid_from` pasa y toma el relevo la re-aceptación bloqueante que ya existe.
+
+### 9.1 · Lo que sí se corrigió de ese repaso (ya en la rama)
+
+- **`429 too_many_requests`** tiene ahora su propio estado en los dos formularios públicos, sin botón de reintento: dentro de la ventana el reintento falla igual, y en un canal de reclamos un botón que no funciona se lee como un sistema roto. Estaba documentado en las fichas §4 y §8 y se nos había pasado.
+- **La definición de "vigente" del mock** se alineó con `findVigente` (`valid_from <= now AND (valid_to IS NULL OR valid_to > now)`). Solo filtraba `valid_to`, así que con una publicación programada —justo lo que produce el flujo de aviso a 10 días— habría mostrado el texto nuevo antes de tiempo.
+- **`valid_from` y `received_at` pasaron a nullable** en los tipos de FE, para coincidir con `normalizeTimestamp`. Las columnas son `NOT NULL`, pero si alguna vez llegara null se veía "1 de enero de 1970" en la página legal y en el acuse.
+
+### 9.2 · Dos notas operativas (no son de FE)
+
+- **`OPERACIONES_EMAIL` vacío hace que el aviso se loguee en vez de enviarse** (`agents/back/AGENTS.md` §Config). Los formularios de arrepentimiento y contacto registran la fila igual, pero nadie se entera. El instructivo §5 pide "alguien que efectivamente responda el canal de contacto": conviene que esa variable esté en el checklist de despliegue.
+- **La baja en la pasarela hoy es un no-op**: `HttpMercadoPagoClient.cancelSubscription` busca el preapproval por `external_reference` y no hace nada si no existe, porque las suscripciones se cobran como preferencias one-off. El checklist del anexo pide la baja "verificada en el panel de la pasarela" — ese tilde todavía no se puede poner.
+
+---
+
 *Dudas o cambios al contrato: responder sobre este doc o en el PR de la rama.*

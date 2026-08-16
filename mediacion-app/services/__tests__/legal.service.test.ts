@@ -1,4 +1,5 @@
 import { mockLegalDocuments } from '../../mocks/legal';
+import type { LegalDocument } from '../../types/legal';
 import {
   __mockForceLegalFailure,
   __resetMockLegalState,
@@ -27,6 +28,60 @@ describe('legal.service — TyC acceptance module', () => {
     const service = createMockLegalService();
     const terms = await service.getCurrentDocument('terms');
     expect(terms?.validFrom).toBe(mockLegalDocuments[0].validFrom);
+  });
+
+  describe('"vigente" matches LegalRepository.findVigente', () => {
+    // `findVigente` filters `valid_from <= now AND (valid_to IS NULL OR
+    // valid_to > now)`. Publishing schedules a version ahead of time — the
+    // aviso job mails users 10 days before it applies — so a version whose
+    // valid_from is in the future must NOT be served yet.
+    const scheduled: LegalDocument = {
+      tipo: 'terms',
+      version: 'v2.0',
+      contenido: '## A. NUEVO\n\nA.1. Texto futuro.',
+      validFrom: '2099-01-01T00:00:00.000Z',
+      validTo: null,
+      isSubstantial: true,
+      resumenCambios: 'Cambió cómo se cobra.',
+    };
+
+    afterEach(() => {
+      const index = mockLegalDocuments.indexOf(scheduled);
+      if (index >= 0) mockLegalDocuments.splice(index, 1);
+    });
+
+    it('does not serve a version scheduled for the future', async () => {
+      mockLegalDocuments.unshift(scheduled);
+      const service = createMockLegalService();
+
+      const served = await service.getCurrentDocument('terms');
+      // The seeded v1.0 keeps applying until v2.0 actually takes effect.
+      expect(served?.version).toBe('v1.0');
+    });
+
+    it('a scheduled substantial version does not trigger the blocking gate early', async () => {
+      mockLegalDocuments.unshift(scheduled);
+      const service = createMockLegalService();
+
+      const status = await service.getAcceptanceStatus();
+      // v1.0 is still pending (nothing accepted in a fresh mock), but the
+      // gate must not block: v2.0 is the substantial one and it does not
+      // apply yet. Blocking the app before the new terms take effect would
+      // be worse than not warning at all — the advance notice the
+      // instructivo asks for is a banner, not a wall.
+      expect(status.requiereReaceptacion).toBe(false);
+    });
+
+    it('does not serve a version whose validTo already passed', async () => {
+      const service = createMockLegalService();
+      const expired: LegalDocument = { ...scheduled, validFrom: '2020-01-01T00:00:00.000Z', validTo: '2021-01-01T00:00:00.000Z' };
+      mockLegalDocuments.unshift(expired);
+
+      const served = await service.getCurrentDocument('terms');
+      expect(served?.version).toBe('v1.0');
+
+      mockLegalDocuments.splice(mockLegalDocuments.indexOf(expired), 1);
+    });
   });
 
   it('starts with both documents pending acceptance', async () => {
@@ -61,7 +116,9 @@ describe('legal.service — TyC acceptance module', () => {
     // Uppercase, matching BE's trigger (`'ARR-' || lpad(...)`) — the code a
     // user reads in the demo has the same shape as a real one.
     expect(receipt.id).toMatch(/^ARR-\d{4}$/);
-    expect(new Date(receipt.receivedAt).getTime()).not.toBeNaN();
+    // The mock always stamps it; the type is nullable only to mirror BE.
+    expect(receipt.receivedAt).not.toBeNull();
+    expect(Date.parse(receipt.receivedAt ?? '')).not.toBeNaN();
   });
 
   it('issues contact tracking codes on their own sequence, matching BE prefixes', async () => {
