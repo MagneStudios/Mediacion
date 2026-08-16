@@ -184,6 +184,8 @@ Revisado el entregable de DB (`20260814170000_tyc_legal.sql` + decisiones del 14
 
 ### 7.1 · Pendiente de BE: falta un endpoint de lectura de suscripciones
 
+> Especificado para implementar en **`docs/pedidos-frontend-a-backend.md`** §2.
+
 `POST /suscripciones/:id/baja` está implementado y su ficha es clara, pero **FE todavía no lo puede consumir**. El inventario de billing en `apps/api` es:
 
 | Ruta | Estado |
@@ -220,6 +222,8 @@ Mientras tanto el botón de baja queda contra el mock: el flujo de UI está cons
 ---
 
 ## 9 · Pendiente de BE: exponer la versión programada (punto #16)
+
+> Los dos pedidos abiertos a Backend —este y el de §7.1— están especificados, con shapes listos para implementar, en **`docs/pedidos-frontend-a-backend.md`**. Esta sección queda como el registro de por qué apareció.
 
 Repasando `docs/fichas-legal-backend.md` y `agents/back/AGENTS.md` apareció una mitad del punto #16 que no está construida y **hoy no se puede construir**.
 
