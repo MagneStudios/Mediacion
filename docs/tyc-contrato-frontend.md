@@ -157,4 +157,16 @@ Cualquier desvío del shape (nombre de campo, tipo, semántica de `marketing` au
 
 ---
 
-*Dudas o cambios al contrato: responder sobre este doc o en el PR de la rama. No mergear `feat/frontend-tyc-aceptacion` a `dev` hasta cerrar la revisión con DB y BE.*
+---
+
+## 6 · Estado (15/08/2026) — BE publicó su ficha
+
+- **DB:** entregado. `supabase/migrations/20260814170000_tyc_legal.sql` en `dev`.
+- **FE:** mergeado en `dev`, todavía sobre el singleton mock.
+- **BE:** implementado en `story/tyc-legal-backend`. La ficha de cada función está en `docs/fichas-legal-backend.md` y **coincide con §3 de este documento sin ningún desvío**: mismos paths, mismos nombres de campo, misma semántica de `marketing` ausente. El único agregado es `POST /legal/contacto` (punto #23), que FE todavía no consume.
+- Los dos endpoints de §3.5 ya existen: la baja es `POST /suscripciones/:id/baja` (devuelve `{ id, estado, fecha_fin }`) y el export del log es `GET /legal/aceptaciones/export` (CSV, solo `admin`).
+- **Lo que falta para activar:** cambiar el singleton de `services/legal.service.ts` a la implementación backed. Ninguna pantalla se toca.
+
+---
+
+*Dudas o cambios al contrato: responder sobre este doc o en el PR de la rama.*
