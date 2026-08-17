@@ -1,6 +1,8 @@
 import type {
   AcceptanceInput,
   AcceptanceStatus,
+  ContactRequestInput,
+  ContactRequestResult,
   LegalDocument,
   LegalDocumentType,
   WithdrawalRequestInput,
@@ -22,7 +24,8 @@ export type ApiLegalDocument = {
   tipo: LegalDocumentType;
   version: string;
   contenido: string;
-  valid_from: string;
+  /** Nullable on the wire: BE normalizes timestamps and returns null for unusable values. */
+  valid_from: string | null;
   valid_to: string | null;
   is_substantial: boolean;
   resumen_cambios: string | null;
@@ -52,16 +55,19 @@ export function toAcceptanceStatus(row: ApiAcceptanceStatus): AcceptanceStatus {
   };
 }
 
-export type ApiWithdrawalReceipt = {
+/** BE's `SolicitudReceipt` — same shape for arrepentimiento and contacto. */
+export type ApiSolicitudReceipt = {
   id: string;
-  received_at: string;
+  received_at: string | null;
 };
 
 export type ApiLegalService = {
   getCurrentDocument(tipo: LegalDocumentType): Promise<LegalDocument>;
+  getScheduledDocument(tipo: LegalDocumentType): Promise<LegalDocument>;
   registerAcceptance(input: AcceptanceInput): Promise<void>;
   getAcceptanceStatus(): Promise<AcceptanceStatus>;
   requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult>;
+  requestContact(input: ContactRequestInput): Promise<ContactRequestResult>;
 };
 
 export function createApiLegalService(http: HttpClient): ApiLegalService {
@@ -71,14 +77,30 @@ export function createApiLegalService(http: HttpClient): ApiLegalService {
       return toLegalDocument(row);
     },
 
+    async getScheduledDocument(tipo) {
+      // Same `LegalDocumentView` shape as the sibling read, so the mapper, the
+      // type and the renderer are all reused and the banner can offer "leer el
+      // texto nuevo" without a second call.
+      const row = await http.request<ApiLegalDocument>(
+        `/legal/documentos/${tipo}/programada`,
+      );
+      return toLegalDocument(row);
+    },
+
     async registerAcceptance(input) {
       // The body carries ONLY the marketing opt-in. IP, user agent,
       // timestamp and current version are resolved by the server from the
       // request itself (instructivo error #3 — anything the client sends as
-      // proof is forgeable and useless as evidence).
+      // proof is forgeable and useless as evidence). The API enforces this:
+      // `assertValidAcceptanceBody` rejects any extra key with 400.
+      //
+      // The key is omitted, not sent as undefined: on re-acceptance the
+      // server must not rewrite the marketing choice made at signup, and
+      // "absent" is what expresses that.
+      const body = input.marketing === undefined ? {} : { marketing: input.marketing };
       await http.request<void>('/legal/aceptaciones', {
         method: 'POST',
-        body: { marketing: input.marketing },
+        body,
       });
     },
 
@@ -89,9 +111,19 @@ export function createApiLegalService(http: HttpClient): ApiLegalService {
 
     async requestWithdrawal(input) {
       // Public endpoint — must work without a session (Res. 424/2020).
-      const row = await http.request<ApiWithdrawalReceipt>('/legal/arrepentimiento', {
+      const row = await http.request<ApiSolicitudReceipt>('/legal/arrepentimiento', {
         method: 'POST',
         body: { nombre: input.nombre, email: input.email, detalle: input.detalle },
+      });
+      return { id: row.id, receivedAt: row.received_at };
+    },
+
+    async requestContact(input) {
+      // Also public: the contact channel has to be reachable by someone who
+      // is not (or is no longer) a customer — instructivo §5.
+      const row = await http.request<ApiSolicitudReceipt>('/legal/contacto', {
+        method: 'POST',
+        body: { nombre: input.nombre, email: input.email, mensaje: input.mensaje },
       });
       return { id: row.id, receivedAt: row.received_at };
     },

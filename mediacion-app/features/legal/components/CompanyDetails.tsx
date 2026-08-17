@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '@/design-system';
+import { Button, Card } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
@@ -19,7 +19,17 @@ import type { CompanyInfo } from '@/types/legal';
  * The Ventanilla link is fixed by the instructivo and lives next to the
  * contact details, as required.
  */
-export function CompanyDetails() {
+export type CompanyDetailsProps = {
+  /**
+   * Renders a CTA to the contact form. Optional and opt-in rather than
+   * default: the contact screen embeds this same card, and a card that
+   * links to the page it is already on is noise.
+   */
+  onContactPress?: () => void;
+  contactActionLabel?: string;
+};
+
+export function CompanyDetails({ onContactPress, contactActionLabel }: CompanyDetailsProps = {}) {
   const { t } = useTranslation();
   const [info, setInfo] = useState<CompanyInfo | null>(null);
 
@@ -71,6 +81,12 @@ export function CompanyDetails() {
       >
         {t('legal.company.ventanillaLabel')}
       </Text>
+
+      {onContactPress && contactActionLabel ? (
+        <Button variant="secondary" fullWidth onPress={onContactPress} style={styles.contactAction}>
+          {contactActionLabel}
+        </Button>
+      ) : null}
     </Card>
   );
 }
@@ -93,5 +109,8 @@ const styles = StyleSheet.create({
     ...typography.bodySm,
     color: semanticColors.text.primary,
     textDecorationLine: 'underline',
+  },
+  contactAction: {
+    marginTop: spacing.md,
   },
 });

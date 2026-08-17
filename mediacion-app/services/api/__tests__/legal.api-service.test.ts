@@ -3,7 +3,7 @@ import type { HttpClient, RequestOptions } from '../http-client';
 
 /** Records every request and replays canned responses — no network. */
 function fakeHttp(responses: Record<string, unknown>) {
-  const calls: Array<{ path: string; options?: RequestOptions }> = [];
+  const calls: { path: string; options?: RequestOptions }[] = [];
   const http: HttpClient = {
     async request<T>(path: string, options?: RequestOptions): Promise<T> {
       calls.push({ path, options });
@@ -56,6 +56,16 @@ describe('legal.api-service — frozen /legal/* contract', () => {
     expect(calls[0].options?.body).toEqual({ marketing: true });
   });
 
+  it('omits the marketing key entirely on re-acceptance — absent means "do not rewrite the signup choice"', async () => {
+    const { http, calls } = fakeHttp({ '/legal/aceptaciones': undefined });
+    await createApiLegalService(http).registerAcceptance({});
+
+    // Not `{ marketing: undefined }`: the API's allow-list validation reads
+    // the key set, so the field has to be genuinely absent.
+    expect(calls[0].options?.body).toEqual({});
+    expect(Object.keys(calls[0].options?.body as object)).toHaveLength(0);
+  });
+
   it('requestWithdrawal posts the public form and maps the receipt', async () => {
     const { http, calls } = fakeHttp({
       '/legal/arrepentimiento': { id: 'arr-1', received_at: '2026-08-14T12:00:00Z' },
@@ -68,6 +78,27 @@ describe('legal.api-service — frozen /legal/* contract', () => {
 
     expect(calls[0].options?.body).toEqual({ nombre: 'Ana', email: 'ana@example.com', detalle: 'Plan estudio' });
     expect(receipt).toEqual({ id: 'arr-1', receivedAt: '2026-08-14T12:00:00Z' });
+  });
+
+  it('requestContact posts to /legal/contacto with mensaje, not detalle', async () => {
+    const { http, calls } = fakeHttp({
+      '/legal/contacto': { id: 'CON-0001', received_at: '2026-08-16T12:00:00Z' },
+    });
+    const receipt = await createApiLegalService(http).requestContact({
+      nombre: 'Ana',
+      email: 'ana@example.com',
+      mensaje: 'Mi consulta',
+    });
+
+    expect(calls[0].path).toBe('/legal/contacto');
+    // The field is `mensaje` here and `detalle` on arrepentimiento — the two
+    // public endpoints take different names for their free-text field.
+    expect(calls[0].options?.body).toEqual({
+      nombre: 'Ana',
+      email: 'ana@example.com',
+      mensaje: 'Mi consulta',
+    });
+    expect(receipt).toEqual({ id: 'CON-0001', receivedAt: '2026-08-16T12:00:00Z' });
   });
 
   it('getCurrentDocument hits the per-type endpoint', async () => {
@@ -85,5 +116,32 @@ describe('legal.api-service — frozen /legal/* contract', () => {
 
     expect(calls[0].path).toBe('/legal/documentos/privacy');
     expect(document.tipo).toBe('privacy');
+  });
+
+  it('reads the scheduled version from its own route, not from the vigente one', async () => {
+    const { http, calls } = fakeHttp({
+      '/legal/documentos/terms/programada': {
+        tipo: 'terms',
+        version: 'v2.0',
+        contenido: 'texto nuevo',
+        valid_from: '2026-09-01T00:00:00.000Z',
+        valid_to: null,
+        is_substantial: true,
+        resumen_cambios: 'Cambió cómo se cobra el servicio.',
+      },
+    });
+
+    const document = await createApiLegalService(http).getScheduledDocument('terms');
+
+    expect(calls.map((call) => call.path)).toEqual(['/legal/documentos/terms/programada']);
+    expect(document).toEqual({
+      tipo: 'terms',
+      version: 'v2.0',
+      contenido: 'texto nuevo',
+      validFrom: '2026-09-01T00:00:00.000Z',
+      validTo: null,
+      isSubstantial: true,
+      resumenCambios: 'Cambió cómo se cobra el servicio.',
+    });
   });
 });

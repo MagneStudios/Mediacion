@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { UsersRepository } from "../auth/users.repository";
 import type {
   CreatePreferenceOutput,
+  GatewayCancellation,
   MercadoPagoClient,
   MercadoPagoPayment,
 } from "./mercadopago/mercado-pago-client";
@@ -25,7 +26,7 @@ class FixedMercadoPagoClient implements MercadoPagoClient {
     return Promise.resolve(this.payment);
   }
 
-  cancelSubscription(): Promise<void> {
+  cancelSubscription(): Promise<GatewayCancellation> {
     return Promise.reject(new Error("not used in this integration test"));
   }
 }
@@ -61,6 +62,37 @@ async function runCleanupSteps(
       await step();
     } catch {}
   }
+}
+
+async function acceptCurrentTerms(
+  kysely: Kysely<Database>,
+  usuarioId: string,
+): Promise<void> {
+  // The vigencia window, NOT `valid_to IS NULL`: with a version scheduled —
+  // which another spec in this suite does — `valid_to IS NULL` points at the
+  // FUTURE row, and the trigger would reject an acceptance written for it.
+  // Same definition `findVigente` and `has_accepted_current` use.
+  const now = new Date().toISOString();
+  const terms = await kysely
+    .selectFrom("legal_documents")
+    .select("version")
+    .where("tipo", "=", "terms")
+    .where("valid_from", "<=", now)
+    .where((eb) =>
+      eb.or([eb("valid_to", "is", null), eb("valid_to", ">", now)]),
+    )
+    .executeTakeFirstOrThrow();
+  await kysely
+    .insertInto("user_agreements")
+    .values({
+      user_id: usuarioId,
+      document_type: "terms",
+      document_version: terms.version,
+      ip: "203.0.113.7",
+      user_agent: "integration",
+      accepted: true,
+    })
+    .execute();
 }
 
 describeDb(
@@ -99,6 +131,8 @@ describeDb(
         .returningAll()
         .executeTakeFirstOrThrow();
       planId = plan.id;
+
+      await acceptCurrentTerms(kysely, usuarioId);
 
       const suscripcion = await kysely
         .insertInto("suscripciones")

@@ -53,6 +53,23 @@ export class LegalRepository {
       });
   }
 
+  findProgramada(
+    tipo: DocumentoTipo,
+    now: string,
+  ): Promise<LegalDocumentRow | undefined> {
+    return this.kysely
+      .selectFrom("legal_documents")
+      .select(legalDocumentColumns)
+      .where("tipo", "=", tipo)
+      .where("valid_from", ">", now)
+      .orderBy("valid_from")
+      .limit(1)
+      .executeTakeFirst()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   findVigentes(now: string): Promise<LegalDocumentRow[]> {
     return this.kysely
       .selectFrom("legal_documents")

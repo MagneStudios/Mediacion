@@ -294,6 +294,7 @@
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
       "noSubscription": "Todavía no tenés un plan activo. Elegí uno para empezar.",
+      "cancelledUntil": "Tu plan sigue vigente hasta el {{date}}. Después de esa fecha no se renueva.",
       "currentBadge": "Plan actual",
       "subscribeAction": "Suscribirme",
       "error": {
@@ -1247,8 +1248,7 @@
         }
       },
       "contact": {
-        "action": "Contactar a soporte",
-        "notice": "En esta demostración no se envía ningún mensaje real a soporte. Todavía no hay un canal de contacto activo."
+        "action": "Contactar a soporte"
       }
     },
     "legal": {
@@ -1398,6 +1398,17 @@
         "title": "No pudimos registrar tu aceptación"
       }
     },
+    "versionNotice": {
+      "title": {
+        "terms": "Vamos a actualizar los Términos y Condiciones",
+        "privacy": "Vamos a actualizar la Política de Privacidad"
+      },
+      "effectiveFrom": "La versión nueva rige desde el {{date}}.",
+      "summary": "Qué cambia: {{summary}}",
+      "readAction": "Leer el texto nuevo",
+      "hideAction": "Ocultar el texto nuevo",
+      "dismissAction": "Entendido"
+    },
     "withdrawal": {
       "title": "Botón de arrepentimiento",
       "linkLabel": "Arrepentimiento",
@@ -1425,6 +1436,29 @@
       "plazoRespuesta": "Respondemos consultas y reclamos dentro de los {{dias}} días hábiles.",
       "pendingValue": "Dato pendiente de publicación",
       "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
+    },
+    "contact": {
+      "title": "Contacto",
+      "linkLabel": "Contacto",
+      "description": "Escribinos tu consulta o reclamo y te respondemos por email. No hace falta tener cuenta ni iniciar sesión.",
+      "plazo": "Respondemos dentro de los {{dias}} días hábiles.",
+      "nombreLabel": "Nombre y apellido",
+      "nombrePlaceholder": "Tu nombre completo",
+      "mensajeLabel": "Tu consulta",
+      "mensajeHint": "Contanos qué necesitás. Si es sobre un caso, sumá el código para encontrarlo más rápido.",
+      "mensajePlaceholder": "Escribí acá tu consulta o reclamo",
+      "submitAction": "Enviar consulta",
+      "success": {
+        "title": "Recibimos tu consulta",
+        "body": "Tu número de seguimiento es {{id}}. La recibimos el {{date}} y te respondemos dentro de los {{dias}} días hábiles."
+      },
+      "error": {
+        "title": "No pudimos enviar tu consulta"
+      }
+    },
+    "rateLimited": {
+      "title": "Esperá un momento",
+      "description": "Recibimos varios envíos desde esta conexión en poco tiempo. Probá de nuevo en unos minutos. Si es urgente, escribinos por email."
     }
   }
 }

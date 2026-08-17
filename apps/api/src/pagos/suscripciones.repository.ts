@@ -6,14 +6,22 @@ import { KYSELY } from "../database/database.tokens";
 import type {
   CreateSuscripcionInput,
   Suscripcion,
+  SuscripcionOwnerFilter,
   SuscripcionOwnership,
+  SuscripcionVigenteRow,
 } from "./pagos.types";
 import {
   estadoSuscripcionActiva,
   estadoSuscripcionCancelada,
+  suscripcionVigenteColumns,
 } from "./pagos.types";
 
 const ownershipColumns = ["id", "usuario_id", "estudio_id", "estado"] as const;
+
+const personalOrderRank = 0;
+const estudioOrderRank = 1;
+const activaOrderRank = 0;
+const inactivaOrderRank = 1;
 
 @Injectable()
 export class SuscripcionesRepository {
@@ -29,6 +37,43 @@ export class SuscripcionesRepository {
       })
       .returningAll()
       .executeTakeFirstOrThrow()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  findVigenteByOwner(
+    ownerFilter: SuscripcionOwnerFilter,
+  ): Promise<SuscripcionVigenteRow | undefined> {
+    return this.kysely
+      .selectFrom("suscripciones")
+      .select(suscripcionVigenteColumns)
+      .where((eb) => {
+        const conditions = [eb("usuario_id", "=", ownerFilter.usuarioId)];
+        if (ownerFilter.estudioId !== null) {
+          conditions.push(eb("estudio_id", "=", ownerFilter.estudioId));
+        }
+        return eb.or(conditions);
+      })
+      .orderBy((eb) =>
+        eb
+          .case()
+          .when("usuario_id", "=", ownerFilter.usuarioId)
+          .then(personalOrderRank)
+          .else(estudioOrderRank)
+          .end(),
+      )
+      .orderBy((eb) =>
+        eb
+          .case()
+          .when("estado", "=", estadoSuscripcionActiva)
+          .then(activaOrderRank)
+          .else(inactivaOrderRank)
+          .end(),
+      )
+      .orderBy("created_at", "desc")
+      .limit(1)
+      .executeTakeFirst()
       .catch((error: unknown) => {
         throw toDomainError(error);
       });

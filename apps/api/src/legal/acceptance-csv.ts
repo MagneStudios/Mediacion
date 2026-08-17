@@ -29,18 +29,3 @@ export function buildAcceptancesCsv(rows: AcceptanceExportRow[]): string {
   );
   return [header, ...body].join(rowSeparator) + rowSeparator;
 }
-
-const unsafeFilenameChars = /[^A-Za-z0-9:.-]/g;
-const alphanumeric = /[A-Za-z0-9]/;
-
-function toFilenamePart(value: string | undefined, fallback: string): string {
-  const safe = value?.replace(unsafeFilenameChars, "");
-  return safe && alphanumeric.test(safe) ? safe : fallback;
-}
-
-export function buildAcceptancesFilename(
-  desde: string | undefined,
-  hasta: string | undefined,
-): string {
-  return `aceptaciones-${toFilenamePart(desde, "inicio")}-${toFilenamePart(hasta, "hoy")}.csv`;
-}

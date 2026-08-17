@@ -5,6 +5,7 @@ import { isApiConfigured, readAppEnv, type EnvSource } from '@/config/env';
 
 import { createApiActivityService, type ApiActivityService } from './activity.api-service';
 import { createApiAgreementsService, type ApiAgreementsService } from './agreements.api-service';
+import { createApiBillingService, type ApiBillingService } from './billing.api-service';
 import { createApiCasesService, type ApiCasesService } from './cases.api-service';
 import { createHttpClient, type HttpClient } from './http-client';
 import { createApiLegalService, type ApiLegalService } from './legal.api-service';
@@ -26,12 +27,13 @@ export type Backend = {
   negotiation: ApiNegotiationService;
   agreements: ApiAgreementsService;
   mediator: ApiMediatorService;
-  /**
-   * Written against the frozen `/legal/*` contract but not yet selected by
-   * `services/legal.service.ts` — the endpoints don't exist in `apps/api`
-   * yet (see that file's header for the activation plan).
-   */
   legal: ApiLegalService;
+  /**
+   * Only the two subscription endpoints that exist: the vigente read and the
+   * baja. There is no checkout and no factura endpoint — see
+   * `billing.backed-service.ts` for what that leaves on the mock.
+   */
+  billing: ApiBillingService;
 };
 
 /** Seams so a suite can build the stack without a network or native storage. */
@@ -96,5 +98,6 @@ export function createBackend(
     agreements: createApiAgreementsService(http),
     mediator: createApiMediatorService(http),
     legal: createApiLegalService(http),
+    billing: createApiBillingService(http),
   };
 }

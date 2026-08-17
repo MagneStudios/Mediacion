@@ -4,6 +4,7 @@ import { APP_CONFIG } from "../../config/config.tokens";
 import type {
   CreatePreferenceInput,
   CreatePreferenceOutput,
+  GatewayCancellation,
   MercadoPagoClient,
   MercadoPagoPayment,
 } from "./mercado-pago-client";
@@ -88,10 +89,12 @@ export class HttpMercadoPagoClient implements MercadoPagoClient {
     };
   }
 
-  async cancelSubscription(suscripcionId: string): Promise<void> {
+  async cancelSubscription(
+    suscripcionId: string,
+  ): Promise<GatewayCancellation> {
     const preapprovalId = await this.findPreapprovalId(suscripcionId);
     if (!preapprovalId) {
-      return;
+      return { cancelled: false };
     }
     const response = await fetch(
       `${mercadoPagoBaseUrl}/preapproval/${preapprovalId}`,
@@ -107,6 +110,7 @@ export class HttpMercadoPagoClient implements MercadoPagoClient {
         `Mercado Pago subscription cancellation failed with status ${response.status}`,
       );
     }
+    return { cancelled: true };
   }
 
   private async findPreapprovalId(

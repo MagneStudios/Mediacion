@@ -11,6 +11,7 @@ import { typography } from '@/design-system/tokens/typography';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import i18n from '@/i18n';
 import { legalService } from '@/services/legal.service';
+import { formatLegalDate } from '@/utils/format-legal-date';
 import type { LegalDocument, LegalDocumentType } from '@/types/legal';
 
 import { LegalDocumentBody } from './LegalDocumentBody';
@@ -22,23 +23,6 @@ export type LegalDocumentScreenProps = {
 };
 
 type FetchStatus = 'loading' | 'error' | 'empty' | 'success';
-
-function formatUpdatedAt(iso: string): string {
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-AR';
-  try {
-    // UTC on purpose: `valid_from` marks the calendar day a version was
-    // published. Formatted in local time, a midnight-UTC timestamp would
-    // show the previous day anywhere west of Greenwich.
-    return new Intl.DateTimeFormat(locale, {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
 
 /**
  * One frozen legal document as a permanent public page (instructivo §1: a
@@ -105,7 +89,7 @@ export function LegalDocumentScreen({ tipo, title }: LegalDocumentScreenProps) {
           </Text>
           {/* Instructivo §4.6: the last-updated date goes on top, visibly, and it comes from the data. */}
           <Text style={styles.updatedAt}>
-            {t('legal.document.updatedAt', { date: formatUpdatedAt(document.validFrom) })}
+            {t('legal.document.updatedAt', { date: formatLegalDate(document.validFrom, i18n.language) })}
           </Text>
           <Text style={styles.version}>{t('legal.document.versionLabel', { version: document.version })}</Text>
           <LegalDocumentBody contenido={document.contenido} />

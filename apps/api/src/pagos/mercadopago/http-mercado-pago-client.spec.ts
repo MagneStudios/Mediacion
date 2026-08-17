@@ -211,8 +211,9 @@ describe("HttpMercadoPagoClient", () => {
       jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
       const client = buildClient();
 
-      await client.cancelSubscription("sus-1");
+      const result = await client.cancelSubscription("sus-1");
 
+      expect(result).toEqual({ cancelled: true });
       expect(fetchMock.mock.calls[0][0]).toBe(
         "https://api.mercadopago.com/preapproval/search?external_reference=sus-1",
       );
@@ -225,7 +226,7 @@ describe("HttpMercadoPagoClient", () => {
       });
     });
 
-    it("does nothing when the suscripcion has no live preapproval, because one-off checkouts have nothing to cancel", async () => {
+    it("reports cancelled: false when the suscripcion has no live preapproval, because one-off checkouts have nothing to cancel", async () => {
       const fetchMock = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ results: [] }),
@@ -233,8 +234,9 @@ describe("HttpMercadoPagoClient", () => {
       jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
       const client = buildClient();
 
-      await client.cancelSubscription("sus-1");
+      const result = await client.cancelSubscription("sus-1");
 
+      expect(result).toEqual({ cancelled: false });
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
@@ -249,8 +251,9 @@ describe("HttpMercadoPagoClient", () => {
       jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
       const client = buildClient();
 
-      await client.cancelSubscription("sus-1");
+      const result = await client.cancelSubscription("sus-1");
 
+      expect(result).toEqual({ cancelled: false });
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 

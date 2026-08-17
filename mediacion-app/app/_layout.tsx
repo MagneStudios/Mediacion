@@ -9,12 +9,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
 import { ErrorState } from '@/design-system';
 import { AuthGate } from '@/features/auth/AuthGate';
 import { ReacceptanceGate } from '@/features/legal/components/ReacceptanceGate';
+import { VersionNoticeBanner } from '@/features/legal/components/VersionNoticeBanner';
 import { colors } from '@/design-system/tokens/colors';
 import { useDocumentLang } from '@/hooks/use-document-lang';
 import '@/i18n';
@@ -70,6 +72,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={mediacionNavigationTheme}>
+      <SafeAreaProvider>
       <Head><title>Mediación</title></Head>
       {/*
         AuthGate wraps the whole tree so a signed-out visitor cannot reach any
@@ -85,6 +88,16 @@ export default function RootLayout() {
         this overlay, is the real enforcement.
       */}
       <ReacceptanceGate>
+      {/*
+        VersionNoticeBanner is the non-blocking half of the same rule: it
+        announces a version scheduled to take effect (instructivo §4.8, the
+        10-day in-product notice), while the gate above blocks once one
+        already has. It renders nothing whenever nothing is scheduled, which
+        is almost always, and it sits above the shell so the announcement is
+        not buried inside a scrolling screen.
+      */}
+      <View style={styles.appColumn}>
+      <VersionNoticeBanner />
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -112,9 +125,11 @@ export default function RootLayout() {
           <Stack.Screen name="admin" options={{ headerShown: false }} />
         </Stack>
       </ResponsiveAppShell>
+      </View>
       </ReacceptanceGate>
       </AuthGate>
       <StatusBar style="dark" />
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }
@@ -135,6 +150,13 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // The banner and the shell stack vertically; the shell takes what's left.
+  appColumn: {
+    flex: 1,
+  },
+});
 
 const errorStyles = StyleSheet.create({
   container: {

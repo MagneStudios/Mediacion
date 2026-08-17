@@ -294,6 +294,7 @@
       "title": "My plan",
       "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
       "noSubscription": "You don't have an active plan yet. Pick one to get started.",
+      "cancelledUntil": "Your plan stays active until {{date}}. It does not renew after that date.",
       "currentBadge": "Current plan",
       "subscribeAction": "Subscribe",
       "error": {
@@ -1247,8 +1248,7 @@
         }
       },
       "contact": {
-        "action": "Contact support",
-        "notice": "This demo doesn't send any real message to support yet. There is no active contact channel."
+        "action": "Contact support"
       }
     },
     "legal": {
@@ -1398,6 +1398,17 @@
         "title": "We could not record your acceptance"
       }
     },
+    "versionNotice": {
+      "title": {
+        "terms": "We are updating the Terms and Conditions",
+        "privacy": "We are updating the Privacy Policy"
+      },
+      "effectiveFrom": "The new version takes effect on {{date}}.",
+      "summary": "What changes: {{summary}}",
+      "readAction": "Read the new text",
+      "hideAction": "Hide the new text",
+      "dismissAction": "Got it"
+    },
     "withdrawal": {
       "title": "Withdrawal request",
       "linkLabel": "Withdrawal",
@@ -1425,6 +1436,29 @@
       "plazoRespuesta": "We answer questions and claims within {{dias}} business days.",
       "pendingValue": "Pending publication",
       "ventanillaLabel": "Ventanilla Única Federal de Defensa del Consumidor"
+    },
+    "contact": {
+      "title": "Contact",
+      "linkLabel": "Contact",
+      "description": "Send us your question or complaint and we will reply by email. No account or sign-in needed.",
+      "plazo": "We reply within {{dias}} business days.",
+      "nombreLabel": "Full name",
+      "nombrePlaceholder": "Your full name",
+      "mensajeLabel": "Your message",
+      "mensajeHint": "Tell us what you need. If it is about a case, add its code so we can find it faster.",
+      "mensajePlaceholder": "Write your question or complaint here",
+      "submitAction": "Send message",
+      "success": {
+        "title": "We received your message",
+        "body": "Your tracking number is {{id}}. We received it on {{date}} and will reply within {{dias}} business days."
+      },
+      "error": {
+        "title": "We could not send your message"
+      }
+    },
+    "rateLimited": {
+      "title": "Please wait a moment",
+      "description": "We received several submissions from this connection in a short time. Try again in a few minutes. If it is urgent, email us."
     }
   }
 }

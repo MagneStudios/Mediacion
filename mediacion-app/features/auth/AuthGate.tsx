@@ -17,10 +17,17 @@ const authRoutes = ['/login', '/signup'];
 /**
  * Legal pages the instructivo TyC requires to be readable without
  * registering or logging in (§1: the documents themselves; §5: the botón de
- * arrepentimiento on the first screen, explicitly NOT behind the account).
+ * arrepentimiento on the first screen, explicitly NOT behind the account,
+ * and the canal de contacto — a consumer with a complaint may have no
+ * account, or may have already closed it).
  * Unlike `authRoutes`, a signed-in user can visit these too.
  */
-const legalRoutes = ['/terminos-y-condiciones', '/politica-de-privacidad', '/arrepentimiento'];
+const legalRoutes = [
+  '/terminos-y-condiciones',
+  '/politica-de-privacidad',
+  '/arrepentimiento',
+  '/contacto',
+];
 
 const publicRoutes = [...authRoutes, ...legalRoutes];
 

@@ -1,4 +1,4 @@
-import { HttpException } from "@nestjs/common";
+import { HttpException, Logger } from "@nestjs/common";
 import type { UsersRepository } from "../auth/users.repository";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import type { MercadoPagoClient } from "./mercadopago/mercado-pago-client";
@@ -11,6 +11,7 @@ describe("SuscripcionesService", () => {
     createSuscripcion?: jest.Mock;
     findProfileById?: jest.Mock;
     findOwnershipById?: jest.Mock;
+    findVigenteByOwner?: jest.Mock;
     cancelActiva?: jest.Mock;
     restoreActiva?: jest.Mock;
     cancelSubscription?: jest.Mock;
@@ -19,6 +20,7 @@ describe("SuscripcionesService", () => {
     const suscripcionesRepository = {
       createSuscripcion: options?.createSuscripcion ?? jest.fn(),
       findOwnershipById: options?.findOwnershipById ?? jest.fn(),
+      findVigenteByOwner: options?.findVigenteByOwner ?? jest.fn(),
       cancelActiva: options?.cancelActiva ?? jest.fn(),
       restoreActiva: options?.restoreActiva ?? jest.fn(),
     } as unknown as SuscripcionesRepository;
@@ -27,7 +29,8 @@ describe("SuscripcionesService", () => {
     } as unknown as UsersRepository;
     const mercadoPagoClient = {
       cancelSubscription:
-        options?.cancelSubscription ?? jest.fn().mockResolvedValue(undefined),
+        options?.cancelSubscription ??
+        jest.fn().mockResolvedValue({ cancelled: true }),
     } as unknown as MercadoPagoClient;
     const emailProvider = {
       send: options?.send ?? jest.fn().mockResolvedValue(undefined),
@@ -45,6 +48,123 @@ describe("SuscripcionesService", () => {
       emailProvider,
     };
   }
+
+  describe("getVigente", () => {
+    it("resolves the caller's own suscripcion with normalized timestamps", async () => {
+      const findVigenteByOwner = jest.fn().mockResolvedValue({
+        id: "sus-1",
+        plan_id: "plan-1",
+        estado: "activa",
+        fecha_inicio: new Date("2026-08-01T00:00:00.000Z"),
+        fecha_fin: null,
+      });
+      const findProfileById = jest.fn().mockResolvedValue({ estudio_id: null });
+      const { service } = buildService({
+        findVigenteByOwner,
+        findProfileById,
+      });
+
+      await expect(service.getVigente("user-1")).resolves.toEqual({
+        id: "sus-1",
+        plan_id: "plan-1",
+        estado: "activa",
+        fecha_inicio: "2026-08-01T00:00:00.000Z",
+        fecha_fin: null,
+      });
+      expect(findVigenteByOwner).toHaveBeenCalledWith({
+        usuarioId: "user-1",
+        estudioId: null,
+      });
+    });
+
+    it("resolves titularidad through the estudio, the same criterion as the baja", async () => {
+      const findVigenteByOwner = jest.fn().mockResolvedValue({
+        id: "sus-2",
+        plan_id: "plan-2",
+        estado: "activa",
+        fecha_inicio: new Date("2026-08-01T00:00:00.000Z"),
+        fecha_fin: null,
+      });
+      const findProfileById = jest.fn().mockResolvedValue({
+        estudio_id: "estudio-1",
+        rol: "estudio",
+        activo: true,
+      });
+      const { service } = buildService({
+        findVigenteByOwner,
+        findProfileById,
+      });
+
+      await service.getVigente("user-1");
+
+      expect(findVigenteByOwner).toHaveBeenCalledWith({
+        usuarioId: "user-1",
+        estudioId: "estudio-1",
+      });
+    });
+
+    it.each([
+      [
+        "a parte who merely carries the estudio_id",
+        { rol: "parte", activo: true },
+      ],
+      ["a deactivated titular", { rol: "estudio", activo: false }],
+    ])(
+      "does not resolve the estudio's suscripcion for %s",
+      async (_case, profile) => {
+        // The trigger this cycle added requires rol = 'estudio' AND activo for
+        // an estudio to CONTRACT. The read has to use the same criterion, or a
+        // non-titular discovers the estudio's id here and cancels the plan of
+        // every member through POST /suscripciones/:id/baja.
+        const findVigenteByOwner = jest.fn().mockResolvedValue(undefined);
+        const { service } = buildService({
+          findVigenteByOwner,
+          findProfileById: jest
+            .fn()
+            .mockResolvedValue({ estudio_id: "estudio-1", ...profile }),
+        });
+
+        await expect(service.getVigente("user-1")).rejects.toMatchObject({
+          status: 404,
+        });
+        expect(findVigenteByOwner).toHaveBeenCalledWith({
+          usuarioId: "user-1",
+          estudioId: null,
+        });
+      },
+    );
+
+    it("keeps returning a suscripcion already dada de baja, with its fecha_fin", async () => {
+      const findVigenteByOwner = jest.fn().mockResolvedValue({
+        id: "sus-1",
+        plan_id: "plan-1",
+        estado: "cancelada",
+        fecha_inicio: new Date("2026-08-01T00:00:00.000Z"),
+        fecha_fin: new Date("2026-08-15T12:00:00.000Z"),
+      });
+      const { service } = buildService({
+        findVigenteByOwner,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getVigente("user-1")).resolves.toMatchObject({
+        estado: "cancelada",
+        fecha_fin: "2026-08-15T12:00:00.000Z",
+      });
+    });
+
+    it("answers 404 suscripcion_not_found when the caller has none", async () => {
+      const { service } = buildService({
+        findVigenteByOwner: jest.fn().mockResolvedValue(undefined),
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getVigente("user-1")).rejects.toMatchObject({
+        status: 404,
+        response: { code: "suscripcion_not_found" },
+      });
+    });
+  });
 
   describe("createSuscripcion", () => {
     it("forces usuario_id to the caller id and ignores any usuario_id in the body", async () => {
@@ -204,7 +324,9 @@ describe("SuscripcionesService", () => {
     };
 
     it("cancels in the gateway and returns the cancelled subscription", async () => {
-      const cancelSubscription = jest.fn().mockResolvedValue(undefined);
+      const cancelSubscription = jest
+        .fn()
+        .mockResolvedValue({ cancelled: true });
       const send = jest.fn().mockResolvedValue(undefined);
       const { service } = buildService({
         findOwnershipById: jest.fn().mockResolvedValue(activa),
@@ -226,6 +348,48 @@ describe("SuscripcionesService", () => {
       );
     });
 
+    it("completes the local baja but warns when the gateway had nothing to cancel", async () => {
+      const cancelSubscription = jest
+        .fn()
+        .mockResolvedValue({ cancelled: false });
+      const restoreActiva = jest.fn();
+      const { service } = buildService({
+        findOwnershipById: jest.fn().mockResolvedValue(activa),
+        cancelActiva: jest.fn().mockResolvedValue(cancelada),
+        cancelSubscription,
+        restoreActiva,
+      });
+      const warn = jest
+        .spyOn(Logger.prototype, "warn")
+        .mockImplementation(() => undefined);
+
+      await expect(
+        service.cancelSuscripcion(caller, "sus-1"),
+      ).resolves.toMatchObject({ estado: "cancelada" });
+
+      expect(restoreActiva).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("nothing to cancel at the gateway for sus-1"),
+      );
+      warn.mockRestore();
+    });
+
+    it("does not warn when the gateway did cancel something", async () => {
+      const { service } = buildService({
+        findOwnershipById: jest.fn().mockResolvedValue(activa),
+        cancelActiva: jest.fn().mockResolvedValue(cancelada),
+        cancelSubscription: jest.fn().mockResolvedValue({ cancelled: true }),
+      });
+      const warn = jest
+        .spyOn(Logger.prototype, "warn")
+        .mockImplementation(() => undefined);
+
+      await service.cancelSuscripcion(caller, "sus-1");
+
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+
     it("hides someone else's subscription behind a 404", async () => {
       const cancelActiva = jest.fn();
       const { service } = buildService({
@@ -245,7 +409,9 @@ describe("SuscripcionesService", () => {
     });
 
     it("lets a member of the owning estudio cancel", async () => {
-      const cancelSubscription = jest.fn().mockResolvedValue(undefined);
+      const cancelSubscription = jest
+        .fn()
+        .mockResolvedValue({ cancelled: true });
       const { service } = buildService({
         findOwnershipById: jest.fn().mockResolvedValue({
           ...activa,
@@ -254,6 +420,8 @@ describe("SuscripcionesService", () => {
         }),
         findProfileById: jest.fn().mockResolvedValue({
           estudio_id: "estudio-1",
+          rol: "estudio",
+          activo: true,
         }),
         cancelActiva: jest.fn().mockResolvedValue(cancelada),
         cancelSubscription,
@@ -263,6 +431,35 @@ describe("SuscripcionesService", () => {
 
       expect(cancelSubscription).toHaveBeenCalledWith("sus-1");
     });
+
+    it.each([
+      ["a parte of the owning estudio", { rol: "parte", activo: true }],
+      ["a deactivated titular", { rol: "estudio", activo: false }],
+    ])(
+      "hides the estudio's suscripcion from %s behind a 404",
+      async (_case, profile) => {
+        const cancelActiva = jest.fn();
+        const { service } = buildService({
+          findOwnershipById: jest.fn().mockResolvedValue({
+            ...activa,
+            usuario_id: null,
+            estudio_id: "estudio-1",
+          }),
+          findProfileById: jest
+            .fn()
+            .mockResolvedValue({ estudio_id: "estudio-1", ...profile }),
+          cancelActiva,
+        });
+
+        await expect(
+          service.cancelSuscripcion(caller, "sus-1"),
+        ).rejects.toMatchObject({
+          status: 404,
+          response: { code: "suscripcion_not_found" },
+        });
+        expect(cancelActiva).not.toHaveBeenCalled();
+      },
+    );
 
     it("returns 404 for an unknown subscription", async () => {
       const { service } = buildService({

@@ -45,6 +45,27 @@ export type SuscripcionCancelada = {
   fecha_fin: string | null;
 };
 
+export const suscripcionVigenteColumns = [
+  "id",
+  "plan_id",
+  "estado",
+  "fecha_inicio",
+  "fecha_fin",
+] as const;
+
+export type SuscripcionVigenteRow = Pick<
+  Suscripcion,
+  (typeof suscripcionVigenteColumns)[number]
+>;
+
+export type SuscripcionVigente = {
+  id: string;
+  plan_id: string;
+  estado: Suscripcion["estado"];
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+};
+
 export type Pago = Selectable<Database["pagos"]>;
 
 export type EstadoPago = Pago["estado"];

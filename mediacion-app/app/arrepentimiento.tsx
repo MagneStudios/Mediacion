@@ -1,35 +1,16 @@
-import { Stack } from 'expo-router';
-import { useState } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
-import { Button, Card, ErrorState, Input } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { CompanyDetails } from '@/features/legal/components/CompanyDetails';
+import { PublicRequestForm } from '@/features/legal/components/PublicRequestForm';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import i18n from '@/i18n';
 import { legalService } from '@/services/legal.service';
-import type { WithdrawalRequestResult } from '@/types/legal';
-
-type SubmitStatus = 'idle' | 'submitting' | 'error' | 'success';
-
-function formatReceivedAt(iso: string): string {
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-AR';
-  try {
-    return new Intl.DateTimeFormat(locale, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
+import { blurActiveElement } from '@/utils/blur-active-element';
 
 /**
  * Botón de arrepentimiento (art. 34 Ley 24.240, arts. 1110–1116 CCyC, Res.
@@ -37,38 +18,13 @@ function formatReceivedAt(iso: string): string {
  * charge, reachable from the first screen WITHOUT registering or logging in
  * — this route is in AuthGate's public allowlist for exactly that reason.
  *
- * The registering endpoint is Backend's (docs/reparto-tyc-devs.md #18, not
- * built yet) — until then the mock records it in memory and this screen is
- * demo-only, like every other mocked flow in the app.
+ * Backed by `POST /legal/arrepentimiento`, which registers the request,
+ * notifies Operaciones and returns the `ARR-nnnn` tracking code.
  */
 export default function ArrepentimientoScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { horizontalPadding, isWide } = useResponsiveLayout();
-
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [detalle, setDetalle] = useState('');
-  const [status, setStatus] = useState<SubmitStatus>('idle');
-  const [receipt, setReceipt] = useState<WithdrawalRequestResult | null>(null);
-
-  const canSubmit =
-    nombre.trim().length > 0 && email.trim().length > 0 && detalle.trim().length > 0 && status !== 'submitting';
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    setStatus('submitting');
-    try {
-      const result = await legalService.requestWithdrawal({
-        nombre: nombre.trim(),
-        email: email.trim(),
-        detalle: detalle.trim(),
-      });
-      setReceipt(result);
-      setStatus('success');
-    } catch {
-      setStatus('error');
-    }
-  };
 
   return (
     <ScrollView
@@ -86,71 +42,36 @@ export default function ArrepentimientoScreen() {
       </Text>
       <Text style={styles.description}>{t('legal.withdrawal.description')}</Text>
 
-      {status === 'success' && receipt ? (
-        <Card>
-          <Text style={styles.successTitle} accessibilityRole="header">
-            {t('legal.withdrawal.success.title')}
-          </Text>
-          <Text style={styles.successBody}>
-            {t('legal.withdrawal.success.body', {
-              id: receipt.id,
-              date: formatReceivedAt(receipt.receivedAt),
-            })}
-          </Text>
-        </Card>
-      ) : (
-        <>
-          <Input
-            label={t('legal.withdrawal.nombreLabel')}
-            placeholder={t('legal.withdrawal.nombrePlaceholder')}
-            value={nombre}
-            onChangeText={setNombre}
-            autoComplete="name"
-            editable={status !== 'submitting'}
-          />
-          <Input
-            label={t('auth.emailLabel')}
-            placeholder={t('auth.emailPlaceholder')}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            editable={status !== 'submitting'}
-          />
-          <Input
-            label={t('legal.withdrawal.detalleLabel')}
-            hint={t('legal.withdrawal.detalleHint')}
-            placeholder={t('legal.withdrawal.detallePlaceholder')}
-            value={detalle}
-            onChangeText={setDetalle}
-            multiline
-            editable={status !== 'submitting'}
-          />
+      <PublicRequestForm
+        nombreLabel={t('legal.withdrawal.nombreLabel')}
+        nombrePlaceholder={t('legal.withdrawal.nombrePlaceholder')}
+        emailLabel={t('auth.emailLabel')}
+        emailPlaceholder={t('auth.emailPlaceholder')}
+        messageLabel={t('legal.withdrawal.detalleLabel')}
+        messageHint={t('legal.withdrawal.detalleHint')}
+        messagePlaceholder={t('legal.withdrawal.detallePlaceholder')}
+        submitLabel={t('legal.withdrawal.submitAction')}
+        submittingLabel={t('common.loading')}
+        errorTitle={t('legal.withdrawal.error.title')}
+        retryLabel={t('common.retry')}
+        rateLimitedTitle={t('legal.rateLimited.title')}
+        rateLimitedDescription={t('legal.rateLimited.description')}
+        successTitle={t('legal.withdrawal.success.title')}
+        buildSuccessBody={({ id, date }) => t('legal.withdrawal.success.body', { id, date })}
+        onSubmit={({ nombre, email, mensaje }) =>
+          legalService.requestWithdrawal({ nombre, email, detalle: mensaje })
+        }
+      />
 
-          {status === 'error' ? (
-            <ErrorState
-              title={t('legal.withdrawal.error.title')}
-              retryLabel={t('common.retry')}
-              onRetry={handleSubmit}
-            />
-          ) : null}
-
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-            loading={status === 'submitting'}
-            loadingLabel={t('common.loading')}
-          >
-            {t('legal.withdrawal.submitAction')}
-          </Button>
-        </>
-      )}
-
-      <CompanyDetails />
+      {/* Revoking is not the only reason someone lands here — the general
+          channel is one tap away rather than back through the footer. */}
+      <CompanyDetails
+        contactActionLabel={t('legal.contact.linkLabel')}
+        onContactPress={() => {
+          blurActiveElement();
+          router.push('/contacto');
+        }}
+      />
     </ScrollView>
   );
 }
@@ -174,15 +95,6 @@ const styles = StyleSheet.create({
     ...typography.displayLg,
   },
   description: {
-    ...typography.bodySm,
-    color: semanticColors.text.secondary,
-  },
-  successTitle: {
-    ...typography.cardTitle,
-    color: semanticColors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  successBody: {
     ...typography.bodySm,
     color: semanticColors.text.secondary,
   },

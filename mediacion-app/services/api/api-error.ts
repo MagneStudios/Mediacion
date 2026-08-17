@@ -33,6 +33,28 @@ export const codeNetworkUnavailable = 'network_unavailable';
  * distinct from `codeInvalidToken` so the join screen can show "this
  * invitation expired" instead of a generic "check the code" message. */
 export const codeInvitationExpired = 'invitation_expired';
+/**
+ * No published version of a legal document (`GET /legal/documentos/:tipo`).
+ * A real, calm outcome — not a failure: the legal page renders its empty
+ * state for it, so the backed service maps this code to `undefined` rather
+ * than letting it surface as an error.
+ */
+export const codeLegalDocumentNotFound = 'legal_document_not_found';
+/**
+ * The per-IP limiter on the two public legal routes (`rate-limiter.ts`,
+ * window configured by `LEGAL_PUBLIC_WINDOW_MS`). Distinct from a generic
+ * failure on purpose: retrying immediately is guaranteed to fail again, so
+ * the public forms say "esperá un momento" instead of offering a retry that
+ * cannot work.
+ */
+export const codeTooManyRequests = 'too_many_requests';
+/**
+ * The caller has no subscription (`GET /suscripciones/vigente`), or has one
+ * that is not theirs — BE answers 404 for both so an outsider cannot probe
+ * which subscriptions exist. "No tengo plan" is a normal state of the Mi plan
+ * screen, so the backed service maps this to `null` rather than an error.
+ */
+export const codeSuscripcionNotFound = 'suscripcion_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

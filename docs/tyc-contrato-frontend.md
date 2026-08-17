@@ -169,4 +169,87 @@ Cualquier desvío del shape (nombre de campo, tipo, semántica de `marketing` au
 
 ---
 
+## 7 · Estado (16/08/2026) — FE activado
+
+Revisado el entregable de DB (`20260814170000_tyc_legal.sql` + decisiones del 14/08) y de BE (`docs/fichas-legal-backend.md`): **coinciden con §2 y §3 sin desvíos**. Dos cosas quedaron mejor que lo pedido y conviene dejarlas asentadas:
+
+- El append-only se garantiza con **trigger**, no solo con RLS. El razonamiento de DB es correcto y no estaba explícito en este doc: `service_role` tiene `bypassrls = true`, así que la RLS sola no lo cubre.
+- BE **rechaza con `400` cualquier clave extra** en el body de `POST /legal/aceptaciones`. Este doc solo pedía "el body lleva únicamente marketing"; ahora es una defensa activa del lado del servidor. El error #3 del instructivo queda cerrado por los dos lados.
+
+**FE activado** en `feat/frontend-tyc-activacion`: el singleton de `services/legal.service.ts` resuelve al backend cuando hay uno configurado. Ninguna pantalla cambió. Detalles de la integración:
+
+- `404 legal_document_not_found` se mapea a `undefined` → la página muestra el estado vacío ("todavía no está publicado"), no un error. Cualquier otro fallo sigue propagando con reintento.
+- El payload de aceptación **omite** la clave `marketing` cuando no vino (re-aceptación), en vez de mandarla como `undefined`: la validación del API lee el conjunto de claves.
+- `getCompanyInfo` no tiene endpoint en ningún lado y se resuelve local con el registro en nulls. La UI dice "Dato pendiente de publicación" hasta que Administración entregue.
+
+### 7.1 · Pendiente de BE: falta un endpoint de lectura de suscripciones
+
+> Especificado para implementar en **`docs/pedidos-frontend-a-backend.md`** §2.
+
+`POST /suscripciones/:id/baja` está implementado y su ficha es clara, pero **FE todavía no lo puede consumir**. El inventario de billing en `apps/api` es:
+
+| Ruta | Estado |
+|---|---|
+| `GET /planes` | existe |
+| `POST /suscripciones` | existe |
+| `POST /suscripciones/:id/baja` | existe |
+| `POST /suscripciones/:id/pago` | existe |
+| **lectura de la suscripción vigente** | **no existe** |
+
+La pantalla "Mi plan" (`app/profile/plan/index.tsx`) decide si muestra el botón de baja —y de dónde saca el `:id`— a partir de `billingService.getCurrentSubscription()`, que hoy es mock puro: el id que devuelve es sintético (`generateMockSubscriptionId`). Llamar a `POST /suscripciones/<id-mock>/baja` daría `404 suscripcion_not_found`.
+
+**Lo que hace falta:** un `GET /suscripciones/vigente` (o `GET /me/suscripcion`) que devuelva la suscripción activa del caller — como mínimo `id`, `plan_id`, `estado`, `fecha_inicio`, `fecha_fin`, o `null` si no tiene. Con eso, conectar la baja real es un cambio chico y contenido en la capa de servicios.
+
+Mientras tanto el botón de baja queda contra el mock: el flujo de UI está construido y probado punta a punta, y no se cablea a la API hasta que exista la lectura — un botón que siempre devuelve 404 es peor que uno declaradamente simulado.
+
+### 7.2 · Superficie de BE que FE todavía no consume
+
+- `GET /legal/aceptaciones/export`: admin-only, entregable de BE. FE no lo necesita salvo que Producto quiera una pantalla de administración.
+
+---
+
+## 8 · Canal de contacto (punto #23) — cerrado
+
+`POST /legal/contacto` está consumido desde `app/contacto.tsx` (rama `feat/frontend-legal-contacto`). Con esto el punto #23 del instructivo, que el reparto asignaba a **BE + FE**, queda completo de los dos lados.
+
+- **Ruta pública** `/contacto`, en la allowlist de `AuthGate`: el requisito es un canal que alguien pueda alcanzar, y quien tiene un reclamo puede no tener cuenta o haberla cerrado.
+- **Plazo de respuesta declarado arriba del formulario**, leído de `CompanyInfo.plazoRespuestaDias`. Va antes de los campos y no debajo: una promesa que el usuario recién lee después de escribir no es una declaración.
+- **Acuse con el código `CON-nnnn` y la fecha del servidor.** Ese par es lo que hace auditable el plazo — la fecha de ingreso que BE registra es exactamente lo que sostiene el compromiso.
+- Alcanzable desde el footer de todas las páginas, desde la tarjeta de datos de empresa en `/arrepentimiento`, y desde Perfil → Ayuda. Ese último botón mostraba un aviso de demo que decía que **no** había canal de contacto; ahora abre el formulario real.
+
+**Nota sobre el mock:** los códigos de seguimiento del mock pasaron de `arr-0001` a `ARR-0001`/`CON-0001`, con secuencias separadas, para no divergir de los triggers de DB. Un código con otra forma en la demo que en producción es una diferencia que solo se descubre cuando alguien lo cita en un reclamo.
+
+---
+
+## 9 · Pendiente de BE: exponer la versión programada (punto #16)
+
+> Los dos pedidos abiertos a Backend —este y el de §7.1— están especificados, con shapes listos para implementar, en **`docs/pedidos-frontend-a-backend.md`**. Esta sección queda como el registro de por qué apareció.
+
+Repasando `docs/fichas-legal-backend.md` y `agents/back/AGENTS.md` apareció una mitad del punto #16 que no está construida y **hoy no se puede construir**.
+
+El reparto asigna a FE el punto 16 completo: *"**Aviso in-product** + re-aceptación bloqueante si el cambio es sustancial"*, y §05 lo repite en la tabla de fronteras (*"Publicación de versión → DB → BE → FE (banner)"*). El instructivo §4.8 pide avisar los cambios *"por email a todos los usuarios activos **y con un aviso dentro del producto**"*.
+
+FE tiene la re-aceptación bloqueante, que actúa **cuando la versión ya entró en vigencia**. Falta el banner de los 10 días previos, y no hay forma de alimentarlo: `LegalRepository.findVigente` filtra `valid_from <= now`, así que `GET /legal/documentos/:tipo` nunca devuelve una versión programada. BE tiene el dato — el tipo `PublicacionProgramada` existe y `legal-avisos.scheduler.ts` lo consulta — pero ninguna ruta lo expone.
+
+**Lo que haría falta:** `GET /legal/documentos/:tipo/programada` (o un flag en el endpoint actual) que devuelva, si existe, la versión con `valid_from > now`:
+
+```json
+{ "tipo": "terms", "version": "v2.0", "valid_from": "2026-09-01T00:00:00Z", "is_substantial": true, "resumen_cambios": "Cambió cómo se cobra el servicio." }
+```
+
+Con eso el banner es trabajo chico de FE: leer la versión programada, mostrar desde cuándo rige y el resumen, y desaparecer solo cuando `valid_from` pasa y toma el relevo la re-aceptación bloqueante que ya existe.
+
+### 9.1 · Lo que sí se corrigió de ese repaso (ya en la rama)
+
+- **`429 too_many_requests`** tiene ahora su propio estado en los dos formularios públicos, sin botón de reintento: dentro de la ventana el reintento falla igual, y en un canal de reclamos un botón que no funciona se lee como un sistema roto. Estaba documentado en las fichas §4 y §8 y se nos había pasado.
+- **La definición de "vigente" del mock** se alineó con `findVigente` (`valid_from <= now AND (valid_to IS NULL OR valid_to > now)`). Solo filtraba `valid_to`, así que con una publicación programada —justo lo que produce el flujo de aviso a 10 días— habría mostrado el texto nuevo antes de tiempo.
+- **`valid_from` y `received_at` pasaron a nullable** en los tipos de FE, para coincidir con `normalizeTimestamp`. Las columnas son `NOT NULL`, pero si alguna vez llegara null se veía "1 de enero de 1970" en la página legal y en el acuse.
+
+### 9.2 · Dos notas operativas (no son de FE)
+
+- **`OPERACIONES_EMAIL` vacío hace que el aviso se loguee en vez de enviarse** (`agents/back/AGENTS.md` §Config). Los formularios de arrepentimiento y contacto registran la fila igual, pero nadie se entera. El instructivo §5 pide "alguien que efectivamente responda el canal de contacto": conviene que esa variable esté en el checklist de despliegue.
+- **La baja en la pasarela hoy es un no-op**: `HttpMercadoPagoClient.cancelSubscription` busca el preapproval por `external_reference` y no hace nada si no existe, porque las suscripciones se cobran como preferencias one-off. El checklist del anexo pide la baja "verificada en el panel de la pasarela" — ese tilde todavía no se puede poner.
+
+---
+
 *Dudas o cambios al contrato: responder sobre este doc o en el PR de la rama.*

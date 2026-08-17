@@ -1,3 +1,5 @@
+import { createBackedBillingService } from './api/billing.backed-service';
+import { backend } from './backend-instance';
 import { computeTaxBreakdown } from '../utils/compute-tax-breakdown';
 import { generateMockInvoiceId, generateMockPaymentId, generateMockSubscriptionId } from '../utils/mock-id';
 import type { MockInvoice, MockPayment, MockSubscription } from '../types/billing';
@@ -5,10 +7,17 @@ import { plansService } from './plans.service';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 
 /**
- * R-09 checkout — mock-only, same precedent as `plans.service.ts` and
- * `mediator.service.ts`: `apps/api` has no `suscripciones`/`pagos`/
- * `facturas` write endpoints yet (only `GET /planes` exists), so this stays
- * entirely frontend-mocked until a real backend integration phase.
+ * R-09 checkout.
+ *
+ * **Partly live as of 17/08/2026.** BE published `GET /suscripciones/vigente`
+ * and `POST /suscripciones/:id/baja` (`docs/fichas-legal-backend.md` §7 y §10),
+ * so the singleton at the bottom of this file resolves those two members to the
+ * real API whenever a backend is configured. The checkout and the facturas stay
+ * on the mock below: there is no factura endpoint, and
+ * `POST /suscripciones/:id/pago` answers with a Mercado Pago redirect rather
+ * than a confirmed payment, so a "real" checkout here would have to fabricate
+ * an approved payment. `services/api/billing.backed-service.ts` states the
+ * split and its visible consequence.
  *
  * Single-persona simplification: this app has exactly one authenticated
  * party (`mocks/profile.ts`), so there is one current subscription, not a
@@ -38,10 +47,13 @@ export type BillingService = {
    * Botón de baja online (Ley 24.240 art. 10 ter, instructivo TyC §5):
    * cancels the recurring charge by the same medium the user contracted.
    * Distinct from account deactivation (`profile.service`'s R-06 flow) —
-   * this ends the billing relationship, not the account. The real thing is
-   * Backend's (docs/reparto-tyc-devs.md #20: cancel in Mercado Pago, cut
-   * recurrence, confirm by email — no endpoint exists yet); the mock flips
-   * the local subscription so the screen flow is real end-to-end.
+   * this ends the billing relationship, not the account. Live against
+   * `POST /suscripciones/:id/baja` when a backend is configured; the mock below
+   * flips the local subscription so the screen flow also works offline.
+   *
+   * Takes no id: the backed implementation reads the vigente subscription to
+   * get one, and the mock has exactly one. A screen holding an id across a plan
+   * change could cancel the wrong row.
    */
   cancelSubscription(): Promise<MockSubscription>;
 };
@@ -159,5 +171,13 @@ export function createMockBillingService(): BillingService {
   };
 }
 
-/** Default instance consumed by the billing feature hooks. */
-export const billingService: BillingService = createMockBillingService();
+/**
+ * Default instance consumed by the billing feature hooks — the real API for the
+ * two endpoints that exist (the vigente read and the baja online), the mock for
+ * the checkout and the facturas, which have no endpoints. Same selection idiom
+ * as `legal.service.ts` and `plans.service.ts`; `createBackedBillingService`'s
+ * header spells out exactly what is real and what is not.
+ */
+export const billingService: BillingService = backend
+  ? createBackedBillingService(backend.billing, createMockBillingService())
+  : createMockBillingService();
