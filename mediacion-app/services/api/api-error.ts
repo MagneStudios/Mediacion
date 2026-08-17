@@ -48,6 +48,13 @@ export const codeLegalDocumentNotFound = 'legal_document_not_found';
  * cannot work.
  */
 export const codeTooManyRequests = 'too_many_requests';
+/**
+ * The caller has no subscription (`GET /suscripciones/vigente`), or has one
+ * that is not theirs — BE answers 404 for both so an outsider cannot probe
+ * which subscriptions exist. "No tengo plan" is a normal state of the Mi plan
+ * screen, so the backed service maps this to `null` rather than an error.
+ */
+export const codeSuscripcionNotFound = 'suscripcion_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

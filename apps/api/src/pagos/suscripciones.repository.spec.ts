@@ -138,6 +138,124 @@ describe("SuscripcionesRepository cancellation queries", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("reads the owner's current suscripcion: own rows first, then activa, then newest", async () => {
+    const executeTakeFirst = jest.fn().mockResolvedValue({
+      id: "sus-1",
+      plan_id: "plan-1",
+      estado: "activa",
+      fecha_inicio: new Date("2026-08-01T00:00:00.000Z"),
+      fecha_fin: null,
+    });
+    const limit = jest.fn().mockReturnValue({ executeTakeFirst });
+    const orderByCreatedAt = jest.fn().mockReturnValue({ limit });
+    const orderByEstado = jest
+      .fn()
+      .mockReturnValue({ orderBy: orderByCreatedAt });
+    const orderByOwner = jest.fn().mockReturnValue({ orderBy: orderByEstado });
+    const where = jest.fn().mockReturnValue({ orderBy: orderByOwner });
+    const select = jest.fn().mockReturnValue({ where });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    const repository = new SuscripcionesRepository({ selectFrom } as never);
+
+    const result = await repository.findVigenteByOwner({
+      usuarioId: "user-1",
+      estudioId: null,
+    });
+
+    expect(selectFrom).toHaveBeenCalledWith("suscripciones");
+    expect(select).toHaveBeenCalledWith([
+      "id",
+      "plan_id",
+      "estado",
+      "fecha_inicio",
+      "fecha_fin",
+    ]);
+    expect(orderByCreatedAt).toHaveBeenCalledWith("created_at", "desc");
+    expect(limit).toHaveBeenCalledWith(1);
+    expect(result).toMatchObject({ id: "sus-1", estado: "activa" });
+  });
+
+  function captureVigenteConditions() {
+    const conditions: unknown[] = [];
+    const eb = Object.assign(
+      (column: string, operator: string, value: unknown) => ({
+        column,
+        operator,
+        value,
+      }),
+      {
+        or: (built: unknown[]) => {
+          conditions.push(...built);
+          return "or-clause";
+        },
+      },
+    );
+    const executeTakeFirst = jest.fn().mockResolvedValue(undefined);
+    const limit = jest.fn().mockReturnValue({ executeTakeFirst });
+    const orderByCreatedAt = jest.fn().mockReturnValue({ limit });
+    const orderByEstado = jest
+      .fn()
+      .mockReturnValue({ orderBy: orderByCreatedAt });
+    const orderByOwner = jest.fn().mockReturnValue({ orderBy: orderByEstado });
+    const where = jest.fn((build: (builder: unknown) => unknown) => {
+      build(eb);
+      return { orderBy: orderByOwner };
+    });
+    const select = jest.fn().mockReturnValue({ where });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    return {
+      repository: new SuscripcionesRepository({ selectFrom } as never),
+      conditions,
+    };
+  }
+
+  it("matches the estudio suscripcion too when the caller belongs to one", async () => {
+    const { repository, conditions } = captureVigenteConditions();
+
+    await repository.findVigenteByOwner({
+      usuarioId: "user-1",
+      estudioId: "estudio-1",
+    });
+
+    expect(conditions).toEqual([
+      { column: "usuario_id", operator: "=", value: "user-1" },
+      { column: "estudio_id", operator: "=", value: "estudio-1" },
+    ]);
+  });
+
+  it("does not widen the filter to every estudio row when the caller has no estudio", async () => {
+    const { repository, conditions } = captureVigenteConditions();
+
+    await repository.findVigenteByOwner({
+      usuarioId: "user-1",
+      estudioId: null,
+    });
+
+    expect(conditions).toEqual([
+      { column: "usuario_id", operator: "=", value: "user-1" },
+    ]);
+  });
+
+  it("maps driver errors of the vigente read through toDomainError", async () => {
+    const executeTakeFirst = jest
+      .fn()
+      .mockRejectedValue({ code: "P0001", message: "boom" });
+    const limit = jest.fn().mockReturnValue({ executeTakeFirst });
+    const orderByCreatedAt = jest.fn().mockReturnValue({ limit });
+    const orderByEstado = jest
+      .fn()
+      .mockReturnValue({ orderBy: orderByCreatedAt });
+    const orderByOwner = jest.fn().mockReturnValue({ orderBy: orderByEstado });
+    const where = jest.fn().mockReturnValue({ orderBy: orderByOwner });
+    const select = jest.fn().mockReturnValue({ where });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    const repository = new SuscripcionesRepository({ selectFrom } as never);
+
+    await expect(
+      repository.findVigenteByOwner({ usuarioId: "user-1", estudioId: null }),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("restores the suscripcion only if it is still the cancelada row we wrote", async () => {
     const fakeKysely = createFakeUpdate({});
     const repository = new SuscripcionesRepository(fakeKysely as never);

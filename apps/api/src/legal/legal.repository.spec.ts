@@ -18,6 +18,7 @@ function createFakeKysely(result?: unknown, error?: unknown): FakeKysely {
     "returning",
     "updateTable",
     "set",
+    "limit",
   ];
   for (const method of chainable) {
     chain[method] = jest.fn(() => chain);
@@ -75,6 +76,50 @@ describe("LegalRepository", () => {
 
       await expect(
         repository.findVigente("terms", "2026-08-15T00:00:00.000Z"),
+      ).rejects.toMatchObject({
+        status: 409,
+        response: { code: "conflict" },
+      });
+    });
+  });
+
+  describe("findProgramada", () => {
+    it("reads the closest version whose valid_from is still in the future", async () => {
+      const kysely = createFakeKysely({ tipo: "terms", version: "v2.0" });
+      const repository = new LegalRepository(kysely as never);
+
+      const result = await repository.findProgramada(
+        "terms",
+        "2026-08-15T00:00:00.000Z",
+      );
+
+      expect(kysely.selectFrom).toHaveBeenCalledWith("legal_documents");
+      expect(kysely.where).toHaveBeenCalledWith("tipo", "=", "terms");
+      expect(kysely.where).toHaveBeenCalledWith(
+        "valid_from",
+        ">",
+        "2026-08-15T00:00:00.000Z",
+      );
+      expect(kysely.orderBy).toHaveBeenCalledWith("valid_from");
+      expect(kysely.limit).toHaveBeenCalledWith(1);
+      expect(result).toEqual({ tipo: "terms", version: "v2.0" });
+    });
+
+    it("resolves undefined when nothing is scheduled", async () => {
+      const kysely = createFakeKysely(undefined);
+      const repository = new LegalRepository(kysely as never);
+
+      await expect(
+        repository.findProgramada("privacy", "2026-08-15T00:00:00.000Z"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("maps driver errors through toDomainError", async () => {
+      const kysely = createFakeKysely(undefined, conflictError);
+      const repository = new LegalRepository(kysely as never);
+
+      await expect(
+        repository.findProgramada("terms", "2026-08-15T00:00:00.000Z"),
       ).rejects.toMatchObject({
         status: 409,
         response: { code: "conflict" },

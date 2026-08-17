@@ -294,6 +294,7 @@
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
       "noSubscription": "Todavía no tenés un plan activo. Elegí uno para empezar.",
+      "cancelledUntil": "Tu plan sigue vigente hasta el {{date}}. Después de esa fecha no se renueva.",
       "currentBadge": "Plan actual",
       "subscribeAction": "Suscribirme",
       "error": {
@@ -1396,6 +1397,17 @@
       "error": {
         "title": "No pudimos registrar tu aceptación"
       }
+    },
+    "versionNotice": {
+      "title": {
+        "terms": "Vamos a actualizar los Términos y Condiciones",
+        "privacy": "Vamos a actualizar la Política de Privacidad"
+      },
+      "effectiveFrom": "La versión nueva rige desde el {{date}}.",
+      "summary": "Qué cambia: {{summary}}",
+      "readAction": "Leer el texto nuevo",
+      "hideAction": "Ocultar el texto nuevo",
+      "dismissAction": "Entendido"
     },
     "withdrawal": {
       "title": "Botón de arrepentimiento",

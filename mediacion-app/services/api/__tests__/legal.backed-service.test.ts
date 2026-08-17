@@ -14,9 +14,20 @@ const terms: LegalDocument = {
   resumenCambios: null,
 };
 
+const scheduled: LegalDocument = {
+  tipo: 'terms',
+  version: 'v2.0',
+  contenido: '## A. DEFINICIONES\n\nA.1. Texto nuevo.',
+  validFrom: '2026-09-01T00:00:00.000Z',
+  validTo: null,
+  isSubstantial: true,
+  resumenCambios: 'Cambió cómo se cobra el servicio.',
+};
+
 function fakeApi(overrides: Partial<ApiLegalService> = {}): ApiLegalService {
   return {
     getCurrentDocument: jest.fn().mockResolvedValue(terms),
+    getScheduledDocument: jest.fn().mockResolvedValue(scheduled),
     registerAcceptance: jest.fn().mockResolvedValue(undefined),
     getAcceptanceStatus: jest.fn().mockResolvedValue({ pendientes: [], requiereReaceptacion: false }),
     requestWithdrawal: jest.fn().mockResolvedValue({ id: 'ARR-0001', receivedAt: '2026-08-16T12:00:00.000Z' }),
@@ -77,5 +88,26 @@ describe('legal.backed-service', () => {
     expect(info.razonSocial).toBeNull();
     expect(info.cuit).toBeNull();
     expect(info.domicilio).toBeNull();
+  });
+
+  it('passes the scheduled version through so the banner can announce it', async () => {
+    const service = createBackedLegalService(fakeApi());
+    await expect(service.getScheduledDocument('terms')).resolves.toEqual(scheduled);
+  });
+
+  it('maps legal_document_not_found to undefined for the scheduled read — the usual case is "nothing pending"', async () => {
+    const api = fakeApi({
+      getScheduledDocument: jest
+        .fn()
+        .mockRejectedValue(new ApiError(codeLegalDocumentNotFound, 'Legal document not found', 404)),
+    });
+    await expect(createBackedLegalService(api).getScheduledDocument('privacy')).resolves.toBeUndefined();
+  });
+
+  it('propagates a non-404 failure of the scheduled read instead of hiding it as "nothing pending"', async () => {
+    const api = fakeApi({
+      getScheduledDocument: jest.fn().mockRejectedValue(new ApiError('network_unavailable', 'down', 0)),
+    });
+    await expect(createBackedLegalService(api).getScheduledDocument('terms')).rejects.toBeInstanceOf(ApiError);
   });
 });

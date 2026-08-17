@@ -20,6 +20,7 @@ describe("LegalService", () => {
 
   function buildService(options?: {
     findVigente?: jest.Mock;
+    findProgramada?: jest.Mock;
     findVigentes?: jest.Mock;
     insertAcceptances?: jest.Mock;
     hasAcceptedCurrent?: jest.Mock;
@@ -31,6 +32,7 @@ describe("LegalService", () => {
   }) {
     const legalRepository = {
       findVigente: options?.findVigente ?? jest.fn(),
+      findProgramada: options?.findProgramada ?? jest.fn(),
       findVigentes:
         options?.findVigentes ??
         jest.fn().mockResolvedValue([termsVigente, privacyVigente]),
@@ -90,6 +92,56 @@ describe("LegalService", () => {
 
       await expect(
         service.getDocumentoVigente("privacy"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "legal_document_not_found" },
+      });
+    });
+  });
+
+  describe("getDocumentoProgramado", () => {
+    const termsProgramada = {
+      ...termsVigente,
+      version: "v2.0",
+      valid_from: new Date("2026-09-01T00:00:00.000Z"),
+      is_substantial: true,
+      resumen_cambios: "Cambió cómo se cobra el servicio.",
+    };
+
+    it("returns the same view shape as the current version read", async () => {
+      const findProgramada = jest.fn().mockResolvedValue(termsProgramada);
+      const { service } = buildService({ findProgramada });
+
+      await expect(service.getDocumentoProgramado("terms")).resolves.toEqual({
+        tipo: "terms",
+        version: "v2.0",
+        contenido: "## 1. OBJETO",
+        valid_from: "2026-09-01T00:00:00.000Z",
+        valid_to: null,
+        is_substantial: true,
+        resumen_cambios: "Cambió cómo se cobra el servicio.",
+      });
+      expect(findProgramada).toHaveBeenCalledWith("terms", expect.any(String));
+    });
+
+    it("rejects a tipo outside terms and privacy", async () => {
+      const { service } = buildService();
+
+      await expect(
+        service.getDocumentoProgramado("cookies"),
+      ).rejects.toMatchObject({
+        status: 400,
+        response: { code: "invalid_input" },
+      });
+    });
+
+    it("returns 404 when nothing is scheduled", async () => {
+      const { service } = buildService({
+        findProgramada: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        service.getDocumentoProgramado("privacy"),
       ).rejects.toMatchObject({
         status: 404,
         response: { code: "legal_document_not_found" },
@@ -249,6 +301,51 @@ describe("LegalService", () => {
 
       await expect(
         service.exportAcceptances({ desde: "2026-02-01", hasta: "2026-01-01" }),
+      ).rejects.toMatchObject({
+        status: 400,
+        response: { code: "invalid_input" },
+      });
+      expect(listAcceptances).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("exportAcceptancesPdf", () => {
+    const exportRow = {
+      user_id: "user-1",
+      document_type: "terms",
+      document_version: "v1.0",
+      accepted_at: "2026-08-14T15:02:00.000Z",
+      ip: "203.0.113.7",
+      user_agent: "Expo/1.0",
+    };
+
+    it("builds the pdf and the filename from the same filters as the csv", async () => {
+      const listAcceptances = jest.fn().mockResolvedValue([exportRow]);
+      const { service } = buildService({ listAcceptances });
+
+      const result = await service.exportAcceptancesPdf({
+        desde: "2026-01-01",
+        hasta: "2026-02-01",
+      });
+
+      expect(listAcceptances).toHaveBeenCalledWith({
+        desde: "2026-01-01",
+        hasta: "2026-02-01",
+      });
+      expect(result.filename).toBe("aceptaciones-2026-01-01-2026-02-01.pdf");
+      expect(result.pdf.subarray(0, 8).toString("latin1")).toBe("%PDF-1.4");
+      expect(result.pdf.toString("latin1")).toContain("user-1");
+    });
+
+    it("rejects an inverted range before reading anything", async () => {
+      const listAcceptances = jest.fn();
+      const { service } = buildService({ listAcceptances });
+
+      await expect(
+        service.exportAcceptancesPdf({
+          desde: "2026-02-01",
+          hasta: "2026-01-01",
+        }),
       ).rejects.toMatchObject({
         status: 400,
         response: { code: "invalid_input" },

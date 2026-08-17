@@ -117,4 +117,31 @@ describe('legal.api-service — frozen /legal/* contract', () => {
     expect(calls[0].path).toBe('/legal/documentos/privacy');
     expect(document.tipo).toBe('privacy');
   });
+
+  it('reads the scheduled version from its own route, not from the vigente one', async () => {
+    const { http, calls } = fakeHttp({
+      '/legal/documentos/terms/programada': {
+        tipo: 'terms',
+        version: 'v2.0',
+        contenido: 'texto nuevo',
+        valid_from: '2026-09-01T00:00:00.000Z',
+        valid_to: null,
+        is_substantial: true,
+        resumen_cambios: 'Cambió cómo se cobra el servicio.',
+      },
+    });
+
+    const document = await createApiLegalService(http).getScheduledDocument('terms');
+
+    expect(calls.map((call) => call.path)).toEqual(['/legal/documentos/terms/programada']);
+    expect(document).toEqual({
+      tipo: 'terms',
+      version: 'v2.0',
+      contenido: 'texto nuevo',
+      validFrom: '2026-09-01T00:00:00.000Z',
+      validTo: null,
+      isSubstantial: true,
+      resumenCambios: 'Cambió cómo se cobra el servicio.',
+    });
+  });
 });

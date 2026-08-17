@@ -990,6 +990,24 @@ export type Database = {
           },
         ];
       };
+      rate_limit_counters: {
+        Row: {
+          clave: string;
+          hits: number;
+          ventana_inicio: string;
+        };
+        Insert: {
+          clave: string;
+          hits?: number;
+          ventana_inicio: string;
+        };
+        Update: {
+          clave?: string;
+          hits?: number;
+          ventana_inicio?: string;
+        };
+        Relationships: [];
+      };
       rondas: {
         Row: {
           caso_id: string;

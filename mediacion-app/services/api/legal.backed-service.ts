@@ -27,6 +27,11 @@ import type { LegalService } from '../legal.service';
  *   matching the mock. Every other failure still propagates and the screen
  *   shows its error state with a retry.
  *
+ * - `getScheduledDocument`: same mapping, and here the 404 is the *usual*
+ *   answer — most of the time there is no publication pending, so the notice
+ *   banner simply does not render. BE chose that code over `200 null` for
+ *   consistency with the sibling endpoint (`docs/fichas-legal-backend.md` §9).
+ *
  * - `getCompanyInfo`: has no endpoint. Razón social, CUIT and domicilio are
  *   still pending from Administración (instructivo §5), so this keeps
  *   serving the same all-null record the mock does, and `CompanyDetails`
@@ -39,6 +44,19 @@ export function createBackedLegalService(api: ApiLegalService): LegalService {
     async getCurrentDocument(tipo: LegalDocumentType): Promise<LegalDocument | undefined> {
       try {
         return await api.getCurrentDocument(tipo);
+      } catch (error) {
+        if (hasCode(error, codeLegalDocumentNotFound)) {
+          return undefined;
+        }
+        throw error;
+      }
+    },
+
+    async getScheduledDocument(
+      tipo: LegalDocumentType,
+    ): Promise<LegalDocument | undefined> {
+      try {
+        return await api.getScheduledDocument(tipo);
       } catch (error) {
         if (hasCode(error, codeLegalDocumentNotFound)) {
           return undefined;

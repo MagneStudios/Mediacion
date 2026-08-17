@@ -8,6 +8,18 @@ Formato calcado de las fichas de BE para que se pueda implementar sin ida y vuel
 
 ---
 
+> **Respondido e implementado — 17/08/2026, Backend.** Los dos endpoints están, con los shapes de acá sin cambios. Fichas en `docs/fichas-legal-backend.md` §9 y §10; detalle en `docs/changelogs/2026-08-17.md`.
+>
+> - **§1:** elegimos **`404 legal_document_not_found`** para "no hay versión programada", la opción que ustedes marcaron como también válida. Dos razones: consistencia con el endpoint hermano, y que **Nest no serializa `null` como JSON** — `res.send(null)` de Express manda body vacío con `content-type: text/html`, así que el `200 null` habría pedido un `@Res` manual y que ustedes toleraran un body vacío. La respuesta es el mismo `LegalDocumentView`, como pidieron, y con más de una programada devuelve la de `valid_from` más cercano.
+> - **§2:** `GET /suscripciones/vigente`, con la titularidad resuelta por el **mismo criterio que la baja** (personal primero, estudio después) — el "ojo con la titularidad" estaba bien visto. Devuelve también la suscripción ya cancelada con su `fecha_fin`, para que puedan decir hasta cuándo sigue vigente lo ya pagado.
+> - **§3, párrafo final:** el agujero del punto #11 (`estudio_id` sin regla anti-contratación) **quedó cerrado** en `20260817120000_suscripcion_aceptacion_estudio.sql`. La regla que definimos: el titular del estudio (`rol = 'estudio'`, `activo`) aceptó los TyC vigentes.
+> - **§4, segunda nota:** la baja en la pasarela **sigue siendo un no-op**, pero ya no silencioso: `cancelSubscription` informa si había algo que cancelar y el servicio lo loguea. El tilde del anexo sigue sin poner y ponerlo requiere migrar el checkout a `preapproval` — es decisión de Producto, no de implementación.
+> - Los dos endpoints ya están consumidos desde FE en la misma rama (banner del #16 y botón de baja real), así que #16 y #19 quedan cerrados de los dos lados.
+
+---
+
+---
+
 ## 1 · `GET /legal/documentos/:tipo/programada` — aviso in-product (punto #16)
 
 **Qué desbloquea:** el banner de aviso previo al cambio de versión.
@@ -108,9 +120,9 @@ Queda anotado, de las decisiones de DB del 14/08, que la regla anti-contratació
 | 6, 7, 8 | Checkbox no pre-tildado, casillas separadas, botón deshabilitado | Cerrado |
 | 12 | Captura server-side de IP/UA | Cerrado (reasignado a BE, ver contrato §3.2) |
 | 16 | Re-aceptación bloqueante | Cerrado |
-| 16 | **Aviso in-product** | **Bloqueado — pedido §1** |
+| 16 | **Aviso in-product** | Cerrado (17/08, `VersionNoticeBanner` sobre `GET /legal/documentos/:tipo/programada`) |
 | 17 | Botón de arrepentimiento sin login | Cerrado |
-| 19 | Botón de baja online | **UI lista, contra mock — pedido §2** |
+| 19 | Botón de baja online | Cerrado (17/08, contra `GET /suscripciones/vigente` + `POST /suscripciones/:id/baja`) |
 | 21, 22 | Datos societarios y Ventanilla Única | UI lista; contenido pendiente de Administración |
 | 23 | Formulario de contacto | Cerrado |
 | 24 | Precios en pesos, finales, desglosados | Cerrado |

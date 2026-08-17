@@ -20,6 +20,7 @@ describe("POST /suscripciones end-to-end", () => {
   async function bootstrapApp(
     createSuscripcion: jest.Mock,
     cancelSuscripcion: jest.Mock = jest.fn(),
+    getVigente: jest.Mock = jest.fn(),
   ): Promise<INestApplication> {
     const usersRepository = {
       findAuthById: (id: string) =>
@@ -31,7 +32,7 @@ describe("POST /suscripciones end-to-end", () => {
       providers: [
         {
           provide: SuscripcionesService,
-          useValue: { createSuscripcion, cancelSuscripcion },
+          useValue: { createSuscripcion, cancelSuscripcion, getVigente },
         },
         { provide: UsersRepository, useValue: usersRepository },
         {
@@ -102,6 +103,45 @@ describe("POST /suscripciones end-to-end", () => {
       fecha_fin: "2026-08-15T12:00:00.000Z",
     });
     expect(cancelSuscripcion).toHaveBeenCalledWith(parteA, "sus-1");
+    await app.close();
+  });
+
+  it("reads the caller's current subscription through GET /suscripciones/vigente", async () => {
+    const getVigente = jest.fn().mockResolvedValue({
+      id: "sus-1",
+      plan_id: "plan-1",
+      estado: "activa",
+      fecha_inicio: "2026-08-01T00:00:00.000Z",
+      fecha_fin: null,
+    });
+    const app = await bootstrapApp(jest.fn(), jest.fn(), getVigente);
+
+    const response = await request(app.getHttpServer())
+      .get("/suscripciones/vigente")
+      .set("Authorization", "Bearer user-a");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: "sus-1",
+      plan_id: "plan-1",
+      estado: "activa",
+      fecha_inicio: "2026-08-01T00:00:00.000Z",
+      fecha_fin: null,
+    });
+    expect(getVigente).toHaveBeenCalledWith(parteA.id);
+    await app.close();
+  });
+
+  it("rejects an unauthenticated vigente read with 401", async () => {
+    const getVigente = jest.fn();
+    const app = await bootstrapApp(jest.fn(), jest.fn(), getVigente);
+
+    const response = await request(app.getHttpServer()).get(
+      "/suscripciones/vigente",
+    );
+
+    expect(response.status).toBe(401);
+    expect(getVigente).not.toHaveBeenCalled();
     await app.close();
   });
 

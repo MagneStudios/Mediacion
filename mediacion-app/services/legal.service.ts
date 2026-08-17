@@ -46,6 +46,17 @@ import { createFailureController, delay, rejectAfter } from './mock-utils';
  */
 export type LegalService = {
   getCurrentDocument(tipo: LegalDocumentType): Promise<LegalDocument | undefined>;
+  /**
+   * The version scheduled to take effect but not yet in force — the symmetric
+   * read of `getCurrentDocument`, and the only source the 10-day in-product
+   * notice banner can be fed from (instructivo §4.8, reparto FE #16).
+   *
+   * `undefined` is the normal answer almost all the time: there is usually no
+   * publication pending. The API says so with
+   * `404 legal_document_not_found`, the same code and the same meaning as its
+   * sibling endpoint.
+   */
+  getScheduledDocument(tipo: LegalDocumentType): Promise<LegalDocument | undefined>;
   registerAcceptance(input: AcceptanceInput): Promise<void>;
   getAcceptanceStatus(): Promise<AcceptanceStatus>;
   requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult>;
@@ -55,6 +66,7 @@ export type LegalService = {
 
 type FailableOperation =
   | 'getCurrentDocument'
+  | 'getScheduledDocument'
   | 'registerAcceptance'
   | 'requestWithdrawal'
   | 'requestContact';
@@ -101,6 +113,16 @@ function isVigente(doc: LegalDocument, now: number): boolean {
   return Number.isNaN(to) ? false : to > now;
 }
 
+/**
+ * "Published but not in force yet", matching `LegalRepository.findProgramada`:
+ * `valid_from > now`. A document with an unusable `validFrom` is not scheduled
+ * — announcing a change without a date is worse than not announcing it.
+ */
+function isProgramada(doc: LegalDocument, now: number): boolean {
+  const from = doc.validFrom ? Date.parse(doc.validFrom) : Number.NaN;
+  return !Number.isNaN(from) && from > now;
+}
+
 // Mirror BE's per-table sequences: `ARR-0001…` and `CON-0001…` are generated
 // by their own triggers, so they never share a counter.
 let withdrawalCounter = 0;
@@ -115,6 +137,21 @@ export function createMockLegalService(): LegalService {
       const now = Date.now();
       const current = mockLegalDocuments.find((doc) => doc.tipo === tipo && isVigente(doc, now));
       return delay(current, 400);
+    },
+
+    async getScheduledDocument(tipo) {
+      if (failures.consume('getScheduledDocument')) {
+        return rejectAfter('mock_get_scheduled_legal_document_failed', 400);
+      }
+      const now = Date.now();
+      // The mirror of `isVigente`'s first half: a version is "scheduled" while
+      // its `validFrom` is still in the future. With today's mock data (v1.0,
+      // published in the past) there is none, so the banner never shows —
+      // exactly like production until someone publishes ahead of time.
+      const scheduled = mockLegalDocuments
+        .filter((doc) => doc.tipo === tipo && isProgramada(doc, now))
+        .sort((first, second) => Date.parse(first.validFrom ?? '') - Date.parse(second.validFrom ?? ''));
+      return delay(scheduled[0], 400);
     },
 
     async registerAcceptance(_input) {

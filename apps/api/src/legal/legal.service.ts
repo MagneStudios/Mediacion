@@ -10,11 +10,10 @@ import type { AppConfig } from "../config/config";
 import { APP_CONFIG } from "../config/config.tokens";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import { EMAIL_PROVIDER } from "../notificaciones/providers/notificaciones.tokens";
-import {
-  buildAcceptancesCsv,
-  buildAcceptancesFilename,
-} from "./acceptance-csv";
+import { buildAcceptancesCsv } from "./acceptance-csv";
+import { buildAcceptancesFilename } from "./acceptance-filename";
 import { assertValidAcceptanceBody } from "./acceptance-payload";
+import { buildAcceptancesPdf } from "./acceptance-pdf";
 import { LegalRepository } from "./legal.repository";
 import type {
   AcceptanceExportFilters,
@@ -33,6 +32,11 @@ import {
 } from "./solicitud-payload";
 
 export type AcceptanceExport = { filename: string; csv: string };
+
+export type AcceptancePdfExport = { filename: string; pdf: Buffer };
+
+const csvExtension = "csv";
+const pdfExtension = "pdf";
 
 function invalidInput(message: string): HttpException {
   return new HttpException(
@@ -89,6 +93,17 @@ export class LegalService {
 
   async getDocumentoVigente(tipo: string): Promise<LegalDocumentView> {
     const documento = await this.legalRepository.findVigente(
+      assertValidTipo(tipo),
+      new Date().toISOString(),
+    );
+    if (!documento) {
+      throw legalDocumentNotFound();
+    }
+    return toView(documento);
+  }
+
+  async getDocumentoProgramado(tipo: string): Promise<LegalDocumentView> {
+    const documento = await this.legalRepository.findProgramada(
       assertValidTipo(tipo),
       new Date().toISOString(),
     );
@@ -166,8 +181,27 @@ export class LegalService {
     assertValidRange(filters);
     const rows = await this.legalRepository.listAcceptances(filters);
     return {
-      filename: buildAcceptancesFilename(filters.desde, filters.hasta),
+      filename: buildAcceptancesFilename(
+        filters.desde,
+        filters.hasta,
+        csvExtension,
+      ),
       csv: buildAcceptancesCsv(rows),
+    };
+  }
+
+  async exportAcceptancesPdf(
+    filters: AcceptanceExportFilters,
+  ): Promise<AcceptancePdfExport> {
+    assertValidRange(filters);
+    const rows = await this.legalRepository.listAcceptances(filters);
+    return {
+      filename: buildAcceptancesFilename(
+        filters.desde,
+        filters.hasta,
+        pdfExtension,
+      ),
+      pdf: buildAcceptancesPdf(rows),
     };
   }
 
