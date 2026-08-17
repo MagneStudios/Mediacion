@@ -1,10 +1,11 @@
-import { Body, Controller, Inject, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type {
   CreateSuscripcionDto,
   SuscripcionCancelada,
   SuscripcionCreated,
+  SuscripcionVigente,
 } from "./pagos.types";
 import { SuscripcionesService } from "./suscripciones.service";
 
@@ -14,6 +15,13 @@ export class SuscripcionesController {
     @Inject(SuscripcionesService)
     private readonly suscripcionesService: SuscripcionesService,
   ) {}
+
+  @Get("vigente")
+  getVigente(
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<SuscripcionVigente> {
+    return this.suscripcionesService.getVigente(caller.id);
+  }
 
   @Post()
   createSuscripcion(

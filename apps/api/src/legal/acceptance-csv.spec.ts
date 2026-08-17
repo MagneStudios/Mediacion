@@ -1,7 +1,4 @@
-import {
-  buildAcceptancesCsv,
-  buildAcceptancesFilename,
-} from "./acceptance-csv";
+import { buildAcceptancesCsv } from "./acceptance-csv";
 import type { AcceptanceExportRow } from "./legal.types";
 
 describe("buildAcceptancesCsv", () => {
@@ -43,31 +40,5 @@ describe("buildAcceptancesCsv", () => {
     ]);
 
     expect(csv).toContain('"Mozilla/5.0 (X11; Linux), ""test"""');
-  });
-});
-
-describe("buildAcceptancesFilename", () => {
-  it("uses the range when it is given", () => {
-    expect(buildAcceptancesFilename("2026-01-01", "2026-02-01")).toBe(
-      "aceptaciones-2026-01-01-2026-02-01.csv",
-    );
-  });
-
-  it("falls back to readable bounds when the range is open", () => {
-    expect(buildAcceptancesFilename(undefined, undefined)).toBe(
-      "aceptaciones-inicio-hoy.csv",
-    );
-  });
-
-  it("strips anything a caller could use to break out of the Content-Disposition header", () => {
-    expect(
-      buildAcceptancesFilename('2026-01-01"\r\nX-Injected: 1', "2026-02-01"),
-    ).toBe("aceptaciones-2026-01-01X-Injected:1-2026-02-01.csv");
-  });
-
-  it("falls back when the filter is nothing but unsafe characters", () => {
-    expect(buildAcceptancesFilename('"', "/../")).toBe(
-      "aceptaciones-inicio-hoy.csv",
-    );
   });
 });

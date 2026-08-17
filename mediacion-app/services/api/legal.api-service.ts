@@ -63,6 +63,7 @@ export type ApiSolicitudReceipt = {
 
 export type ApiLegalService = {
   getCurrentDocument(tipo: LegalDocumentType): Promise<LegalDocument>;
+  getScheduledDocument(tipo: LegalDocumentType): Promise<LegalDocument>;
   registerAcceptance(input: AcceptanceInput): Promise<void>;
   getAcceptanceStatus(): Promise<AcceptanceStatus>;
   requestWithdrawal(input: WithdrawalRequestInput): Promise<WithdrawalRequestResult>;
@@ -73,6 +74,16 @@ export function createApiLegalService(http: HttpClient): ApiLegalService {
   return {
     async getCurrentDocument(tipo) {
       const row = await http.request<ApiLegalDocument>(`/legal/documentos/${tipo}`);
+      return toLegalDocument(row);
+    },
+
+    async getScheduledDocument(tipo) {
+      // Same `LegalDocumentView` shape as the sibling read, so the mapper, the
+      // type and the renderer are all reused and the banner can offer "leer el
+      // texto nuevo" without a second call.
+      const row = await http.request<ApiLegalDocument>(
+        `/legal/documentos/${tipo}/programada`,
+      );
       return toLegalDocument(row);
     },
 

@@ -19,7 +19,7 @@ import { Public } from "../auth/public.decorator";
 import { Roles } from "../auth/roles.decorator";
 import type { TokenVerifier } from "../auth/token-verifier";
 import { TOKEN_VERIFIER } from "../auth/token-verifier";
-import { resolveRequestMetadata } from "./client-metadata";
+import { resolveClientIp, resolveRequestMetadata } from "./client-metadata";
 import { LegalService } from "./legal.service";
 import type {
   AcceptanceExportFilters,
@@ -35,6 +35,13 @@ type CsvResponse = {
   send(body: string): void;
 };
 
+type PdfResponse = {
+  setHeader(name: string, value: string): void;
+  send(body: Buffer): void;
+};
+
+const pdfContentType = "application/pdf";
+
 @Controller("legal")
 export class LegalController {
   constructor(
@@ -48,6 +55,14 @@ export class LegalController {
   @Get("documentos/:tipo")
   getDocumento(@Param("tipo") tipo: string): Promise<LegalDocumentView> {
     return this.legalService.getDocumentoVigente(tipo);
+  }
+
+  @Public()
+  @Get("documentos/:tipo/programada")
+  getDocumentoProgramado(
+    @Param("tipo") tipo: string,
+  ): Promise<LegalDocumentView> {
+    return this.legalService.getDocumentoProgramado(tipo);
   }
 
   @Post("aceptaciones")
@@ -88,14 +103,32 @@ export class LegalController {
     return exported.csv;
   }
 
+  @Get("aceptaciones/export/pdf")
+  @Roles("admin")
+  async exportAcceptancesPdf(
+    @Query() filters: AcceptanceExportFilters,
+    @Res({ passthrough: false }) response: PdfResponse,
+  ): Promise<void> {
+    const exported = await this.legalService.exportAcceptancesPdf(filters);
+    response.setHeader("Content-Type", pdfContentType);
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${exported.filename}"`,
+    );
+    response.send(exported.pdf);
+  }
+
   @Public()
   @Post("arrepentimiento")
   async registerArrepentimiento(
     @Body() body: unknown,
     @Headers("authorization") authorization: string | undefined,
+    @Headers("x-forwarded-for") forwardedFor: string | undefined,
     @Ip() ip: string,
   ): Promise<SolicitudReceipt> {
-    this.publicRateLimiter.assertWithinLimit(ip);
+    await this.publicRateLimiter.assertWithinLimit(
+      resolveClientIp(forwardedFor, ip),
+    );
     return this.legalService.registerArrepentimiento(
       body,
       await resolveOptionalCallerId(this.tokenVerifier, authorization),
@@ -107,9 +140,12 @@ export class LegalController {
   async registerContacto(
     @Body() body: unknown,
     @Headers("authorization") authorization: string | undefined,
+    @Headers("x-forwarded-for") forwardedFor: string | undefined,
     @Ip() ip: string,
   ): Promise<SolicitudReceipt> {
-    this.publicRateLimiter.assertWithinLimit(ip);
+    await this.publicRateLimiter.assertWithinLimit(
+      resolveClientIp(forwardedFor, ip),
+    );
     return this.legalService.registerContacto(
       body,
       await resolveOptionalCallerId(this.tokenVerifier, authorization),

@@ -5,13 +5,16 @@ import {
   Injectable,
   Logger,
 } from "@nestjs/common";
-import type { AuthenticatedUser } from "../auth/authenticated-user";
+import type { AuthenticatedUser, MeProfile } from "../auth/authenticated-user";
 import { UsersRepository } from "../auth/users.repository";
 import { normalizeTimestamp } from "../common/db/timestamp";
 import { ConflictError } from "../common/errors/domain-errors";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import { EMAIL_PROVIDER } from "../notificaciones/providers/notificaciones.tokens";
-import type { MercadoPagoClient } from "./mercadopago/mercado-pago-client";
+import type {
+  GatewayCancellation,
+  MercadoPagoClient,
+} from "./mercadopago/mercado-pago-client";
 import { MERCADO_PAGO_CLIENT } from "./mercadopago/mercado-pago-client";
 import type {
   CreateSuscripcionDto,
@@ -19,6 +22,7 @@ import type {
   SuscripcionCancelada,
   SuscripcionCreated,
   SuscripcionOwnership,
+  SuscripcionVigente,
 } from "./pagos.types";
 import { SuscripcionesRepository } from "./suscripciones.repository";
 
@@ -35,11 +39,22 @@ function requestedEstudioId(input: CreateSuscripcionDto): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const rolEstudio: MeProfile["rol"] = "estudio";
+
 function suscripcionNotFound(): HttpException {
   return new HttpException(
     { code: "suscripcion_not_found", message: "Suscripcion not found" },
     HttpStatus.NOT_FOUND,
   );
+}
+
+function resolveTitularEstudioId(
+  profile: MeProfile | undefined,
+): string | null {
+  if (!profile || profile.rol !== rolEstudio || !profile.activo) {
+    return null;
+  }
+  return profile.estudio_id;
 }
 
 function forbidEstudio(message: string): never {
@@ -76,6 +91,24 @@ export class SuscripcionesService {
     return { id: suscripcion.id, estado: suscripcion.estado };
   }
 
+  async getVigente(callerId: string): Promise<SuscripcionVigente> {
+    const profile = await this.usersRepository.findProfileById(callerId);
+    const suscripcion = await this.suscripcionesRepository.findVigenteByOwner({
+      usuarioId: callerId,
+      estudioId: resolveTitularEstudioId(profile),
+    });
+    if (!suscripcion) {
+      throw suscripcionNotFound();
+    }
+    return {
+      id: suscripcion.id,
+      plan_id: suscripcion.plan_id,
+      estado: suscripcion.estado,
+      fecha_inicio: normalizeTimestamp(suscripcion.fecha_inicio),
+      fecha_fin: normalizeTimestamp(suscripcion.fecha_fin),
+    };
+  }
+
   async cancelSuscripcion(
     caller: AuthenticatedUser,
     suscripcionId: string,
@@ -95,11 +128,17 @@ export class SuscripcionesService {
         `suscripcion ${suscripcionId} is not activa, current estado ${suscripcion.estado}`,
       );
     }
+    let gateway: GatewayCancellation;
     try {
-      await this.mercadoPagoClient.cancelSubscription(suscripcionId);
+      gateway = await this.mercadoPagoClient.cancelSubscription(suscripcionId);
     } catch (error) {
       await this.suscripcionesRepository.restoreActiva(suscripcionId);
       throw error;
+    }
+    if (!gateway.cancelled) {
+      this.logger.warn(
+        `suscripciones.cancel found nothing to cancel at the gateway for ${suscripcionId}: the local baja is registered, the pasarela was left untouched`,
+      );
     }
     await this.confirmCancellation(caller, suscripcionId);
     return {
@@ -120,7 +159,7 @@ export class SuscripcionesService {
       throw suscripcionNotFound();
     }
     const profile = await this.usersRepository.findProfileById(callerId);
-    if (profile?.estudio_id !== suscripcion.estudio_id) {
+    if (resolveTitularEstudioId(profile) !== suscripcion.estudio_id) {
       throw suscripcionNotFound();
     }
   }

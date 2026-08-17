@@ -15,9 +15,11 @@ describe("LegalController", () => {
 
   function buildController(options?: {
     getDocumentoVigente?: jest.Mock;
+    getDocumentoProgramado?: jest.Mock;
     registerAcceptance?: jest.Mock;
     getAcceptanceStatus?: jest.Mock;
     exportAcceptances?: jest.Mock;
+    exportAcceptancesPdf?: jest.Mock;
     registerArrepentimiento?: jest.Mock;
     registerContacto?: jest.Mock;
     assertWithinLimit?: jest.Mock;
@@ -25,9 +27,11 @@ describe("LegalController", () => {
   }) {
     const legalService = {
       getDocumentoVigente: options?.getDocumentoVigente ?? jest.fn(),
+      getDocumentoProgramado: options?.getDocumentoProgramado ?? jest.fn(),
       registerAcceptance: options?.registerAcceptance ?? jest.fn(),
       getAcceptanceStatus: options?.getAcceptanceStatus ?? jest.fn(),
       exportAcceptances: options?.exportAcceptances ?? jest.fn(),
+      exportAcceptancesPdf: options?.exportAcceptancesPdf ?? jest.fn(),
       registerArrepentimiento: options?.registerArrepentimiento ?? jest.fn(),
       registerContacto: options?.registerContacto ?? jest.fn(),
     } as unknown as LegalService;
@@ -51,6 +55,17 @@ describe("LegalController", () => {
     await controller.getDocumento("terms");
 
     expect(getDocumentoVigente).toHaveBeenCalledWith("terms");
+  });
+
+  it("delegates the scheduled document read", async () => {
+    const getDocumentoProgramado = jest
+      .fn()
+      .mockResolvedValue({ tipo: "terms", version: "v2.0" });
+    const { controller } = buildController({ getDocumentoProgramado });
+
+    await controller.getDocumentoProgramado("terms");
+
+    expect(getDocumentoProgramado).toHaveBeenCalledWith("terms");
   });
 
   it("builds the acceptance proof from the headers, not from the body", async () => {
@@ -103,21 +118,100 @@ describe("LegalController", () => {
     expect(body).toBe("user_id\r\n");
   });
 
-  it("rate limits the public arrepentimiento by ip before touching the service", async () => {
-    const assertWithinLimit = jest.fn(() => {
-      throw new Error("limited");
-    });
-    const registerArrepentimiento = jest.fn();
+  it("sends the pdf export as raw bytes, not through the json serializer", async () => {
+    const pdf = Buffer.from("%PDF-1.4\n", "latin1");
+    const exportAcceptancesPdf = jest
+      .fn()
+      .mockResolvedValue({ filename: "aceptaciones.pdf", pdf });
+    const { controller } = buildController({ exportAcceptancesPdf });
+    const setHeader = jest.fn();
+    const send = jest.fn();
+
+    const returned = await controller.exportAcceptancesPdf(
+      { version: "v1.0" },
+      { setHeader, send },
+    );
+
+    expect(exportAcceptancesPdf).toHaveBeenCalledWith({ version: "v1.0" });
+    expect(setHeader).toHaveBeenCalledWith("Content-Type", "application/pdf");
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      'attachment; filename="aceptaciones.pdf"',
+    );
+    expect(send).toHaveBeenCalledWith(pdf);
+    expect(returned).toBeUndefined();
+  });
+
+  it.each([
+    ["registerArrepentimiento" as const],
+    ["registerContacto" as const],
+  ])(
+    "awaits the limiter on %s: a rejected limit stops the request before the service",
+    async (handler) => {
+      // The limiter is async now, so it can only ever REJECT. A fake that
+      // throws synchronously would keep passing if the `await` were dropped
+      // from the controller, and the route would silently stop being limited.
+      const assertWithinLimit = jest
+        .fn()
+        .mockRejectedValue(new Error("limited"));
+      const registerArrepentimiento = jest.fn().mockResolvedValue({});
+      const registerContacto = jest.fn().mockResolvedValue({});
+      const { controller } = buildController({
+        assertWithinLimit,
+        registerArrepentimiento,
+        registerContacto,
+      });
+
+      await expect(
+        controller[handler]({}, undefined, undefined, "203.0.113.7"),
+      ).rejects.toThrow("limited");
+      expect(registerArrepentimiento).not.toHaveBeenCalled();
+      expect(registerContacto).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["registerArrepentimiento" as const],
+    ["registerContacto" as const],
+  ])(
+    "limits %s by the forwarded client ip, not by the proxy socket address",
+    async (handler) => {
+      // No `trust proxy` is configured, so @Ip() is the reverse proxy behind
+      // Coolify. Keying on it would collapse every public visitor onto one
+      // shared counter and 429 the sixth submission from anyone, anywhere.
+      const assertWithinLimit = jest.fn().mockResolvedValue(undefined);
+      const { controller } = buildController({
+        assertWithinLimit,
+        registerArrepentimiento: jest.fn().mockResolvedValue({}),
+        registerContacto: jest.fn().mockResolvedValue({}),
+      });
+
+      await controller[handler](
+        {},
+        undefined,
+        "203.0.113.7, 10.0.0.1",
+        "10.0.0.1",
+      );
+
+      expect(assertWithinLimit).toHaveBeenCalledWith("203.0.113.7");
+    },
+  );
+
+  it("falls back to the socket address when there is no forwarded header", async () => {
+    const assertWithinLimit = jest.fn().mockResolvedValue(undefined);
     const { controller } = buildController({
       assertWithinLimit,
-      registerArrepentimiento,
+      registerArrepentimiento: jest.fn().mockResolvedValue({}),
     });
 
-    await expect(
-      controller.registerArrepentimiento({}, undefined, "203.0.113.7"),
-    ).rejects.toThrow("limited");
-    expect(assertWithinLimit).toHaveBeenCalledWith("203.0.113.7");
-    expect(registerArrepentimiento).not.toHaveBeenCalled();
+    await controller.registerArrepentimiento(
+      {},
+      undefined,
+      undefined,
+      "203.0.113.9",
+    );
+
+    expect(assertWithinLimit).toHaveBeenCalledWith("203.0.113.9");
   });
 
   it("records the caller when the public request carries a valid token", async () => {
@@ -130,6 +224,7 @@ describe("LegalController", () => {
     await controller.registerArrepentimiento(
       { nombre: "Ana" },
       "Bearer token",
+      undefined,
       "203.0.113.7",
     );
 
@@ -143,7 +238,12 @@ describe("LegalController", () => {
     const registerContacto = jest.fn().mockResolvedValue({});
     const { controller } = buildController({ registerContacto });
 
-    await controller.registerContacto({ nombre: "Ana" }, undefined, "1.1.1.1");
+    await controller.registerContacto(
+      { nombre: "Ana" },
+      undefined,
+      undefined,
+      "1.1.1.1",
+    );
 
     expect(registerContacto).toHaveBeenCalledWith({ nombre: "Ana" }, null);
   });
@@ -151,6 +251,7 @@ describe("LegalController", () => {
   describe("route gates", () => {
     it.each([
       ["getDocumento"],
+      ["getDocumentoProgramado"],
       ["registerArrepentimiento"],
       ["registerContacto"],
     ])("keeps %s reachable without a session", (handler) => {
@@ -166,6 +267,7 @@ describe("LegalController", () => {
       ["registerAcceptance"],
       ["getAcceptanceStatus"],
       ["exportAcceptances"],
+      ["exportAcceptancesPdf"],
     ])("keeps %s behind the guard", (handler) => {
       expect(
         Reflect.getMetadata(
@@ -175,13 +277,18 @@ describe("LegalController", () => {
       ).toBeUndefined();
     });
 
-    it("restricts the acceptance log export to admins", () => {
-      expect(
-        Reflect.getMetadata(
-          ROLES_KEY,
-          LegalController.prototype.exportAcceptances as object,
-        ),
-      ).toEqual(["admin"]);
-    });
+    it.each([["exportAcceptances"], ["exportAcceptancesPdf"]])(
+      "restricts %s to admins",
+      (handler) => {
+        expect(
+          Reflect.getMetadata(
+            ROLES_KEY,
+            LegalController.prototype[
+              handler as keyof LegalController
+            ] as object,
+          ),
+        ).toEqual(["admin"]);
+      },
+    );
   });
 });

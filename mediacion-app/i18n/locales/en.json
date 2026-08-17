@@ -294,6 +294,7 @@
       "title": "My plan",
       "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
       "noSubscription": "You don't have an active plan yet. Pick one to get started.",
+      "cancelledUntil": "Your plan stays active until {{date}}. It does not renew after that date.",
       "currentBadge": "Current plan",
       "subscribeAction": "Subscribe",
       "error": {
@@ -1396,6 +1397,17 @@
       "error": {
         "title": "We could not record your acceptance"
       }
+    },
+    "versionNotice": {
+      "title": {
+        "terms": "We are updating the Terms and Conditions",
+        "privacy": "We are updating the Privacy Policy"
+      },
+      "effectiveFrom": "The new version takes effect on {{date}}.",
+      "summary": "What changes: {{summary}}",
+      "readAction": "Read the new text",
+      "hideAction": "Hide the new text",
+      "dismissAction": "Got it"
     },
     "withdrawal": {
       "title": "Withdrawal request",

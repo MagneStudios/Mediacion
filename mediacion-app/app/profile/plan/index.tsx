@@ -12,7 +12,9 @@ import { PlanOptionCard } from '@/features/billing/components/PlanOptionCard';
 import { useCurrentSubscription } from '@/features/billing/hooks/useCurrentSubscription';
 import { usePlans } from '@/features/plans/hooks/usePlans';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import i18n from '@/i18n';
 import { billingService } from '@/services/billing.service';
+import { formatLegalDate } from '@/utils/format-legal-date';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 type CancelStatus = 'idle' | 'submitting' | 'error';
@@ -69,7 +71,17 @@ export default function MyPlanScreen() {
   }
 
   const plans = plansResult.status === 'success' ? plansResult.plans : [];
-  const currentPlanId = subscriptionResult.subscription?.planId ?? null;
+  const subscription = subscriptionResult.subscription;
+  // Only an `activa` subscription is "your current plan". The read deliberately
+  // keeps returning a cancelada row so we can say until when what was already
+  // paid for still applies — badging it as current would tell the user the
+  // opposite of what they just did.
+  const isActive = subscription?.estado === 'activa';
+  const currentPlanId = isActive ? (subscription?.planId ?? null) : null;
+  const lapsesOn =
+    subscription && !isActive && subscription.fechaFin
+      ? formatLegalDate(subscription.fechaFin, i18n.language)
+      : null;
 
   return (
     <ScrollView
@@ -84,6 +96,11 @@ export default function MyPlanScreen() {
       <Text style={styles.description}>
         {currentPlanId ? t('billing.myPlan.hasSubscription') : t('billing.myPlan.noSubscription')}
       </Text>
+      {lapsesOn ? (
+        <Text style={styles.description}>
+          {t('billing.myPlan.cancelledUntil', { date: lapsesOn })}
+        </Text>
+      ) : null}
 
       {plans.map((plan) => (
         <PlanOptionCard
@@ -107,7 +124,7 @@ export default function MyPlanScreen() {
         contracted through, no phone call, no email. This ends the recurring
         charge — account deactivation lives separately in profile/account.
       */}
-      {subscriptionResult.subscription?.estado === 'activa' ? (
+      {isActive ? (
         <Button
           variant="destructive"
           size="lg"

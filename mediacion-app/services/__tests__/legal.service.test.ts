@@ -31,6 +31,13 @@ describe('legal.service — TyC acceptance module', () => {
   });
 
   describe('"vigente" matches LegalRepository.findVigente', () => {
+    // NOTE on the fixture below: in the real schema
+    // `legal_documents_tipo_vigente_unique ON (tipo) WHERE valid_to IS NULL`
+    // allows only ONE row per tipo with a null validTo, so publishing v2.0
+    // ahead of time also closes v1.0's validTo. The mock array is not under
+    // that index, so the fixture sets both explicitly to keep the state
+    // reachable — a fixture with two null validTo would be testing a database
+    // state that cannot exist.
     // `findVigente` filters `valid_from <= now AND (valid_to IS NULL OR
     // valid_to > now)`. Publishing schedules a version ahead of time — the
     // aviso job mails users 10 days before it applies — so a version whose
@@ -45,13 +52,39 @@ describe('legal.service — TyC acceptance module', () => {
       resumenCambios: 'Cambió cómo se cobra.',
     };
 
+    /** Every doc this block pushes, removed even when an assertion throws. */
+    const pushed: LegalDocument[] = [];
+
+    function push(...documents: LegalDocument[]): void {
+      mockLegalDocuments.unshift(...documents);
+      pushed.push(...documents);
+    }
+
     afterEach(() => {
-      const index = mockLegalDocuments.indexOf(scheduled);
-      if (index >= 0) mockLegalDocuments.splice(index, 1);
+      for (const document of pushed) {
+        const index = mockLegalDocuments.indexOf(document);
+        if (index >= 0) mockLegalDocuments.splice(index, 1);
+      }
+      pushed.length = 0;
+      // The seeded v1.0 rows are shared module state: restore the validTo the
+      // scheduling helper closed, or every later test sees no current version.
+      for (const document of mockLegalDocuments) {
+        document.validTo = null;
+      }
     });
 
+    /** Schedules `scheduled` the way the partial unique index requires. */
+    function schedule(): void {
+      for (const document of mockLegalDocuments) {
+        if (document.tipo === 'terms') {
+          document.validTo = scheduled.validFrom;
+        }
+      }
+      push(scheduled);
+    }
+
     it('does not serve a version scheduled for the future', async () => {
-      mockLegalDocuments.unshift(scheduled);
+      schedule();
       const service = createMockLegalService();
 
       const served = await service.getCurrentDocument('terms');
@@ -59,8 +92,36 @@ describe('legal.service — TyC acceptance module', () => {
       expect(served?.version).toBe('v1.0');
     });
 
+    it('serves that same scheduled version to the banner, which is what feeds the advance notice', async () => {
+      schedule();
+      const service = createMockLegalService();
+
+      const announced = await service.getScheduledDocument('terms');
+
+      // The mirror of the assertion above: what `getCurrentDocument` refuses
+      // to serve is exactly what the banner has to announce.
+      expect(announced?.version).toBe('v2.0');
+    });
+
+    it('announces nothing when every version is already in force', async () => {
+      const service = createMockLegalService();
+
+      await expect(service.getScheduledDocument('terms')).resolves.toBeUndefined();
+    });
+
+    it('announces the nearest publication when two are scheduled', async () => {
+      const later: LegalDocument = { ...scheduled, version: 'v3.0', validFrom: '2099-06-01T00:00:00.000Z', validTo: null };
+      schedule();
+      push(later);
+      const service = createMockLegalService();
+
+      const announced = await service.getScheduledDocument('terms');
+
+      expect(announced?.version).toBe('v2.0');
+    });
+
     it('a scheduled substantial version does not trigger the blocking gate early', async () => {
-      mockLegalDocuments.unshift(scheduled);
+      schedule();
       const service = createMockLegalService();
 
       const status = await service.getAcceptanceStatus();
@@ -75,7 +136,7 @@ describe('legal.service — TyC acceptance module', () => {
     it('does not serve a version whose validTo already passed', async () => {
       const service = createMockLegalService();
       const expired: LegalDocument = { ...scheduled, validFrom: '2020-01-01T00:00:00.000Z', validTo: '2021-01-01T00:00:00.000Z' };
-      mockLegalDocuments.unshift(expired);
+      push(expired);
 
       const served = await service.getCurrentDocument('terms');
       expect(served?.version).toBe('v1.0');
