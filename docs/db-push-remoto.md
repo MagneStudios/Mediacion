@@ -119,6 +119,38 @@ Datos necesarios de la instancia:
    ```
    El count de versiones debe coincidir con `ls supabase/migrations/*.sql | wc -l`.
 
+## Parte 1 bis — Estado de producción (18/08/2026)
+
+Aplicado el delta completo del módulo legal TyC. Producción quedó en **33/33
+migraciones registradas**, alineada con `main@111b8e7`.
+
+| Dato | Valor |
+|---|---|
+| Host | `169.58.88.64` (`vmi3471126`) — hay 4 stacks de Supabase, no tocar los otros |
+| Stack de Mediación | `supabase-db-qh5a6xd5ju7302obz5ozb74n` |
+| Cómo identificarlo | es el único con `legal_documents` + `casos` + `suscripciones` |
+| Backup previo | `/root/mediacion-backup-public-20260818-170034.sql` |
+
+Se aplicaron 5 de una vez, porque producción venía en `20260814160000` y **el
+módulo legal nunca se había aplicado**: `20260814170000_tyc_legal`,
+`20260815120000_legal_avisos_contacto`, `20260817120000_suscripcion_aceptacion_estudio`,
+`20260817130000_rate_limit_counters`, `20260817140000_has_accepted_current_vigencia`.
+
+**Gotcha nuevo: no usar `/root/mediacion-repo` para el push.** Ese clon tiene
+cambios locales a propósito (`supabase/config.toml` con `major_version = 15`) y
+archivos sin trackear, así que `git checkout main` aborta. El delta se copió por
+`scp` a `/root/delta-tyc/` y se aplicó desde ahí, sin tocar el working tree.
+
+**Orden obligatorio:** estas migraciones instalan el trigger anti-contratación.
+Un usuario sin aceptación vigente no puede crear una suscripción, y la única
+forma de aceptar es `POST /legal/aceptaciones`, que existe recién en el build
+nuevo. **Migrar y redeployar el backend van juntos**; en el medio las altas
+quedan bloqueadas sin salida.
+
+Humo posterior, verificado sobre la base real y revertido con ROLLBACK: sin
+aceptación el alta se rechaza con `P0001` (que el API mapea a `409 conflict`),
+con aceptación vigente pasa, y el upsert de `rate_limit_counters` cuenta bien.
+
 ## Parte 2 — Proyecto nuevo (primera vez)
 
 1. Crear el stack Supabase en Coolify (one-click) y anotar stackid/red/password
