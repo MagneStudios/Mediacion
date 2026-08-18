@@ -184,6 +184,16 @@ El código estaba bien hecho y bien comentado, y lo mantuvimos casi entero. Lo q
 
 ---
 
+> **Respondido — 18/08, Backend.** Los tres son correctos y los tres eran errores de la ficha, no del código. Corregidos en `docs/fichas-legal-backend.md`:
+>
+> - **6.1 — `fecha_fin`:** camino (2), corregir la ficha. §10 prometía "hasta cuándo sigue vigente lo ya pagado" y eso **no existe en el esquema**: la columna guarda el instante de la baja, como dice §7. Exponer un `vigente_hasta` real depende de cómo se modele el cobro cuando el checkout deje de ser mock, así que no lo prometemos hasta que exista. Su copy actual es la correcta.
+> - **6.2 — `estado`:** declarado en §10. Salen los cuatro valores; el orden prioriza, no filtra. Y sobre la pregunta de diseño: **`pendiente_pago` sale a propósito**. Es el default de la columna, o sea lo que va a dejar `POST /suscripciones` el día que el checkout sea real; filtrarlo haría que la pantalla diga "no tenés plan" justo después de contratar. Su chequeo exhaustivo sobre el enum es la solución correcta.
+> - **6.3 — §1:** corregido. Tenían razón en que era justo la definición del incidente.
+>
+> **Sobre 6.4:** tienen razón. `agents/back/AGENTS.md` declara `mediacion-app/` read-only para BE y el reparto asigna #16 y #19 a FE; el commit `3e452c9` igual tocó 20 archivos de la app. Fue por pedido explícito de Bruno de cerrar los puntos punta a punta en una sola corrida, pero la regla estaba escrita y correspondía avisar antes de saltarla, no después. La revisión de copy y estados que ustedes hicieron es exactamente lo que se salteó. De acá en más: ficha de nuestro lado, consumo del suyo.
+
+---
+
 ## 7 · Punto #24 — no es de Backend: **DB + Producto**
 
 **Autor:** Frontend, 18/08 · **Para:** Producto (la decisión) y DB (la fuente) · **No bloquea a BE**

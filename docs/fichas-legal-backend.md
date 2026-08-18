@@ -22,7 +22,7 @@ Error envelope global: `{ "error": { "code", "message" } }` (`common/filters/all
 | Módulo | `apps/api/src/legal/legal.controller.ts` |
 
 - `:tipo` ∈ `terms` \| `privacy`. Cualquier otro valor → `400 invalid_input`.
-- Devuelve la fila de `legal_documents` con ese `tipo` y `valid_to IS NULL`.
+- Devuelve la fila de `legal_documents` con ese `tipo` **en vigencia ahora**: `valid_from <= now AND (valid_to IS NULL OR valid_to > now)`. **No `valid_to IS NULL` sola** — esa es la definición que rompió `has_accepted_current` (ver la nota del 17/08 más arriba) y que `agents/back/AGENTS.md` ahora prohíbe.
 
 ```json
 {
@@ -240,7 +240,9 @@ Pedido §2 de `docs/pedidos-frontend-a-backend.md`. Desbloquea el botón de baja
 - Sin parámetros: el servidor resuelve la titularidad desde el token. Un owner que mandara el cliente sería una forma de leer el plan de otro.
 - **Misma resolución que la baja**, y misma precedencia que `PlanLimitService`: la suscripción personal (`usuario_id = caller`) **gana siempre** sobre la del estudio. El orden es explícito en la query — primero la propia, después `estado = 'activa'`, después la más reciente por `created_at`. Ordenar solo por estado y fecha devolvía la del estudio cuando era más nueva, y como el botón de baja de FE cancela el id que devuelve esta lectura, eso cancelaba el plan de todos los miembros del estudio.
 - **La rama del estudio solo aplica al titular**: `rol = 'estudio'` y `activo`, el mismo criterio que exige el trigger anti-contratación para poder contratar. Un `parte` que apenas carga ese `estudio_id`, o un titular dado de baja, recibe `404`. Sin eso, esta lectura le revelaba el id a un no-titular y `POST /suscripciones/:id/baja` se lo aceptaba.
-- De las del titular devuelve **una**. Una suscripción ya dada de baja se sigue devolviendo, con su `fecha_fin`, para que FE pueda decir hasta cuándo sigue vigente lo ya pagado — y FE **no** la muestra como "tu plan actual", solo `activa` lo es.
+- De las del titular devuelve **una**. Una suscripción ya dada de baja se sigue devolviendo, con su `fecha_fin` — y FE **no** la muestra como "tu plan actual", solo `activa` lo es.
+- **`fecha_fin` es el instante en que se registró la baja, no el fin del período pagado** (corregido el 18/08: esta ficha decía lo segundo y era falso). Lo escribe `cancelSuscripcion` con `now()`, igual que documenta §7. **No existe hoy ningún dato del fin del período cubierto por el último cobro**: `suscripciones` tiene `fecha_inicio` y `fecha_fin` y nada más. Exponer un `vigente_hasta` real depende de cómo se modele el cobro cuando el checkout deje de ser mock, así que **no se promete acá**. FE ya alineó su copy con lo que la columna guarda.
+- **`estado` puede ser cualquiera de los cuatro valores de `estado_suscripcion`**: `activa`, `cancelada`, `vencida`, `pendiente_pago`. El orden **prioriza** `activa`, no filtra. `pendiente_pago` sale a propósito, porque es el default de la columna y por lo tanto lo que deja `POST /suscripciones` hasta que se acredite el pago: filtrarlo haría que la pantalla diga "no tenés plan" justo después de contratar, e invitaría a contratar de nuevo. Quien consuma esto tiene que contemplar los cuatro.
 - Sin ninguna → `404 suscripcion_not_found`. Mismo código que devuelve la baja para una suscripción que existe y no es del caller: un ajeno no puede distinguir "no es tuya" de "no existe".
 
 ```json
