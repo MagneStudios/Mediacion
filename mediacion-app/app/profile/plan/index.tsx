@@ -14,7 +14,8 @@ import { usePlans } from '@/features/plans/hooks/usePlans';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import i18n from '@/i18n';
 import { billingService } from '@/services/billing.service';
-import { formatLegalDate } from '@/utils/format-legal-date';
+import { formatEventDate } from '@/utils/format-legal-date';
+import { getSubscriptionNotice } from '@/utils/subscription-notice';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 type CancelStatus = 'idle' | 'submitting' | 'error';
@@ -72,16 +73,18 @@ export default function MyPlanScreen() {
 
   const plans = plansResult.status === 'success' ? plansResult.plans : [];
   const subscription = subscriptionResult.subscription;
-  // Only an `activa` subscription is "your current plan". The read deliberately
-  // keeps returning a cancelada row so we can say until when what was already
-  // paid for still applies — badging it as current would tell the user the
-  // opposite of what they just did.
+  // Only an `activa` subscription is "your current plan". The read keeps
+  // returning the non-active row so the screen can say what became of it —
+  // badging it as current would tell the user the opposite of what they just
+  // did, and dropping it silently would leave a baja with no acknowledgement.
   const isActive = subscription?.estado === 'activa';
   const currentPlanId = isActive ? (subscription?.planId ?? null) : null;
-  const lapsesOn =
-    subscription && !isActive && subscription.fechaFin
-      ? formatLegalDate(subscription.fechaFin, i18n.language)
-      : null;
+  // Which of the three non-active estados it is decides the wording; see
+  // `utils/subscription-notice.ts` for why none of them promises service until
+  // a date. `fechaFin` is when the baja was registered, not when access ends —
+  // an instant, so it reads in the viewer's own time zone, not UTC like the
+  // `validFrom` of a legal document.
+  const notice = getSubscriptionNotice(subscription);
 
   return (
     <ScrollView
@@ -96,9 +99,11 @@ export default function MyPlanScreen() {
       <Text style={styles.description}>
         {currentPlanId ? t('billing.myPlan.hasSubscription') : t('billing.myPlan.noSubscription')}
       </Text>
-      {lapsesOn ? (
+      {notice ? (
         <Text style={styles.description}>
-          {t('billing.myPlan.cancelledUntil', { date: lapsesOn })}
+          {t(`billing.myPlan.notice.${notice.key}`, {
+            date: formatEventDate(notice.fechaFin, i18n.language),
+          })}
         </Text>
       ) : null}
 
