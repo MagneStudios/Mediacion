@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-08-14
+> Última actualización: 2026-08-18
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 27 tablas |
+| RLS | Habilitado en las 30 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
@@ -55,10 +55,13 @@ supabase/migrations/
 ├── 20260811150000_linter_perf_fk_indexes.sql  # 16 índices de cobertura en FKs
 ├── 20260814160000_grants_schema_public.sql   # GRANT USAGE schema public a roles JWT (stack Coolify)
 ├── 20260814170000_tyc_legal.sql    # Módulo legal: legal_documents, user_agreements (append-only), solicitudes_arrepentimiento, estado_arrepentimiento, has_accepted_current, trigger anti-contratación, 3 policies, seeds terms/privacy v1.0
-└── 20260815120000_legal_avisos_contacto.sql  # avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto (canal de contacto), ambas de rol de servidor
+├── 20260815120000_legal_avisos_contacto.sql  # avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto (canal de contacto), ambas de rol de servidor
+├── 20260817120000_suscripcion_aceptacion_estudio.sql  # Anti-contratación para suscripciones de estudio: rama estudio_id en validate_suscripcion_aceptacion, trigger UPDATE titularidad
+├── 20260817130000_rate_limit_counters.sql  # Contador de rate limit compartido para módulo legal (PK compuesta, ventana fija, server-only)
+└── 20260817140000_has_accepted_current_vigencia.sql  # Fix: has_accepted_current usa vigencia real (valid_from/valid_to) en vez de valid_to IS NULL
 ```
 
-## Modelo de datos (27 tablas)
+## Modelo de datos (30 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -97,6 +100,7 @@ supabase/migrations/
 - `inversores` — formulario público de captación
 - `auditoria` — log inmutable de acciones sensibles
 - `configuracion` — key-value para settings del sistema (incluye `impuestos` AR y `invitacion_ttl_horas`)
+- `rate_limit_counters` — contador de rate limit compartido para módulo legal; PK compuesta `(clave, ventana_inicio)`, ventana fija (no deslizante), upsert atómico `ON CONFLICT DO UPDATE SET hits = hits + 1`; tabla de rol de servidor
 
 ### Módulo legal (TyC)
 - `legal_documents` — texto legal versionado (terms/privacy) en la base; una sola versión vigente por tipo (partial unique); lectura pública (anon/authenticated) solo de la vigente
@@ -104,6 +108,35 @@ supabase/migrations/
 - `solicitudes_arrepentimiento` — traza del POST público /legal/arrepentimiento (Res. 424/2020); `codigo` ARR-0001… por trigger; sin policies (solo roles de servidor)
 - `avisos_version_legal` — traza e idempotencia del aviso de cambio de versión (#15); UNIQUE (usuario_id, tipo, version) + `enviado_at` para separar "reclamado" de "entregado"; sin policies
 - `solicitudes_contacto` — canal de contacto público (#23); `codigo` CON-0001… por trigger; `received_at` es la fecha de ingreso que sostiene el plazo de respuesta declarado; sin policies
+
+### Enums (20)
+
+`estado_caso` tiene 8 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08).
+
+`estado_arrepentimiento` tiene 4 valores: `recibida, en_proceso, resuelta, rechazada`. Usado tanto por `solicitudes_arrepentimiento` como por `solicitudes_contacto` (reutilizado por diseño).
+
+### Patrón: tabla de rol de servidor (A-4/Q-4/R-2)
+
+> RLS habilitada + sin policies + GRANTs solo a `service_role`/`postgres` + escritura únicamente vía BE (rol de servidor). El usuario final no lee ni escribe; su comprobante es el `codigo` (`ARR-…`/`CON-…`).
+
+| Tabla | Patrón server-only | Código |
+|-------|-------------------|--------|
+| `solicitudes_arrepentimiento` | Sí | `ARR-0001…` |
+| `avisos_version_legal` | Sí | — |
+| `solicitudes_contacto` | Sí | `CON-0001…` |
+| `rate_limit_counters` | Sí | — |
+| `user_agreements` | **No** | Tiene SELECT propio para `authenticated` (contrato FE) |
+
+### Retención de datos (FKs legales)
+
+Ninguna FK legal usa `ON DELETE CASCADE`:
+
+| Tabla | FK | ON DELETE |
+|-------|-----|-----------|
+| `user_agreements` | `user_id → auth.users` | RESTRICT (retención 5 años) |
+| `solicitudes_arrepentimiento` | `usuario_id → auth.users` | SET NULL (traza se conserva) |
+| `avisos_version_legal` | `usuario_id → auth.users` | RESTRICT (prueba de cumplimiento de plazo) |
+| `solicitudes_contacto` | `usuario_id → auth.users` | SET NULL (traza se conserva) |
 
 ## Decisiones de diseño
 
@@ -214,14 +247,18 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 27 tablas, 20 enums, relaciones y notas |
-| Fase 2 — Migraciones | ✅ Cerrada | 29 archivos SQL aplicados y testeados |
+| Fase 1 — DBML | ✅ Cerrada | Schema.dbml con 30 tablas, 20 enums, relaciones y notas |
+| Fase 2 — Migraciones | ✅ Cerrada | 33 archivos SQL aplicados y testeados |
 | Fase 3 — Scripts Python | ✅ Cerrada | seed_data.py, validate_rls.py, smoke_migrations.py |
-| Fase 4 — QA/E2E | ✅ Cerrada | 16 tests SQL + 72/72 smoke + 24/24 RLS |
+| Fase 4 — QA/E2E | ✅ Cerrada | 16 tests SQL + smoke + RLS verdes |
 | Módulo 4 post-acuerdo (backend) | ✅ Implementado | tareas, incumplimientos, onboarding — merge del backend (#45) |
 | Reunión 07/08 (R-04…R-12) | ✅ Implementado | expirado, facturas, envios_email, pago_a_cargo, plan estudio 25.00 |
 | Módulo legal (TyC) | ✅ Implementado | legal_documents, user_agreements append-only, solicitudes_arrepentimiento, trigger anti-contratación, seeds v1.0 (texto con [COMPLETAR] pendientes de Administración) |
 | Aviso de versión y contacto | ✅ Implementado | avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto, consumidas por el módulo `legal/` de la API |
+| Rate limit compartido | ✅ Implementado | rate_limit_counters (PK compuesta, ventana fija), cierra limitación de réplicas/serverless en rutas públicas legales |
+| Anti-contratación estudio | ✅ Implementado | rama estudio_id en validate_suscripcion_aceptacion (titular con aceptación vigente), trigger UPDATE titularidad |
+| Fix has_accepted_current | ✅ Implementado | vigencia real (valid_from/valid_to) alineada con LegalRepository.findVigente |
+| Patrón server-only documentado | ✅ Implementado | 4 tablas con RLS sin policies + GRANTs solo service_role/postgres |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)

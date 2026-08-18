@@ -291,11 +291,11 @@ def main():
                 description="sin GRANT INSERT para authenticated (solo service_role/postgres)",
             )
             run_denied_test(
-                "has_accepted_current denegado para authenticated",
+                "has_accepted_current denegado para anon",
                 cur, ids["non_member"],
                 "SELECT has_accepted_current('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'terms')",
-                role="authenticated",
-                description="EXECUTE solo para service_role/postgres (helper de servidor)",
+                role="anon",
+                description="EXECUTE a service_role/postgres/authenticated; denegado para anon",
             )
         run_test(
             "has_accepted_current(A, terms) = true como service_role",
@@ -304,6 +304,76 @@ def main():
             True,
             role="service_role",
         )
+
+        print()
+        print("=== Tablas de rol de servidor (sin policies) ===")
+        server_only_tables = [
+            "solicitudes_arrepentimiento",
+            "avisos_version_legal",
+            "solicitudes_contacto",
+            "rate_limit_counters",
+        ]
+        anon_id = ids.get("parte_a", "aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        for table in server_only_tables:
+            run_denied_test(
+                f"anon SELECT {table} denegado",
+                cur, anon_id,
+                f"SELECT COUNT(*) FROM {table}",
+                role="anon",
+                description="sin GRANT para anon — permission denied",
+            )
+            if "parte_a" in ids:
+                run_denied_test(
+                    f"authenticated SELECT {table} denegado",
+                    cur, ids["parte_a"],
+                    f"SELECT COUNT(*) FROM {table}",
+                    role="authenticated",
+                    description="sin GRANT para authenticated — permission denied",
+                )
+
+        if "non_member" in ids:
+            run_denied_test(
+                "INSERT solicitudes_contacto como authenticated denegado",
+                cur, ids["non_member"],
+                "INSERT INTO solicitudes_contacto (nombre, email, mensaje) "
+                "VALUES ('test', 'test@test.com', 'test')",
+                role="authenticated",
+                description="sin GRANT INSERT para authenticated (solo service_role/postgres)",
+            )
+            run_denied_test(
+                "INSERT avisos_version_legal como authenticated denegado",
+                cur, ids["non_member"],
+                "INSERT INTO avisos_version_legal (usuario_id, tipo, version) "
+                "VALUES ('d0000000-0000-0000-0000-000000000004', 'terms', 'v1.0')",
+                role="authenticated",
+                description="sin GRANT INSERT para authenticated (solo service_role/postgres)",
+            )
+
+        print()
+        print("=== Bonus: INSERT service_role + cleanup ===")
+        cur.execute("BEGIN")
+        cur.execute(
+            "SET LOCAL role = 'service_role'"
+        )
+        cur.execute(
+            "SET LOCAL request.jwt.claims = '{\"role\": \"service_role\"}'"
+        )
+        cur.execute(
+            "INSERT INTO solicitudes_contacto (nombre, email, mensaje) "
+            "VALUES ('test_rl', 'test@rl.com', 'validation row') "
+            "RETURNING codigo"
+        )
+        row = cur.fetchone()
+        codigo = row[0] if row else None
+        codigo_ok = codigo and codigo.startswith("CON-")
+        RESULTS.append({
+            "name": "service_role INSERT solicitudes_contacto genera CON-...",
+            "status": "PASS" if codigo_ok else "FAIL",
+            "expected": True,
+            "actual": codigo_ok,
+        })
+        print(f"  [{'PASS' if codigo_ok else 'FAIL'}] service_role INSERT solicitudes_contacto genera CON-...: codigo={codigo}")
+        cur.execute("ROLLBACK")
 
         # --- Summary ---
         print()
