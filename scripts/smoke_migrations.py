@@ -31,6 +31,7 @@ EXPECTED_TABLES = [
     "mediaciones", "acuerdos", "firmas", "tareas", "incumplimientos",
     "notificaciones", "auditoria", "facturas", "envios_email",
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
+    "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
 ]
 
 EXPECTED_FUNCTIONS = [
@@ -66,6 +67,7 @@ RLS_TABLES = [
     "configuracion", "auditoria", "planes", "inversores",
     "facturas", "envios_email",
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
+    "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
 ]
 
 RESULTS = []
@@ -171,11 +173,11 @@ def main():
         """)
         check("updated_at triggers installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='set_updated_at'",
-              19, "19 tables have set_updated_at")
+              20, "20 tables have set_updated_at")
 
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",
-              11, "11 audit trigger names")
+              12, "12 audit trigger names")
 
         check("Propuesta state machine trigger installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trigger_validate_propuesta_estado'",

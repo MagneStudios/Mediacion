@@ -601,6 +601,18 @@ Table solicitudes_contacto {
   Note: 'Canal de contacto público (#23). Espeja solicitudes_arrepentimiento y reutiliza su enum de estado. Sin policies RLS; escritura solo vía roles de servidor.'
 }
 
+Table rate_limit_counters {
+  clave text [pk, not null]
+  ventana_inicio timestamptz [pk, not null]
+  hits int [not null, default: 0]
+
+  indexes {
+    (ventana_inicio) [name: 'idx_rate_limit_counters_ventana', note: 'Barrido de ventanas vencidas']
+  }
+
+  Note: 'Contador compartido del rate-limit del módulo legal. PK compuesta (clave, ventana_inicio). Ventana fija, no deslizante. Upsert atómico ON CONFLICT DO UPDATE SET hits = hits + 1. Tabla de rol de servidor: RLS habilitada, sin policies, GRANTs solo a service_role/postgres.'
+}
+
 // ============================================================
 // RELACIONES
 // ============================================================
@@ -660,3 +672,5 @@ Ref: auditoria.usuario_id > usuarios.id
 // Módulo legal (TyC) — FKs directas a auth.users (retención legal)
 Ref: user_agreements.user_id > auth.users.id [delete: restrict]
 Ref: solicitudes_arrepentimiento.usuario_id > auth.users.id [delete: set null]
+Ref: avisos_version_legal.usuario_id > auth.users.id [delete: restrict]
+Ref: solicitudes_contacto.usuario_id > auth.users.id [delete: set null]
