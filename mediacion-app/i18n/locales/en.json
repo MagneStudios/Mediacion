@@ -294,7 +294,13 @@
       "title": "My plan",
       "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
       "noSubscription": "You don't have an active plan yet. Pick one to get started.",
-      "cancelledUntil": "Your plan stays active until {{date}}. It does not renew after that date.",
+      "notice": {
+        "cancelled": "You cancelled this plan on {{date}}. It will not be charged again.",
+        "cancelledUndated": "You cancelled this plan. It will not be charged again.",
+        "expired": "This plan expired on {{date}}.",
+        "expiredUndated": "This plan expired.",
+        "pendingPayment": "Your subscription is pending payment."
+      },
       "currentBadge": "Current plan",
       "subscribeAction": "Subscribe",
       "error": {

@@ -294,7 +294,13 @@
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
       "noSubscription": "Todavía no tenés un plan activo. Elegí uno para empezar.",
-      "cancelledUntil": "Tu plan sigue vigente hasta el {{date}}. Después de esa fecha no se renueva.",
+      "notice": {
+        "cancelled": "Diste de baja este plan el {{date}}. No se vuelve a cobrar.",
+        "cancelledUndated": "Diste de baja este plan. No se vuelve a cobrar.",
+        "expired": "Este plan venció el {{date}}.",
+        "expiredUndated": "Este plan venció.",
+        "pendingPayment": "Tu contratación quedó pendiente de pago."
+      },
       "currentBadge": "Plan actual",
       "subscribeAction": "Suscribirme",
       "error": {

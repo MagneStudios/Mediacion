@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 import type { Plan } from '@/types/plan';
+import { formatEventDate } from '@/utils/format-legal-date';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
@@ -87,5 +88,78 @@ describe('MyPlanScreen', () => {
     mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
     await renderScreen();
     expect(screen.getByText(i18n.t('billing.myPlan.error.title'))).toBeTruthy();
+  });
+
+  /**
+   * `GET /suscripciones/vigente` does not filter by estado — it orders by it —
+   * so every value of `estado_suscripcion` reaches this screen. Only `activa`
+   * is a current plan; the other three each need their own answer, and none of
+   * them may promise service until a date (see `utils/subscription-notice.ts`).
+   */
+  describe('a subscription that is not activa', () => {
+    function renderWithEstado(estado: string, fechaFin: string | null) {
+      mockSubscriptionResult = {
+        status: 'success',
+        subscription: { id: 'sub-1', planId: 'plan-base', estado, fechaInicio: null, fechaFin },
+        reload: jest.fn(),
+      };
+      mockPlansResult = { status: 'success', plans: [basePlan, estudioPlan], refresh: jest.fn() };
+      return renderScreen();
+    }
+
+    it('is never badged as the current plan and never offers the baja again', async () => {
+      await renderWithEstado('cancelada', '2026-08-17T12:00:00.000Z');
+
+      expect(screen.queryByText(i18n.t('billing.myPlan.currentBadge'))).toBeNull();
+      expect(screen.queryByText(i18n.t('billing.myPlan.cancel.action'))).toBeNull();
+      expect(screen.getByText(i18n.t('billing.myPlan.noSubscription'))).toBeTruthy();
+      // Both plans stay subscribable: the user has no plan, so nothing is
+      // excluded from the offer.
+      expect(screen.getAllByText(i18n.t('billing.myPlan.subscribeAction'))).toHaveLength(2);
+    });
+
+    it('acknowledges the baja with the date it was registered', async () => {
+      await renderWithEstado('cancelada', '2026-08-17T12:00:00.000Z');
+
+      const date = formatEventDate('2026-08-17T12:00:00.000Z', i18n.language);
+      expect(screen.getByText(i18n.t('billing.myPlan.notice.cancelled', { date }))).toBeTruthy();
+      // `fechaFin` is when the cancellation was written, not when access ends,
+      // so the screen must not read as "you keep the plan until that date".
+      expect(screen.queryByText(i18n.t('billing.myPlan.notice.expired', { date }))).toBeNull();
+    });
+
+    it('acknowledges a baja that arrived without a date', async () => {
+      await renderWithEstado('cancelada', null);
+      expect(screen.getByText(i18n.t('billing.myPlan.notice.cancelledUndated'))).toBeTruthy();
+    });
+
+    it('tells a vencida apart from a cancelada', async () => {
+      await renderWithEstado('vencida', '2026-07-01T12:00:00.000Z');
+
+      const date = formatEventDate('2026-07-01T12:00:00.000Z', i18n.language);
+      expect(screen.getByText(i18n.t('billing.myPlan.notice.expired', { date }))).toBeTruthy();
+      expect(screen.queryByText(i18n.t('billing.myPlan.notice.cancelled', { date }))).toBeNull();
+    });
+
+    it('reports pendiente_pago instead of inviting the user to contract twice', async () => {
+      // The column default of `POST /suscripciones`, so this is what a real
+      // checkout leaves behind before the payment is confirmed.
+      await renderWithEstado('pendiente_pago', null);
+      expect(screen.getByText(i18n.t('billing.myPlan.notice.pendingPayment'))).toBeTruthy();
+    });
+  });
+
+  it('says nothing extra about an active subscription, and offers the baja', async () => {
+    mockSubscriptionResult = {
+      status: 'success',
+      subscription: { id: 'sub-1', planId: 'plan-base', estado: 'activa', fechaInicio: null, fechaFin: null },
+      reload: jest.fn(),
+    };
+    mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('billing.myPlan.cancel.action'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('billing.myPlan.notice.cancelledUndated'))).toBeNull();
+    expect(screen.queryByText(i18n.t('billing.myPlan.notice.pendingPayment'))).toBeNull();
   });
 });

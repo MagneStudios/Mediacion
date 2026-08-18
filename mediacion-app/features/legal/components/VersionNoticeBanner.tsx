@@ -28,31 +28,39 @@ const documentTypes: LegalDocumentType[] = ['terms', 'privacy'];
  * version that has not taken effect yet, the gate blocks once it has. They
  * never both apply to the same version, because they read disjoint sets —
  * `getScheduledDocument` filters `validFrom > now`, `getCurrentDocument`
- * filters `validFrom <= now`. So the banner disappears on its own the day the
+ * filters `validFrom <= now`. So a notice disappears on its own the day its
  * version starts applying, and the gate takes over from there.
  *
- * The full new text travels with the notice, so "leer el texto nuevo" expands
+ * **Every scheduled document gets its own notice.** Announcing only the
+ * nearest one silently dropped the other whenever both were scheduled for the
+ * same day — which is the normal shape of a legal revision, since Términos and
+ * Privacidad are usually rewritten together. With equal `validFrom` the sort is
+ * stable, so `terms` would always win and the privacy change would never be
+ * announced in advance at all: it would surface only once already in force,
+ * which is exactly what the 10-day notice exists to prevent.
+ *
+ * The full new text travels with each notice, so "leer el texto nuevo" expands
  * in place instead of navigating: the public page renders the version *in
- * force*, which is still the old one while this banner is up.
+ * force*, which is still the old one while these are up.
  *
  * Fails closed on read errors — no banner rather than an error state. This is
  * an announcement, not a screen; a broken announcement must not be the first
  * thing a user sees, and the email is the other half of the same obligation.
  *
- * Dismissal lives in component state, so it lasts the session and the notice
- * comes back on the next cold start. Persisting it would silence a legally
- * required announcement for good on the strength of one tap.
+ * Dismissal is per document and lives in component state, so it lasts the
+ * session and the notice comes back on the next cold start. Persisting it would
+ * silence a legally required announcement for good on the strength of one tap,
+ * and sharing one flag across documents would let a tap on one announcement
+ * bury a different one.
  */
 export function VersionNoticeBanner() {
-  const { t } = useTranslation();
-  // The banner renders above the navigator, so no screen header is paying for
+  // The stack renders above the navigator, so no screen header is paying for
   // its insets: without this the title of a legally required notice sits
   // behind the notch or the translucent status bar.
   const insets = useSafeAreaInsets();
 
-  const [scheduled, setScheduled] = useState<LegalDocument | null>(null);
-  const [dismissed, setDismissed] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [scheduled, setScheduled] = useState<LegalDocument[]>([]);
+  const [dismissed, setDismissed] = useState<LegalDocumentType[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,52 +71,80 @@ export function VersionNoticeBanner() {
     )
       .then((results) => {
         if (cancelled) return;
-        // The nearest one first: with two changes pending, the one that starts
-        // applying sooner is the one worth announcing now.
-        const [nearest] = results
-          .filter(
-            (document): document is LegalDocument =>
-              // A dateless document is not announceable: "we are changing the
-              // terms, at some point" is worse than staying quiet, and a NaN
-              // would also poison the comparator and let it win the sort.
-              document !== undefined &&
-              !Number.isNaN(Date.parse(document.validFrom ?? '')),
-          )
-          .sort(
-            (first, second) =>
-              Date.parse(first.validFrom ?? '') - Date.parse(second.validFrom ?? ''),
-          );
-        setScheduled(nearest ?? null);
+        setScheduled(
+          results
+            .filter(
+              (document): document is LegalDocument =>
+                // A dateless document is not announceable: "we are changing the
+                // terms, at some point" is worse than staying quiet, and a NaN
+                // would also poison the comparator below.
+                document !== undefined &&
+                !Number.isNaN(Date.parse(document.validFrom ?? '')),
+            )
+            // Nearest first: the change that starts applying sooner is the one
+            // that needs to be read first.
+            .sort(
+              (first, second) =>
+                Date.parse(first.validFrom ?? '') - Date.parse(second.validFrom ?? ''),
+            ),
+        );
       })
       .catch(() => {
         if (cancelled) return;
-        setScheduled(null);
+        setScheduled([]);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (!scheduled || dismissed) {
+  const visible = scheduled.filter((document) => !dismissed.includes(document.tipo));
+  if (visible.length === 0) {
+    // Nothing at all, not an empty spacer: the stack carries the top inset, so
+    // an empty container would push every screen down for no announcement.
     return null;
   }
 
-  const effectiveDate = formatLegalDate(scheduled.validFrom, i18n.language);
+  return (
+    <View style={[styles.stack, { marginTop: insets.top + spacing.md }]}>
+      {visible.map((document) => (
+        <VersionNotice
+          key={document.tipo}
+          document={document}
+          onDismiss={() =>
+            setDismissed((current) =>
+              current.includes(document.tipo) ? current : [...current, document.tipo],
+            )
+          }
+        />
+      ))}
+    </View>
+  );
+}
+
+function VersionNotice({
+  document,
+  onDismiss,
+}: {
+  document: LegalDocument;
+  onDismiss: () => void;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <View
-      style={[styles.banner, { marginTop: insets.top + spacing.md }]}
-      accessibilityRole="alert"
-    >
+    <View style={styles.banner} accessibilityRole="alert">
       <Text style={styles.title} accessibilityRole="header">
-        {t(`legal.versionNotice.title.${scheduled.tipo}`)}
+        {t(`legal.versionNotice.title.${document.tipo}`)}
       </Text>
       <Text style={styles.effective}>
-        {t('legal.versionNotice.effectiveFrom', { date: effectiveDate })}
+        {t('legal.versionNotice.effectiveFrom', {
+          date: formatLegalDate(document.validFrom, i18n.language),
+        })}
       </Text>
-      {scheduled.resumenCambios ? (
+      {document.resumenCambios ? (
         <Text style={styles.summary}>
-          {t('legal.versionNotice.summary', { summary: scheduled.resumenCambios })}
+          {t('legal.versionNotice.summary', { summary: document.resumenCambios })}
         </Text>
       ) : null}
 
@@ -122,14 +158,14 @@ export function VersionNoticeBanner() {
             ? t('legal.versionNotice.hideAction')
             : t('legal.versionNotice.readAction')}
         </Button>
-        <Button variant="tertiary" size="sm" onPress={() => setDismissed(true)}>
+        <Button variant="tertiary" size="sm" onPress={onDismiss}>
           {t('legal.versionNotice.dismissAction')}
         </Button>
       </View>
 
       {expanded ? (
         <ScrollView style={styles.textScroll}>
-          <LegalDocumentBody contenido={scheduled.contenido} />
+          <LegalDocumentBody contenido={document.contenido} />
         </ScrollView>
       ) : null}
     </View>
@@ -139,11 +175,14 @@ export function VersionNoticeBanner() {
 const expandedTextMaxHeight = 320;
 
 const styles = StyleSheet.create({
+  stack: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
   banner: {
     backgroundColor: semanticColors.surface.supportAqua,
     borderRadius: radii.lg,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
     padding: spacing.md,
     gap: spacing.xs,
   },
