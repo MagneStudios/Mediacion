@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
@@ -72,7 +72,17 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={mediacionNavigationTheme}>
-      <SafeAreaProvider>
+      {/*
+        `initialMetrics` is not optional here. SafeAreaProvider renders its
+        children only once `insets` is non-null, and without seeded metrics
+        that starts null and is filled in by the first insets event — so on
+        native the whole tree below, AuthGate included, draws nothing for the
+        first frame of every cold start. `initialWindowMetrics` carries the
+        metrics the native module already measured; on web it is `null` by
+        design, so this changes nothing there (the static export renders the
+        tree with or without it, verified against the exported HTML).
+      */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <Head><title>Mediación</title></Head>
       {/*
         AuthGate wraps the whole tree so a signed-out visitor cannot reach any

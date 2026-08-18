@@ -73,6 +73,15 @@ function bannerTree(): unknown[] {
   return tree.children ?? [];
 }
 
+/**
+ * The headline of every notice on screen, in render order. Reading the order
+ * matters: with two changes pending, the one that starts applying sooner is
+ * the one that has to be read first.
+ */
+function noticeTitles(): unknown[] {
+  return screen.getAllByRole('header').map((node) => node.props.children);
+}
+
 function bannerHarness() {
   return (
     <SafeAreaProvider initialMetrics={notchedMetrics}>
@@ -126,12 +135,56 @@ describe('VersionNoticeBanner', () => {
     expect(screen.queryByText(/31 de agosto de 2026/i)).toBeNull();
   });
 
-  it('announces the nearest change when both documents have one pending', async () => {
+  it('announces both changes when both documents have one pending, nearest first', async () => {
     scheduleByType({ terms: scheduledTerms, privacy: scheduledPrivacy });
     await renderBanner();
 
     expect(await screen.findByText(/actualizar la Política de Privacidad/i)).toBeTruthy();
-    expect(screen.queryByText(/actualizar los Términos y Condiciones/i)).toBeNull();
+    expect(screen.getByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+    expect(noticeTitles()).toEqual([
+      'Vamos a actualizar la Política de Privacidad',
+      'Vamos a actualizar los Términos y Condiciones',
+    ]);
+  });
+
+  it('announces both even when they take effect on the same day', async () => {
+    // The regression this guards: announcing only the nearest dropped the other
+    // whenever the two dates tied, and a legal revision normally rewrites
+    // Términos and Privacidad together. `sort` is stable, so `terms` won every
+    // tie and the privacy change was never announced in advance at all — it
+    // surfaced only once already in force, which is what the 10-day notice
+    // exists to prevent.
+    scheduleByType({
+      terms: scheduledTerms,
+      privacy: { ...scheduledPrivacy, validFrom: scheduledTerms.validFrom },
+    });
+    await renderBanner();
+
+    expect(await screen.findByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+    expect(screen.getByText(/actualizar la Política de Privacidad/i)).toBeTruthy();
+  });
+
+  it('dismisses one announcement without burying the other', async () => {
+    scheduleByType({ terms: scheduledTerms, privacy: scheduledPrivacy });
+    await renderBanner();
+
+    // Nearest first, so the first "Entendido" belongs to the privacy notice.
+    await fireEvent.press((await screen.findAllByText('Entendido'))[0]);
+
+    await waitFor(() =>
+      expect(screen.queryByText(/actualizar la Política de Privacidad/i)).toBeNull(),
+    );
+    expect(screen.getByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+  });
+
+  it('expands one announcement without expanding the other', async () => {
+    scheduleByType({ terms: scheduledTerms, privacy: scheduledPrivacy });
+    await renderBanner();
+
+    await fireEvent.press((await screen.findAllByText('Leer el texto nuevo'))[0]);
+
+    expect(await screen.findByText(/Otra cláusula\./i)).toBeTruthy();
+    expect(screen.queryByText(/Cláusula nueva\./i)).toBeNull();
   });
 
   it('carries the new text so it can be read without a second call', async () => {

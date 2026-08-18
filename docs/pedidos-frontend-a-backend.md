@@ -1,6 +1,6 @@
 # Pedidos de Frontend — endpoints que faltan
 
-**Fecha:** 16/08/2026 · **Autor:** Frontend · **Para:** Backend (DB no tiene nada pendiente, ver §3)
+**Fecha:** 16/08/2026, ampliado el 18/08 · **Autor:** Frontend · **Para:** Backend (§1–§6) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
 
 El recíproco de `docs/fichas-legal-backend.md`: dos endpoints que FE necesita para cerrar puntos del instructivo que el reparto nos asigna y que **hoy no podemos construir**. En ambos casos el dato ya existe en la base y en el código de BE; lo que falta es exponerlo.
 
@@ -97,6 +97,8 @@ Mientras tanto el botón queda declaradamente simulado. Un botón que siempre de
 
 ## 3 · DB no tiene nada pendiente de nuestra parte
 
+> **Corregido el 18/08: sí tiene una cosa, y es del instructivo.** Este título valía para el módulo legal y sigue valiendo para él. Pero al repasar el checklist entero apareció que **el punto #24 (precios en pesos, finales) no se cumple**, y ese punto arranca en el esquema: `planes.precio` no tiene moneda. Está en **§7**.
+
 El esquema de `20260814170000_tyc_legal.sql` cubre todo lo que FE consume, incluidos los campos que necesitan los dos endpoints de arriba (`valid_from`, `is_substantial`, `resumen_cambios` ya existen). Los dos pedidos son puramente de exposición: **no hace falta migración nueva**.
 
 Lo único que sigue bloqueado del lado del esquema es el **seed de `legal_documents` v1.0**, y no depende de DB sino de **Administración**: los textos tienen 42 campos `[COMPLETAR]` (razón social, CUIT, domicilio, casillas de contacto, N° de registro AAIP, plazos de conservación). FE los muestra a propósito para que el bloqueo se vea.
@@ -116,7 +118,7 @@ Queda anotado, de las decisiones de DB del 14/08, que la regla anti-contratació
 
 | # | Punto | Estado |
 |---|---|---|
-| 1, 2, 3, 4, 5 | Página legal propia, links en footer y contratación, móvil, fecha visible | Cerrado |
+| 1, 2, 3, 4, 5 | Página legal propia, links en footer y contratación, móvil, fecha visible | Cerrado — con la salvedad de abajo sobre el móvil |
 | 6, 7, 8 | Checkbox no pre-tildado, casillas separadas, botón deshabilitado | Cerrado |
 | 12 | Captura server-side de IP/UA | Cerrado (reasignado a BE, ver contrato §3.2) |
 | 16 | Re-aceptación bloqueante | Cerrado |
@@ -125,7 +127,87 @@ Queda anotado, de las decisiones de DB del 14/08, que la regla anti-contratació
 | 19 | Botón de baja online | Cerrado (17/08, contra `GET /suscripciones/vigente` + `POST /suscripciones/:id/baja`) |
 | 21, 22 | Datos societarios y Ventanilla Única | UI lista; contenido pendiente de Administración |
 | 23 | Formulario de contacto | Cerrado |
-| 24 | Precios en pesos, finales, desglosados | Cerrado |
+| 24 | Precios en pesos, finales, desglosados | **Abierto** — corregido el 18/08: estaba mal dado por cerrado. Los precios se muestran en **dólares** (`currency: 'USD'` hardcodeado en `utils/format-plan-limit.ts`) con IVA argentino del 21% encima, el esquema no tiene columna de moneda, y el catálogo lista el neto y no el final. Pedido en **§7** de este doc; detalle en `tyc-contrato-frontend.md` §10.4 |
+
+**Salvedad sobre el móvil.** El layout responsive está y las pantallas legales se leen sin zoom, pero el tilde del checklist §07 es *"flujo completo probado desde el celular"* y eso **no está hecho**: toda la verificación de este módulo se corrió en navegador de escritorio. Es nuestro y solo necesita a alguien con un teléfono; queda anotado acá para no volver a darlo por cerrado como pasó con el #24.
+
+---
+
+## 6 · Segunda ronda (18/08) — tres cosas de la entrega del 17/08
+
+**Autor:** Frontend · **Rama:** `feat/frontend-tyc-cierre`
+
+Los dos endpoints llegaron con los shapes de §1 y §2 sin desvíos, y eso está cerrado. Lo que sigue salió de revisar la entrega desde la pantalla: dos son desvíos entre la ficha y el código, y el tercero es una corrección de texto.
+
+Ninguno bloquea. Los tres afectan a lo que la aplicación le dice al usuario sobre una obligación legal, así que preferimos preguntarlos antes que decidirlos por nuestra cuenta.
+
+### 6.1 · `fecha_fin` significa dos cosas distintas en la misma ficha
+
+`docs/fichas-legal-backend.md` la documenta dos veces, y no coinciden:
+
+- **§7** (`POST /suscripciones/:id/baja`) la muestra como el resultado de la baja, y `SuscripcionesService.cancelSuscripcion` escribe `new Date().toISOString()`: es **el instante de la cancelación**.
+- **§10** (`GET /suscripciones/vigente`) dice que la suscripción cancelada se sigue devolviendo con su `fecha_fin` *"para que FE pueda decir hasta cuándo sigue vigente lo ya pagado"*.
+
+Implementamos §10. El resultado es que quien da de baja lee, en el acto, **"tu plan sigue vigente hasta el \<hoy\>"**. Buscamos el dato del fin del período pagado y no está en ninguna tabla: `suscripciones` tiene `fecha_inicio` y `fecha_fin`, y nada que represente el período cubierto por el último cobro.
+
+**Lo que hicimos mientras tanto:** la pantalla dice solo lo que la columna guarda — *"Diste de baja este plan el {{date}}. No se vuelve a cobrar."* — sin ninguna promesa de vigencia. Es correcto pero es menos de lo que el usuario necesita saber.
+
+**Lo que necesitamos que decidan.** Dos caminos, los dos nos sirven:
+
+1. **Exponer el dato real.** Un campo más en la respuesta de §10 (`vigente_hasta`, o el nombre que prefieran) con el fin del período ya pagado. Requiere que exista: hoy no lo hay, y probablemente dependa de cómo se modele el cobro cuando el checkout sea real. Si el plan es que el acceso corte en el momento de la baja, decirlo así también es una respuesta.
+2. **Corregir §10 de la ficha**, dejando `fecha_fin` documentada como "cuándo se registró la baja" en los dos lugares. No cambia código de BE y nuestra copy ya está alineada con eso.
+
+Si es (1), avisen el shape antes de implementar y lo consumimos igual que el resto.
+
+### 6.2 · `GET /suscripciones/vigente` no declara qué `estado` puede devolver
+
+La ficha §10 dice que prefiere `activa` y después la más reciente, y el ejemplo muestra `"estado": "activa"`. Pero `findVigenteByOwner` **ordena** por estado, no filtra, así que los cuatro valores de `estado_suscripcion` pueden llegar. Los dos que no estaban contemplados de nuestro lado:
+
+- **`vencida`** con `fecha_fin` en el pasado — se renderizaba como una baja voluntaria.
+- **`pendiente_pago`**, que es el **default de la columna** (`estado estado_suscripcion NOT NULL DEFAULT 'pendiente_pago'`), o sea lo que va a dejar `POST /suscripciones` el día que el checkout sea real. Caía en "no tenés plan" e invitaba a contratar el mismo plan otra vez.
+
+Ya los manejamos los cuatro (`utils/subscription-notice.ts`, con chequeo exhaustivo que rompe `tsc` si el enum crece). **Lo que pedimos es que la ficha lo declare**: qué valores puede devolver el endpoint es parte del contrato, y lo dedujimos leyendo su repositorio.
+
+Y una pregunta de diseño que es de ustedes: ¿tiene sentido que `pendiente_pago` salga por una ruta que se llama `/vigente`? Si el criterio fuera "solo `activa` y `cancelada`", nuestra pantalla se simplifica y el filtro queda del lado que conoce la regla.
+
+### 6.3 · §1 de la ficha quedó con la definición vieja de "vigente"
+
+[Línea 25](fichas-legal-backend.md): *"Devuelve la fila de `legal_documents` con ese `tipo` y `valid_to IS NULL`"*, y dieciséis líneas más abajo el mismo §1 la corrige con la ventana de vigencia (`valid_from <= now AND (valid_to IS NULL OR valid_to > now)`).
+
+**La implementación es la correcta**, esto es solo el texto. Pero es exactamente la definición que rompió `has_accepted_current`, y que `agents/back/AGENTS.md` ahora prohíbe explícitamente (*"Any new 'current legal version' query must use the vigencia window, never `valid_to IS NULL` alone"*). §1 está marcada como congelada y es la que leemos nosotros para escribir el mock: conviene que no tenga la versión que causó el incidente.
+
+### 6.4 · Una nota, no un pedido
+
+`agents/back/AGENTS.md` declara `mediacion-app/` read-only para BE en dos lugares (§Stack y §Repository boundaries), y `docs/reparto-tyc-devs.md` asigna los puntos #16 y #19 a FE. El commit `3e452c9` editó 20 archivos de `mediacion-app/`.
+
+El código estaba bien hecho y bien comentado, y lo mantuvimos casi entero. Lo que se salteó fue la revisión de FE sobre copy y estados de pantalla, que es de donde salieron §6.1 y §6.2 —y dos cosas más que arreglamos sin pedirles nada, en `docs/tyc-contrato-frontend.md` §10.2. Para la próxima nos alcanza con la ficha: el consumo lo escribimos nosotros y sale más rápido que la ida y vuelta de corregirlo después.
+
+---
+
+## 7 · Punto #24 — no es de Backend: **DB + Producto**
+
+**Autor:** Frontend, 18/08 · **Para:** Producto (la decisión) y DB (la fuente) · **No bloquea a BE**
+
+El punto #24 del instructivo —*"precios en pesos, finales, con impuestos incluidos"*— **no se cumple**, y lo teníamos mal anotado como cerrado en §5 de este mismo documento desde el 16/08. No lo rompió nadie en el ciclo del 17/08; es anterior y se nos pasó a nosotros al dar el checklist por completo.
+
+**Los cuatro hechos, verificados:**
+
+1. **Todo precio de la app se muestra en dólares.** `mediacion-app/utils/format-plan-limit.ts` hace `new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' })`, con la moneda hardcodeada. Alcanza a las tarjetas de plan, al desglose del checkout y al ABM de planes de admin. En pantalla: "US$ 9,99", "US$ 19,99", "US$ 25,00" (comprobado en el navegador).
+2. **Sobre ese precio en dólares se calcula IVA argentino del 21%.** El seed de `configuracion.impuestos` es `{"AR":{"iva":21,"otros_impuestos":0}}` (`20260810120000_cambios_reunion_07_08.sql`). El checkout muestra neto US$ 9,99 → IVA US$ 2,10 → total US$ 12,09. Un precio en dólares con IVA argentino encima: una de las dos cosas está mal y las dos son visibles para el usuario.
+3. **No hay moneda en ninguna parte del esquema.** `planes.precio` es `numeric(10,2)` con la nota *"Precio neto, sin impuestos (R-09)"*, y no hay columna de moneda ni en `mediacion.dbml` ni en la migración. El seed real es `25.00` para estudio. O sea que el `'USD'` del front **no está reflejando un dato: lo está inventando**.
+4. **El precio listado no es el final.** Las tarjetas del catálogo muestran el neto; el total con impuestos aparece recién en el checkout. El instructivo pide que el precio que se muestra sea el final.
+
+**Por qué no lo arreglamos nosotros y ya.** Cambiar `'USD'` por `'ARS'` es una línea, pero los valores sembrados (9,99 / 19,99 / 25,00) son puntos de precio de dólar: releerlos como pesos sería peor que el bug actual. El reparto asigna el #24 a **DB (fuente) → BE (cálculo) → FE (muestra)**, y lo que falta primero es la fuente.
+
+**Las tres preguntas que necesitamos respondidas:**
+
+1. **¿En qué moneda están esos números?** Si es ARS, hay que resembrar los valores. Si es USD, el #24 no se puede cumplir vendiendo así a consumidores en Argentina y eso vuelve a legales, no a desarrollo. Si es "USD como referencia, se cobra en pesos", hace falta una columna de moneda y una conversión, y eso es esquema.
+2. **¿El catálogo lista el precio final o el neto?** El instructivo pide el final. Hoy lista el neto y el desglose vive un paso después.
+3. **¿El IVA del 21% aplica a los cuatro planes?** Está seedeado por país con una sola entrada `AR` y no hay selección de país en ningún lado de la app.
+
+**Lo que hacemos nosotros el día que se decida**, y es chico: sacar el `'USD'` hardcodeado de `format-plan-limit.ts` (un solo lugar, lo consumen las tres pantallas) y mostrar el total con impuestos en la tarjeta, no solo en el checkout.
+
+Registro completo, con el detalle de dónde se ve cada cosa, en `docs/tyc-contrato-frontend.md` §10.4.
 
 ---
 

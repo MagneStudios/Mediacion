@@ -182,7 +182,11 @@ Revisado el entregable de DB (`20260814170000_tyc_legal.sql` + decisiones del 14
 - El payload de aceptación **omite** la clave `marketing` cuando no vino (re-aceptación), en vez de mandarla como `undefined`: la validación del API lee el conjunto de claves.
 - `getCompanyInfo` no tiene endpoint en ningún lado y se resuelve local con el registro en nulls. La UI dice "Dato pendiente de publicación" hasta que Administración entregue.
 
-### 7.1 · Pendiente de BE: falta un endpoint de lectura de suscripciones
+### 7.1 · ~~Pendiente de BE~~: falta un endpoint de lectura de suscripciones — **resuelto el 17/08**
+
+> **Entregado.** `GET /suscripciones/vigente` existe (ficha §10) y está consumido: `services/api/billing.{api,backed}-service.ts`. El botón de baja ya no es una demo. Lo que sigue abierto de esa entrega —qué significa `fecha_fin` y qué `estado` puede llegar— está en §10.2 de este doc y pedido en `docs/pedidos-frontend-a-backend.md` §6.
+>
+> Lo que sigue abajo queda como el registro de por qué apareció el pedido.
 
 > Especificado para implementar en **`docs/pedidos-frontend-a-backend.md`** §2.
 
@@ -221,7 +225,9 @@ Mientras tanto el botón de baja queda contra el mock: el flujo de UI está cons
 
 ---
 
-## 9 · Pendiente de BE: exponer la versión programada (punto #16)
+## 9 · ~~Pendiente de BE~~: exponer la versión programada (punto #16) — **resuelto el 17/08**
+
+> **Entregado.** `GET /legal/documentos/:tipo/programada` existe (ficha §9), devuelve el mismo `LegalDocumentView` que pedimos y responde `404 legal_document_not_found` cuando no hay nada programado — la opción que habíamos marcado como también válida. Consumido desde `VersionNoticeBanner`. El punto #16 queda cerrado de los dos lados; lo que ajustamos después está en §10.2.
 
 > Los dos pedidos abiertos a Backend —este y el de §7.1— están especificados, con shapes listos para implementar, en **`docs/pedidos-frontend-a-backend.md`**. Esta sección queda como el registro de por qué apareció.
 
@@ -249,6 +255,111 @@ Con eso el banner es trabajo chico de FE: leer la versión programada, mostrar d
 
 - **`OPERACIONES_EMAIL` vacío hace que el aviso se loguee en vez de enviarse** (`agents/back/AGENTS.md` §Config). Los formularios de arrepentimiento y contacto registran la fila igual, pero nadie se entera. El instructivo §5 pide "alguien que efectivamente responda el canal de contacto": conviene que esa variable esté en el checklist de despliegue.
 - **La baja en la pasarela hoy es un no-op**: `HttpMercadoPagoClient.cancelSubscription` busca el preapproval por `external_reference` y no hace nada si no existe, porque las suscripciones se cobran como preferencias one-off. El checklist del anexo pide la baja "verificada en el panel de la pasarela" — ese tilde todavía no se puede poner.
+
+---
+
+## 10 · Estado (17/08/2026) — BE entregó los dos endpoints; qué revisamos y qué queda
+
+**Rama:** `feat/frontend-tyc-cierre`, desde `dev@111b8e7`.
+
+Backend cerró los dos pedidos de `docs/pedidos-frontend-a-backend.md` en `3e452c9`, **y en el mismo commit escribió la capa de FE que los consume**: `VersionNoticeBanner`, el cableado de `billing.{api,backed}-service.ts`, `SafeAreaProvider` en `app/_layout.tsx`, el branch de estado en `app/profile/plan/index.tsx` y `utils/format-legal-date.ts`. Los shapes coinciden con lo que pedimos, sin desvíos, y la capa de servicios quedó bien cubierta por tests.
+
+Esta sección es la revisión de FE sobre esa entrega y el plan de lo que queda.
+
+### 10.1 · Verificación de la entrega tal como llegó
+
+Corrido sobre `dev@111b8e7`, antes de tocar nada:
+
+| Chequeo | Resultado |
+|---|---|
+| `pnpm test` (jest) | 915/915, 103 suites |
+| `npx tsc --noEmit` | 4 errores, **todos preexistentes**, ninguno en archivos del commit |
+| `npx expo lint` | limpio |
+| `npx expo export --platform web` | corre; el HTML prerenderizado sale con contenido |
+
+Dos notas sobre esos números, para que el próximo que los compare no se asuste:
+
+- **`tsc` da 14 errores en un checkout limpio y 4 después de levantar el dev server una vez.** Los 10 de diferencia son errores de tipado de rutas (`/contacto`, `/arrepentimiento`, `/terminos-y-condiciones`, `/politica-de-privacidad`) que produce un `.expo/types/router.d.ts` viejo: es un caché gitignoreado, no código. Si el número no coincide con el del changelog de turno, esto es lo primero que hay que descartar — está anotado en `agents/front/AGENTS.md` §Validation y se resuelve con `rm -rf mediacion-app/.expo/types` más un export.
+- `npx biome ci .` en la raíz tira 372 errores sobre 373 archivos, todos de fin de línea CRLF. Es ruido de checkout en Windows, no del commit. La validación de FE es `expo lint`, no biome (ver `agents/front/AGENTS.md` §Validation).
+
+### 10.2 · Lo que corregimos en esta rama
+
+**a · La copy de Mi plan prometía algo que la base no puede sostener.**
+`SuscripcionesService.cancelSuscripcion` escribe `new Date().toISOString()` en `fecha_fin`: es **el instante de la cancelación**, no el fin del período pagado, y ninguna tabla guarda ese otro dato. Encima de esa columna, la pantalla decía *"Tu plan sigue vigente hasta el {{date}}. Después de esa fecha no se renueva."* — o sea que quien daba de baja leía, en el acto, "tu plan sigue vigente hasta hoy".
+
+El origen no es una copy mal elegida: **`docs/fichas-legal-backend.md` se contradice a sí misma**. §7 documenta la baja con `fecha_fin` = instante de cancelación, y §10 dice que esa misma columna existe *"para que FE pueda decir hasta cuándo sigue vigente lo ya pagado"*. Implementamos §10 al pie de la letra.
+
+Hasta que BE resuelva (pedido en `pedidos-frontend-a-backend.md` §6.1), la pantalla dice **solo lo que la columna guarda**: `billing.myPlan.notice.cancelled` → *"Diste de baja este plan el {{date}}. No se vuelve a cobrar."* Sin promesa de vigencia.
+
+**b · La lectura no filtra `estado`, y el branch asumía `cancelada`.**
+`findVigenteByOwner` *ordena* por estado, no filtra, así que los cuatro valores de `estado_suscripcion` llegan a la pantalla. `vencida` con `fecha_fin` pasada se renderizaba como una baja; `pendiente_pago` —que es el **default de la columna**, o sea lo que va a producir un checkout real— caía en "no tenés plan" e invitaba a contratar de nuevo. Ahora cada estado tiene su propio mensaje (`utils/subscription-notice.ts`, con `never` exhaustivo: un quinto valor del enum rompe `tsc` en vez de dejar la pantalla muda).
+
+**c · El banner anunciaba un solo documento.**
+Tomaba `[nearest]` del sort. Con Términos y Privacidad programados **para el mismo día** —la forma normal de una revisión legal— el sort estable dejaba `terms` primero y el cambio de privacidad **no se anunciaba nunca antes de entrar en vigencia**: aparecía recién cuando ya regía, que es exactamente lo que el preaviso de 10 días existe para evitar. Ahora se anuncian todos los programados, más cercano primero, y **el descarte pasa a ser por documento**.
+
+**d · `SafeAreaProvider` sin `initialMetrics`.**
+`SafeAreaProvider` renderiza sus hijos solo cuando `insets != null`, y sin métricas sembradas eso arranca en null hasta el primer evento: en nativo el árbol entero, `AuthGate` incluido, no dibuja nada durante el primer frame de cada arranque en frío. Se pasa `initialWindowMetrics` (que en web es `null` por diseño — ahí no cambia nada, verificado contra el HTML exportado).
+
+**e · Tests del branch que se había agregado sin ellos.**
+`app/profile/plan/__tests__/index.test.tsx` tenía 6 casos y ninguno con `estado !== 'activa'` — justo lo que el commit de BE agregó, y donde vivían (a) y (b).
+
+**f · La fecha de la baja se mostraba un día adelantada. Esta la encontró el navegador, no los tests.**
+`formatLegalDate` formatea **en UTC a propósito**: `valid_from` declara un día de calendario, y en hora local un timestamp de medianoche UTC muestra el día anterior al oeste de Greenwich. `fechaFin` no es eso: es **un instante**, y el día que le corresponde al usuario es el de su propio calendario. Reusar el formateador de documentos legales para el instante invierte el mismo error.
+
+Probado en el navegador: dando de baja a las **22:55 del 17 de agosto** en Buenos Aires, la pantalla decía *"Diste de baja este plan el 18 de agosto de 2026"*. Un día después del hecho, sobre la fecha de un acto con efectos legales (Ley 24.240 art. 10 ter).
+
+Ahora hay dos formateadores en `utils/format-legal-date.ts`, con la distinción documentada ahí: `formatLegalDate` (UTC, para el día declarado de un documento) y `formatEventDate` (local, para el momento en que algo pasó). **Ningún test unitario podía ver esto**: comparaban contra el mismo formateador que estaban probando. El que quedó escrito elige el instante de forma que el día local difiera del UTC de cualquier lado de Greenwich, y se verificó por mutación —forzar UTC en `formatEventDate` lo pone en rojo— porque en una máquina en UTC la distinción no existe y el test pasaría sin probar nada.
+
+### 10.3 · Verificación de esta rama
+
+`pnpm test` 932/932 en 104 suites · `npx tsc --noEmit` los mismos 4 preexistentes, cero nuevos · `npx expo lint` limpio.
+
+Y —a diferencia de todas las fases anteriores, donde la "verificación manual" fue estática— **esto se corrió en un navegador de verdad** (`pnpm web`, 1280×720):
+
+- **Baja punta a punta:** suscribirse → comprobante → volver a Mi plan → dar de baja → confirmar. La pantalla queda con *"Diste de baja este plan el 17 de agosto de 2026. No se vuelve a cobrar."*, sin el badge "Plan actual" y sin el botón de baja. De acá salió el punto (f).
+- **El banner, que nunca nadie había visto renderizado.** Con dos versiones programadas **para la misma fecha** inyectadas temporalmente en `mocks/legal.ts` (revertido después, no está en el diff): se dibujan los dos avisos con su fecha y su resumen; descartar uno deja el otro; expandir uno muestra solo su texto; la app sigue visible debajo y no aparece scroll horizontal. Ese es exactamente el caso que antes descartaba uno de los dos en silencio.
+
+Lo que **no** se verificó en runtime: el punto (d) — el frame en blanco del arranque en frío es de nativo, y acá no hay device ni simulador. El razonamiento está en el código (`SafeAreaProvider` no dibuja hijos con `insets` en null) y en web el cambio es un no-op comprobado, pero el tilde "flujo completo probado desde el celular" del checklist sigue necesitando un celular.
+
+### 10.4 · El punto #24 no está cerrado, y lo teníamos anotado como cerrado
+
+Repasando el checklist entero —no solo lo que tocó esta entrega— apareció que **el punto #24 del instructivo no se cumple**, y que `docs/pedidos-frontend-a-backend.md` §5 lo daba por "Cerrado" desde el 16/08. Esto no lo introdujo el commit de BE; es anterior y se nos pasó a nosotros.
+
+El instructivo pide *"precios en pesos, finales, con impuestos incluidos"*. Hoy:
+
+- **Todo precio de la app se renderiza en dólares.** `utils/format-plan-limit.ts` hace `new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' })`, hardcodeado. Se ve en las tarjetas de plan, en el desglose del checkout y en el ABM de admin: "US$ 9,99", "US$ 25,00". Verificado en el navegador.
+- **Sobre ese precio en dólares se calcula IVA argentino del 21%.** `mocks/tax-config.ts` refleja el seed real `{"AR":{"iva":21,"otros_impuestos":0}}`. En el checkout: neto US$ 9,99, IVA US$ 2,10, total US$ 12,09. Un precio en dólares con IVA argentino encima es una de las dos cosas mal, y las dos son visibles para el usuario.
+- **No hay moneda en ninguna parte del esquema.** `planes.precio` es `numeric(10,2)` con la nota "Precio neto, sin impuestos (R-09)" y ninguna columna de moneda, ni en `mediacion.dbml` ni en la migración. El seed real es `25.00` para estudio. Así que el `'USD'` del front no está reflejando un dato: lo está inventando.
+- **El precio listado no es final.** Las tarjetas del catálogo muestran el neto; el total con impuestos aparece recién en el checkout. El instructivo pide que el precio que se muestra sea el final.
+
+**Esto no lo arreglamos por nuestra cuenta y no es solo nuestro.** Cambiar `'USD'` por `'ARS'` es una línea, pero los valores sembrados (9,99 / 19,99 / 25,00) son puntos de precio de dólar: releerlos como pesos sería peor que el bug. El reparto asigna el #24 a **DB (fuente) → BE (cálculo) → FE (muestra)**, y lo que falta primero es la fuente: en qué moneda están esos números y si el catálogo debe listar el precio final. Eso es Producto + DB.
+
+Lo que sí es nuestro sin ambigüedad, el día que se decida: sacar el `'USD'` hardcodeado y mostrar el total con impuestos en la tarjeta, no solo en el checkout.
+
+### 10.5 · Lo que queda abierto, y de quién es
+
+| Qué | De quién | Dónde está |
+|---|---|---|
+| **Punto #24: moneda de los precios y precio final en el catálogo** | **Producto + DB** → luego FE | §10.4 |
+| Punto #4: flujo completo probado desde un celular real | **FE**, necesita device | §10.3 |
+| Qué significa `fecha_fin` — exponer el fin del período pagado o corregir la ficha §10 | **BE + Producto** | `pedidos-frontend-a-backend.md` §6.1 |
+| Declarar el dominio de `estado` en la ficha §10, y decidir si el endpoint filtra | **BE** | `pedidos-frontend-a-backend.md` §6.2 |
+| §1 de la ficha quedó con la definición vieja de "vigente" (`valid_to IS NULL`) | **BE**, corrección de texto | `pedidos-frontend-a-backend.md` §6.3 |
+| Seed de `legal_documents` v1.0 — 42 campos `[COMPLETAR]` | **Administración** | sin cambios |
+| Criterio escrito de "cambio sustancial" | **Producto + legales** | sin cambios |
+| Baja verificada en el panel de la pasarela (migrar a `preapproval`) | **Producto + BE** | sin cambios |
+
+Y tres decisiones de FE que dejamos anotadas sin tomar, porque ninguna es un defecto:
+
+- **El banner no tiene ventana.** `LEGAL_AVISO_DIAS_ANTICIPACION` (default 10) acota el **email**, no la lectura de `/programada`, que devuelve cualquier `valid_from > now`. Una versión programada con 60 días de anticipación produce 60 días de aviso in-product, y como el descarte es por sesión, vuelve en cada arranque. Más aviso no es ilegal; es una decisión de UI que hoy nadie tomó.
+- **El checkout sigue en mock mientras "Mi plan" lee la API.** Con backend configurado, alguien contrata en el checkout demo, ve el recibo, y al volver a Mi plan lee "no tenés plan". Antes el mock mentía de forma consistente; ahora miente de forma inconsistente. Vale decidir si el checkout dice en voz alta que es demo o si se saca. No hay endpoint de factura y `POST /suscripciones/:id/pago` devuelve un `init_point`, no un pago confirmado.
+- **`billing.myPlan.cancel.dialogBody`** dice *"Vas a poder usar la aplicación hasta el final del período que ya pagaste"* — la misma promesa que sacamos de la pantalla, en el diálogo de confirmación. Es texto preexistente y probablemente la intención real del negocio; se alinea cuando BE decida el punto (a), no antes y no por nuestra cuenta.
+
+Y un defecto chico, preexistente, que apareció mirando el checkout en el navegador y que **no** tocamos por estar fuera del alcance de esta rama: el header de `app/profile/plan/checkout.tsx` muestra literalmente **"Suscribirte al plan {{nombre}}"**. `<Stack.Screen options={{ title: t('billing.checkout.title') }} />` pasa la clave sin el interpolado, mientras el `<Text>` del cuerpo sí lo pasa. Es una línea; va en la próxima que toque esa pantalla, o antes si Producto decide qué pasa con el checkout demo.
+
+### 10.6 · Una nota de proceso
+
+BE editó 20 archivos de `mediacion-app/`. Su propio `agents/back/AGENTS.md` lo prohíbe en dos lugares (§Stack: *"`mediacion-app` (Expo frontend — read-only for backend agents)"*; §Repository boundaries: *"`mediacion-app/`, `agents/front/`, root config are read-only — inspect freely, never edit"*), y el reparto asigna #16 y #19 a FE. El código está bien hecho y bien comentado; lo que se salteó fue la revisión de FE sobre copy y estados de pantalla, que es de donde salieron (a), (b), (c) y (e). No es una queja retroactiva: es el argumento de por qué la regla existe.
 
 ---
 
