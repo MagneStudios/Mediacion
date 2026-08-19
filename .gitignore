@@ -9,7 +9,7 @@
 # config, never committed. Use opencode.example.json as the template.
 /opencode.json
 
-# === Dependencias ===
+# === Dependencias ==
 node_modules/
 .pnp
 .pnp.js
