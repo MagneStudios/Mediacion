@@ -10,7 +10,8 @@
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",
     "lint": "biome ci .",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "vercel-build": "pnpm --filter @mediacion/shared build && pnpm --dir mediacion-app exec expo export --platform web --output-dir ../public"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",
