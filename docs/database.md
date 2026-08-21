@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-08-18
+> Última actualización: 2026-08-21
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 30 tablas |
+| RLS | Habilitado en las 33 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
@@ -58,10 +58,12 @@ supabase/migrations/
 ├── 20260815120000_legal_avisos_contacto.sql  # avisos_version_legal (idempotencia del preaviso) y solicitudes_contacto (canal de contacto), ambas de rol de servidor
 ├── 20260817120000_suscripcion_aceptacion_estudio.sql  # Anti-contratación para suscripciones de estudio: rama estudio_id en validate_suscripcion_aceptacion, trigger UPDATE titularidad
 ├── 20260817130000_rate_limit_counters.sql  # Contador de rate limit compartido para módulo legal (PK compuesta, ventana fija, server-only)
-└── 20260817140000_has_accepted_current_vigencia.sql  # Fix: has_accepted_current usa vigencia real (valid_from/valid_to) en vez de valid_to IS NULL
+├── 20260817140000_has_accepted_current_vigencia.sql  # Fix: has_accepted_current usa vigencia real (valid_from/valid_to) en vez de valid_to IS NULL
+├── 20260821000000_revert_has_accepted_current_grant.sql  # O1: REVOKE EXECUTE has_accepted_current de authenticated (helper de servidor, decisión revertida)
+└── 20260821120000_monetizacion_fase1.sql  # O2: Monetización Pactum Fase 1 — enum pausada + estado_solicitud_abogado, planes.max_*, suscripciones billing/MP, usage_counters, lawyer_requests, payment_events, consume_quota, seeds particular/corporativo
 ```
 
-## Modelo de datos (30 tablas)
+## Modelo de datos (33 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -89,10 +91,13 @@ supabase/migrations/
 - `incumplimientos` — avisos de incumplimiento
 
 ### Monetización
-- `planes` — catálogo público (base, simple, plus, estudio; `limite_casos` NULL = ilimitado)
-- `suscripciones` — FK XOR (usuario_id ↔ estudio_id)
+- `planes` — catálogo público (base, simple, plus, estudio, particular, corporativo; `limite_casos` NULL = ilimitado). Pactum Fase 1: `max_negotiations_per_period` (particular=3, estudio=3/cliente, corporativo=NULL) y `max_clients_per_period` (estudio=20, corporativo=NULL), NULL = ilimitado
+- `suscripciones` — FK XOR (usuario_id ↔ estudio_id). Pactum Fase 1: `current_period_start/end` (período anclado al alta), `cancel_at_period_end`, `mp_preapproval_id` (UNIQUE), `mp_payer_email`; estado `pausada` agregado al enum
 - `pagos` — confirmados por webhook de Mercado Pago
 - `facturas` — facturación por pago (neto, IVA, impuestos, CAE, URL PDF)
+- `usage_counters` — fuente de verdad de las cuotas: PK compuesta `(usuario_id, period_start)`, contador por usuario real (cliente de estudio incluido), período del pagador; escritura solo service_role/postgres, SELECT owner vía RLS
+- `lawyer_requests` — escalamiento a abogado (pago único): FK `caso_id → casos` (CASCADE), `solicitante_id → auth.users`, precio congelado en `monto_minor` (integer minor units) + `moneda` (ARS/USD), `external_reference` UNIQUE (`lawreq_<uuid>`), status enum `estado_solicitud_abogado`; SELECT participantes del caso vía RLS, escritura service_role/postgres
+- `payment_events` — idempotencia de webhooks MP: UNIQUE `(provider, event_type, resource_id)`; patrón server-only (sin policies, GRANTs solo service_role/postgres)
 
 ### Sistema
 - `notificaciones` — email/push
@@ -109,11 +114,15 @@ supabase/migrations/
 - `avisos_version_legal` — traza e idempotencia del aviso de cambio de versión (#15); UNIQUE (usuario_id, tipo, version) + `enviado_at` para separar "reclamado" de "entregado"; sin policies
 - `solicitudes_contacto` — canal de contacto público (#23); `codigo` CON-0001… por trigger; `received_at` es la fecha de ingreso que sostiene el plazo de respuesta declarado; sin policies
 
-### Enums (20)
+### Enums (21)
 
 `estado_caso` tiene 8 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08).
 
 `estado_arrepentimiento` tiene 4 valores: `recibida, en_proceso, resuelta, rechazada`. Usado tanto por `solicitudes_arrepentimiento` como por `solicitudes_contacto` (reutilizado por diseño).
+
+`estado_suscripcion` tiene 5 valores: `activa, cancelada, vencida, pendiente_pago, pausada`. `vencida` = past_due del spec Pactum; `pausada` = paused (agregado en monetización Fase 1).
+
+`estado_solicitud_abogado` tiene 7 valores: `pendiente_pago, pagada, notificada, asignada, cerrada, reembolsada, fallida` (spec Pactum §4, lawyer_request_status).
 
 ### Patrón: tabla de rol de servidor (A-4/Q-4/R-2)
 
@@ -126,6 +135,23 @@ supabase/migrations/
 | `solicitudes_contacto` | Sí | `CON-0001…` |
 | `rate_limit_counters` | Sí | — |
 | `user_agreements` | **No** | Tiene SELECT propio para `authenticated` (contrato FE) |
+
+### Enforcement de cuotas: consume_quota (Pactum Fase 1)
+
+`consume_quota(p_usuario_id UUID, p_kind TEXT)` — SECURITY DEFINER, `search_path=''`, EXECUTE solo `service_role`/`postgres` (nunca desde el cliente).
+
+- `p_kind` ∈ {`negotiation`, `clients`}; otro valor → errcode `22023`
+- Resuelve la suscripción **efectiva** (spec §5.1.1): la propia del usuario, o la del estudio que lo gestiona (`usuarios.estudio_id`); prefiere la propia. `FOR UPDATE` serializa consumo concurrente por suscripción
+- Sin suscripción `activa`/`vencida` → `NO_ACTIVE_SUBSCRIPTION` (P0001); sin período de facturación → `NO_BILLING_PERIOD` (P0001)
+- Contador por **usuario real** (`usage_counters.usuario_id`), período del pagador; `ON CONFLICT DO NOTHING` crea la fila por período (histórico completo, nada se borra)
+- Incremento atómico (`UPDATE ... RETURNING` toma el lock de la fila) — dos requests simultáneas no pueden pasarse el límite (verificado: 2/3 concurrentes → 3/3, no 4/3)
+- Límite del plan: `negotiation` → `max_negotiations_per_period`, `clients` → `max_clients_per_period`; `NULL` = ilimitado
+- Exceso → `QUOTA_EXCEEDED` (P0002) — la excepción hace rollback del incremento, el contador nunca queda inflado
+- BE traduce P0001/P0002 → HTTP 402 con body `{ error: 'quota_exceeded', limit, used, period_end, upgrade_url }` (spec §8)
+
+**Defaults reversibles** (decisión #3/#4 del spec, ver `docs/decisiones-db/2026-08-21-monetizacion-fase1.md`):
+- #3: cliente de estudio hereda la cuota del plan del estudio (plan estudio = 3 negociaciones/mes por cliente)
+- #4: flujo mensual — el contador se resetea creando una fila nueva por período, sin tope de cartera
 
 ### Retención de datos (FKs legales)
 
@@ -153,7 +179,7 @@ Ninguna FK legal usa `ON DELETE CASCADE`:
 | Aviso de versión sin duplicados | UNIQUE (usuario_id, tipo, version) en `avisos_version_legal`; el barrido inserta con ON CONFLICT DO NOTHING, no con un existence check en transacción |
 | No contratar sin aceptación | Trigger `validate_suscripcion_aceptacion` en `suscripciones`: usuario_id exige aceptación vigente de terms (`has_accepted_current`) |
 | Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
-| `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno |
+| `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno. El GRANT a authenticated de `20260817140000` fue revertido en `20260821000000` (helper de servidor) |
 
 ## Comandos útiles
 
@@ -182,10 +208,10 @@ docker exec -it supabase_db_Mediacion psql -U postgres -d postgres
 ### Scripts Python
 
 ```bash
-# Verificar schema (72 checks: tablas, funciones, enums, RLS, triggers, seeds)
+# Verificar schema (80 checks: tablas, funciones, enums, RLS, triggers, seeds)
 python scripts/smoke_migrations.py
 
-# Validar RLS multi-rol (24 checks: items, casos, suscripciones, helper functions, módulo legal)
+# Validar RLS multi-rol (45 checks: items, casos, suscripciones, helper functions, módulo legal, monetización, carrera concurrente)
 python scripts/validate_rls.py
 
 # Generar datos de prueba con Faker
@@ -221,18 +247,21 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_14_bug41_regression.sql` | Regression bug #4.1: transición activo→en_negociacion + idempotencia |
 | `test_15_e2e_flow_full.sql` | E2E full: 17 pasos (A-Q) cubriendo toda la máquina de estados + auditoría |
 | `test_16_tyc_legal.sql` | Módulo legal: has_accepted_current, append-only (UPDATE/DELETE), trigger anti-contratación, codigo ARR, única vigente |
+| `test_17_cuotas.sql` | Monetización: consume_quota 3x + 4ta QUOTA_EXCEEDED (P0002), contador no se infla, NULL = ilimitado, herencia default (cliente de estudio), histórico por período |
 
 ### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 72/72 PASS
-- 27 tablas, 13 funciones (incluye has_accepted_current), 20 enums, 27 RLS, 4 planes, 7 configs, 2 legal docs, 19 updated_at triggers, 11 audit triggers
+**Schema validation (smoke_migrations.py):** 80/80 PASS
+- 33 tablas, 14 funciones (incluye consume_quota), 21 enums, 33 RLS, 6 planes, 7 configs, 2 legal docs, 21 updated_at triggers, 12 audit triggers
 
-**RLS validation (validate_rls.py):** 24/24 PASS
+**RLS validation (validate_rls.py):** 45/45 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
-- Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos
+- Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos; has_accepted_current denegado a anon Y authenticated
 - Módulo legal: anon lee legal_documents vigente; cada usuario ve solo sus user_agreements; INSERT/has_accepted_current denegados a authenticated
+- Monetización Fase 1: usage_counters owner-only (SELECT propio), lawyer_requests participantes del caso, payment_events server-only, consume_quota denegado a authenticated
+- Carrera concurrente: 2 requests con 2/3 consumidas terminan en 3/3 (no 4/3)
 
-**SQL tests (15 tests — setup + 12 standalone + 2 E2E):**
+**SQL tests (16 tests — setup + 12 standalone + 2 E2E + cuotas):**
 - RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
 - Integrity: CHECK XOR, unique constraints (caso_partes, rondas, acuerdos, propuestas, tareas), FK protection, state machine
 - Triggers: handle_new_user (rol default + explícito), sync_ronda_actual, audit trail, updated_at
@@ -259,9 +288,12 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Anti-contratación estudio | ✅ Implementado | rama estudio_id en validate_suscripcion_aceptacion (titular con aceptación vigente), trigger UPDATE titularidad |
 | Fix has_accepted_current | ✅ Implementado | vigencia real (valid_from/valid_to) alineada con LegalRepository.findVigente |
 | Patrón server-only documentado | ✅ Implementado | 4 tablas con RLS sin policies + GRANTs solo service_role/postgres |
+| Deuda has_accepted_current EXECUTE | ✅ Cerrada | `20260821000000` revierte el GRANT a authenticated; helper de servidor |
+| Monetización Pactum Fase 1 | ✅ Implementado | planes/suscripciones extendidos, usage_counters, lawyer_requests, payment_events, consume_quota, seeds particular/corporativo |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
+- Monetización Fase 2 (checkout + webhooks MP) y Fase 3 (abogado) — ver `docs/PACTUM-monetizacion-spec.md` §14
 
 ### Pendiente del cliente (a confirmar)
 - Precios y límites finales de los planes (restantes: base, simple, plus)

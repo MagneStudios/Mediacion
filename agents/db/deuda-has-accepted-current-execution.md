@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-08-18
 **Origen:** Auditoría DB post-migración TyC
-**Estado:** Pendiente confirmación PM/BE
+**Estado:** ✅ Cerrada (2026-08-21)
 **Severidad:** Media
 
 ## Problema
@@ -34,3 +34,16 @@ Confirmar con PM/BE:
 1. ¿Es intencional que `authenticated` tenga EXECUTE sobre `has_accepted_current`?
 2. Si es intencional: actualizar la decisión 2 del diseño DB (line ~ del diseño original) para reflejar el nuevo GRANT.
 3. Si NO es intencional: revertir a `GRANT ... TO service_role, postgres` (quitar `authenticated`) y restaurar el test de `validate_rls.py` a `authenticated` denied.
+
+---
+
+## Resolución (2026-08-21)
+
+**Decisión:** Revertir el GRANT. La función es helper de servidor; BE la llama vía `selectNoFrom` como SECURITY DEFINER. No hay caso de uso legítimo para que `authenticated` la invoque como RPC.
+
+**Migración:** `20260821000000_revert_has_accepted_current_grant.sql`
+- `REVOKE EXECUTE ON FUNCTION public.has_accepted_current(UUID, TEXT) FROM authenticated;`
+
+**validate_rls.py:** test "has_accepted_current denegado para authenticated" agregado.
+
+**Estado final de permisos:** EXECUTE solo para `service_role` y `postgres`.

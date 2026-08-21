@@ -162,18 +162,19 @@ def main():
 
         print()
         print("=== RLS: Suscripciones (XOR) ===")
-        cur.execute("SELECT COUNT(*) FROM suscripciones")
-        sub_count = cur.fetchone()[0]
-        if "parte_a" in ids and sub_count > 0:
-            run_test(
-                "Parte A sees own subscription",
-                cur, ids["parte_a"],
-                "SELECT COUNT(*) FROM suscripciones WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
-                sub_count, "All subscriptions belong to Parte A",
-            )
+        if "parte_a" in ids:
+            cur.execute("SELECT COUNT(*) FROM suscripciones WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'")
+            own_sub_count = cur.fetchone()[0]
+            if own_sub_count > 0:
+                run_test(
+                    "Parte A ve sus propias suscripciones",
+                    cur, ids["parte_a"],
+                    "SELECT COUNT(*) FROM suscripciones WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                    own_sub_count, "Parte A lee sus propias filas via RLS",
+                )
         if "non_member" in ids:
             run_test(
-                "Non-member sees zero subscriptions",
+                "Non-member ve 0 suscripciones de Parte A",
                 cur, ids["non_member"],
                 "SELECT COUNT(*) FROM suscripciones WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
                 0,
@@ -295,7 +296,14 @@ def main():
                 cur, ids["non_member"],
                 "SELECT has_accepted_current('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'terms')",
                 role="anon",
-                description="EXECUTE a service_role/postgres/authenticated; denegado para anon",
+                description="EXECUTE a service_role/postgres; denegado para anon",
+            )
+            run_denied_test(
+                "has_accepted_current denegado para authenticated",
+                cur, ids["non_member"],
+                "SELECT has_accepted_current('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'terms')",
+                role="authenticated",
+                description="helper de servidor; EXECUTE solo service_role/postgres",
             )
         run_test(
             "has_accepted_current(A, terms) = true como service_role",
@@ -348,6 +356,131 @@ def main():
                 role="authenticated",
                 description="sin GRANT INSERT para authenticated (solo service_role/postgres)",
             )
+
+        print()
+        print("=== Monetización Fase 1 — RLS tablas nuevas ===")
+        if "parte_a" in ids:
+            run_test(
+                "Parte A ve sus usage_counters (owner)",
+                cur, ids["parte_a"],
+                "SELECT COUNT(*) FROM usage_counters WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                2, "dueño lee su propio uso (2 períodos de 17E)",
+            )
+        if "parte_b" in ids:
+            run_test(
+                "Parte B NO ve usage_counters de Parte A",
+                cur, ids["parte_b"],
+                "SELECT COUNT(*) FROM usage_counters WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                0, "aislamiento RLS entre usuarios",
+            )
+        if "non_member" in ids:
+            run_denied_test(
+                "INSERT usage_counters como authenticated denegado",
+                cur, ids["non_member"],
+                "INSERT INTO usage_counters (usuario_id, period_start, period_end) "
+                "VALUES ('d0000000-0000-0000-0000-000000000004', now(), now())",
+                role="authenticated",
+                description="escritura solo service_role/postgres",
+            )
+        if "parte_a" in ids:
+            run_test(
+                "Parte A ve lawyer_requests de su caso (participante)",
+                cur, ids["parte_a"],
+                "SELECT COUNT(*) FROM lawyer_requests WHERE solicitante_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'",
+                0, "policy is_part_of_case",
+            )
+        if "non_member" in ids:
+            run_denied_test(
+                "INSERT lawyer_requests como authenticated denegado",
+                cur, ids["non_member"],
+                "INSERT INTO lawyer_requests (caso_id, solicitante_id, moneda, monto_minor, external_reference) "
+                "VALUES ((SELECT id FROM casos LIMIT 1), 'd0000000-0000-0000-0000-000000000004', 'ARS', 4000000, 'lawreq_test_1')",
+                role="authenticated",
+                description="escritura solo service_role/postgres",
+            )
+            run_denied_test(
+                "anon SELECT payment_events denegado",
+                cur, ids["non_member"],
+                "SELECT COUNT(*) FROM payment_events",
+                role="anon",
+                description="patrón server-only — sin GRANT para anon",
+            )
+            run_denied_test(
+                "authenticated SELECT payment_events denegado",
+                cur, ids["parte_a"],
+                "SELECT COUNT(*) FROM payment_events",
+                role="authenticated",
+                description="patrón server-only — sin GRANT para authenticated",
+            )
+            run_denied_test(
+                "consume_quota denegado para authenticated",
+                cur, ids["non_member"],
+                "SELECT consume_quota('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'negotiation')",
+                role="authenticated",
+                description="EXECUTE solo service_role/postgres",
+            )
+
+        print()
+        print("=== Quota: carrera concurrente (2 requests con 2/3) ===")
+        cur.execute("SET role = 'service_role'")
+        cur.execute("SET search_path = public")
+        cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+        cur.execute(
+            "UPDATE suscripciones SET plan_id = (SELECT id FROM planes WHERE nombre='particular'), "
+            "current_period_start = now() - interval '1 day', current_period_end = now() + interval '29 days', "
+            "estado = 'activa' WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'"
+        )
+        cur.execute(
+            "DELETE FROM usage_counters WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'"
+        )
+        # Llegar a 2/3 consumiendo con consume_quota: garantiza que el
+        # period_start del contador matchea exacto el de la suscripción
+        cur.execute("SELECT consume_quota('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'negotiation')")
+        cur.execute("SELECT consume_quota('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'negotiation')")
+        cur.execute("SELECT negotiations_created FROM usage_counters WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'")
+        setup_count = cur.fetchone()[0]
+        cur.execute("RESET role")
+        cur.execute("RESET request.jwt.claims")
+        print(f"    setup: contador en {setup_count}/3")
+
+        conn_a = connect()
+        conn_a.autocommit = False
+        conn_b = connect()
+        conn_b.autocommit = False
+
+        def _consume(conn):
+            c = conn.cursor()
+            c.execute("SET role = 'service_role'")
+            c.execute("SET search_path = public")
+            c.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+            try:
+                c.execute("SELECT consume_quota('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'negotiation')")
+                conn.commit()
+                return True
+            except psycopg2.Error:
+                conn.rollback()
+                return False
+
+        # Dos transacciones: la segunda se bloquea en el FOR UPDATE de la
+        # suscripción hasta que la primera commitea; READ COMMITTED la
+        # re-evalúa y debe terminar en QUOTA_EXCEEDED (P0002).
+        try:
+            ok1 = _consume(conn_a)
+            ok2 = _consume(conn_b)
+        finally:
+            conn_a.close()
+            conn_b.close()
+
+        cur.execute("SELECT negotiations_created FROM usage_counters WHERE usuario_id = 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa'")
+        final_count = cur.fetchone()[0]
+        concurrency_ok = (ok1 != ok2) and (final_count == 3)
+        RESULTS.append({
+            "name": "carrera concurrente termina en 3/3 (no 4/3)",
+            "status": "PASS" if concurrency_ok else "FAIL",
+            "expected": True,
+            "actual": concurrency_ok,
+        })
+        print(f"  [{'PASS' if concurrency_ok else 'FAIL'}] carrera concurrente termina en 3/3 (no 4/3): ok1={ok1}, ok2={ok2}, final={final_count}")
 
         print()
         print("=== Bonus: INSERT service_role + cleanup ===")

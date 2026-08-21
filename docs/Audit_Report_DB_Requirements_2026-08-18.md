@@ -152,6 +152,23 @@ Extraídos de changelogs 2026-08-16 y 2026-08-17. Son work items reales, no gaps
 
 ---
 
+## 📌 Anotación post-auditoría (2026-08-21) — Hallazgos fantasma
+
+> Verificado contra las 35 migraciones de `supabase/migrations/`, `apps/api/src/` y `mediacion.dbml`: los siguientes hallazgos referencian **objetos que no existen en el repo** (artefactos de una corrida contra otro estado). No se creó schema, constraints ni documentación para ellos — principio de `docs/decisiones-db/2026-08-18-respuestas-pm-auditoria-db.md`. Resoluciones detalladas en ese documento (respuestas 1–8).
+
+| Hallazgo | Objeto inexistente | Resolución |
+|----------|--------------------|------------|
+| A-3 / R-1 | `items_fijos_por_negociacion` (tabla) | No existe. Si se crea en el futuro, el tipo de `id` se decide en su migración (convención UUID) |
+| N-2 / R-4 / N-6 | `notify_change_of_state()`, `cambios_caso`, `estados_caso` (trigger/tabla) | No existen. El cambio de estado lo gobierna `validate_caso_estado_transition()`; notificaciones las inserta BE. Trabajo nuevo cuando Producto defina el aviso |
+| N-4 / R-5 | `pagos_stripe` (tabla) | No existe. Si R-13 la crea, el CHECK de `tabla_origen` se define en su migración |
+| N-5 | `estados_invitacion` con `pagado_parcial`/`reembolsado` | El enum real es `('pendiente','aceptada','rechazada','expirada')`; valores inexistentes |
+| N-1 | FK `solicitudes_arrepentimiento.usuario_id → usuarios.id` | Existe pero es `→ auth.users` con `ON DELETE SET NULL`; documentada en `database.md` |
+| N-3 | `estados_caso` como tabla | Es el enum `estado_caso` (8 valores); documentado en `database.md` §Enums |
+
+**Cierre A-4 (confirmado PM, 2026-08-21):** el patrón server-only es intencional y canónico para `solicitudes_arrepentimiento`, `avisos_version_legal`, `solicitudes_contacto` y `rate_limit_counters`; `user_agreements` queda fuera (SELECT propio para authenticated). Documentado en `database.md` §"Patrón: tabla de rol de servidor". Las tablas de monetización Fase 1 (`payment_events`) siguen el mismo patrón; `usage_counters`/`lawyer_requests` tienen lectura owner vía RLS.
+
+---
+
 ## Apéndice: Fuentes Consultadas
 
 | Fuente | Ubicación | Estado |
