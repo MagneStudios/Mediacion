@@ -11,7 +11,8 @@ $steps = @(
   @{ Name = "Items (test_03)";       File = "tmp/test_03_items.sql" },
   @{ Name = "RLS deep (test_10)";    File = "tmp/test_10_rls_deep.sql" },
   @{ Name = "Helper functions (test_11)"; File = "tmp/test_11_helper_functions.sql" },
-  @{ Name = "Módulo legal (test_16)"; File = "tmp/test_16_tyc_legal.sql" }
+  @{ Name = "Módulo legal (test_16)"; File = "tmp/test_16_tyc_legal.sql" },
+  @{ Name = "Cuotas (test_17)"; File = "tmp/test_17_cuotas.sql" }
 )
 
 foreach ($step in $steps) {

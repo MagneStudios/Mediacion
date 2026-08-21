@@ -712,6 +712,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      lawyer_requests: {
+        Row: {
+          case_summary: string | null;
+          caso_id: string;
+          created_at: string;
+          external_reference: string;
+          id: string;
+          moneda: string;
+          monto_minor: number;
+          mp_payment_id: string | null;
+          mp_preference_id: string | null;
+          paid_at: string | null;
+          solicitante_id: string;
+          status: Database["public"]["Enums"]["estado_solicitud_abogado"];
+          updated_at: string;
+          whatsapp_notified_at: string | null;
+        };
+        Insert: {
+          case_summary?: string | null;
+          caso_id: string;
+          created_at?: string;
+          external_reference: string;
+          id?: string;
+          moneda: string;
+          monto_minor: number;
+          mp_payment_id?: string | null;
+          mp_preference_id?: string | null;
+          paid_at?: string | null;
+          solicitante_id: string;
+          status?: Database["public"]["Enums"]["estado_solicitud_abogado"];
+          updated_at?: string;
+          whatsapp_notified_at?: string | null;
+        };
+        Update: {
+          case_summary?: string | null;
+          caso_id?: string;
+          created_at?: string;
+          external_reference?: string;
+          id?: string;
+          moneda?: string;
+          monto_minor?: number;
+          mp_payment_id?: string | null;
+          mp_preference_id?: string | null;
+          paid_at?: string | null;
+          solicitante_id?: string;
+          status?: Database["public"]["Enums"]["estado_solicitud_abogado"];
+          updated_at?: string;
+          whatsapp_notified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_requests_caso_id_fkey";
+            columns: ["caso_id"];
+            isOneToOne: false;
+            referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lawyer_requests_solicitante_id_fkey";
+            columns: ["solicitante_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       mediaciones: {
         Row: {
           caso_id: string;
@@ -861,6 +927,39 @@ export type Database = {
           },
         ];
       };
+      payment_events: {
+        Row: {
+          created_at: string;
+          event_type: string;
+          id: number;
+          payload: Json;
+          processed_at: string | null;
+          provider: string;
+          resource_id: string;
+          signature_ok: boolean;
+        };
+        Insert: {
+          created_at?: string;
+          event_type: string;
+          id?: number;
+          payload: Json;
+          processed_at?: string | null;
+          provider?: string;
+          resource_id: string;
+          signature_ok: boolean;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: string;
+          id?: number;
+          payload?: Json;
+          processed_at?: string | null;
+          provider?: string;
+          resource_id?: string;
+          signature_ok?: boolean;
+        };
+        Relationships: [];
+      };
       planes: {
         Row: {
           created_at: string;
@@ -868,6 +967,8 @@ export type Database = {
           limite_carpetas: number;
           limite_casos: number | null;
           limite_iteraciones_ia: number;
+          max_clients_per_period: number | null;
+          max_negotiations_per_period: number | null;
           nombre: string;
           precio: number;
           updated_at: string;
@@ -878,6 +979,8 @@ export type Database = {
           limite_carpetas: number;
           limite_casos?: number | null;
           limite_iteraciones_ia: number;
+          max_clients_per_period?: number | null;
+          max_negotiations_per_period?: number | null;
           nombre: string;
           precio: number;
           updated_at?: string;
@@ -888,6 +991,8 @@ export type Database = {
           limite_carpetas?: number;
           limite_casos?: number | null;
           limite_iteraciones_ia?: number;
+          max_clients_per_period?: number | null;
+          max_negotiations_per_period?: number | null;
           nombre?: string;
           precio?: number;
           updated_at?: string;
@@ -1129,34 +1234,49 @@ export type Database = {
       };
       suscripciones: {
         Row: {
+          cancel_at_period_end: boolean;
           created_at: string;
+          current_period_end: string | null;
+          current_period_start: string | null;
           estado: Database["public"]["Enums"]["estado_suscripcion"];
           estudio_id: string | null;
           fecha_fin: string | null;
           fecha_inicio: string | null;
           id: string;
+          mp_payer_email: string | null;
+          mp_preapproval_id: string | null;
           plan_id: string;
           updated_at: string;
           usuario_id: string | null;
         };
         Insert: {
+          cancel_at_period_end?: boolean;
           created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
           estado?: Database["public"]["Enums"]["estado_suscripcion"];
           estudio_id?: string | null;
           fecha_fin?: string | null;
           fecha_inicio?: string | null;
           id?: string;
+          mp_payer_email?: string | null;
+          mp_preapproval_id?: string | null;
           plan_id: string;
           updated_at?: string;
           usuario_id?: string | null;
         };
         Update: {
+          cancel_at_period_end?: boolean;
           created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
           estado?: Database["public"]["Enums"]["estado_suscripcion"];
           estudio_id?: string | null;
           fecha_fin?: string | null;
           fecha_inicio?: string | null;
           id?: string;
+          mp_payer_email?: string | null;
+          mp_preapproval_id?: string | null;
           plan_id?: string;
           updated_at?: string;
           usuario_id?: string | null;
@@ -1232,6 +1352,41 @@ export type Database = {
             columns: ["caso_id"];
             isOneToOne: false;
             referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      usage_counters: {
+        Row: {
+          clients_created: number;
+          created_at: string;
+          negotiations_created: number;
+          period_end: string;
+          period_start: string;
+          usuario_id: string;
+        };
+        Insert: {
+          clients_created?: number;
+          created_at?: string;
+          negotiations_created?: number;
+          period_end: string;
+          period_start: string;
+          usuario_id: string;
+        };
+        Update: {
+          clients_created?: number;
+          created_at?: string;
+          negotiations_created?: number;
+          period_end?: string;
+          period_start?: string;
+          usuario_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_usuario_id_fkey";
+            columns: ["usuario_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
             referencedColumns: ["id"];
           },
         ];
@@ -1363,6 +1518,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      consume_quota: {
+        Args: { p_usuario_id: string; p_kind: string };
+        Returns: undefined;
+      };
       has_accepted_current: {
         Args: { p_user_id: string; p_document_type: string };
         Returns: boolean;
@@ -1411,7 +1570,20 @@ export type Database = {
       estado_pago: "pendiente" | "aprobado" | "rechazado";
       estado_propuesta: "pendiente" | "aceptada" | "rechazada";
       estado_ronda: "activa" | "completada";
-      estado_suscripcion: "activa" | "cancelada" | "vencida" | "pendiente_pago";
+      estado_solicitud_abogado:
+        | "pendiente_pago"
+        | "pagada"
+        | "notificada"
+        | "asignada"
+        | "cerrada"
+        | "reembolsada"
+        | "fallida";
+      estado_suscripcion:
+        | "activa"
+        | "cancelada"
+        | "vencida"
+        | "pendiente_pago"
+        | "pausada";
       estado_tarea: "pendiente" | "en_progreso" | "completada";
       metodo_caso: "negociacion" | "conciliacion" | "mediacion";
       rol_en_caso: "parte_a" | "parte_b" | "mediador";
@@ -1590,7 +1762,22 @@ export const Constants = {
       estado_pago: ["pendiente", "aprobado", "rechazado"],
       estado_propuesta: ["pendiente", "aceptada", "rechazada"],
       estado_ronda: ["activa", "completada"],
-      estado_suscripcion: ["activa", "cancelada", "vencida", "pendiente_pago"],
+      estado_solicitud_abogado: [
+        "pendiente_pago",
+        "pagada",
+        "notificada",
+        "asignada",
+        "cerrada",
+        "reembolsada",
+        "fallida",
+      ],
+      estado_suscripcion: [
+        "activa",
+        "cancelada",
+        "vencida",
+        "pendiente_pago",
+        "pausada",
+      ],
       estado_tarea: ["pendiente", "en_progreso", "completada"],
       metodo_caso: ["negociacion", "conciliacion", "mediacion"],
       rol_en_caso: ["parte_a", "parte_b", "mediador"],
