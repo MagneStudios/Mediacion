@@ -233,6 +233,29 @@ Lo que **no** cambió es el riesgo: A1, A2, A4 y A7 siguen apoyadas en endpoints
 
 ---
 
+## 6 bis · Auditoría antes de mergear a `dev` (23/08)
+
+Repaso de las tres tareas contra lo que prometen, no sólo contra lo que sus propios tests aseguran.
+
+**Verificación desde cero:**
+
+| Chequeo | Resultado |
+|---|---|
+| `pnpm test` (jest) | 985/985, 112 suites |
+| `npx tsc --noEmit`, con `.expo/types` borrado antes | 4 errores, los mismos preexistentes de siempre, cero nuevos |
+| `npx expo lint` | limpio |
+| `npx expo export --platform web` (el build exacto que corre Vercel) | corre entero, 50 rutas estáticas, `/billing/callback` incluida, sin errores |
+
+**El botón de abogado es más seguro de lo que la nota anterior decía.** `canPay` es `allowed && offer !== null && offer.scope !== null`, y hoy `offer.scope` es siempre `null` (el mock no tiene otro dato para dar). Eso significa que el botón **"Contratar y pagar" está estructuralmente deshabilitado** — no sólo visualmente: `Button` pasa `disabled` directo al elemento nativo, y `ConfirmationDialog` lo recibe igual. No hay ningún camino de la UI que hoy pueda invocar `lawyerService.requestLawyer`. La nota de la Fase A sigue valiendo como advertencia para el día que Solmi entregue el alcance —ese día alguien tiene que decidir explícitamente si se publica—, pero **no es un motivo para bloquear este merge**: hoy nadie puede pagar por accidente.
+
+**El CI de GitHub Actions pasa entero** (`lint-typecheck-test`, `test`, `integration`, `docker-build`). **El check de Vercel falla**, pero **no es de esta rama**: falla igual en `#108` (monetización de DB, ya mergeada) y en `#104` (activación de TyC, ya mergeada) — es un problema de acceso/infra preexistente del proyecto en Vercel, con o sin este PR.
+
+**No quedó nada suelto:** paridad completa de claves entre `es-AR.json` y `en.json` (0 huérfanas de cada lado), todas las claves que el código referencia resuelven —incluidas las dinámicas `quotaLimit.title.${resource}` para los tres recursos—, sin `console.log` ni comentarios `TEMP` en el código fuente.
+
+**Conclusión: no queda nada de FE por implementar antes de mergear.** Las tres tareas construidas están completas, probadas y no dependen de nada externo para funcionar como están. Lo que sigue abierto (A1/A2/A4/A7/A8, la moneda, el filtro de planes, el routing de `profile`) está documentado como bloqueado por otros equipos o como deuda conocida — mergear no lo empeora ni lo tapa.
+
+---
+
 ## 7 · Bitácora de implementación
 
 Qué se construyó de verdad, en qué se apartó del plan y qué cambió de lo que creíamos al escribirlo. Se actualiza al cerrar cada tarea.
