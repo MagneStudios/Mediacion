@@ -137,6 +137,8 @@ Las decisiones #3 y #4 ya tienen default implementado por DB y son reversibles; 
 
 ## 4 · Lo que le pedimos a BE — contrato propuesto
 
+> **Publicado el 23/08 en `docs/pedidos-frontend-monetizacion.md`**, que es la versión que lee Backend y la que vale. Lo de abajo es el borrador del que salió; si los dos discrepan, gana el publicado.
+
 Formato calcado de `docs/fichas-legal-backend.md`, para que se pueda implementar sin ida y vuelta. **Si algún shape no cierra, avisar antes de implementar.**
 
 ### 4.1 · `GET /suscripciones/uso`
@@ -224,6 +226,10 @@ El trabajo de esta fase se apoya entero en endpoints que **todavía no existen y
 Construir las ocho tareas de Fase A contra mocks es útil y es lo que hicimos en TyC con buen resultado — pero si BE no arranca Fase 2, lo que queda es una capa de UI que no puede activarse, y el riesgo es repetir el problema que ya tuvimos: que alguien la active a las apuradas sin la revisión de la capa que la sabe leer.
 
 **Antes de escribir código conviene confirmar que BE tiene la Fase 2 asignada.**
+
+**Actualización del 23/08.** Se escribieron igual tres tareas (A3, A5, A6) porque las tres se sostienen solas: A3 arregla un error que ya existía y no espera nada, A6 corre contra `GET /suscripciones/vigente` que ya existe, y A5 queda deliberadamente sin poder cobrar hasta que Solmi defina el alcance. Ninguna quedó "esperando activación" salvo en la parte que el contrato de §4 desbloquea.
+
+Lo que **no** cambió es el riesgo: A1, A2, A4 y A7 siguen apoyadas en endpoints y decisiones que nadie tomó, y el contrato ya está publicado. **A partir de acá el cuello de botella no es nuestro.**
 
 ---
 
