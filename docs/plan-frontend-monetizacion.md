@@ -300,7 +300,32 @@ Navegar desde el callback a `/profile/plan` **aterriza en la URL correcta y rend
 - **El anchor.** Poniendo `unstable_settings = { anchor: 'account' }` en el grupo, el caso que falla pasa a renderizar `account` en vez de `edit`. O sea: **lo que se dibuja es el anchor, y el destino se descarta.** Pero agregar un anchor no arregla nada, sólo cambia a cuál se cae.
 - **La colisión de nombres con el tab.** Existe `app/(tabs)/profile.tsx` (`/profile`) y el grupo `app/profile/` (`/profile/*`), que era la hipótesis más fuerte. **Se hizo el rename completo del grupo a `settings`** —17 archivos, 28 referencias, suite en verde— y **el bug persiste igual**. El rename se revirtió por eso: churn sin beneficio. Si alguien vuelve sobre esto, ese camino ya está descartado.
 
-**Lo que queda como diferencia sin explicar:** `profile` tiene 6 rutas planas más el subdirectorio `plan/` (9 rutas); `admin` tiene sólo `planes/` (4) y `notices` una sola. El próximo paso razonable es bisecar el contenido del grupo hasta encontrar el umbral, y si resulta ser interno de expo-router, abrir un issue con el repro mínimo en vez de seguir peleándolo acá.
+**La bisección (23/08): el trigger es el nombre del grupo, y no sé cuál es la regla.**
+
+Se aisló con un grupo sintético (`app/probe/`) navegado desde el mismo origen, y después reduciendo el grupo real hasta el hueso. Lo que quedó demostrado:
+
+- **No es el número de rutas.** Un grupo con 9 rutas planas funciona.
+- **No es tener un subdirectorio**, ni combinarlo con rutas planas: 9 planas + subdirectorio funciona.
+- **No es el `__tests__`** del grupo ni el del subdirectorio.
+- **No es el contenido de las pantallas**: reemplazadas por componentes triviales, el bug queda igual.
+- **No es el `_layout`**: con uno pelado (`<Stack />` y nada más) queda igual.
+- **No es estar declarado en el Stack raíz**: sacando el `<Stack.Screen>` queda igual.
+- **No es la colisión con el tab `(tabs)/profile.tsx`**: agregarle un tab homónimo al grupo sintético no lo rompe, y renombrar el grupo real a `settings` —sin ningún tab que se llame así— tampoco lo arregla.
+
+**Lo que sí lo mueve, con todo lo demás byte por byte idéntico, es el nombre del directorio:**
+
+| Nombre del grupo | Resultado |
+|---|---|
+| `profile` | ❌ |
+| `settings` | ❌ |
+| `zperfil` | ✅ |
+| `zsettings` | ✅ |
+| `probe` | ✅ |
+| `admin`, `notices` (reales) | ✅ |
+
+El control se hizo en la misma sesión: `zsettings` → renombrar a `settings` → vuelve a fallar, con los mismos archivos y el server reiniciado en limpio y sin `.expo`.
+
+**Por qué no se shipeó un fix.** El único cambio que lo arregla es renombrar el grupo a un nombre que "funciona", y **no encontré la regla que separa unos de otros** — `admin` ordena primero y anda, `notices` va al medio y anda, `profile` y `settings` van al medio y no. Renombrar a `zsettings` porque empieza con z sería cargo cult: no puedo garantizar que no vuelva. Esto ya no parece nuestro sino de la resolución de rutas de expo-router 6.0.24, y lo que corresponde es **abrir un issue upstream con este repro mínimo** — que ahora existe y es reversible en un `mv`.
 
 **Mientras tanto** el botón del callback va al inicio. Mandar a alguien que acaba de pagar a un formulario de perfil que no pidió es peor que mandarlo a la app.
 
