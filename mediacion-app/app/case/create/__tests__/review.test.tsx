@@ -53,9 +53,15 @@ describe('CaseCreateReviewScreen', () => {
     mockCreateCase.mockResolvedValue({ id: 'caso-1' });
     await renderScreen();
 
+    // Sin `waitFor`: `fireEvent` corre dentro de `act`, así que al await le
+    // toca vaciar la microtask del `createCase` resuelto y el efecto que le
+    // sigue. Un `waitFor` acá no espera nada real — lo único que agrega es un
+    // presupuesto de un segundo de reloj, y con la caché de jest fría este
+    // archivo tardó 5,5 s en arrancar y lo agotó. La prueba no cambia; deja
+    // de poder fallar por lo lento que esté la máquina.
     await create();
 
-    await waitFor(() => expect(mockSetCreatedCase).toHaveBeenCalledWith('caso-1'));
+    expect(mockSetCreatedCase).toHaveBeenCalledWith('caso-1');
     expect(mockPush).toHaveBeenCalledWith('/case/create/invite');
   });
 
