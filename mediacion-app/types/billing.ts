@@ -5,8 +5,22 @@
  * `types/case.ts` already follow.
  */
 
-/** Matches `estado_suscripcion` exactly. */
-export type EstadoSuscripcion = 'activa' | 'cancelada' | 'vencida' | 'pendiente_pago';
+/**
+ * Matches `estado_suscripcion` exactly.
+ *
+ * `pausada` arrived with the monetización migration
+ * (`20260821120000_monetizacion_fase1.sql`, the spec's `paused`) and this type
+ * had not caught up — `db-types` has it, BE's `Suscripcion["estado"]` derives
+ * from `db-types`, and `GET /suscripciones/vigente` returns that column
+ * verbatim, so a paused subscription could already reach the app as a value
+ * the front did not know existed.
+ */
+export type EstadoSuscripcion =
+  | 'activa'
+  | 'cancelada'
+  | 'vencida'
+  | 'pendiente_pago'
+  | 'pausada';
 
 /** Matches `estado_pago` exactly. */
 export type EstadoPago = 'pendiente' | 'aprobado' | 'rechazado';

@@ -281,6 +281,41 @@
     }
   },
   "billing": {
+    "callback": {
+      "title": "Payment confirmation",
+      "goHomeAction": "Go to the app",
+      "contactAction": "Contact us",
+      "reference": "Reference: {{id}}",
+      "confirming": {
+        "title": "We are confirming your payment",
+        "body": "This can take a few seconds. You can wait here; the payment is already recorded.",
+        "label": "Confirming…"
+      },
+      "confirmed": {
+        "title": "Done, your plan is active",
+        "body": "You can now use everything your plan includes."
+      },
+      "stillPending": {
+        "title": "Confirmation is taking longer",
+        "body": "Your payment is recorded and the activation completes on its own, though it sometimes takes a few more minutes. If you still don't see your plan active in a while, contact us and we'll look into it."
+      }
+    },
+    "quotaLimit": {
+      "title": {
+        "casos": "You reached your plan's case limit",
+        "negociaciones": "You reached your plan's negotiation limit",
+        "clientes": "You reached your plan's client sign-up limit"
+      },
+      "body": {
+        "casos": "Your plan allows {{limit}} open cases at a time and you already have {{used}}.",
+        "negociaciones": "Your plan includes {{limit}} negotiations per period and you have used {{used}}.",
+        "clientes": "Your plan includes {{limit}} client sign-ups per period and you have used {{used}}."
+      },
+      "bodyUnknown": "Your plan does not let you create more right now.",
+      "resetsOn": "The counter resets on {{date}}.",
+      "upgradeAction": "See plans",
+      "dismissAction": "Not now"
+    },
     "paymentRequired": {
       "title": "You need an active subscription",
       "body": "Whoever invited you chose for you to cover the subscription to access this case.",
@@ -299,7 +334,8 @@
         "cancelledUndated": "You cancelled this plan. It will not be charged again.",
         "expired": "This plan expired on {{date}}.",
         "expiredUndated": "This plan expired.",
-        "pendingPayment": "Your subscription is pending payment."
+        "pendingPayment": "Your subscription is pending payment.",
+        "paused": "Your plan is paused. Reactivate it to use it again."
       },
       "currentBadge": "Current plan",
       "subscribeAction": "Subscribe",
@@ -1368,6 +1404,21 @@
       },
       "error": {
         "title": "We couldn't prepare the calendar event"
+      }
+    }
+  },
+  "lawyer": {
+    "action": "I need a lawyer",
+    "needsActivePlan": "You need an active plan to request legal assistance.",
+    "dialog": {
+      "title": "Professional legal assistance",
+      "scopePending": "We can't publish what this service includes yet: the firm is still defining its scope. We won't charge you for something we can't describe.",
+      "price": "Price: {{price}}, a one-off payment for this case.",
+      "responseTime": "Estimated response time: {{hours}} hours.",
+      "confirm": "Hire and pay",
+      "cancel": "Not now",
+      "error": {
+        "title": "We couldn't register your request"
       }
     }
   },

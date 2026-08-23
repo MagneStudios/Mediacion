@@ -1,6 +1,10 @@
-# Pedidos de Frontend — endpoints que faltan
+# Pedidos de Frontend — endpoints que faltan (módulo legal / TyC)
 
 **Fecha:** 16/08/2026, ampliado el 18/08 · **Autor:** Frontend · **Para:** Backend (§1–§6) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
+
+> **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
+>
+> Se separaron porque son dos ciclos distintos con specs distintos, no porque este canal haya cambiado. El punto **#24** de §7 de acá y el §5.3 de allá **son el mismo problema**: el spec de monetización contesta la pregunta de la moneda que habíamos dejado abierta.
 
 El recíproco de `docs/fichas-legal-backend.md`: dos endpoints que FE necesita para cerrar puntos del instructivo que el reparto nos asigna y que **hoy no podemos construir**. En ambos casos el dato ya existe en la base y en el código de BE; lo que falta es exponerlo.
 

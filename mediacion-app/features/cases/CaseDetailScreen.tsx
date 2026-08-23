@@ -17,6 +17,7 @@ import type { CaseInvitation } from '../../types/case';
 import { blurActiveElement } from '../../utils/blur-active-element';
 import { getPositionEligibility } from '../../utils/position-eligibility';
 import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
+import { LawyerRequestButton } from '../lawyer/components/LawyerRequestButton';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
@@ -255,6 +256,12 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
               <NegotiationSummaryCard caseId={caseId} />
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
               {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
+              {/*
+                Escalamiento manual del spec de monetizacion 7.2:
+                persistente dentro del caso, nunca automatico. Se dibuja
+                solo, incluida su propia lectura de la suscripcion.
+              */}
+              <LawyerRequestButton casoId={caseId} />
             </>
           }
         />

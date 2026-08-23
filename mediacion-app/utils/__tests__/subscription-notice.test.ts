@@ -47,6 +47,16 @@ describe('getSubscriptionNotice', () => {
     });
   });
 
+  it('reports pausada, the enum value the front had not caught up with', () => {
+    // `pausada` entro con la migracion de monetizacion y este tipo no lo
+    // tenia; BE ya podia devolverlo. Sin esta rama la pantalla no decia nada
+    // para una suscripcion pausada.
+    expect(getSubscriptionNotice(subscription('pausada'))).toEqual({
+      key: 'paused',
+      fechaFin: null,
+    });
+  });
+
   it('reports pendiente_pago, which is what a real checkout produces first', () => {
     // `suscripciones.estado` defaults to `pendiente_pago`, so this is the state
     // `POST /suscripciones` leaves behind. Falling through to "no tenés plan"

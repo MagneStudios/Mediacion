@@ -7,12 +7,32 @@
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
+  /**
+   * Everything the error envelope carried beyond `code` and `message`.
+   *
+   * Most errors carry nothing else, so this is usually `{}`. The quota error
+   * does: it reports how much was used, of what limit, and until when
+   * (`docs/plan-frontend-monetizacion.md` §4.2). Dropping those numbers here
+   * would force the screen to ask a second endpoint for what the failure
+   * already told it.
+   *
+   * Left as an untyped bag on purpose: this is the transport layer, and it
+   * has no business knowing what billing means. Readers parse their own
+   * shape out of it — see `utils/quota-limit.ts`.
+   */
+  readonly detail: Readonly<Record<string, unknown>>;
 
-  constructor(code: string, message: string, status: number) {
+  constructor(
+    code: string,
+    message: string,
+    status: number,
+    detail: Record<string, unknown> = {},
+  ) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -55,11 +75,34 @@ export const codeTooManyRequests = 'too_many_requests';
  * screen, so the backed service maps this to `null` rather than an error.
  */
 export const codeSuscripcionNotFound = 'suscripcion_not_found';
+/**
+ * The plan's period quota is spent (`consume_quota`, `P0002`) — the flow limit
+ * of the Pactum spec §5.1: N negociaciones created per billing period.
+ *
+ * **Does not exist on the API yet.** `20260821120000_monetizacion_fase1.sql`
+ * ships the function, but nothing in `apps/api` calls it
+ * (`docs/plan-frontend-monetizacion.md` §0). The code is declared here so the
+ * screen that has to react is written once and keeps working the day BE wires
+ * it, instead of being retrofitted then.
+ */
+export const codeQuotaExceeded = 'quota_exceeded';
+/**
+ * The plan's case limit is reached (`PlanLimitService.assertCanCreateCase`,
+ * `403`). This one **is** live today, and until this change nothing in the app
+ * handled it: hitting your plan limit showed the generic error with a retry
+ * button that could only fail again.
+ *
+ * It is a *stock* limit (simultaneous cases) where `quota_exceeded` is a *flow*
+ * limit (created per period). The two coexist and nobody has decided which
+ * governs case creation (`docs/plan-frontend-monetizacion.md` §1.4) — for the
+ * user they are the same wall, so they get the same screen.
+ */
+export const codePlanLimitExceeded = 'plan_limit_exceeded';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';
 
-type ErrorEnvelope = { error?: { code?: unknown; message?: unknown } };
+type ErrorEnvelope = { error?: Record<string, unknown> };
 
 /**
  * A gateway or proxy can answer with HTML or an empty body, so the envelope is
@@ -67,13 +110,14 @@ type ErrorEnvelope = { error?: { code?: unknown; message?: unknown } };
  */
 export function toApiError(status: number, body: unknown): ApiError {
   const envelope = (body ?? {}) as ErrorEnvelope;
-  const code =
-    typeof envelope.error?.code === 'string' ? envelope.error.code : unknownErrorCode;
-  const message =
-    typeof envelope.error?.message === 'string'
-      ? envelope.error.message
-      : unknownErrorMessage;
-  return new ApiError(code, message, status);
+  const error = typeof envelope.error === 'object' && envelope.error !== null ? envelope.error : {};
+  const code = typeof error.code === 'string' ? error.code : unknownErrorCode;
+  const message = typeof error.message === 'string' ? error.message : unknownErrorMessage;
+  // The whole error object travels, `code` and `message` included: stripping
+  // them would only cost a second lookup for a reader that already has the
+  // typed fields, and keeping the bag intact means a field BE adds later
+  // arrives without touching this function.
+  return new ApiError(code, message, status, error);
 }
 
 export function isApiError(error: unknown): error is ApiError {
