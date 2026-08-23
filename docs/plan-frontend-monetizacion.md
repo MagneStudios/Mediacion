@@ -100,10 +100,10 @@ Fase A es todo lo que se puede hacer **sin BE**, contra mocks, siguiendo el patr
 |---|---|---|---|
 | **A1** | Capa de servicio de uso y cuota | `types/billing.ts` extendido (uso, período, límites, estado de suscripción completo), `services/usage.service.ts` con mock + factory, `services/api/usage.api-service.ts` escrito contra el contrato de §4 y **sin activar** | §4 acordado |
 | **A2** | Medidor de uso en el dashboard | `2 de 3 negociaciones este mes` con barra y fecha de reseteo; para estudios además `7 de 20 clientes`. Estados cargando / vacío / error | A1 |
-| **A3** | Modal de límite alcanzado | Se dispara con `402 quota_exceeded` **y con el `403 plan_limit_exceeded` que ya existe** (§1.5). Muestra límite, usado, fecha de reseteo y CTA de upgrade | A1 |
+| **A3** ✅ | Modal de límite alcanzado | Se dispara con `402 quota_exceeded` **y con el `403 plan_limit_exceeded` que ya existe** (§1.5). Muestra límite, usado, fecha de reseteo y CTA de upgrade | — (ver §7.1) |
 | **A4** | Gating por estado de suscripción | La matriz del spec §5.3 aplicada a la UI: qué se puede crear, operar y contratar en `pending` / `active` / `past_due` / `paused` / `cancelled`. **Es UX, no seguridad** — la garantía es el servidor | A1 |
 | **A5** | Botón "Necesito un abogado" + modal | Botón secundario persistente en la vista de caso; modal con alcance, precio y tiempo de respuesta. **El copy es bloqueante** (§3) | A1, decisión #1 |
-| **A6** | Estado "confirmando pago" | Tras volver de MercadoPago, polling cada 3 s hasta 60 s con estado explícito, nunca un error. Incluye resolver el retorno en nativo (§1.1) | A1 |
+| **A6** ✅ | Estado "confirmando pago" | Tras volver de MercadoPago, polling cada 3 s hasta 60 s con estado explícito, nunca un error | — (ver §7.2) |
 | **A7** | Página de pricing | Tres tarjetas; Particular y Estudio con "Suscribirme", Corporativo con "Consultar por WhatsApp" (`wa.me`, pestaña nueva, `rel="noopener"`, sin datos sensibles en la URL). Ruta pública, en la allowlist de `AuthGate` | §1.3 y §1.6 resueltos |
 | **A8** | Sección de facturación | Ampliar `/profile/plan`: plan actual, próximo cobro, período, historial, cancelar. Reusa lo que ya hay de la baja | A1 |
 
@@ -194,6 +194,18 @@ Propuesta: mantener el envelope y colgar el detalle:
 
 `POST /casos/:id/solicitud-abogado` → `{ init_point }` y `GET /casos/:id/solicitud-abogado` → estado actual. Los shapes los definimos cuando el copy del modal esté cerrado (decisión #1), porque el alcance del servicio cambia qué mostramos.
 
+### 4.5 · El `back_url` del preapproval
+
+La pantalla de confirmación de pago ya existe y vive en **`/billing/callback`** — la ruta que nombra el spec §6.3. Cuando armen el `preapproval`, ese es el `back_url`:
+
+```
+<APP_URL>/billing/callback
+```
+
+No hace falta que le agreguen parámetros: **la pantalla no lee ninguno**, a propósito (§7.2). Si mueven la ruta, avisen — es de las pocas cosas nuestras que quedan congeladas en una configuración de MercadoPago y no se puede cambiar de un solo lado.
+
+La pantalla consulta `GET /suscripciones/vigente`, que ya existe, y espera a que `estado` pase a `activa`. **No necesitamos ningún endpoint nuevo para esto.**
+
 ---
 
 ## 5 · Lo que NO vamos a hacer en esta rama
@@ -212,6 +224,66 @@ El trabajo de esta fase se apoya entero en endpoints que **todavía no existen y
 Construir las ocho tareas de Fase A contra mocks es útil y es lo que hicimos en TyC con buen resultado — pero si BE no arranca Fase 2, lo que queda es una capa de UI que no puede activarse, y el riesgo es repetir el problema que ya tuvimos: que alguien la active a las apuradas sin la revisión de la capa que la sabe leer.
 
 **Antes de escribir código conviene confirmar que BE tiene la Fase 2 asignada.**
+
+---
+
+## 7 · Bitácora de implementación
+
+Qué se construyó de verdad, en qué se apartó del plan y qué cambió de lo que creíamos al escribirlo. Se actualiza al cerrar cada tarea.
+
+### 7.1 · A3 — Modal de límite alcanzado ✅ (23/08, commit `8a96f75`)
+
+**Se apartó del plan en una cosa: no dependió de A1.** El plan la ponía dependiendo de la capa de servicio de uso, con la idea de que el modal leyera los límites de un endpoint. No hace falta: **la falla misma trae el detalle**. El modal se alimenta del error, no de una segunda consulta, y eso además lo deja funcionando contra el `403` que existe hoy sin ninguna infraestructura nueva.
+
+Lo que entró:
+
+| Archivo | Qué hace |
+|---|---|
+| `services/api/api-error.ts` | `ApiError` conserva el resto del envelope en `detail`. Antes se tiraba: `toApiError` leía solo `code` y `message`, así que los números del 402 se perdían en la puerta. Queda como bolsa sin tipar — es transporte, no sabe qué es facturación. Códigos nuevos: `quota_exceeded`, `plan_limit_exceeded` |
+| `utils/quota-limit.ts` | Traduce las dos fallas a una sola forma `QuotaLimit`. Descarta números no usables (float, negativo, fecha imparseable) en vez de dibujarlos |
+| `features/billing/components/QuotaLimitDialog.tsx` | El modal, sobre `ConfirmationDialog`. Sin reintentar |
+| `app/case/create/review.tsx` | Lo consume; el resto de las fallas conserva su estado de error con reintento |
+
+**Se degrada por diseño.** Hoy el `403` no trae números y la copy es verdadera sin ellos ("Tu plan no te permite crear más por ahora"). El día que BE mande `usado`/`limite`/`period_end`, el mismo modal dice "Tu plan incluye 3 negociaciones por período y ya usaste 3. El contador se renueva el 14 de septiembre de 2026" sin tocar una línea.
+
+**Dos hallazgos que solo aparecieron en el navegador:**
+
+1. **El modal quedaba pintado arriba de la pantalla siguiente y sin forma de cerrarlo.** `ConfirmationDialog` envuelve el `Modal` de RN con `animationType="fade"`, que no desmonta hasta que termina la animación de salida — y la animación no termina si la navegación congela la pantalla en el mismo gesto. "Ahora no" tampoco lo cerraba, porque la pantalla de atrás ya había dejado de re-renderizar. **Se desmonta el diálogo en vez de ocultarlo.**
+2. Navegar desde el diálogo se difiere un commit, por el mismo motivo.
+
+**Ninguno de los dos lo puede ver un test unitario:** RNTL desmonta el `Modal` en los dos casos y no distingue. Queda como nota para las tareas que sigan — cualquier modal de esta fase que navegue tiene el mismo problema.
+
+### 7.2 · A6 — Estado "confirmando pago" ✅ (23/08)
+
+**Es la primera tarea de esta fase que funciona contra endpoints reales.** No necesitó nada nuevo de BE: `GET /suscripciones/vigente` ya existe y devuelve `estado`, que es exactamente lo que hay que esperar que cambie a `activa`. Tampoco dependió de A1.
+
+| Archivo | Qué hace |
+|---|---|
+| `features/billing/hooks/usePaymentConfirmation.ts` | El polling: 3 s de intervalo, 60 s de presupuesto, tres estados (`confirming` / `confirmed` / `stillPending`) |
+| `app/billing/callback.tsx` | La pantalla del `back_url`. Sin `_layout` de grupo, igual que `case/[id]/payment-required` |
+
+**La ruta es `/billing/callback`, la del spec §6.3, y eso es deliberado:** es el `back_url` que BE configura en el preapproval de MercadoPago, así que es un contrato externo y no puede moverse con nuestra navegación sin que BE cambie el preapproval. **Está en §4 como pedido a BE.**
+
+Tres decisiones que vale la pena tener escritas:
+
+- **No hay estado de error, y es a propósito** (spec §9.6). La plata del usuario ya salió; una pantalla roja diría que el pago falló cuando lo que pasó es que un webhook viene unos segundos atrás. Una lectura que falla es motivo para volver a preguntar, no para avisar que algo se rompió. Cuando se acaba el minuto se dice que está demorando, con el canal de contacto al lado — que es real y lo contesta alguien (punto #23 del instructivo).
+- **No se lee nada de lo que MercadoPago pone en la URL.** Esos parámetros los controla cualquiera: una pantalla que creyera `?status=approved` regalaría un plan a quien tipee la URL. El spec §6.3.5 es explícito en que activa el webhook, no el redirect. Verificado en el navegador: con `?status=approved&collection_status=approved` sigue diciendo "estamos confirmando".
+- **Polling con timeout encadenado, no `setInterval`.** Con una conexión lenta el intervalo apila pedidos que preguntan lo mismo y que pueden contestar fuera de orden. Y el presupuesto se mide **contra el reloj**, no contando intentos: con respuestas lentas, veinte intentos se pasan largo del minuto prometido.
+
+**Un defecto de routing que apareció acá y que no es nuestro** — pero que va a molestar en A2, A7 y A8, que también quieren linkear a pantallas de plan:
+
+Navegar del callback a `/profile/plan` **aterriza en la URL correcta y renderiza `/profile/edit`**. Reproducido con `replace`, `push`, `navigate` y `<Link>`, con y sin `_layout` de grupo, sobre un dev server recién levantado. La misma navegación desde `case/[id]/payment-required` funciona. La hipótesis es que el grupo `profile` **no tiene `index.tsx`**, así que su navegador anidado cae en otra pantalla cuando se monta desde ciertos orígenes.
+
+Como no vale la pena mandar a alguien que acaba de pagar a un formulario de perfil que no pidió, el botón de la pantalla va **al inicio** (`/`), que sí funciona y está verificado. **Queda abierto:** darle un `index` al grupo `profile` o entender por qué el estado anidado no se arma. Mirar la URL no alcanza para detectarlo — hay que mirar lo que se dibuja.
+
+**Lo otro que queda sin resolver:** el retorno en **nativo**. En web el `back_url` es una URL y funciona; en nativo hay que resolver el deep link de vuelta a la app, y eso depende de tener un esquema de URL y el dominio configurado (§1.1, §1.8). La pantalla está lista para los dos casos; lo que falta es cómo se llega a ella fuera del navegador.
+
+### 7.3 · Lo que aprendimos sobre los tests en esta fase
+
+- `render` de RNTL **devuelve una promesa** en esta configuración. Destructurar `render(...)` da `undefined` y `screen` queda sin poblar con un error engañoso (`render function has not been called`). Siempre `await render(...)`, y `screen.unmount()` también quiere su propio `act`.
+- Mientras un `Modal` está abierto, RNTL trata el resto del árbol como inerte: los elementos están en el árbol pero no son consultables. Es el comportamiento correcto, pero hay que asertar **después** de cerrar el diálogo, no mientras está arriba.
+- **`app/case/create/__tests__/review.test.tsx` tiene un test flaky:** "advances to the invitation step" excede el timeout de `waitFor` de vez en cuando bajo la carga de la suite completa, y pasa siempre corriendo el archivo solo. No es del código de producción, pero conviene arreglarlo antes de que alguien lo lea como un fallo real.
+- La verificación en navegador encontró **los tres** defectos de esta tanda (el modal pegado, la navegación difícil de cerrar y el routing a la pantalla equivocada) y los tests unitarios ninguno. Vale la pena presupuestar el paso por el navegador en cada tarea de esta fase, no dejarlo para el final.
 
 ---
 

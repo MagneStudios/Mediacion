@@ -281,6 +281,25 @@
     }
   },
   "billing": {
+    "callback": {
+      "title": "Confirmación del pago",
+      "goHomeAction": "Ir al inicio",
+      "contactAction": "Escribirnos",
+      "reference": "Referencia: {{id}}",
+      "confirming": {
+        "title": "Estamos confirmando tu pago",
+        "body": "Puede tardar unos segundos. Podés esperar acá; el pago ya quedó registrado.",
+        "label": "Confirmando…"
+      },
+      "confirmed": {
+        "title": "Listo, tu plan quedó activo",
+        "body": "Ya podés usar todo lo que incluye tu plan."
+      },
+      "stillPending": {
+        "title": "La confirmación está demorando",
+        "body": "Tu pago quedó registrado y la activación se completa sola, aunque a veces tarda unos minutos más. Si al rato seguís sin ver tu plan activo, escribinos y lo revisamos."
+      }
+    },
     "quotaLimit": {
       "title": {
         "casos": "Llegaste al límite de casos de tu plan",

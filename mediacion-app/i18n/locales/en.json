@@ -281,6 +281,25 @@
     }
   },
   "billing": {
+    "callback": {
+      "title": "Payment confirmation",
+      "goHomeAction": "Go to the app",
+      "contactAction": "Contact us",
+      "reference": "Reference: {{id}}",
+      "confirming": {
+        "title": "We are confirming your payment",
+        "body": "This can take a few seconds. You can wait here; the payment is already recorded.",
+        "label": "Confirming…"
+      },
+      "confirmed": {
+        "title": "Done, your plan is active",
+        "body": "You can now use everything your plan includes."
+      },
+      "stillPending": {
+        "title": "Confirmation is taking longer",
+        "body": "Your payment is recorded and the activation completes on its own, though it sometimes takes a few more minutes. If you still don't see your plan active in a while, contact us and we'll look into it."
+      }
+    },
     "quotaLimit": {
       "title": {
         "casos": "You reached your plan's case limit",
