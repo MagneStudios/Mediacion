@@ -276,11 +276,33 @@ Tres decisiones que vale la pena tener escritas:
 - **No se lee nada de lo que MercadoPago pone en la URL.** Esos parámetros los controla cualquiera: una pantalla que creyera `?status=approved` regalaría un plan a quien tipee la URL. El spec §6.3.5 es explícito en que activa el webhook, no el redirect. Verificado en el navegador: con `?status=approved&collection_status=approved` sigue diciendo "estamos confirmando".
 - **Polling con timeout encadenado, no `setInterval`.** Con una conexión lenta el intervalo apila pedidos que preguntan lo mismo y que pueden contestar fuera de orden. Y el presupuesto se mide **contra el reloj**, no contando intentos: con respuestas lentas, veinte intentos se pasan largo del minuto prometido.
 
-**Un defecto de routing que apareció acá y que no es nuestro** — pero que va a molestar en A2, A7 y A8, que también quieren linkear a pantallas de plan:
+**Un defecto de routing que apareció acá, sigue abierto, y va a molestar en A2, A7 y A8**
 
-Navegar del callback a `/profile/plan` **aterriza en la URL correcta y renderiza `/profile/edit`**. Reproducido con `replace`, `push`, `navigate` y `<Link>`, con y sin `_layout` de grupo, sobre un dev server recién levantado. La misma navegación desde `case/[id]/payment-required` funciona. La hipótesis es que el grupo `profile` **no tiene `index.tsx`**, así que su navegador anidado cae en otra pantalla cuando se monta desde ciertos orígenes.
+Navegar desde el callback a `/profile/plan` **aterriza en la URL correcta y renderiza otra pantalla del grupo** — la que el grupo tome por defecto. Se intentó arreglarlo el 23/08 y **no se logró**; lo que sigue es la caracterización, para que el próximo no repita el camino.
 
-Como no vale la pena mandar a alguien que acaba de pagar a un formulario de perfil que no pidió, el botón de la pantalla va **al inicio** (`/`), que sí funciona y está verificado. **Queda abierto:** darle un `index` al grupo `profile` o entender por qué el estado anidado no se arma. Mirar la URL no alcanza para detectarlo — hay que mirar lo que se dibuja.
+**Cómo se comporta, medido:**
+
+| Origen | Destino | Resultado |
+|---|---|---|
+| `billing/callback` | `/profile/plan` | ❌ renderiza la default del grupo |
+| `billing/callback` | `/profile/edit` | ❌ ídem — **no es por el subdirectorio `plan/`** |
+| `billing/callback` | `/notices/activity` | ✅ |
+| `billing/callback` | `/admin/planes/create` | ✅ — y **no** es la default del grupo, así que `admin` no es un falso positivo |
+| `case/[id]/payment-required` | `/profile/plan` | ✅ |
+| `case/create/review` | `/profile/plan` | ✅ |
+| carga directa del navegador | `/profile/plan` | ✅ |
+
+**Qué se descartó, cada uno con una prueba:**
+
+- **El método de navegación.** Falla igual con `replace`, `push`, `navigate` y `<Link>`.
+- **El `_layout` del grupo de origen.** Se borró `app/billing/_layout.tsx` y se desregistró del Stack raíz; sigue fallando, con el server reiniciado en limpio.
+- **Los params de navegación.** Se instrumentó `useRootNavigationState`: en el caso que funciona y en el que falla, la ruta `profile` llega con **exactamente los mismos** `params: { screen: 'plan/index', params: {} }` y sin estado anidado. El payload es correcto; lo que se pierde es después.
+- **El anchor.** Poniendo `unstable_settings = { anchor: 'account' }` en el grupo, el caso que falla pasa a renderizar `account` en vez de `edit`. O sea: **lo que se dibuja es el anchor, y el destino se descarta.** Pero agregar un anchor no arregla nada, sólo cambia a cuál se cae.
+- **La colisión de nombres con el tab.** Existe `app/(tabs)/profile.tsx` (`/profile`) y el grupo `app/profile/` (`/profile/*`), que era la hipótesis más fuerte. **Se hizo el rename completo del grupo a `settings`** —17 archivos, 28 referencias, suite en verde— y **el bug persiste igual**. El rename se revirtió por eso: churn sin beneficio. Si alguien vuelve sobre esto, ese camino ya está descartado.
+
+**Lo que queda como diferencia sin explicar:** `profile` tiene 6 rutas planas más el subdirectorio `plan/` (9 rutas); `admin` tiene sólo `planes/` (4) y `notices` una sola. El próximo paso razonable es bisecar el contenido del grupo hasta encontrar el umbral, y si resulta ser interno de expo-router, abrir un issue con el repro mínimo en vez de seguir peleándolo acá.
+
+**Mientras tanto** el botón del callback va al inicio. Mandar a alguien que acaba de pagar a un formulario de perfil que no pidió es peor que mandarlo a la app.
 
 **Lo otro que queda sin resolver:** el retorno en **nativo**. En web el `back_url` es una URL y funciona; en nativo hay que resolver el deep link de vuelta a la app, y eso depende de tener un esquema de URL y el dominio configurado (§1.1, §1.8). La pantalla está lista para los dos casos; lo que falta es cómo se llega a ella fuera del navegador.
 
