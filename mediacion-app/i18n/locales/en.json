@@ -334,7 +334,8 @@
         "cancelledUndated": "You cancelled this plan. It will not be charged again.",
         "expired": "This plan expired on {{date}}.",
         "expiredUndated": "This plan expired.",
-        "pendingPayment": "Your subscription is pending payment."
+        "pendingPayment": "Your subscription is pending payment.",
+        "paused": "Your plan is paused. Reactivate it to use it again."
       },
       "currentBadge": "Current plan",
       "subscribeAction": "Subscribe",
@@ -1403,6 +1404,21 @@
       },
       "error": {
         "title": "We couldn't prepare the calendar event"
+      }
+    }
+  },
+  "lawyer": {
+    "action": "I need a lawyer",
+    "needsActivePlan": "You need an active plan to request legal assistance.",
+    "dialog": {
+      "title": "Professional legal assistance",
+      "scopePending": "We can't publish what this service includes yet: the firm is still defining its scope. We won't charge you for something we can't describe.",
+      "price": "Price: {{price}}, a one-off payment for this case.",
+      "responseTime": "Estimated response time: {{hours}} hours.",
+      "confirm": "Hire and pay",
+      "cancel": "Not now",
+      "error": {
+        "title": "We couldn't register your request"
       }
     }
   },

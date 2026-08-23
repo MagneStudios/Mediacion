@@ -102,7 +102,7 @@ Fase A es todo lo que se puede hacer **sin BE**, contra mocks, siguiendo el patr
 | **A2** | Medidor de uso en el dashboard | `2 de 3 negociaciones este mes` con barra y fecha de reseteo; para estudios además `7 de 20 clientes`. Estados cargando / vacío / error | A1 |
 | **A3** ✅ | Modal de límite alcanzado | Se dispara con `402 quota_exceeded` **y con el `403 plan_limit_exceeded` que ya existe** (§1.5). Muestra límite, usado, fecha de reseteo y CTA de upgrade | — (ver §7.1) |
 | **A4** | Gating por estado de suscripción | La matriz del spec §5.3 aplicada a la UI: qué se puede crear, operar y contratar en `pending` / `active` / `past_due` / `paused` / `cancelled`. **Es UX, no seguridad** — la garantía es el servidor | A1 |
-| **A5** | Botón "Necesito un abogado" + modal | Botón secundario persistente en la vista de caso; modal con alcance, precio y tiempo de respuesta. **El copy es bloqueante** (§3) | A1, decisión #1 |
+| **A5** ✅ | Botón "Necesito un abogado" + modal | Botón secundario persistente en la vista de caso; modal con alcance, precio y tiempo de respuesta. **No publicable hasta la decisión #1** (§7.3) | — (ver §7.3) |
 | **A6** ✅ | Estado "confirmando pago" | Tras volver de MercadoPago, polling cada 3 s hasta 60 s con estado explícito, nunca un error | — (ver §7.2) |
 | **A7** | Página de pricing | Tres tarjetas; Particular y Estudio con "Suscribirme", Corporativo con "Consultar por WhatsApp" (`wa.me`, pestaña nueva, `rel="noopener"`, sin datos sensibles en la URL). Ruta pública, en la allowlist de `AuthGate` | §1.3 y §1.6 resueltos |
 | **A8** | Sección de facturación | Ampliar `/profile/plan`: plan actual, próximo cobro, período, historial, cancelar. Reusa lo que ya hay de la baja | A1 |
@@ -278,7 +278,26 @@ Como no vale la pena mandar a alguien que acaba de pagar a un formulario de perf
 
 **Lo otro que queda sin resolver:** el retorno en **nativo**. En web el `back_url` es una URL y funciona; en nativo hay que resolver el deep link de vuelta a la app, y eso depende de tener un esquema de URL y el dominio configurado (§1.1, §1.8). La pantalla está lista para los dos casos; lo que falta es cómo se llega a ella fuera del navegador.
 
-### 7.3 · Lo que aprendimos sobre los tests en esta fase
+### 7.3 · A5 — Botón "Necesito un abogado" ✅ (23/08)
+
+Tampoco dependió de A1. Lo que entró:
+
+| Archivo | Qué hace |
+|---|---|
+| `types/lawyer.ts` | Espeja `lawyer_requests` y el enum `estado_solicitud_abogado` (7 valores) del schema real |
+| `services/lawyer.service.ts` | Mock con `getOffer` / `getRequest` / `requestLawyer`. Reusa la solicitud `pendiente_pago` del mismo caso — mitad de la defensa contra el doble cobro del §7.6; la otra mitad es el índice único, que es de la base |
+| `utils/subscription-access.ts` | `canRequestLawyer`: la porción del §5.3 que esta tarea necesita. `activa` y `vencida` (= `past_due`, con sus 7 días de gracia) sí; el resto no |
+| `utils/format-money.ts` | Formatea unidades mínimas enteras con la moneda que trae el dato. **Es lo contrario de `formatPlanPrice`**, que fija `'USD'` para toda la app (§1.6): cuando el punto #24 se resuelva, esta es la que debería quedar |
+| `features/lawyer/components/LawyerRequestButton.tsx` | Botón + modal, autocontenido: se lee su propia suscripción y su propia oferta |
+
+**La decisión que define esta tarea: el bloqueo se muestra, no se disimula.** El alcance del servicio de ARS 40.000 lo debe Solmi (decisión #1), y el spec la marca como *bloqueante para publicar* — "no se puede cobrar sin decir qué se entrega". Así que `LawyerServiceOffer.scope` es nullable, hoy es `null`, el modal dice *"Todavía no podemos publicar qué incluye este servicio… No vamos a cobrarte por algo que no podemos describir"* y **"Contratar y pagar" queda deshabilitado**. Es el mismo criterio que los `[COMPLETAR]` visibles de los textos legales. Cuando Solmi entregue, cambia el dato y nada más.
+
+**No poner esto en producción antes de la decisión #1.** El botón es visible y el modal explica; con usuarios reales eso es una promesa a medias. Es construible ahora, publicable después.
+
+**Un hallazgo de paso: `EstadoSuscripcion` se había quedado atrás del schema.** La migración de monetización agregó `pausada` al enum, `db-types` lo tiene, `Suscripcion["estado"]` de BE deriva de ahí y `GET /suscripciones/vigente` devuelve la columna tal cual — o sea que el valor ya podía llegar al front. Nuestro tipo tenía cuatro valores. Agregarlo **rompió `tsc`** en el `never` de `getSubscriptionNotice` (el guard haciendo exactamente lo suyo) y obligó a manejarlo: sin eso, Mi plan no decía nada para una suscripción pausada. Vale revisar los otros tipos de `types/` contra el schema nuevo antes de A2.
+
+
+### 7.4 · Lo que aprendimos sobre los tests en esta fase
 
 - `render` de RNTL **devuelve una promesa** en esta configuración. Destructurar `render(...)` da `undefined` y `screen` queda sin poblar con un error engañoso (`render function has not been called`). Siempre `await render(...)`, y `screen.unmount()` también quiere su propio `act`.
 - Mientras un `Modal` está abierto, RNTL trata el resto del árbol como inerte: los elementos están en el árbol pero no son consultables. Es el comportamiento correcto, pero hay que asertar **después** de cerrar el diálogo, no mientras está arriba.

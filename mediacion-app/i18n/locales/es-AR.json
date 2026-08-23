@@ -334,7 +334,8 @@
         "cancelledUndated": "Diste de baja este plan. No se vuelve a cobrar.",
         "expired": "Este plan venció el {{date}}.",
         "expiredUndated": "Este plan venció.",
-        "pendingPayment": "Tu contratación quedó pendiente de pago."
+        "pendingPayment": "Tu contratación quedó pendiente de pago.",
+        "paused": "Tu plan está pausado. Reactivalo para volver a usarlo."
       },
       "currentBadge": "Plan actual",
       "subscribeAction": "Suscribirme",
@@ -1403,6 +1404,21 @@
       },
       "error": {
         "title": "No pudimos preparar el evento de calendario"
+      }
+    }
+  },
+  "lawyer": {
+    "action": "Necesito un abogado",
+    "needsActivePlan": "Necesitás un plan activo para contratar asistencia legal.",
+    "dialog": {
+      "title": "Asistencia legal profesional",
+      "scopePending": "Todavía no podemos publicar qué incluye este servicio: el alcance lo está definiendo el estudio. No vamos a cobrarte por algo que no podemos describir.",
+      "price": "Precio: {{price}}, pago único por este caso.",
+      "responseTime": "Tiempo estimado de respuesta: {{hours}} horas.",
+      "confirm": "Contratar y pagar",
+      "cancel": "Ahora no",
+      "error": {
+        "title": "No pudimos registrar tu solicitud"
       }
     }
   },
