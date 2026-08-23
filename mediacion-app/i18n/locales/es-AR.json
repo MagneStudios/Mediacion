@@ -281,6 +281,22 @@
     }
   },
   "billing": {
+    "quotaLimit": {
+      "title": {
+        "casos": "Llegaste al límite de casos de tu plan",
+        "negociaciones": "Llegaste al límite de negociaciones de tu plan",
+        "clientes": "Llegaste al límite de altas de clientes de tu plan"
+      },
+      "body": {
+        "casos": "Tu plan permite {{limit}} casos abiertos a la vez y ya tenés {{used}}.",
+        "negociaciones": "Tu plan incluye {{limit}} negociaciones por período y ya usaste {{used}}.",
+        "clientes": "Tu plan incluye {{limit}} altas de clientes por período y ya usaste {{used}}."
+      },
+      "bodyUnknown": "Tu plan no te permite crear más por ahora.",
+      "resetsOn": "El contador se renueva el {{date}}.",
+      "upgradeAction": "Ver planes",
+      "dismissAction": "Ahora no"
+    },
     "paymentRequired": {
       "title": "Necesitás una suscripción activa",
       "body": "Quien te invitó eligió que vos te hagas cargo de la suscripción para acceder a este caso.",

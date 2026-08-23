@@ -281,6 +281,22 @@
     }
   },
   "billing": {
+    "quotaLimit": {
+      "title": {
+        "casos": "You reached your plan's case limit",
+        "negociaciones": "You reached your plan's negotiation limit",
+        "clientes": "You reached your plan's client sign-up limit"
+      },
+      "body": {
+        "casos": "Your plan allows {{limit}} open cases at a time and you already have {{used}}.",
+        "negociaciones": "Your plan includes {{limit}} negotiations per period and you have used {{used}}.",
+        "clientes": "Your plan includes {{limit}} client sign-ups per period and you have used {{used}}."
+      },
+      "bodyUnknown": "Your plan does not let you create more right now.",
+      "resetsOn": "The counter resets on {{date}}.",
+      "upgradeAction": "See plans",
+      "dismissAction": "Not now"
+    },
     "paymentRequired": {
       "title": "You need an active subscription",
       "body": "Whoever invited you chose for you to cover the subscription to access this case.",
