@@ -16,7 +16,11 @@ import type {
   SolicitudContacto,
   UsuarioActivo,
 } from "./legal.types";
-import { acceptanceExportColumns, legalDocumentColumns } from "./legal.types";
+import {
+  acceptanceExportColumns,
+  exportMaxRows,
+  legalDocumentColumns,
+} from "./legal.types";
 
 const solicitudReceiptColumns = ["codigo", "received_at"] as const;
 
@@ -136,6 +140,7 @@ export class LegalRepository {
     return query
       .orderBy("accepted_at", "desc")
       .orderBy("id")
+      .limit(exportMaxRows + 1)
       .execute()
       .catch((error: unknown) => {
         throw toDomainError(error);

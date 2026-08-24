@@ -58,6 +58,7 @@ export class PagosService {
       suscripcionId: suscripcion.id,
       planNombre: suscripcion.plan_nombre,
       precio: suscripcion.plan_precio,
+      moneda: suscripcion.plan_moneda,
     });
     return { init_point: preference.initPoint };
   }

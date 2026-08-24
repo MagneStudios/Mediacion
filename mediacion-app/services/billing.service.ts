@@ -131,6 +131,7 @@ export function createMockBillingService(): BillingService {
         iva: breakdown.iva,
         impuestos: breakdown.otrosImpuestos,
         total: breakdown.total,
+        moneda: plan.moneda,
         estado: 'emitida',
         createdAt: now,
       };

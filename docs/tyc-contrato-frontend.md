@@ -336,11 +336,13 @@ El instructivo pide *"precios en pesos, finales, con impuestos incluidos"*. Hoy:
 
 Lo que sí es nuestro sin ambigüedad, el día que se decida: sacar el `'USD'` hardcodeado y mostrar el total con impuestos en la tarjeta, no solo en el checkout.
 
+> **Corregido el 23/08** (rama `story/punto-24-precios-moneda`): la columna `planes.moneda` ya existe (`20260823120000_planes_moneda.sql`, default `'ARS'`, CHECK `planes_moneda_check`), el `'USD'` hardcodeado de `format-plan-limit.ts` se eliminó — `formatPlanPrice(precio, moneda)` formatea con el dato — y las tarjetas del catálogo muestran el precio **final** con impuestos, con el neto como dato secundario. Lo único que sigue abierto de esta sección es si los valores sembrados se resiembran (Producto) — ver §10.5 y `pedidos-frontend-a-backend.md` §7.
+
 ### 10.5 · Lo que queda abierto, y de quién es
 
 | Qué | De quién | Dónde está |
 |---|---|---|
-| **Punto #24: moneda de los precios y precio final en el catálogo** | **Producto + DB** → luego FE | §10.4 |
+| **Punto #24: mecánica cerrada el 23/08** (`planes.moneda` fuente + `currency_id` desde el dato + catálogo con precio final e impuestos incluidos); lo que queda abierto es **si los valores sembrados (9,99/19,99/25,00) se resiembran** — parecen price points de dólar | **Producto** (los valores; la mecánica ya no espera a nadie) | §10.4 + `pedidos-frontend-a-backend.md` §7 (respuesta del 23/08) |
 | Punto #4: flujo completo probado desde un celular real | **FE**, necesita device | §10.3 |
 | Qué significa `fecha_fin` — exponer el fin del período pagado o corregir la ficha §10 | **BE + Producto** | `pedidos-frontend-a-backend.md` §6.1 |
 | Declarar el dominio de `estado` en la ficha §10, y decidir si el endpoint filtra | **BE** | `pedidos-frontend-a-backend.md` §6.2 |
@@ -352,10 +354,12 @@ Lo que sí es nuestro sin ambigüedad, el día que se decida: sacar el `'USD'` h
 Y tres decisiones de FE que dejamos anotadas sin tomar, porque ninguna es un defecto:
 
 - **El banner no tiene ventana.** `LEGAL_AVISO_DIAS_ANTICIPACION` (default 10) acota el **email**, no la lectura de `/programada`, que devuelve cualquier `valid_from > now`. Una versión programada con 60 días de anticipación produce 60 días de aviso in-product, y como el descarte es por sesión, vuelve en cada arranque. Más aviso no es ilegal; es una decisión de UI que hoy nadie tomó.
-- **El checkout sigue en mock mientras "Mi plan" lee la API.** Con backend configurado, alguien contrata en el checkout demo, ve el recibo, y al volver a Mi plan lee "no tenés plan". Antes el mock mentía de forma consistente; ahora miente de forma inconsistente. Vale decidir si el checkout dice en voz alta que es demo o si se saca. No hay endpoint de factura y `POST /suscripciones/:id/pago` devuelve un `init_point`, no un pago confirmado.
-- **`billing.myPlan.cancel.dialogBody`** dice *"Vas a poder usar la aplicación hasta el final del período que ya pagaste"* — la misma promesa que sacamos de la pantalla, en el diálogo de confirmación. Es texto preexistente y probablemente la intención real del negocio; se alinea cuando BE decida el punto (a), no antes y no por nuestra cuenta.
+- **El checkout sigue en mock mientras "Mi plan" lee la API.** Con backend configurado, alguien contrata en el checkout demo, ve el recibo, y al volver a Mi plan lee "no tenés plan". Antes el mock mentía de forma consistente; ahora miente de forma inconsistente. Vale decidir si el checkout dice en voz alta que es demo o si se saca. No hay endpoint de factura y `POST /suscripciones/:id/pago` devuelve un `init_point`, no un pago confirmado. **Registrado el 23/08: la mitad "que lo diga en voz alta" ya estaba resuelta** — `billing.checkout.sandboxNotice` ("Este es un entorno de prueba: no se realiza ningún cobro real.") se muestra en `app/profile/plan/checkout.tsx`; sacarlo o cablearlo de verdad sigue siendo decisión de Producto.
+- **`billing.myPlan.cancel.dialogBody`** decía *"Vas a poder usar la aplicación hasta el final del período que ya pagaste"* — la misma promesa que sacamos de la pantalla, en el diálogo de confirmación. **Cerrado el 23/08** (rama `story/punto-24-precios-moneda`): BE ya había decidido (18/08, §6.1 del doc de pedidos) que `fecha_fin` es el instante de la baja, así que la promesa no tenía dato que la sostuviera. La copy nueva (es-AR + en) se alinea con `billing.myPlan.notice.cancelled`: se cancela el cobro recurrente, no se vuelve a cobrar, la cuenta y los casos no se borran — sin prometer vigencia posterior. Con test de regresión que abre el diálogo y asserta la ausencia de la promesa (`app/profile/plan/__tests__/index.test.tsx`).
 
 Y un defecto chico, preexistente, que apareció mirando el checkout en el navegador y que **no** tocamos por estar fuera del alcance de esta rama: el header de `app/profile/plan/checkout.tsx` muestra literalmente **"Suscribirte al plan {{nombre}}"**. `<Stack.Screen options={{ title: t('billing.checkout.title') }} />` pasa la clave sin el interpolado, mientras el `<Text>` del cuerpo sí lo pasa. Es una línea; va en la próxima que toque esa pantalla, o antes si Producto decide qué pasa con el checkout demo.
+
+> **Corregido el 23/08** (rama `story/punto-24-precios-moneda`, "la próxima que toque esa pantalla" fue esta): el título con plan cargado interpola `{ nombre }`, y los estados de loading/error usan la clave nueva `billing.checkout.screenTitle` ("Suscripción"), que no tiene placeholder — el literal `{{nombre}}` ya no puede renderizarse en ningún estado, y hay test de regresión (`checkout.test.tsx`).
 
 ### 10.6 · Una nota de proceso
 

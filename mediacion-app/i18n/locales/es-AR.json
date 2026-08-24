@@ -302,6 +302,7 @@
         "pendingPayment": "Tu contratación quedó pendiente de pago."
       },
       "currentBadge": "Plan actual",
+      "taxesIncluded": "Precio final, impuestos incluidos",
       "subscribeAction": "Suscribirme",
       "error": {
         "title": "No pudimos cargar tu plan"
@@ -309,7 +310,7 @@
       "cancel": {
         "action": "Dar de baja mi suscripción",
         "dialogTitle": "¿Querés dar de baja tu suscripción?",
-        "dialogBody": "Se cancela el cobro que se repite cada mes. Vas a poder usar la aplicación hasta el final del período que ya pagaste. Tu cuenta y tus casos no se borran.",
+        "dialogBody": "Se da de baja tu suscripción. No se vuelve a cobrar. Tu cuenta y tus casos no se borran.",
         "confirm": "Sí, dar de baja",
         "keep": "Mantener mi plan",
         "error": {
@@ -318,6 +319,7 @@
       }
     },
     "checkout": {
+      "screenTitle": "Suscripción",
       "title": "Suscribirte al plan {{nombre}}",
       "description": "Revisá el importe antes de confirmar. El total ya incluye los impuestos correspondientes.",
       "breakdown": {

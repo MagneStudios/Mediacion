@@ -39,7 +39,7 @@ export function PlanCard({
       <View style={styles.row}>
         <View style={styles.headerText}>
           <Text style={styles.name}>{plan.nombre}</Text>
-          <Text style={styles.price}>{formatPlanPrice(plan.precio)}</Text>
+          <Text style={styles.price}>{formatPlanPrice(plan.precio, plan.moneda)}</Text>
         </View>
 
         <View style={styles.actions}>

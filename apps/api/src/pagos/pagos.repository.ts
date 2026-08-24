@@ -28,6 +28,7 @@ export class PagosRepository {
         "suscripciones.id",
         "planes.nombre as plan_nombre",
         "planes.precio as plan_precio",
+        "planes.moneda as plan_moneda",
       ])
       .where("suscripciones.id", "=", suscripcionId)
       .where((eb) => {

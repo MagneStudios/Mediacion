@@ -868,6 +868,7 @@ export type Database = {
           limite_carpetas: number;
           limite_casos: number | null;
           limite_iteraciones_ia: number;
+          moneda: string;
           nombre: string;
           precio: number;
           updated_at: string;
@@ -878,6 +879,7 @@ export type Database = {
           limite_carpetas: number;
           limite_casos?: number | null;
           limite_iteraciones_ia: number;
+          moneda?: string;
           nombre: string;
           precio: number;
           updated_at?: string;
@@ -888,6 +890,7 @@ export type Database = {
           limite_carpetas?: number;
           limite_casos?: number | null;
           limite_iteraciones_ia?: number;
+          moneda?: string;
           nombre?: string;
           precio?: number;
           updated_at?: string;

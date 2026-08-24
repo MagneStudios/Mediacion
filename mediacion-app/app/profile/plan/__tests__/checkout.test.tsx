@@ -6,11 +6,23 @@ import type { Plan } from '@/types/plan';
 
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
+// A `Screen: () => null` mock swallows the native header entirely, so a
+// regression on `options.title` (the literal {{nombre}} bug, tyc-contrato
+// §10.5) could never fail a test. Capturing every title the screen sets is
+// what makes the header assertable.
+const mockCapturedTitles: string[] = [];
 jest.mock('expo-router', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text } = require('react-native');
   return {
-    Stack: { Screen: () => null },
+    Stack: {
+      Screen: ({ options }: { options?: { title?: string } }) => {
+        if (options?.title !== undefined) {
+          mockCapturedTitles.push(options.title);
+        }
+        return null;
+      },
+    },
     useRouter: () => ({ replace: mockReplace, back: mockBack }),
     useLocalSearchParams: () => ({ planId: 'plan-estudio' }),
     // AcceptanceCheckboxes embeds legal links in the checkbox labels.
@@ -40,7 +52,7 @@ jest.mock('@/services/legal.service', () => ({
 // eslint-disable-next-line import/first
 import PlanCheckoutScreen from '../checkout';
 
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25 };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
 
 async function renderScreen() {
   await render(
@@ -58,6 +70,7 @@ describe('PlanCheckoutScreen', () => {
     mockSubscribeToPlan.mockReset();
     mockRegisterAcceptance.mockReset();
     mockRegisterAcceptance.mockResolvedValue(undefined);
+    mockCapturedTitles.length = 0;
   });
 
   /**
@@ -82,10 +95,50 @@ describe('PlanCheckoutScreen', () => {
     mockGetPlan.mockResolvedValue(estudioPlan);
     await renderScreen();
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.breakdown.total'))).toBeTruthy());
-    // 25 net, 21% IVA → 5.25 IVA, 30.25 total (see utils/compute-tax-breakdown.test.ts).
-    expect(screen.getByText('$25.00')).toBeTruthy();
-    expect(screen.getByText('$5.25')).toBeTruthy();
-    expect(screen.getByText('$30.25')).toBeTruthy();
+    // 25 net, 21% IVA → 5.25 IVA, 30.25 total (see utils/compute-tax-breakdown.test.ts),
+    // formatted with the plan's own moneda (ARS) — the jest runtime language is 'en',
+    // and Intl renders en-US + ARS as "ARS<nbsp>25.00" (verified empirically, punto #24).
+    expect(screen.getByText('ARS\u00a025.00')).toBeTruthy();
+    expect(screen.getByText('ARS\u00a05.25')).toBeTruthy();
+    expect(screen.getByText('ARS\u00a030.25')).toBeTruthy();
+  });
+
+  it('interpolates the plan name into the header — the raw {{nombre}} placeholder never renders', async () => {
+    mockGetPlan.mockResolvedValue(estudioPlan);
+    await renderScreen();
+    await waitFor(() =>
+      expect(screen.getByText(i18n.t('billing.checkout.title', { nombre: estudioPlan.nombre }))).toBeTruthy(),
+    );
+    expect(screen.queryByText(/\{\{nombre\}\}/)).toBeNull();
+    // The native header, not just the body Text: loading sets the plain
+    // screenTitle, success replaces it with the interpolated one.
+    expect(mockCapturedTitles).toContain(i18n.t('billing.checkout.screenTitle'));
+    expect(mockCapturedTitles).toContain(i18n.t('billing.checkout.title', { nombre: estudioPlan.nombre }));
+    expect(mockCapturedTitles.at(-1)).toBe(i18n.t('billing.checkout.title', { nombre: estudioPlan.nombre }));
+    for (const title of mockCapturedTitles) {
+      expect(title).not.toContain('{{');
+    }
+  });
+
+  it('the loading header uses the plain screenTitle — no placeholder to leak', async () => {
+    mockGetPlan.mockReturnValue(new Promise(() => {}));
+    await renderScreen();
+
+    expect(mockCapturedTitles).toEqual([i18n.t('billing.checkout.screenTitle')]);
+    for (const title of mockCapturedTitles) {
+      expect(title).not.toContain('{{');
+    }
+  });
+
+  it('the error header uses the plain screenTitle — no placeholder to leak', async () => {
+    mockGetPlan.mockResolvedValue(undefined);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.notFound.title'))).toBeTruthy());
+
+    expect(mockCapturedTitles.at(-1)).toBe(i18n.t('billing.checkout.screenTitle'));
+    for (const title of mockCapturedTitles) {
+      expect(title).not.toContain('{{');
+    }
   });
 
   it('shows the sandbox notice — never implies a real charge', async () => {

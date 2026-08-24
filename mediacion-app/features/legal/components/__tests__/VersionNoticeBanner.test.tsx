@@ -1,7 +1,8 @@
 import { I18nextProvider } from 'react-i18next';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 
+import { maxRecheckDelayMs } from '@/features/legal/valid-from-recheck';
 import i18n from '@/i18n';
 import type { LegalDocument } from '@/types/legal';
 
@@ -267,6 +268,70 @@ describe('VersionNoticeBanner', () => {
       expect(bannerTree()).toEqual([]);
     },
   );
+
+  /**
+   * A long-lived web tab: the banner is mounted when `validFrom` arrives. It
+   * must reload on its own — the scheduled read filters `validFrom > now`, so
+   * the version that just entered into force disappears without a remount.
+   */
+  describe('re-check when validFrom passes with the app open', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-08-31T23:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('stops announcing the version once it enters into force', async () => {
+      // Scheduled one hour ahead of the pinned clock.
+      scheduleByType({ terms: scheduledTerms });
+      await renderBanner();
+      await act(async () => {});
+      expect(screen.getByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+
+      // The version enters into force, so the scheduled read empties out.
+      scheduleByType({});
+      await act(async () => {
+        jest.advanceTimersByTime(60 * 60 * 1000);
+      });
+      await act(async () => {});
+
+      expect(mockGetScheduledDocument).toHaveBeenCalledTimes(4);
+      expect(bannerTree()).toEqual([]);
+    });
+
+    it('clamps a far-off validFrom to 24h and re-arms instead of overflowing setTimeout', async () => {
+      // 60 days out: past the ~24.8-day signed-32-bit setTimeout limit, so an
+      // unclamped timer would overflow and fire immediately.
+      const farOff = {
+        ...scheduledTerms,
+        validFrom: '2026-10-30T23:00:00.000Z',
+      };
+      scheduleByType({ terms: farOff });
+      await renderBanner();
+      await act(async () => {});
+      expect(screen.getByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+
+      // A clamp tick fires while validFrom is still ahead: re-arm, no reload.
+      await act(async () => {
+        jest.advanceTimersByTime(maxRecheckDelayMs);
+      });
+      await act(async () => {});
+      expect(mockGetScheduledDocument).toHaveBeenCalledTimes(2);
+      expect(screen.getByText(/actualizar los Términos y Condiciones/i)).toBeTruthy();
+
+      // The re-armed chain still reaches validFrom and reloads then.
+      scheduleByType({});
+      await act(async () => {
+        jest.advanceTimersByTime(60 * 24 * 60 * 60 * 1000);
+      });
+      await act(async () => {});
+      expect(mockGetScheduledDocument).toHaveBeenCalledTimes(4);
+      expect(bannerTree()).toEqual([]);
+    });
+  });
 
   it('announces the dated version rather than the dateless one', async () => {
     scheduleByType({
