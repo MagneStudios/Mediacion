@@ -8,6 +8,7 @@ export const planColumns = [
   "limite_casos",
   "limite_iteraciones_ia",
   "precio",
+  "moneda",
 ] as const;
 
 export type Plan = Pick<
@@ -74,6 +75,7 @@ export type SuscripcionForPreference = {
   id: Suscripcion["id"];
   plan_nombre: Plan["nombre"];
   plan_precio: Plan["precio"];
+  plan_moneda: Plan["moneda"];
 };
 
 export type SuscripcionOwnerFilter = {

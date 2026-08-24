@@ -2,6 +2,7 @@ import type { AppConfig } from "../config/config";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import type { LegalRepository } from "./legal.repository";
 import { LegalService } from "./legal.service";
+import { exportMaxRows } from "./legal.types";
 
 describe("LegalService", () => {
   const metadata = { ip: "203.0.113.7", userAgent: "Expo/1.0" };
@@ -277,6 +278,15 @@ describe("LegalService", () => {
     });
   });
 
+  const capRow = {
+    user_id: "user-1",
+    document_type: "terms",
+    document_version: "v1.0",
+    accepted_at: "2026-08-14T15:02:00.000Z",
+    ip: "203.0.113.7",
+    user_agent: "Expo/1.0",
+  };
+
   describe("exportAcceptances", () => {
     it("builds the csv and the filename from the filters", async () => {
       const listAcceptances = jest.fn().mockResolvedValue([]);
@@ -306,6 +316,33 @@ describe("LegalService", () => {
         response: { code: "invalid_input" },
       });
       expect(listAcceptances).not.toHaveBeenCalled();
+    });
+
+    it("still exports when the log has exactly the cap of rows", async () => {
+      const listAcceptances = jest
+        .fn()
+        .mockResolvedValue(Array.from({ length: exportMaxRows }, () => capRow));
+      const { service } = buildService({ listAcceptances });
+
+      const result = await service.exportAcceptances({});
+
+      const lines = result.csv.trimEnd().split("\r\n");
+      expect(lines).toHaveLength(exportMaxRows + 1);
+      expect(lines[0]).toContain("user_id,document_type");
+    });
+
+    it("rejects an export over the cap without building the csv", async () => {
+      const listAcceptances = jest
+        .fn()
+        .mockResolvedValue(
+          Array.from({ length: exportMaxRows + 1 }, () => capRow),
+        );
+      const { service } = buildService({ listAcceptances });
+
+      await expect(service.exportAcceptances({})).rejects.toMatchObject({
+        status: 400,
+        response: { code: "export_too_large" },
+      });
     });
   });
 
@@ -351,6 +388,33 @@ describe("LegalService", () => {
         response: { code: "invalid_input" },
       });
       expect(listAcceptances).not.toHaveBeenCalled();
+    });
+
+    it("still exports the pdf when the log has exactly the cap of rows", async () => {
+      const listAcceptances = jest
+        .fn()
+        .mockResolvedValue(
+          Array.from({ length: exportMaxRows }, () => exportRow),
+        );
+      const { service } = buildService({ listAcceptances });
+
+      const result = await service.exportAcceptancesPdf({});
+
+      expect(result.pdf.subarray(0, 8).toString("latin1")).toBe("%PDF-1.4");
+    });
+
+    it("rejects an export over the cap without building the pdf", async () => {
+      const listAcceptances = jest
+        .fn()
+        .mockResolvedValue(
+          Array.from({ length: exportMaxRows + 1 }, () => exportRow),
+        );
+      const { service } = buildService({ listAcceptances });
+
+      await expect(service.exportAcceptancesPdf({})).rejects.toMatchObject({
+        status: 400,
+        response: { code: "export_too_large" },
+      });
     });
   });
 

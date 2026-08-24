@@ -10,12 +10,11 @@ import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import i18n from '@/i18n';
 import { legalService } from '@/services/legal.service';
-import type { LegalDocument, LegalDocumentType } from '@/types/legal';
+import { legalDocumentTypes, type LegalDocument, type LegalDocumentType } from '@/types/legal';
 import { formatLegalDate } from '@/utils/format-legal-date';
 
+import { scheduleValidFromRecheck } from '../valid-from-recheck';
 import { LegalDocumentBody } from './LegalDocumentBody';
-
-const documentTypes: LegalDocumentType[] = ['terms', 'privacy'];
 
 /**
  * In-product notice of a scheduled version change (instructivo §4.8, reparto
@@ -52,6 +51,12 @@ const documentTypes: LegalDocumentType[] = ['terms', 'privacy'];
  * silence a legally required announcement for good on the strength of one tap,
  * and sharing one flag across documents would let a tap on one announcement
  * bury a different one.
+ *
+ * While a notice is up, a timer waits for its `validFrom` (clamped and
+ * re-armed by `scheduleValidFromRecheck`) and reloads when it passes: the
+ * read filters `validFrom > now`, so the version that just entered into force
+ * disappears on its own — a long-lived web tab must not keep announcing a
+ * version the gate is already enforcing.
  */
 export function VersionNoticeBanner() {
   // The stack renders above the navigator, so no screen header is paying for
@@ -61,11 +66,12 @@ export function VersionNoticeBanner() {
 
   const [scheduled, setScheduled] = useState<LegalDocument[]>([]);
   const [dismissed, setDismissed] = useState<LegalDocumentType[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all(
-      documentTypes.map((tipo) =>
+      legalDocumentTypes.map((tipo) =>
         legalService.getScheduledDocument(tipo).catch(() => undefined),
       ),
     )
@@ -96,7 +102,19 @@ export function VersionNoticeBanner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
+
+  useEffect(() => {
+    if (scheduled.length === 0) {
+      return;
+    }
+    // Sorted nearest-first above, so the first document is the next to enter
+    // into force; once it does, the reload drops it and this effect re-arms
+    // for whichever is next.
+    return scheduleValidFromRecheck(Date.parse(scheduled[0].validFrom ?? ''), () =>
+      setReloadKey((current) => current + 1),
+    );
+  }, [scheduled]);
 
   const visible = scheduled.filter((document) => !dismissed.includes(document.tipo));
   if (visible.length === 0) {

@@ -205,6 +205,7 @@ Table planes {
   limite_casos int [note: 'NULL = ilimitado (R-10)']
   limite_iteraciones_ia int [not null, note: '-1 = ilimitado']
   precio numeric(10,2) [not null, note: 'Precio neto, sin impuestos (R-09). 0.00 = a consultar (corporativo)']
+  moneda text [not null, default: 'ARS', note: "Punto #24: moneda del cobro real (MP cobra ARS hoy). CHECK (moneda IN ('ARS')) — ampliar cuando Producto decida vender en otra. Ojo: los valores sembrados (9.99/19.99/25.00) parecen price points de dólar y su resembrado sigue abierto (RN-15)."]
   max_negotiations_per_period int [note: 'Cuota de negociaciones por período (Pactum). NULL = ilimitado. particular=3, estudio=3/cliente, corporativo=NULL']
   max_clients_per_period int [note: 'Cuota de altas de clientes por período (Pactum). NULL = ilimitado. estudio=20, corporativo=NULL']
   created_at timestamptz [not null, default: `now()`]

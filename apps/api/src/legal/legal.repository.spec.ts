@@ -1,4 +1,5 @@
 import { LegalRepository } from "./legal.repository";
+import { exportMaxRows } from "./legal.types";
 
 type FakeKysely = Record<string, jest.Mock>;
 
@@ -196,6 +197,15 @@ describe("LegalRepository", () => {
       });
 
       expect(kysely.where).toHaveBeenCalledTimes(5);
+    });
+
+    it("caps the read at one row over the export limit", async () => {
+      const kysely = createFakeKysely([]);
+      const repository = new LegalRepository(kysely as never);
+
+      await repository.listAcceptances({});
+
+      expect(kysely.limit).toHaveBeenCalledWith(exportMaxRows + 1);
     });
   });
 

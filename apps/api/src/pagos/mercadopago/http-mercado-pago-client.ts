@@ -12,7 +12,6 @@ import type {
 const mercadoPagoRequestTimeoutMs = 30_000;
 const mercadoPagoBaseUrl = "https://api.mercadopago.com";
 const singleItemQuantity = 1;
-const defaultCurrencyId = "ARS";
 const cancelledPreapprovalStatus = "cancelled";
 
 type MercadoPagoPreferenceResponse = {
@@ -48,7 +47,7 @@ export class HttpMercadoPagoClient implements MercadoPagoClient {
             title: input.planNombre,
             quantity: singleItemQuantity,
             unit_price: input.precio,
-            currency_id: defaultCurrencyId,
+            currency_id: input.moneda,
           },
         ],
       }),

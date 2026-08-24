@@ -47,6 +47,39 @@ describe('plans.service — R-10 admin ABM', () => {
     expect(plans.some((p) => p.id === created.id)).toBe(true);
   });
 
+  it("defaults moneda to 'ARS' on create, mirroring the planes.moneda column default (punto #24)", async () => {
+    const service = createMockPlansService();
+    const created = await service.createPlan(makeInput());
+    expect(created.moneda).toBe('ARS');
+  });
+
+  it("seeds every plan with moneda 'ARS', mirroring the real migration", async () => {
+    const service = createMockPlansService();
+    const plans = await service.listPlanes();
+    expect(plans).toHaveLength(4);
+    for (const plan of plans) {
+      expect(plan.moneda).toBe('ARS');
+    }
+  });
+
+  it("rejects creating with a moneda other than 'ARS' — the planes_moneda_check CHECK on the real table", async () => {
+    const service = createMockPlansService();
+    await expect(service.createPlan(makeInput({ moneda: 'USD' }))).rejects.toThrow('plan_moneda_invalid');
+  });
+
+  it("rejects updating to a moneda other than 'ARS' — same CHECK as create", async () => {
+    const service = createMockPlansService();
+    const created = await service.createPlan(makeInput());
+    await expect(service.updatePlan(created.id, makeInput({ moneda: 'USD' }))).rejects.toThrow('plan_moneda_invalid');
+  });
+
+  it('an update that says nothing about moneda keeps the existing one — never clobbered to undefined by the spread', async () => {
+    const service = createMockPlansService();
+    const created = await service.createPlan(makeInput());
+    const updated = await service.updatePlan(created.id, makeInput({ moneda: undefined, precio: 30 }));
+    expect(updated.moneda).toBe('ARS');
+  });
+
   it('rejects a duplicate nombre — UNIQUE on the real table', async () => {
     const service = createMockPlansService();
     await expect(service.createPlan(makeInput({ nombre: 'base' }))).rejects.toThrow('plan_nombre_taken');

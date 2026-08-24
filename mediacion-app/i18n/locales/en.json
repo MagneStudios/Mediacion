@@ -338,6 +338,7 @@
         "paused": "Your plan is paused. Reactivate it to use it again."
       },
       "currentBadge": "Current plan",
+      "taxesIncluded": "Final price, taxes included",
       "subscribeAction": "Subscribe",
       "error": {
         "title": "We couldn't load your plan"
@@ -345,7 +346,7 @@
       "cancel": {
         "action": "Cancel my subscription",
         "dialogTitle": "Cancel your subscription?",
-        "dialogBody": "This stops the monthly charge. You can keep using the app until the end of the period you already paid. Your account and your cases are not deleted.",
+        "dialogBody": "This cancels your subscription. You will not be charged again. Your account and your cases are not deleted.",
         "confirm": "Yes, cancel it",
         "keep": "Keep my plan",
         "error": {
@@ -354,6 +355,7 @@
       }
     },
     "checkout": {
+      "screenTitle": "Subscription",
       "title": "Subscribe to the {{nombre}} plan",
       "description": "Review the amount before confirming. The total already includes the applicable taxes.",
       "breakdown": {

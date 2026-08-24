@@ -39,11 +39,12 @@ describe("PagosService", () => {
   }
 
   describe("createPreference", () => {
-    it("creates a Mercado Pago preference from the suscripcion's plan price and returns only init_point", async () => {
+    it("creates a Mercado Pago preference from the suscripcion's plan price and currency and returns only init_point", async () => {
       const findSuscripcionForPreference = jest.fn().mockResolvedValue({
         id: "sus-1",
         plan_nombre: "plus",
         plan_precio: 19.99,
+        plan_moneda: "ARS",
       });
       const createPreference = jest.fn().mockResolvedValue({
         id: "pref-1",
@@ -64,6 +65,7 @@ describe("PagosService", () => {
         suscripcionId: "sus-1",
         planNombre: "plus",
         precio: 19.99,
+        moneda: "ARS",
       });
       expect(result).toEqual({
         init_point: "https://mp.example.com/checkout/pref-1",
@@ -76,6 +78,7 @@ describe("PagosService", () => {
         id: "sus-1",
         plan_nombre: "plus",
         plan_precio: 19.99,
+        plan_moneda: "ARS",
       });
       const findProfileById = jest
         .fn()

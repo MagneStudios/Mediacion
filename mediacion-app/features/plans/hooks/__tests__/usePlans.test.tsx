@@ -19,7 +19,7 @@ jest.mock('@/services/plans.service', () => ({
 // eslint-disable-next-line import/first
 import { usePlans } from '../usePlans';
 
-const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0 };
+const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
 
 describe('usePlans', () => {
   beforeEach(() => {

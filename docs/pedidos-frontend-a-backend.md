@@ -113,7 +113,7 @@ Queda anotado, de las decisiones de DB del 14/08, que la regla anti-contratació
 
 ## 4 · Dos notas para quien despliega (no son de desarrollo)
 
-- **`OPERACIONES_EMAIL` vacío hace que el aviso se loguee en vez de enviarse** (`agents/back/AGENTS.md` §Config). Los formularios de arrepentimiento y contacto registran la fila igual, pero nadie se entera. El instructivo §5 pide "alguien que efectivamente responda el canal de contacto": conviene que esa variable esté en el checklist de despliegue, porque sin ella el canal existe en la base y no en la práctica.
+- **`OPERACIONES_EMAIL` vacío hace que el aviso se loguee en vez de enviarse** (`agents/back/AGENTS.md` §Config). Los formularios de arrepentimiento y contacto registran la fila igual, pero nadie se entera. El instructivo §5 pide "alguien que efectivamente responda el canal de contacto": conviene que esa variable esté en el checklist de despliegue, porque sin ella el canal existe en la base y no en la práctica. **Hecho el 23/08**: `docs/deploy-coolify.md` §3 lista `OPERACIONES_EMAIL` (y las otras tres variables del módulo legal) en la tabla Optional, con el efecto de dejarla vacía.
 - **La baja en la pasarela hoy es un no-op**: `HttpMercadoPagoClient.cancelSubscription` busca el preapproval por `external_reference` y no hace nada si no existe, porque las suscripciones se cobran como preferencias one-off. El checklist del anexo pide la baja "verificada en el panel de la pasarela" — ese tilde no se puede poner todavía, y no alcanza con que el endpoint responda 200.
 
 ---
@@ -131,7 +131,7 @@ Queda anotado, de las decisiones de DB del 14/08, que la regla anti-contratació
 | 19 | Botón de baja online | Cerrado (17/08, contra `GET /suscripciones/vigente` + `POST /suscripciones/:id/baja`) |
 | 21, 22 | Datos societarios y Ventanilla Única | UI lista; contenido pendiente de Administración |
 | 23 | Formulario de contacto | Cerrado |
-| 24 | Precios en pesos, finales, desglosados | **Abierto** — corregido el 18/08: estaba mal dado por cerrado. Los precios se muestran en **dólares** (`currency: 'USD'` hardcodeado en `utils/format-plan-limit.ts`) con IVA argentino del 21% encima, el esquema no tiene columna de moneda, y el catálogo lista el neto y no el final. Pedido en **§7** de este doc; detalle en `tyc-contrato-frontend.md` §10.4 |
+| 24 | Precios en pesos, finales, desglosados | **Mecánica cerrada, valores pendientes de Producto** — 23/08: existe `planes.moneda` (default `'ARS'`, lo que MP cobra de verdad), `GET /planes` la expone, la preference de MP la usa como `currency_id` (se eliminó el hardcode), el front formatea con la moneda del dato (se eliminó el `'USD'` de `format-plan-limit.ts`) y el catálogo muestra el **precio final con impuestos** con leyenda. Lo único que sigue abierto es la **pregunta 1 de §7**: los valores sembrados (9,99/19,99/25,00) parecen price points de dólar y nadie decidió resembrarlos (RN-15 ya decía "precios a confirmar"). Respuesta completa en **§7** |
 
 **Salvedad sobre el móvil.** El layout responsive está y las pantallas legales se leen sin zoom, pero el tilde del checklist §07 es *"flujo completo probado desde el celular"* y eso **no está hecho**: toda la verificación de este módulo se corrió en navegador de escritorio. Es nuestro y solo necesita a alguien con un teléfono; queda anotado acá para no volver a darlo por cerrado como pasó con el #24.
 
@@ -222,6 +222,22 @@ El punto #24 del instructivo —*"precios en pesos, finales, con impuestos inclu
 **Lo que hacemos nosotros el día que se decida**, y es chico: sacar el `'USD'` hardcodeado de `format-plan-limit.ts` (un solo lugar, lo consumen las tres pantallas) y mostrar el total con impuestos en la tarjeta, no solo en el checkout.
 
 Registro completo, con el detalle de dónde se ve cada cosa, en `docs/tyc-contrato-frontend.md` §10.4.
+
+> **Respuesta — 23/08, DB + BE + FE (rama `story/punto-24-precios-moneda`): la mecánica está cerrada; la pregunta 1 sigue ABIERTA para Producto.**
+>
+> **Lo que se hizo, en las tres capas del reparto:**
+>
+> - **DB (la fuente):** `planes.moneda TEXT NOT NULL DEFAULT 'ARS' CHECK (moneda IN ('ARS'))` (`20260823120000_planes_moneda.sql`, con rollback comentado; `mediacion.dbml` y `packages/db-types` actualizados). El default es `'ARS'` porque **el cobro real ya era en pesos**: `http-mercado-pago-client.ts` mandaba `defaultCurrencyId = "ARS"` a la preference de Mercado Pago desde el primer día — la columna registra la moneda del cobro que existe, no inventa una nueva. El CHECK admite solo `'ARS'` a propósito: vender en otra moneda es una decisión que no está tomada, y el día que se tome es ampliar el CHECK, no re-modelar.
+> - **BE (el dato viaja):** `GET /planes` expone `moneda` (allowlist `planColumns` + compile-guard) y la preference de MP toma `currency_id` de la fila del plan (`planes.moneda as plan_moneda` → `SuscripcionForPreference` → `createPreference`). El hardcode `defaultCurrencyId` se eliminó y el spec del client ahora asserta `currency_id` — antes no lo hacía y un cambio de moneda pasaba sin test.
+> - **FE (la muestra):** `formatPlanPrice(precio, moneda)` — la moneda llega por dato (`Plan.moneda` / `MockInvoice.moneda`), nunca por literal en un componente. El catálogo muestra el **precio final con impuestos** (el mismo `computeTaxBreakdown` del checkout) con la leyenda "Precio final, impuestos incluidos", y el neto queda como dato secundario. De paso se corrigió el header del checkout que renderizaba el literal `{{nombre}}` (anotado en `tyc-contrato-frontend.md` §10.5).
+>
+> **Respuesta a las tres preguntas:**
+>
+> 1. **ABIERTA — es de Producto y esto no la cierra.** La columna dice `'ARS'` porque eso es lo que MP cobra hoy; pero los **valores** sembrados (9,99 / 19,99 / 25,00) siguen pareciendo price points de dólar y **nadie decidió resembrarlos**. Si Producto confirma que son ARS, no hay nada que hacer (ya se muestran y cobran como ARS); si eran USD de referencia, hay que resembrar `planes.precio` — una migración de una línea, pero es plata: la decide Producto. RN-15 ya decía "precios y límites a confirmar", así que el esquema siempre lo trató como provisorio.
+> 2. **Cerrada: el final.** La tarjeta del catálogo muestra el total con impuestos incluidos; el desglose discriminado (R-09) sigue en el checkout.
+> 3. **Sin cambios:** el IVA sigue seedeado por país con la única entrada `AR` al 21% aplicando a los cuatro planes. No se tocó porque no era parte del pedido; si algún plan tributa distinto, también es una definición de Producto.
+>
+> **Dos salvedades que esta respuesta deja anotadas, no resueltas:** la preference de MP sigue mandando `unit_price` = precio **neto** mientras la UI muestra el final con IVA (preexistente; qué monto debe viajar a la pasarela es decisión BE/Producto pendiente), y el front todavía **no consume `GET /planes`** — el catálogo corre sobre el mock `plans.service.ts`, espejado a mano contra las migraciones.
 
 ---
 

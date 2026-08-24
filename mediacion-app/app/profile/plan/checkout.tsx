@@ -62,7 +62,8 @@ export default function PlanCheckoutScreen() {
   if (fetchStatus === 'loading') {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.loadingContent}>
-        <Stack.Screen options={{ title: t('billing.checkout.title') }} />
+        {/* No plan loaded yet — a plain title; interpolating here would render the raw {{nombre}} placeholder. */}
+        <Stack.Screen options={{ title: t('billing.checkout.screenTitle') }} />
         <LoadingState label={t('common.loading')} />
       </ScrollView>
     );
@@ -71,7 +72,7 @@ export default function PlanCheckoutScreen() {
   if (fetchStatus === 'error' || !plan) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.loadingContent}>
-        <Stack.Screen options={{ title: t('billing.checkout.title') }} />
+        <Stack.Screen options={{ title: t('billing.checkout.screenTitle') }} />
         <ErrorState
           title={t('billing.checkout.notFound.title')}
           retryLabel={t('common.back')}
@@ -112,7 +113,7 @@ export default function PlanCheckoutScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
     >
-      <Stack.Screen options={{ title: t('billing.checkout.title') }} />
+      <Stack.Screen options={{ title: t('billing.checkout.title', { nombre: plan.nombre }) }} />
 
       <Text style={styles.title} accessibilityRole="header">
         {t('billing.checkout.title', { nombre: plan.nombre })}
@@ -121,6 +122,7 @@ export default function PlanCheckoutScreen() {
 
       <TaxBreakdownSummary
         breakdown={breakdown}
+        moneda={plan.moneda}
         netoLabel={t('billing.checkout.breakdown.neto')}
         ivaLabel={t('billing.checkout.breakdown.iva')}
         otrosImpuestosLabel={t('billing.checkout.breakdown.otrosImpuestos')}

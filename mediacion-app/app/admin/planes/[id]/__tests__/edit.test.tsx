@@ -27,9 +27,9 @@ jest.mock('@/services/plans.service', () => ({
 // eslint-disable-next-line import/first
 import EditPlanScreen from '../edit';
 
-const basePlan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0 };
-const estudioPlan: Plan = { id: 'plan-1', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25 };
-const plusPlan: Plan = { id: 'plan-1', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99 };
+const basePlan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
+const estudioPlan: Plan = { id: 'plan-1', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
+const plusPlan: Plan = { id: 'plan-1', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99, moneda: 'ARS' };
 
 async function renderScreen() {
   await render(

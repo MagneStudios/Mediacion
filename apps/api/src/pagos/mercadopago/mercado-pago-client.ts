@@ -2,6 +2,7 @@ export type CreatePreferenceInput = {
   suscripcionId: string;
   planNombre: string;
   precio: number;
+  moneda: string;
 };
 
 export type CreatePreferenceOutput = {

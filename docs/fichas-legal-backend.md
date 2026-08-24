@@ -120,6 +120,8 @@ Body admitido — **solo** esto:
 
 Query params, todos opcionales: `usuario_id`, `desde` (ISO), `hasta` (ISO), `document_type`, `version`. Un `desde` posterior a `hasta` → `400 invalid_input`.
 
+**Cap de filas (23/08):** el export lee hasta `exportMaxRows = 10000` filas (`legal.types.ts`). Si los filtros devuelven más, la respuesta es `400 { code: "export_too_large" }` con un mensaje que pide acotar el rango de fechas o los filtros, **antes de construir el documento** — el log completo no se arma en memoria. Aplica igual a la variante PDF de abajo. Con ≤ 10.000 filas el output no cambia.
+
 Columnas, en este orden — son las seis del instructivo:
 
 ```csv
@@ -131,7 +133,7 @@ user_id,document_type,document_version,accepted_at,ip,user_agent
 - Header `Content-Disposition: attachment; filename="aceptaciones-<desde>-<hasta>.csv"`.
 - Rol distinto de `admin` → `403 forbidden_role` (lo tira `RolesGuard`).
 
-**Variante PDF: `GET /legal/aceptaciones/export/pdf`** (17/08). Mismos query params, misma validación de rango, mismo orden y mismas seis columnas; cambia el renderer y el `Content-Type` (`application/pdf`, attachment con extensión `.pdf`). Cierra el "CSV y PDF" del checklist §07.
+**Variante PDF: `GET /legal/aceptaciones/export/pdf`** (17/08). Mismos query params, misma validación de rango, mismo orden y mismas seis columnas; cambia el renderer y el `Content-Type` (`application/pdf`, attachment con extensión `.pdf`). Cierra el "CSV y PDF" del checklist §07. Mismo cap de 10.000 filas y mismo `400 export_too_large` que el CSV.
 
 - El PDF se genera sin dependencia nueva (`legal/acceptance-pdf.ts`): PDF 1.4 mínimo, Courier, una página por bloque de filas. `agents/back/AGENTS.md` declara que no hay librería de PDF en el repo y no se agregó ninguna.
 - El `user_agent` **se envuelve en líneas de continuación, no se trunca**: es prueba, no decoración.

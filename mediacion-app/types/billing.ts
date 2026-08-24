@@ -56,6 +56,8 @@ export type MockInvoice = {
   iva: number;
   impuestos: number;
   total: number;
+  /** Punto #24: snapshot of the plan's `moneda` at subscribe time — the receipt formats with the data, never a literal. */
+  moneda: string;
   estado: EstadoFactura;
   createdAt: string;
 };

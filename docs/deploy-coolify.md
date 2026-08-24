@@ -72,6 +72,10 @@ simply inert.
 | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | MercadoPago checkout and webhook |
 | `DOCUSIGN_*` | Agreement signature flow |
 | `SMTP_*`, `FCM_KEY`, `APNS_KEY` | Notification delivery |
+| `OPERACIONES_EMAIL` | Destination inbox for the legal module: version-change notices, arrepentimiento and contacto submissions. **Empty means those emails are logged instead of sent** — the instructivo TyC §5 requires a channel someone actually answers, so set it before going live. |
+| `LEGAL_AVISO_DIAS_ANTICIPACION` | How many days before `valid_from` the version-change notice goes out. Defaults to `10`, the instructivo minimum. |
+| `LEGAL_PUBLIC_REQUESTS_PER_WINDOW` | Per-IP rate limit for the public legal forms (arrepentimiento/contacto). Defaults to `5` requests per window. |
+| `LEGAL_PUBLIC_WINDOW_MS` | Window size for that rate limit. Defaults to `3600000` (1 hour). |
 
 **Never** set `SUPABASE_SERVICE_ROLE_KEY` on the API. It does not read it: the
 API connects with its own `DATABASE_URL` and enforces isolation in code.

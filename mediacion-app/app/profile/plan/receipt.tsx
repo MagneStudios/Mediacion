@@ -100,6 +100,7 @@ export default function PlanReceiptScreen() {
 
       <TaxBreakdownSummary
         breakdown={{ neto: invoice.neto, iva: invoice.iva, otrosImpuestos: invoice.impuestos, total: invoice.total }}
+        moneda={invoice.moneda}
         netoLabel={t('billing.checkout.breakdown.neto')}
         ivaLabel={t('billing.checkout.breakdown.iva')}
         otrosImpuestosLabel={t('billing.checkout.breakdown.otrosImpuestos')}

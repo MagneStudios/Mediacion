@@ -969,6 +969,7 @@ export type Database = {
           limite_iteraciones_ia: number;
           max_clients_per_period: number | null;
           max_negotiations_per_period: number | null;
+          moneda: string;
           nombre: string;
           precio: number;
           updated_at: string;
@@ -981,6 +982,7 @@ export type Database = {
           limite_iteraciones_ia: number;
           max_clients_per_period?: number | null;
           max_negotiations_per_period?: number | null;
+          moneda?: string;
           nombre: string;
           precio: number;
           updated_at?: string;
@@ -993,6 +995,7 @@ export type Database = {
           limite_iteraciones_ia?: number;
           max_clients_per_period?: number | null;
           max_negotiations_per_period?: number | null;
+          moneda?: string;
           nombre?: string;
           precio?: number;
           updated_at?: string;
