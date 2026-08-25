@@ -4,7 +4,7 @@
 
 > **El inventario completo de la superficie de la API —qué consumimos, qué no y por qué— vive en `docs/integration-contract.md` §0.2 (25/08).** Este documento son los pedidos; ese es el estado.
 >
-> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§12** (onboarding — incluye un agujero: hoy cualquier usuario autenticado puede marcarse como biométricamente verificado), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§13** (el CI de `dev` está en rojo desde el PR #110, con el arreglo de una línea), **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§12** (onboarding — incluye un agujero: hoy cualquier usuario autenticado puede marcarse como biométricamente verificado), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -449,6 +449,48 @@ Antes de tocarlo necesitamos saber si `consentimiento_*` es la firma de identida
 3. **Qué es `consentimiento_*`** y cómo convive con `legal_acceptances`.
 
 Con eso construimos el flujo. Sin eso, lo único que podemos entregar es una pantalla que miente sobre una verificación de identidad, y preferimos no tenerla.
+
+---
+
+## 13 · El CI de `dev` está en rojo desde el PR #110 — diagnóstico y arreglo de una línea
+
+**Autor:** Frontend, 25/08 · **Para:** DB · **No lo tocamos**: `supabase/migrations/` es de ustedes
+
+Lo encontramos mirando por qué el PR #111 tenía checks rojos. **No eran de nuestro cambio: `dev` ya estaba rojo**, y sigue estándolo.
+
+### 13.1 · `integration` — el `GRANT` a un rol que en CI no existe
+
+```
+psql:supabase/migrations/20260825000000_custom_access_token.sql:51:
+ERROR:  role "supabase_auth_admin" does not exist
+```
+
+La última línea de la migración es `GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;`. En un stack de Supabase real ese rol existe; el job `integration` de `ci-node.yml` corre las migraciones contra un **`postgres:16-alpine` pelado**, donde no. La migración aborta y el job sale con exit 3.
+
+**Se ve en el CI de `dev` mismo**, en la corrida del merge del PR #110 — o sea desde antes de que existiera cualquier rama nuestra. Todo PR abierto contra `dev` hereda el rojo.
+
+Que en local pase es esperable y no lo desmiente: `db reset` corre contra el stack completo de Supabase, con sus roles. El QA del changelog de DB (`36/36 migraciones OK`, `81/81 PASS`) es correcto **y CI igual se rompe**, porque los dos entornos no son el mismo.
+
+**El arreglo, guardando el `GRANT` como ya guardan otras cosas en esa misma migración:**
+
+```sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+    GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;
+  END IF;
+END $$;
+```
+
+Idempotente en los dos entornos: en Supabase real otorga como hoy, en el postgres pelado de CI no hace nada. **No lo aplicamos nosotros**: `agents/back/AGENTS.md` marca los límites de repo, y es justo lo que reclamamos en §6.4 cuando se cruzó al revés. Si prefieren que lo mandemos nosotros, avisen y va.
+
+### 13.2 · `Vercel` — también rojo en `dev`, y no es del bundle
+
+El check de Vercel está en `failure` sobre el HEAD de `dev`, igual que en los PRs.
+
+Descartamos que sea del código de la app: corrimos localmente **los dos tramos exactos** del `buildCommand` de `vercel.json` — `pnpm --filter @mediacion/shared build` y `npx expo export --platform web` — y los dos salen con **exit 0**, con las 30 rutas exportadas. Lo que falla está del lado de Vercel (instalación, configuración del proyecto o cuota), no en lo que compilamos.
+
+No tenemos acceso al panel para leer el log (`npx vercel inspect` pide credenciales). Quien lo tenga, ahí está la respuesta.
 
 ---
 
