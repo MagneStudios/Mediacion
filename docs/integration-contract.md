@@ -4,6 +4,58 @@ Audit of `mediacion-app` (React Native / Expo, built against mocks) vs the real 
 
 ---
 
+## 0.2 Status re-check — inventario completo de la superficie de la API (2026-08-25)
+
+**Autor:** Frontend · **Para:** Backend y DB · **Rama:** `feat/frontend-integracion-planes` (PR #111) + `feat/frontend-integracion-tareas`
+
+Re-verificado **ruta por ruta** contra los controllers de `apps/api/src`, no contra este documento. Las capas 0 y 0.1 y las secciones 1–4 quedan como están, para trazabilidad; **esta las reemplaza como estado actual**.
+
+**Por qué existe esta capa.** Backend avisó que "faltan algunos endpoints por integrar". Al revisar la superficie entera aparecieron **siete rutas construidas, sin consumir y sin ninguna razón para no hacerlo** — algunas desde hacía casi un mes. **Las siete están integradas** (25/08). El resto de lo no consumido sí tiene razón, pero hasta hoy esa razón no estaba escrita en ningún lugar común: por eso la tabla de abajo, para que nadie la vuelva a descubrir desde cero.
+
+### Consumido por `mediacion-app`
+
+`GET/POST /casos` · `GET /casos/:id` · `POST /casos/:id/invitaciones` · **`GET /casos/:id/invitaciones`** · `POST /casos/unirse` · `GET /casos/:casoId/actividad` · los cinco de `items` · los tres de `negociacion` · `GET/POST /casos/:casoId/acuerdo` · `POST /acuerdos/:id/firmar` · `GET /firmas` · **`POST/GET /acuerdos/:id/incumplimiento(s)`** · **`GET /acuerdos/:id/exportar`** · `GET /casos/:casoId/mediacion` · `GET /casos/:casoId/mediadores` · `POST /casos/:casoId/mediacion` · los cuatro de `notificaciones` · los cinco de `/me` · los seis públicos/bearer de `legal` · **`GET /planes`** · `GET /suscripciones/vigente` · `POST /suscripciones/:id/baja` · **`GET /casos/:casoId/tareas`** · **`PATCH /tareas/:id`**
+
+En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md`.
+
+### Existe, no se consume — y por qué
+
+| Ruta | Razón | ¿Bloquea? |
+|---|---|---|
+| `POST /tareas/:id/calendario` | **Ininvocable**: exige un `fecha_evento` que ninguna tarea generada tiene y que sólo ese endpoint escribe | **Sí** — §11 de `pedidos-frontend-a-backend.md` |
+| `POST /suscripciones` · `POST /suscripciones/:id/pago` | `pago` devuelve un `init_point` de MP, no confirma un cobro, y no hay endpoint de factura. Cablearlo haría que la app reporte un pago aprobado y emita una factura por plata que nadie cobró | No — decisión escrita |
+| `GET /acuerdos/:id/historial` | Devuelve filas crudas de `auditoria` (`accion`/`entidad`), sin correspondencia con el vocabulario de la pantalla | No — se derivan del acuerdo los dos eventos que la fila prueba |
+| `GET /acuerdos/:id/firmas` | Redundante: `GET /casos/:casoId/acuerdo` ya trae el bundle con `firmas` | No |
+| `GET /casos/:id/categorias` | Redundante: devuelve una lista **estática** (`categoriasBase`) idéntica al union de `types/position.ts`. Verificado valor por valor | No — pero es una ruta que quizá les convenga retirar |
+| `GET /casos/:id/plazo` | Redundante: `plazo`, `sla_tipo`, `ronda_actual` y `semaforo` ya viajan en `CaseSummary`/`CaseDetail` | No |
+| `PATCH /casos/:id/plazo` · `PATCH /casos/:id/estado` | No hay UI que los use ni pedido de Producto para que la haya | No — **avisen si esperaban que existiera** |
+| `POST /auth/biometria` · `POST /auth/consentimiento` | No existe flujo de onboarding en la app | No — mismo comentario |
+| `PATCH /mediacion/:id` | `@Roles("mediador","admin")` — no es de la app de partes | No |
+| `GET /legal/aceptaciones/export(/pdf)` · `GET /metricas` · `GET /auditoria` · `PATCH /config/ia` · los cuatro de `/estudios` | `@Roles("admin"\|"estudio")` — son del panel, y `apps/panel` hoy tiene sólo un `package.json` | No |
+| `POST /inversores` | Público, para una landing que no es esta app | No |
+| `internal/*/sweep` · `webhooks/*` | Server-only | No |
+
+### Lo que necesitamos de Backend, por orden
+
+1. **§10 — los datos para conectarnos a la API real.** Es lo único que nos frena para dejar de verificar contra mocks. Hasta el fix de auth del 25/08 no se podía ni hacer login, así que **las cuatro integraciones nuevas están verificadas sólo contra mocks y contra la lectura de su código**.
+2. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
+3. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
+4. **§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`** (`max_negotiations_per_period`, `max_clients_per_period`). Sigue abierto: `planColumns` tiene siete columnas, verificado hoy.
+5. **§9 — `Content-Disposition` en `exposedHeaders`.** Sólo el día que guardemos archivos de verdad.
+
+### Dos cosas que no son pedidos, pero les ahorran una sorpresa
+
+- **`GET /planes` manda `precio` como string, casi seguro.** `numeric(10,2)` y `pg` devuelve `numeric` como string salvo que se registre un type parser; `database/kysely.provider.ts` no registra ninguno, y **ninguna spec de ustedes fija el shape de lectura**. Nuestro mapper acepta los dos. Si se confirma, cualquier consumidor que haga aritmética sobre ese campo se lleva una sorpresa — el nuestro es hoy el único lugar donde está contemplado.
+- **Las tareas dependen enteramente de DocuSign.** `generateForAcuerdo` se llama desde **un solo lugar**, el webhook, cuando todas las firmas completan. Con las ocho `DOCUSIGN_*` sin configurar, `GET /casos/:casoId/tareas` devuelve `[]` siempre. No es un bug, pero significa que **tareas no se puede probar punta a punta sin DocuSign**, y eso no depende de nosotros.
+
+### Una lección de proceso, sin reproche
+
+`GET /casos/:id/invitaciones` estuvo **casi un mes construido y sin consumir**. El header de `cases.backed-service.ts` afirmaba que la API no tenía endpoint de lectura — cierto cuando se escribió, falso desde el commit `32515a3` del 30/07. El costo mientras tanto: recargar la app volvía irrecuperable el código de invitación.
+
+El changelog del 30/07 lo listaba; el que no lo leyó fuimos nosotros. Lo que proponemos para que no se repita: **cuando una ruta nueva quede lista, una línea en el doc de pedidos o en el changelog diciendo "esto ya se puede consumir"**. Nosotros hacemos lo simétrico: esta capa se actualiza cada vez que integramos algo.
+
+---
+
 ## 0.1 Status re-check — `origin/main` @ `172ce22` (2026-07-30)
 
 Re-verified against the live route table and the deployed stack. Sections 0 and 1–4 are kept as written; this layer corrects them.

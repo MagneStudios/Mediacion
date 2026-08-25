@@ -2,6 +2,8 @@
 
 **Fecha:** 16/08/2026, ampliado el 18/08 y el 25/08 · **Autor:** Frontend · **Para:** Backend (§1–§6, §8–§10) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
 
+> **El inventario completo de la superficie de la API —qué consumimos, qué no y por qué— vive en `docs/integration-contract.md` §0.2 (25/08).** Este documento son los pedidos; ese es el estado.
+>
 > **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
