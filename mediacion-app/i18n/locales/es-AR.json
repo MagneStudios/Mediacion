@@ -151,15 +151,17 @@
       }
     },
     "export": {
-      "action": "Exportar acuerdo (texto plano)",
-      "exportingTitle": "Preparando el archivo exportado",
-      "exportingBody": "El archivo de texto plano estará listo en un instante.",
+      "action": "Ver el acuerdo en texto plano",
+      "exportingTitle": "Trayendo el texto del acuerdo",
+      "exportingBody": "Va a estar listo en un instante.",
       "success": {
-        "title": "Acuerdo exportado",
-        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
+        "title": "Acuerdo en texto plano",
+        "body": "Este es un resumen en texto plano del acuerdo. Podés copiarlo y pegarlo donde lo necesites. No es un documento firmado ni con validez legal."
       },
+      "copyAction": "Copiar el texto",
+      "copied": "Texto copiado",
       "error": {
-        "title": "No pudimos exportar el acuerdo"
+        "title": "No pudimos traer el acuerdo"
       }
     },
     "sign": {
@@ -239,6 +241,10 @@
         "error": {
           "title": "No pudimos registrar el aviso"
         }
+      },
+      "list": {
+        "title": "Avisos registrados",
+        "empty": "Todavía no hay avisos registrados en este acuerdo."
       }
     }
   },

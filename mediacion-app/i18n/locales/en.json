@@ -151,15 +151,17 @@
       }
     },
     "export": {
-      "action": "Export agreement (plain text)",
-      "exportingTitle": "Preparing the exported file",
-      "exportingBody": "The plain-text file will be ready in a moment.",
+      "action": "View the agreement as plain text",
+      "exportingTitle": "Fetching the agreement text",
+      "exportingBody": "It will be ready in a moment.",
       "success": {
-        "title": "Agreement exported",
-        "body": "A plain-text summary was generated in this test environment. It is not a signed or legally binding document."
+        "title": "Agreement as plain text",
+        "body": "This is a plain-text summary of the agreement. You can copy it and paste it wherever you need. It is not a signed or legally binding document."
       },
+      "copyAction": "Copy the text",
+      "copied": "Text copied",
       "error": {
-        "title": "We couldn't export the agreement"
+        "title": "We couldn't fetch the agreement"
       }
     },
     "sign": {
@@ -239,6 +241,10 @@
         "error": {
           "title": "We couldn't register the notice"
         }
+      },
+      "list": {
+        "title": "Registered notices",
+        "empty": "No notices have been registered on this agreement yet."
       }
     }
   },

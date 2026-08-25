@@ -23,6 +23,10 @@ function buildHttp(responder: (call: Call) => unknown): {
         calls.push({ path, options });
         return Promise.resolve(responder({ path, options }) as T);
       },
+      /** No suite here reads text; a call would be a mistake worth hearing. */
+      async requestText(): Promise<string> {
+        throw new Error('requestText is not stubbed in this suite');
+      },
     },
   };
 }

@@ -1,14 +1,16 @@
 import { mockCases, mockCaseDetails } from '../mocks/cases';
 import { buildInitialAgreements, buildInitialHistory, buildInitialSigners, simulatedOtherPartySignature } from '../mocks/agreements';
 import type {
+  AgreementExport,
   AgreementHistoryItem,
   AgreementHistoryEventKey,
   AgreementState,
+  BreachNotice,
   SharedAgreement,
   SharedSignerStatus,
   SignatureInboxItem,
 } from '../types/agreement';
-import { generateMockAgreementId, generateMockHistoryId } from '../utils/mock-id';
+import { generateMockAgreementId, generateMockBreachNoticeId, generateMockHistoryId } from '../utils/mock-id';
 import { createBackedAgreementsService } from './api/agreements.backed-service';
 import { backend } from './backend-instance';
 import { casesService } from './cases.service';
@@ -42,6 +44,15 @@ export type AgreementsService = {
   prepareSignatureDocument(caseId: string): Promise<AgreementState>;
   submitOwnMockSignature(caseId: string, agreementId: string): Promise<AgreementState>;
   getAgreementHistory(caseId: string): Promise<AgreementHistoryItem[]>;
+  /**
+   * Registers a breach notice and answers with the agreement state **as it is
+   * afterwards** — the backend moves the acuerdo to `con_aviso` in the same
+   * transaction, so returning the new state is the only way the screen can
+   * render the truth without a second guess.
+   */
+  reportBreach(caseId: string, agreementId: string, description: string): Promise<AgreementState>;
+  getBreachNotices(agreementId: string): Promise<BreachNotice[]>;
+  exportAgreement(agreementId: string): Promise<AgreementExport>;
   getSignatureInbox(): Promise<SignatureInboxItem[]>;
 };
 
@@ -50,9 +61,21 @@ const mockAgreements: SharedAgreement[] = buildInitialAgreements();
 const mockSigners: Record<string, SharedSignerStatus[]> = buildInitialSigners();
 const mockHistory: Record<string, AgreementHistoryItem[]> = buildInitialHistory();
 
-const failures = createFailureController<'prepareSignatureDocument' | 'submitOwnMockSignature'>();
+/** In-memory only, keyed by agreement id — cleared on app restart, never written to disk. */
+const mockBreachNotices: Record<string, BreachNotice[]> = {};
 
-export function __mockForceAgreementFailure(operation: 'prepareSignatureDocument' | 'submitOwnMockSignature'): void {
+/** The one mock authenticated party, same convention as `positions.service.ts`. */
+const mockReporterId = 'party-self';
+
+type ForcibleOperation =
+  | 'prepareSignatureDocument'
+  | 'submitOwnMockSignature'
+  | 'reportBreach'
+  | 'exportAgreement';
+
+const failures = createFailureController<ForcibleOperation>();
+
+export function __mockForceAgreementFailure(operation: ForcibleOperation): void {
   failures.force(operation);
 }
 
@@ -302,6 +325,72 @@ export function createMockAgreementsService(): AgreementsService {
       if (!agreement) return delay([], 300);
       const items = [...(mockHistory[agreement.id] ?? [])].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       return delay(items, 400);
+    },
+
+    async reportBreach(caseId, agreementId, description) {
+      if (failures.consume('reportBreach')) {
+        return rejectAfter('mock_report_breach_failed', 500);
+      }
+      const agreement = mockAgreements.find((candidate) => candidate.id === agreementId);
+      if (!agreement || agreement.caseId !== caseId) {
+        return rejectAfter('agreement_not_found', 300);
+      }
+      // Mirrors the server rule: only a signed agreement can be reported.
+      // The mock refusing what the API refuses is what keeps a screen from
+      // being written against a permissiveness that does not exist.
+      if (agreement.estado !== 'firmado' && agreement.estado !== 'con_aviso') {
+        return rejectAfter('agreement_not_firmado', 300);
+      }
+      const trimmed = description.trim();
+      if (trimmed.length === 0) {
+        return rejectAfter('invalid_input', 300);
+      }
+
+      const notice: BreachNotice = {
+        id: generateMockBreachNoticeId(),
+        agreementId,
+        reporterId: mockReporterId,
+        description: trimmed,
+        fecha: new Date().toISOString(),
+      };
+      const committed = await delay(notice, 700);
+      // Committed together, like the server's transaction: a registered
+      // notice always comes with the estado it caused.
+      mockBreachNotices[agreementId] = [committed, ...(mockBreachNotices[agreementId] ?? [])];
+      agreement.estado = 'con_aviso';
+      return buildAgreementState(agreement);
+    },
+
+    async getBreachNotices(agreementId) {
+      return delay([...(mockBreachNotices[agreementId] ?? [])], 400);
+    },
+
+    async exportAgreement(agreementId) {
+      if (failures.consume('exportAgreement')) {
+        return rejectAfter('mock_export_agreement_failed', 500);
+      }
+      const agreement = mockAgreements.find((candidate) => candidate.id === agreementId);
+      if (!agreement) {
+        return rejectAfter('agreement_not_found', 300);
+      }
+      // A rough stand-in for `buildAgreementDocument` on the server, not a
+      // copy of it: the real text is BE's to shape, and mirroring it line by
+      // line here would be one more hand-kept mirror to drift.
+      const document = [
+        'ACUERDO DE MEDIACIÓN',
+        '',
+        `Identificador: ${agreement.id}`,
+        `Caso: ${agreement.caseId}`,
+        `Estado: ${agreement.estado}`,
+        '',
+        'PUNTOS ACORDADOS',
+        ...agreement.terms.map((term) => `- ${term.title}: ${term.description}`),
+        '',
+        'FUNDAMENTACIÓN',
+        agreement.rationale ?? '—',
+        '',
+      ].join('\n');
+      return delay({ document }, 700);
     },
 
     async getSignatureInbox() {

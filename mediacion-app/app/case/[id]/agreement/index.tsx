@@ -9,13 +9,19 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import { AgreementExportAction } from '@/features/agreements/components/AgreementExportAction';
+import {
+  AgreementExportAction,
+  type AgreementExportActionStatus,
+} from '@/features/agreements/components/AgreementExportAction';
 import { BreachNoticeDialog } from '@/features/agreements/components/BreachNoticeDialog';
 import { BreachNoticeForm } from '@/features/agreements/components/BreachNoticeForm';
+import { BreachNoticeList } from '@/features/agreements/components/BreachNoticeList';
 import { DocumentPreparationState } from '@/features/agreements/components/DocumentPreparationState';
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
+import { useBreachNotices } from '@/features/agreements/hooks/useBreachNotices';
+import { agreementsService } from '@/services/agreements.service';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
@@ -24,18 +30,28 @@ export default function AgreementDashboardScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const router = useRouter();
-  const { status, state, reload, prepareStatus, prepareDocument } = useAgreement(caseId);
+  const { status, state, reload, prepareStatus, prepareDocument, breachStatus, reportBreach, resetBreachStatus } =
+    useAgreement(caseId);
+  const breachNotices = useBreachNotices(state?.agreement.id ?? null);
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const [breachDescription, setBreachDescription] = useState('');
   const [breachSubmitAttempted, setBreachSubmitAttempted] = useState(false);
   const [breachDialogVisible, setBreachDialogVisible] = useState(false);
 
+  // The export lives here rather than in `useAgreement`: it mutates nothing
+  // and the document is only ever wanted by this screen.
+  const [exportStatus, setExportStatus] = useState<AgreementExportActionStatus>('idle');
+  const [exportedDocument, setExportedDocument] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     setBreachDescription('');
     setBreachSubmitAttempted(false);
     setBreachDialogVisible(false);
-  }, [caseId, state?.agreement.id]);
+    resetBreachStatus();
+    setExportStatus('idle');
+    setExportedDocument(undefined);
+  }, [caseId, state?.agreement.id, resetBreachStatus]);
 
   if (status === 'loading') {
     return (
@@ -88,15 +104,36 @@ export default function AgreementDashboardScreen() {
     setBreachDialogVisible(true);
   };
 
-  const handleBreachConfirm = () => {
-    // Placeholder only — no incumplimientos service exists yet in this
-    // phase. Intentionally just closes the dialog: never fabricate a
-    // registered/success result without a real backend call behind it.
+  const handleBreachConfirm = async () => {
+    if (!state || breachStatus === 'pending') return;
+    const registered = await reportBreach(state.agreement.id, breachDescription);
+    if (!registered) return;
+    // Only after the server accepted it: the dialog closing and the field
+    // clearing are what tell the user it was registered, so neither may
+    // happen on a failure. `reportBreach` already left breachStatus 'error'.
     setBreachDialogVisible(false);
+    setBreachDescription('');
+    setBreachSubmitAttempted(false);
+    // The notice list is a separate read, so it has to be told.
+    breachNotices.reload();
   };
 
   const handleBreachCancel = () => {
     setBreachDialogVisible(false);
+    resetBreachStatus();
+  };
+
+  const handleExport = async () => {
+    if (!state || exportStatus === 'pending') return;
+    setExportStatus('pending');
+    try {
+      const exported = await agreementsService.exportAgreement(state.agreement.id);
+      setExportedDocument(exported.document);
+      setExportStatus('success');
+    } catch {
+      setExportedDocument(undefined);
+      setExportStatus('error');
+    }
   };
 
   const statusLabel = agreement.estado === 'con_aviso'
@@ -177,12 +214,11 @@ export default function AgreementDashboardScreen() {
       ) : null}
 
       <AgreementExportAction
-        status="idle"
-        onExport={() => {
-          // Placeholder only — no export service exists yet in this phase.
-          // Intentionally a no-op: never fabricate a pending/success result
-          // without a real backend call behind it.
-        }}
+        status={exportStatus}
+        onExport={handleExport}
+        document={exportedDocument}
+        copyLabel={t('agreement.export.copyAction')}
+        copiedLabel={t('agreement.export.copied')}
         actionLabel={t('agreement.export.action')}
         exportingTitle={t('agreement.export.exportingTitle')}
         exportingBody={t('agreement.export.exportingBody')}
@@ -202,7 +238,7 @@ export default function AgreementDashboardScreen() {
             description={breachDescription}
             onChangeDescription={setBreachDescription}
             descriptionError={breachDescriptionError}
-            status="idle"
+            status={breachStatus === 'pending' ? 'submitting' : 'idle'}
             onSubmit={handleBreachSubmit}
             title={t('agreement.breachNotice.form.title')}
             descriptionLabel={t('agreement.breachNotice.form.descriptionLabel')}
@@ -211,6 +247,18 @@ export default function AgreementDashboardScreen() {
             submitLabel={t('agreement.breachNotice.form.submitAction')}
             submittingLabel={t('agreement.breachNotice.form.submittingAction')}
           />
+          {/* The confirmation dialog promises the note stays visible to both
+              parties; this is where that promise is kept. Rendered only while
+              the list actually read — on an error it stays absent rather than
+              claiming there are none. */}
+          {breachNotices.status === 'success' ? (
+            <BreachNoticeList
+              notices={breachNotices.notices}
+              title={t('agreement.breachNotice.list.title')}
+              emptyLabel={t('agreement.breachNotice.list.empty')}
+              formatDate={formatAgreementDate}
+            />
+          ) : null}
           <Button
             variant="tertiary"
             size="lg"
@@ -259,7 +307,7 @@ export default function AgreementDashboardScreen() {
 
         <BreachNoticeDialog
           visible={breachDialogVisible}
-          status="idle"
+          status={breachStatus === 'pending' ? 'submitting' : breachStatus === 'error' ? 'error' : 'idle'}
           title={t('agreement.breachNotice.dialog.title')}
           body={t('agreement.breachNotice.dialog.body')}
           confirmLabel={t('agreement.breachNotice.dialog.confirmAction')}

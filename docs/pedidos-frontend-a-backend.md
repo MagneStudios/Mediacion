@@ -275,4 +275,30 @@ Ya está andando y **no les pedimos nada para que funcione**. Esto es lo único 
 
 ---
 
+---
+
+## 9 · `Content-Disposition` del export de acuerdo — para cuando guardemos un archivo
+
+**Autor:** Frontend, 25/08 · **Para:** Backend · **No bloquea nada hoy**
+
+Integramos `GET /acuerdos/:id/exportar` y `POST`/`GET` de incumplimientos. Los tres andan con los shapes que ya tienen; esto es una nota para más adelante, no un pedido urgente.
+
+`exportAgreement` manda `Content-Disposition: attachment; filename="acuerdo-<id>.txt"`. **En Expo Web ese header es invisible para nosotros**: `applyCors` en `main.ts` no declara `exposedHeaders`, y sin `Access-Control-Expose-Headers` el navegador no deja leer ningún header fuera de la lista segura. En nativo sí se lee.
+
+Hoy **no lo consumimos y no nos importa**, porque la app no guarda archivos: no tiene `expo-file-system` ni `expo-sharing`, así que "exportar" significa mostrar el texto y ofrecerlo al portapapeles. No hay nada que nombrar.
+
+**El día que agreguemos guardado de archivos** —que es decisión nuestra + una dependencia nueva— vamos a necesitar el nombre, y ahí hay dos caminos:
+
+1. `exposedHeaders: ["Content-Disposition"]` en `applyCors`. Una línea.
+2. Nada, y lo derivamos nosotros (`acuerdo-<id>.txt`). Funciona, pero es una regla de ustedes copiada a mano de nuestro lado — exactamente el tipo de espejo que ya nos mordió con el catálogo de planes.
+
+Preferimos (1), pero avisamos antes de necesitarlo, no después.
+
+**Dos cosas que verificamos y están bien**, para que quede escrito:
+
+- El export es el **único** endpoint de la API que no responde JSON. Le hicimos una puerta propia en el cliente HTTP (`requestText`) en vez de un flag en `request`, porque `request<T>` devolviendo `undefined` para una respuesta exitosa es un tipo que miente. Los **errores** sí siguen siendo el envelope de siempre — el filtro de excepciones contesta antes que el handler de texto — así que se parsean igual que en todas las rutas.
+- `POST /acuerdos/:id/incumplimiento` mueve el acuerdo a `con_aviso` en la misma transacción. Lo consumimos **releyendo el acuerdo** después del write en vez de parchear el estado localmente: lo que la pantalla muestra es el estado del servidor, no nuestra suposición de lo que el write hizo.
+
+---
+
 *Dudas o cambios a estos shapes: responder sobre este doc o en el PR #105.*
