@@ -238,6 +238,8 @@ Registro completo, con el detalle de dónde se ve cada cosa, en `docs/tyc-contra
 > 3. **Sin cambios:** el IVA sigue seedeado por país con la única entrada `AR` al 21% aplicando a los cuatro planes. No se tocó porque no era parte del pedido; si algún plan tributa distinto, también es una definición de Producto.
 >
 > **Dos salvedades que esta respuesta deja anotadas, no resueltas:** la preference de MP sigue mandando `unit_price` = precio **neto** mientras la UI muestra el final con IVA (preexistente; qué monto debe viajar a la pasarela es decisión BE/Producto pendiente), y el front todavía **no consume `GET /planes`** — el catálogo corre sobre el mock `plans.service.ts`, espejado a mano contra las migraciones.
+>
+> **La segunda salvedad quedó cerrada el 25/08 (FE, rama `feat/frontend-integracion-planes`):** el catálogo lee `GET /planes` de verdad — `services/api/plans.api-service.ts` + `plans.backed-service.ts`, con el mock intacto como fallback offline. Detalle en `docs/changelogs/2026-08-25.md`. **La primera sigue abierta** (el `unit_price` neto de la preference de MP es decisión BE/Producto). Dos cosas que la lectura real vuelve visibles y **no son de FE**: el catálogo va a mostrar **seis planes** (tres de un modelo de precios muerto) y `corporativo` se va a ver **gratis** por su `precio 0.00` — las dos están pedidas en `docs/pedidos-frontend-monetizacion.md` §5.1 y §5.2, y las dos se arreglan en la fuente: no vamos a filtrar por nombre desde el front.
 
 ---
 

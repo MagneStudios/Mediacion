@@ -12,6 +12,7 @@ import { createApiLegalService, type ApiLegalService } from './legal.api-service
 import { createApiMediatorService, type ApiMediatorService } from './mediator.api-service';
 import { createApiNegotiationService, type ApiNegotiationService } from './negotiation.api-service';
 import { createApiNoticesService, type ApiNoticesService } from './notices.api-service';
+import { createApiPlansService, type ApiPlansService } from './plans.api-service';
 import { createApiPositionsService, type PositionsApiService } from './positions.api-service';
 import { createApiProfileService, type ProfileApiService } from './profile.api-service';
 import { createSupabaseAuthService, type AuthService } from '../auth/auth.service';
@@ -34,6 +35,12 @@ export type Backend = {
    * `billing.backed-service.ts` for what that leaves on the mock.
    */
   billing: ApiBillingService;
+  /**
+   * The catalog read, and only that: `GET /planes` is the whole plan surface
+   * of the API — see `plans.backed-service.ts` for what the missing writes
+   * leave unavailable.
+   */
+  plans: ApiPlansService;
 };
 
 /** Seams so a suite can build the stack without a network or native storage. */
@@ -99,5 +106,6 @@ export function createBackend(
     mediator: createApiMediatorService(http),
     legal: createApiLegalService(http),
     billing: createApiBillingService(http),
+    plans: createApiPlansService(http),
   };
 }
