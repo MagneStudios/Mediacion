@@ -1400,6 +1400,9 @@
       "empty": {
         "title": "Todavía no hay tareas",
         "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
+      },
+      "error": {
+        "title": "No pudimos cargar las tareas"
       }
     },
     "calendar": {
@@ -1413,6 +1416,11 @@
       "error": {
         "title": "No pudimos preparar el evento de calendario"
       }
+    },
+    "card": {
+      "completeAction": "Marcar como completada",
+      "completingAction": "Marcando…",
+      "completeAccessibility": "Marcar como completada: {{descripcion}}"
     }
   },
   "lawyer": {

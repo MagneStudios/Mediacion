@@ -2,7 +2,9 @@
 
 **Fecha:** 16/08/2026, ampliado el 18/08 y el 25/08 · **Autor:** Frontend · **Para:** Backend (§1–§6, §8–§10) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
 
-> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
+> **El inventario completo de la superficie de la API —qué consumimos, qué no y por qué— vive en `docs/integration-contract.md` §0.2 (25/08).** Este documento son los pedidos; ese es el estado.
+>
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§13** (el CI de `dev` está en rojo desde el PR #110, con el arreglo de una línea), **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§12** (onboarding — incluye un agujero: hoy cualquier usuario autenticado puede marcarse como biométricamente verificado), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -364,6 +366,131 @@ Runbook completo en `docs/frontend-conexion-backend.md`. En corto, las dos cosas
 Los dos mappers toleran lo que venga; lo que queremos es dejar de decir "deducido" en los changelogs.
 
 ---
+
+---
+
+## 11 · `POST /tareas/:id/calendario` — pide una fecha que ninguna tarea tiene
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **No bloquea:** integramos los otros dos endpoints de tareas y la sección anda
+
+Integramos `GET /casos/:casoId/tareas` y `PATCH /tareas/:id`. **El tercero no**, y no es por falta de ganas.
+
+### 11.1 · El problema, en tres líneas de su propio código
+
+- `buildTareasFromAcuerdo` genera las tareas **sin `fecha_evento`** (`tarea-generation.ts`: sólo pone `acuerdo_id`, `caso_id`, `tipo` y `descripcion`).
+- `resolveFechaEvento` hace `input.fecha_evento ?? tarea.fecha_evento` y tira `400 invalid_input` si los dos faltan (`tareas.service.ts`).
+- `scheduleCalendarEvent` es lo **único** que escribe `fecha_evento` … y es justamente el endpoint que la exige.
+
+O sea: **el endpoint que setea la fecha requiere la fecha**. Ninguna tarea generada puede pasar por ahí sin que el cliente invente una.
+
+### 11.2 · Por qué no la inventamos nosotros
+
+Podríamos mandar "hoy + 7 días" y el endpoint contestaría 200. Sería un evento de calendario en una fecha **que nadie eligió**, sobre un acuerdo legal. Preferimos no tener la función a tenerla mintiendo.
+
+La otra salida es que la elija el usuario, y eso es UI nueva: **no hay ningún selector de fecha en toda la app** (el design system tiene `Input`, `Checkbox` y `SelectableCard`, nada de fechas). Antes de construirlo hace falta responder qué significa "la fecha" de una tarea como *"Económico — punto acordado: 45000"*, que es una pregunta de Producto, no de implementación.
+
+### 11.3 · Las tres opciones, para que elijan
+
+1. **El generador pone una fecha.** `buildTareasFromAcuerdo` la deriva del acuerdo (`fecha` + N días, o lo que Producto defina) y genera `tipo: 'evento_calendario'` donde corresponda. Nosotros no tocamos nada: la sección ya renderiza `eventDateLabel` cuando el dato viene.
+2. **La elige el usuario.** Necesitamos la definición de Producto y construimos el selector. Avisen y lo estimamos.
+3. **El endpoint se retira.** Si el calendario no está en el alcance de esta fase, mejor que no exista a que exista sin poder llamarse.
+
+Nos sirve cualquiera. Lo que no nos sirve es dejarlo como está, porque hoy es una ruta que **no se puede invocar desde ningún cliente honesto**.
+
+### 11.4 · Y una cosa que conviene que sepan de las tareas en general
+
+Las tareas se generan en **un solo lugar**: el webhook de DocuSign, cuando todas las firmas de un acuerdo completan (`docusign-webhook.service.ts` → `generateForAcuerdo`). Nada más las crea.
+
+Con las ocho `DOCUSIGN_*` sin configurar el webhook nunca dispara, así que **`GET /casos/:casoId/tareas` devuelve `[]` siempre**. No es un bug y nuestra sección lo dice con su estado vacío ("Las tareas van a aparecer acá una vez que el acuerdo las genere"). Lo anotamos para que nadie mire una lista vacía y reporte la integración como rota — y para que quede claro que **probar tareas punta a punta depende de DocuSign configurado**, no de nosotros.
+
+---
+
+## 12 · Onboarding — no lo vamos a construir todavía, y uno de los dos endpoints tiene un problema de diseño
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **§12.2 conviene leerlo aunque el resto no**
+
+Cerrando el inventario quedaban `POST /auth/biometria` y `POST /auth/consentimiento`. Los miramos para integrarlos y **decidimos no hacerlo**. Las razones no son de esfuerzo.
+
+### 12.1 · Biometría: el proveedor no existe, y la app no puede validar nada
+
+`Mediacion_Documentacion_Tecnica_v1_0.md` §"Calendario y biometría" dice, textual: *"verificación de identidad en el onboarding mediante **proveedor a definir**; se guarda el resultado de la validación, no la biometría cruda"*.
+
+O sea que el proveedor es una decisión abierta. Y del lado de la app: **no hay ningún SDK biométrico ni de KYC instalado** (`expo-local-authentication` no está entre las dependencias, ni ninguna otra).
+
+Entonces, la única pantalla que podríamos construir hoy es una que mande `{"resultado": "aprobada"}` **sin que ninguna validación haya ocurrido**. Es la app auto-certificando la identidad de su propio usuario, en un producto de mediación legal donde RN-12 trata la biometría como dato sensible. No lo vamos a hacer.
+
+### 12.2 · Y ese es el problema: hoy **cualquier usuario autenticado puede aprobarse a sí mismo**
+
+Esto no es una crítica de estilo, es su propia regla contradiciéndose entre dos rutas.
+
+`apps/api/src/me/profile-allowlist.ts` dice, textual:
+
+> *"`rol`, `email`, `activo`, `estudio_id` y **`verif_biometrica`** are deliberately absent: they are privilege or identity fields and **must never be settable from a self-service patch**."*
+
+Correcto, y `PATCH /me` lo cumple. Pero **`POST /auth/biometria` hace exactamente eso**: sin `@Roles`, sin verificación de origen, sin firma de proveedor. `OnboardingService.recordBiometricResult` valida que `resultado` esté en `['aprobada','rechazada']` y escribe la columna. Cualquiera con un token válido manda `{"resultado":"aprobada"}` y queda verificado.
+
+**Hoy el impacto es bajo**, y lo verificamos: `verif_biometrica` no gatea nada en `apps/api` — sólo viaja en `AuthenticatedUser` y en `GET /me`. Pero es un campo de identidad, y el día que algo dependa de él (habilitar un caso, firmar, contratar) el agujero pasa a ser el que decide.
+
+**Lo que sugerimos**, y no es de FE decidirlo: que el resultado entre por donde entran los otros hechos verificados, o sea **un callback del proveedor server-side**, como ya hace `POST /webhooks/docusign` para las firmas. El cliente inicia la verificación; quién dice que salió bien es el proveedor, no el cliente. Con esa forma nosotros integramos sin problema: iniciamos, mostramos estado, y leemos el resultado de `GET /me`.
+
+### 12.3 · Consentimiento: es la firma de identidad de DocuSign, y la mitad ya existe en otro lado
+
+La documentación técnica (§Endpoints, línea de `/auth/consentimiento`) lo define como *"Firma de identidad (DocuSign) y aceptación de T&C"*. Dos cosas, y las dos tienen problema:
+
+- **La firma de identidad por DocuSign no existe en ningún flujo de la app.** Lo único cableado a DocuSign es la firma del acuerdo. Un envelope de onboarding no lo genera ni lo consume nadie, y DocuSign está inerte hasta que se configuren las ocho `DOCUSIGN_*`.
+- **La aceptación de T&C ya está resuelta y en producción**, por el módulo legal: `POST /legal/aceptaciones` con su tabla, su re-aceptación bloqueante y su banner. Grabar además `usuarios.consentimiento_fecha` sería un **segundo registro de lo mismo**, con dos fechas que pueden discrepar y ninguna regla que diga cuál manda.
+
+Antes de tocarlo necesitamos saber si `consentimiento_*` es la firma de identidad (y entonces depende del envelope de onboarding, no de nosotros) o si quedó como duplicado del módulo legal (y entonces conviene retirarlo).
+
+### 12.4 · Qué necesitamos para poder hacerlo
+
+1. **El proveedor de biometría**, o la decisión de que el onboarding biométrico no entra en esta fase.
+2. **La forma del endpoint** una vez que exista el proveedor — sugerencia en §12.2.
+3. **Qué es `consentimiento_*`** y cómo convive con `legal_acceptances`.
+
+Con eso construimos el flujo. Sin eso, lo único que podemos entregar es una pantalla que miente sobre una verificación de identidad, y preferimos no tenerla.
+
+---
+
+## 13 · El CI de `dev` está en rojo desde el PR #110 — diagnóstico y arreglo de una línea
+
+**Autor:** Frontend, 25/08 · **Para:** DB · **No lo tocamos**: `supabase/migrations/` es de ustedes
+
+Lo encontramos mirando por qué el PR #111 tenía checks rojos. **No eran de nuestro cambio: `dev` ya estaba rojo**, y sigue estándolo.
+
+### 13.1 · `integration` — el `GRANT` a un rol que en CI no existe
+
+```
+psql:supabase/migrations/20260825000000_custom_access_token.sql:51:
+ERROR:  role "supabase_auth_admin" does not exist
+```
+
+La última línea de la migración es `GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;`. En un stack de Supabase real ese rol existe; el job `integration` de `ci-node.yml` corre las migraciones contra un **`postgres:16-alpine` pelado**, donde no. La migración aborta y el job sale con exit 3.
+
+**Se ve en el CI de `dev` mismo**, en la corrida del merge del PR #110 — o sea desde antes de que existiera cualquier rama nuestra. Todo PR abierto contra `dev` hereda el rojo.
+
+Que en local pase es esperable y no lo desmiente: `db reset` corre contra el stack completo de Supabase, con sus roles. El QA del changelog de DB (`36/36 migraciones OK`, `81/81 PASS`) es correcto **y CI igual se rompe**, porque los dos entornos no son el mismo.
+
+**El arreglo, guardando el `GRANT` como ya guardan otras cosas en esa misma migración:**
+
+```sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+    GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;
+  END IF;
+END $$;
+```
+
+Idempotente en los dos entornos: en Supabase real otorga como hoy, en el postgres pelado de CI no hace nada. **No lo aplicamos nosotros**: `agents/back/AGENTS.md` marca los límites de repo, y es justo lo que reclamamos en §6.4 cuando se cruzó al revés. Si prefieren que lo mandemos nosotros, avisen y va.
+
+### 13.2 · `Vercel` — también rojo en `dev`, y no es del bundle
+
+El check de Vercel está en `failure` sobre el HEAD de `dev`, igual que en los PRs.
+
+Descartamos que sea del código de la app: corrimos localmente **los dos tramos exactos** del `buildCommand` de `vercel.json` — `pnpm --filter @mediacion/shared build` y `npx expo export --platform web` — y los dos salen con **exit 0**, con las 30 rutas exportadas. Lo que falla está del lado de Vercel (instalación, configuración del proyecto o cuota), no en lo que compilamos.
+
+No tenemos acceso al panel para leer el log (`npx vercel inspect` pide credenciales). Quien lo tenga, ahí está la respuesta.
 
 ---
 

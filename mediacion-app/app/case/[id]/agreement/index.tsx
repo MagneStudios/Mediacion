@@ -21,6 +21,8 @@ import { SharedAgreementCard } from '@/features/agreements/components/SharedAgre
 import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
 import { useBreachNotices } from '@/features/agreements/hooks/useBreachNotices';
+import { TaskListSection, type TaskListItem } from '@/features/tasks/components/TaskListSection';
+import { useTasks } from '@/features/tasks/hooks/useTasks';
 import { agreementsService } from '@/services/agreements.service';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -33,6 +35,12 @@ export default function AgreementDashboardScreen() {
   const { status, state, reload, prepareStatus, prepareDocument, breachStatus, reportBreach, resetBreachStatus } =
     useAgreement(caseId);
   const breachNotices = useBreachNotices(state?.agreement.id ?? null);
+  // RN-14: tasks are generated only once every signature completed, so a
+  // draft or in-signature agreement cannot have any — asking would be a
+  // request whose answer is known. `null` holds the read back.
+  const agreementIsSigned =
+    state?.agreement.estado === 'firmado' || state?.agreement.estado === 'con_aviso';
+  const tasks = useTasks(agreementIsSigned ? caseId : null);
   const { horizontalPadding, isWide } = useResponsiveLayout();
 
   const [breachDescription, setBreachDescription] = useState('');
@@ -93,6 +101,28 @@ export default function AgreementDashboardScreen() {
   // explicit `estado` check keeps this rule self-contained and correct
   // even if `readOnly`'s definition changes later.
   const canReportBreach = agreement.estado === 'firmado' || agreement.estado === 'con_aviso';
+  // Presentation only: the section takes rows, not domain tasks. A completed
+  // task gets no action — there is nothing left to do to it, and the API has
+  // no "uncomplete".
+  const taskListItems: TaskListItem[] = tasks.tasks.map((task) => ({
+    id: task.id,
+    description: task.description,
+    status: task.estado,
+    statusLabel: t(`tasks.status.${task.estado}`),
+    ...(task.eventDate ? { eventDateLabel: formatAgreementDate(task.eventDate) } : {}),
+    ...(task.estado === 'completada'
+      ? {}
+      : {
+          actionLabel: t('tasks.card.completeAction'),
+          actionLoading: tasks.updatingTaskId === task.id,
+          actionLoadingLabel: t('tasks.card.completingAction'),
+          actionDisabled: tasks.updatingTaskId === task.id,
+          actionAccessibilityLabel: t('tasks.card.completeAccessibility', {
+            descripcion: task.description,
+          }),
+        }),
+  }));
+
   const breachDescriptionError =
     breachSubmitAttempted && breachDescription.trim().length === 0 ? t('agreement.breachNotice.form.descriptionError') : undefined;
 
@@ -227,6 +257,21 @@ export default function AgreementDashboardScreen() {
         errorTitle={t('agreement.export.error.title')}
         retryLabel={t('common.retry')}
       />
+
+      {agreementIsSigned ? (
+        <TaskListSection
+          status={tasks.status}
+          tasks={taskListItems}
+          title={t('tasks.section.title')}
+          loadingLabel={t('common.loading')}
+          errorTitle={t('tasks.section.error.title')}
+          retryLabel={t('common.retry')}
+          onRetry={tasks.reload}
+          emptyTitle={t('tasks.section.empty.title')}
+          emptyDescription={t('tasks.section.empty.description')}
+          onTaskAction={tasks.completeTask}
+        />
+      ) : null}
 
       {waitingForOtherParty ? <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text> : null}
 
