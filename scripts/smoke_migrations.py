@@ -50,6 +50,7 @@ EXPECTED_FUNCTIONS = [
     "is_own_subscription",
     "has_accepted_current",
     "consume_quota",
+    "custom_access_token",
 ]
 
 EXPECTED_ENUMS = [
