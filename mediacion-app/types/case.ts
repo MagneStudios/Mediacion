@@ -75,7 +75,17 @@ export type CaseInvitation = {
   token: string | null;
   emailDestino: string | null;
   estado: EstadoInvitacion;
-  pagoACargo: PagoACargo;
+  /**
+   * `null` when the invitation was read back from the server rather than
+   * created in this session: `GET /casos/:id/invitaciones` does not select
+   * `pago_a_cargo` (the column exists — `20260810120000_cambios_reunion_07_08.sql`
+   * — but `InvitacionView` omits it). Nullable rather than defaulted, because
+   * guessing `'invitador'` for an invitation whose invitador chose "paga la
+   * otra parte" would put the wrong party in front of a paywall. Pedido a BE
+   * en `docs/pedidos-frontend-a-backend.md` §8; el día que lo agreguen, vuelve
+   * a ser no-nullable.
+   */
+  pagoACargo: PagoACargo | null;
   createdAt: string;
 };
 

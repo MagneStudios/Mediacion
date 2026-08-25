@@ -243,4 +243,36 @@ Registro completo, con el detalle de dónde se ve cada cosa, en `docs/tyc-contra
 
 ---
 
+## 8 · `pago_a_cargo` en `GET /casos/:id/invitaciones` — una columna al select
+
+**Autor:** Frontend, 25/08 · **Para:** Backend · **No bloquea**, y es de una línea
+
+**Contexto:** integramos `GET /casos/:id/invitaciones` (rama `feat/frontend-integracion-planes`). Estaba desde el commit `32515a3` del 30/07 y nunca lo habíamos consumido — el header de `cases.backed-service.ts` seguía afirmando que *"the API exposes only `POST`, with no read endpoint"*, que era cierto cuando se escribió y dejó de serlo sin que nos enteráramos. El costo mientras tanto: recargar la app volvía **irrecuperable** el código de invitación, y la única salida era emitir una segunda.
+
+Ya está andando y **no les pedimos nada para que funcione**. Esto es lo único que quedó cojo.
+
+**El pedido:** `InvitacionView` no trae `pago_a_cargo`. La columna existe (`20260810120000_cambios_reunion_07_08.sql`, `TEXT` nullable con CHECK no bloqueante) y `listByCaso` simplemente no la selecciona:
+
+```ts
+// apps/api/src/invitaciones/invitaciones.repository.ts, listByCaso
+.select([
+  "id", "caso_id", "tipo", "token", "email_destino", "estado",
+  "fecha_envio", "created_at",
+  // + "pago_a_cargo"
+])
+```
+
+**Por qué nos importa.** Es R-07: quién paga la suscripción atada a esa invitación. Lo mandamos nosotros en el `POST` y **es el único campo que la lectura no nos puede devolver**, así que hoy `CaseInvitation.pagoACargo` pasó a ser `PagoACargo | null` — `null` cuando la invitación viene del servidor y no de esta sesión. Preferimos eso a defaultear `'invitador'`: adivinar mal en una invitación donde el invitador eligió "paga la otra parte" pone a la **parte equivocada frente a un paywall**.
+
+**Qué esperamos leer:** el valor de la columna tal cual, `null` incluido (una invitación anterior a la migración no tiene el dato, y eso es una respuesta válida — no lo completen con un default del lado de ustedes). El día que llegue, `pagoACargo` vuelve a ser no-nullable de nuestro lado y el merge con la sesión se borra.
+
+**Dos cosas que NO les pedimos**, para que no construyan de más:
+
+- **Filtrar por `estado`.** Nos quedamos con la más reciente en `pendiente` y descartamos aceptadas/rechazadas/expiradas — es política de pantalla, no del endpoint.
+- **Garantizar el orden.** `listByCaso` ordena por `created_at desc`, pero ninguna ficha lo promete, así que ordenamos nosotros con el `created_at` que ya viaja. Si algún día lo declaran en la ficha, sacamos nuestro sort; mientras tanto no queremos que la elección del código que ve un usuario dependa de un detalle de implementación.
+
+**Y una nota de proceso, sin reproche:** este endpoint estuvo casi un mes construido y sin consumir porque nada nos avisó que había llegado. El changelog del 30/07 lo lista; el que no lo leyó fuimos nosotros. Lo levantamos porque revisamos la superficie entera de la API contra lo que consume la app, y salieron varios más (tareas, incumplimientos, export de acuerdo, onboarding). Los vamos integrando de a uno.
+
+---
+
 *Dudas o cambios a estos shapes: responder sobre este doc o en el PR #105.*

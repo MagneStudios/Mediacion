@@ -156,7 +156,7 @@ describe('createApiCasesService', () => {
       expect(calls[0].options?.body).toEqual({ tipo: 'link', pago_a_cargo: 'invitado' });
     });
 
-    it('completes the fields the api does not return, because no read endpoint exists', async () => {
+    it('completes the fields the POST does not return', async () => {
       const { http } = buildHttp(() => ({
         id: 'inv-1',
         tipo: 'link',
@@ -175,6 +175,68 @@ describe('createApiCasesService', () => {
       expect(invitation.emailDestino).toBeNull();
       expect(invitation.pagoACargo).toBe('invitador');
       expect(invitation.createdAt).toBe(now.toISOString());
+    });
+  });
+
+  describe('listInvitations', () => {
+    const invitationRow = {
+      id: 'inv-1',
+      caso_id: 'caso-1',
+      tipo: 'codigo' as const,
+      token: 'ABC123',
+      email_destino: null,
+      estado: 'pendiente' as const,
+      fecha_envio: '2026-07-30T00:00:00.000Z',
+      created_at: '2026-07-30T00:00:00.000Z',
+    };
+
+    it('reads the caso’s invitations and maps them to the domain shape', async () => {
+      const { http, calls } = buildHttp(() => [invitationRow]);
+      const service = createApiCasesService(http, () => now);
+
+      const invitations = await service.listInvitations('caso-1');
+
+      expect(calls[0].path).toBe('/casos/caso-1/invitaciones');
+      expect(calls[0].options).toBeUndefined();
+      expect(invitations).toEqual([
+        {
+          id: 'inv-1',
+          caseId: 'caso-1',
+          tipo: 'codigo',
+          token: 'ABC123',
+          emailDestino: null,
+          estado: 'pendiente',
+          // Not selected by `InvitacionView` — never guessed here.
+          pagoACargo: null,
+          createdAt: '2026-07-30T00:00:00.000Z',
+        },
+      ]);
+    });
+
+    it('orders newest first itself, without trusting the server’s order', async () => {
+      // The repository does sort by created_at desc, but no ficha promises it,
+      // and this order decides which code a user is shown.
+      const { http } = buildHttp(() => [
+        { ...invitationRow, id: 'inv-old', created_at: '2026-07-01T00:00:00.000Z' },
+        { ...invitationRow, id: 'inv-new', created_at: '2026-08-01T00:00:00.000Z' },
+        { ...invitationRow, id: 'inv-mid', created_at: '2026-07-15T00:00:00.000Z' },
+      ]);
+      const service = createApiCasesService(http, () => now);
+
+      const invitations = await service.listInvitations('caso-1');
+
+      expect(invitations.map((invitation) => invitation.id)).toEqual([
+        'inv-new',
+        'inv-mid',
+        'inv-old',
+      ]);
+    });
+
+    it('answers an empty list rather than a failure when there are none', async () => {
+      const { http } = buildHttp(() => []);
+      const service = createApiCasesService(http, () => now);
+
+      await expect(service.listInvitations('caso-1')).resolves.toEqual([]);
     });
   });
 
