@@ -1,16 +1,26 @@
+import { createBackedPlansService } from './api/plans.backed-service';
+import { backend } from './backend-instance';
 import { generateMockPlanId } from '../utils/mock-id';
 import type { Plan, PlanInput } from '../types/plan';
 import { mockPlans } from '../mocks/plans';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 
 /**
- * R-10 admin ABM (alta/baja/modificación) de planes. Fully mock-only, no
- * `services/api/plans.*` counterpart yet: `apps/api` only exposes
- * `GET /planes` today (read-only) — the admin CRUD endpoints
- * (`POST`/`PATCH`/`DELETE /planes`, `@Roles('admin')`) are still a backend
- * TODO per `docs/plan-implementacion-07-08-2026.md`. This mirrors the
- * `mediator.service.ts` precedent: a real backend table exists but this
- * feature stays entirely frontend-mocked until the write endpoints do.
+ * El catálogo de planes (R-09) y el ABM de admin (R-10).
+ *
+ * **Read live as of 25/08/2026.** `GET /planes` was always there, but the
+ * catalog kept running on the mock below, mirrored by hand against the
+ * migrations — BE flagged it in `docs/changelogs/2026-08-23.md` when they
+ * added `planes.moneda` and the app had no way to notice. The singleton at
+ * the bottom of this file now resolves `listPlanes`/`getPlan` to the real API
+ * whenever a backend is configured.
+ *
+ * The three writes have no endpoint: `apps/api` exposes the read and nothing
+ * else (`pagos.module.ts`), and the admin CRUD is still a backend TODO per
+ * `docs/plan-implementacion-07-08-2026.md`. With a backend live they reject
+ * rather than falling back to this mock, which would report a success the
+ * server never saw — `services/api/plans.backed-service.ts` states the split
+ * and its visible consequence. The mock below is what runs offline, whole.
  *
  * Reachability: gated behind `profile.rol === 'admin'` in the UI
  * (`app/(tabs)/profile.tsx`), and this app's single seeded persona
@@ -121,5 +131,12 @@ export function createMockPlansService(): PlansService {
   };
 }
 
-/** Default instance consumed by the admin feature hooks. */
-export const plansService: PlansService = createMockPlansService();
+/**
+ * Default instance consumed by `usePlans` (the party-facing catalog and the
+ * admin list alike) and by the checkout — the real `GET /planes` when a
+ * backend is configured, the full mock otherwise. Same selection idiom as
+ * `billing.service.ts` and `legal.service.ts`.
+ */
+export const plansService: PlansService = backend
+  ? createBackedPlansService(backend.plans)
+  : createMockPlansService();

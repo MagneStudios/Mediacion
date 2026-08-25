@@ -1,4 +1,4 @@
-import type { EstadoAcuerdo, SignatureInboxItem } from '@/types/agreement';
+import type { BreachNotice, EstadoAcuerdo, SignatureInboxItem } from '@/types/agreement';
 
 import { toSignatureStatus, type ApiAcuerdo, type ApiFirmaStatus } from './agreement-mapper';
 import {
@@ -22,10 +22,33 @@ export type ApiSignatureInboxEntry = {
   pending_signers: number;
 };
 
+/** `IncumplimientoView` — the whole row the API is willing to show. */
+export type ApiIncumplimiento = {
+  id: string;
+  acuerdo_id: string;
+  reportante_id: string;
+  descripcion: string;
+  fecha: string;
+  created_at: string;
+};
+
+export function toBreachNotice(row: ApiIncumplimiento): BreachNotice {
+  return {
+    id: row.id,
+    agreementId: row.acuerdo_id,
+    reporterId: row.reportante_id,
+    description: row.descripcion,
+    fecha: row.fecha,
+  };
+}
+
 export type ApiAgreementsService = {
   getForCase(caseId: string): Promise<ApiAgreementBundle | null>;
   generate(caseId: string): Promise<ApiAcuerdo>;
   sendToSignature(agreementId: string): Promise<ApiAcuerdo>;
+  registerBreach(agreementId: string, description: string): Promise<BreachNotice>;
+  listBreachNotices(agreementId: string): Promise<BreachNotice[]>;
+  exportAgreement(agreementId: string): Promise<string>;
   listSignatureInbox(): Promise<SignatureInboxItem[]>;
 };
 
@@ -65,6 +88,49 @@ export function createApiAgreementsService(http: HttpClient): ApiAgreementsServi
       return http.request<ApiAcuerdo>(`/acuerdos/${agreementId}/firmar`, {
         method: 'POST',
       });
+    },
+
+    /**
+     * Registers the breach and, in the same server transaction, moves the
+     * acuerdo to `con_aviso` (`incumplimientos.repository.ts`). Callers must
+     * re-read the agreement afterwards rather than assume the estado —
+     * `agreements.backed-service.ts` does exactly that.
+     *
+     * `descripcion` is trimmed server-side and rejected empty with
+     * `invalid_input`; it is sent as typed, so the server stays the
+     * validating boundary rather than trusting a client that already checked.
+     */
+    registerBreach(agreementId: string, description: string): Promise<BreachNotice> {
+      return http
+        .request<ApiIncumplimiento>(`/acuerdos/${agreementId}/incumplimiento`, {
+          method: 'POST',
+          body: { descripcion: description },
+        })
+        .then(toBreachNotice);
+    },
+
+    /** Newest first, the order the server already applies (`fecha desc`). */
+    async listBreachNotices(agreementId: string): Promise<BreachNotice[]> {
+      const rows = await http.request<ApiIncumplimiento[]>(
+        `/acuerdos/${agreementId}/incumplimientos`,
+      );
+      return rows
+        .map(toBreachNotice)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    },
+
+    /**
+     * The one route in the API that does not answer JSON: `text/plain`, with
+     * the document as the whole body. Hence `requestText`.
+     *
+     * The `Content-Disposition` filename the server sets is deliberately not
+     * read: on Expo Web it is invisible anyway (the API sends no
+     * `Access-Control-Expose-Headers`, `main.ts`), and nothing in this app
+     * saves a file for it to name. Pedido a BE en
+     * `docs/pedidos-frontend-a-backend.md` §9 for the day that changes.
+     */
+    exportAgreement(agreementId: string): Promise<string> {
+      return http.requestText(`/acuerdos/${agreementId}/exportar`);
     },
 
     /**

@@ -154,4 +154,69 @@ describe('createHttpClient', () => {
       client.request('/items/item-1', { method: 'DELETE' }),
     ).resolves.toBeUndefined();
   });
+
+  describe('requestText', () => {
+    const document = 'ACUERDO DE MEDIACIÓN\n\nIdentificador: acu-1\n';
+
+    function textResponse(body: string, status = 200): Response {
+      return new Response(body, {
+        status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+
+    it('returns the body verbatim instead of trying to parse it as json', async () => {
+      // `request` would answer `undefined` here: the JSON parse fails and the
+      // body is dropped. That is the whole reason this door exists.
+      const { client } = buildClient(() => textResponse(document));
+
+      await expect(client.requestText('/acuerdos/acu-1/exportar')).resolves.toBe(
+        document,
+      );
+    });
+
+    it('asks for text rather than json, and still authenticates', async () => {
+      const { client, calls } = buildClient(() => textResponse(document));
+
+      await client.requestText('/acuerdos/acu-1/exportar');
+
+      const headers = calls[0].init.headers as Record<string, string>;
+      expect(headers.Accept).toBe('text/plain');
+      expect(headers.Authorization).toBe('Bearer token-abc');
+    });
+
+    it('still reads a failure as the json envelope every other route uses', async () => {
+      // The exception filter answers before the text handler ever runs, so a
+      // 404 here is JSON even though the success body would not be.
+      const { client } = buildClient(() =>
+        jsonResponse({ error: { code: 'acuerdo_not_found', message: 'gone' } }, 404),
+      );
+
+      const thrown = await client
+        .requestText('/acuerdos/acu-1/exportar')
+        .catch((error: unknown) => error);
+
+      expect(thrown).toBeInstanceOf(ApiError);
+      expect((thrown as ApiError).code).toBe('acuerdo_not_found');
+      expect((thrown as ApiError).status).toBe(404);
+    });
+
+    it('reports a transport failure the same way the json reader does', async () => {
+      const { client } = buildClient(() => {
+        throw new Error('socket hang up');
+      });
+
+      const thrown = await client
+        .requestText('/acuerdos/acu-1/exportar')
+        .catch((error: unknown) => error);
+
+      expect((thrown as ApiError).code).toBe(codeNetworkUnavailable);
+    });
+
+    it('answers an empty document as an empty string, not as undefined', async () => {
+      const { client } = buildClient(() => textResponse(''));
+
+      await expect(client.requestText('/acuerdos/acu-1/exportar')).resolves.toBe('');
+    });
+  });
 });
