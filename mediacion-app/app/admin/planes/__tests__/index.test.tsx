@@ -28,8 +28,8 @@ jest.mock('@/features/plans/hooks/usePlans', () => ({
 // eslint-disable-next-line import/first
 import AdminPlanesScreen from '../index';
 
-const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0 };
-const estudioPlan: Plan = { id: 'plan-4', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25 };
+const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
+const estudioPlan: Plan = { id: 'plan-4', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
 
 async function renderScreen() {
   await render(

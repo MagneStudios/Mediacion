@@ -31,6 +31,7 @@ describe("HttpMercadoPagoClient", () => {
         suscripcionId: "sus-1",
         planNombre: "plus",
         precio: 19.99,
+        moneda: "ARS",
       });
 
       expect(result).toEqual({
@@ -52,10 +53,34 @@ describe("HttpMercadoPagoClient", () => {
         expect.objectContaining({
           external_reference: "sus-1",
           items: [
-            expect.objectContaining({ title: "plus", unit_price: 19.99 }),
+            expect.objectContaining({
+              title: "plus",
+              unit_price: 19.99,
+              currency_id: "ARS",
+            }),
           ],
         }),
       );
+    });
+
+    it("sends the plan's own currency as currency_id, never a hardcoded constant", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({ id: "preference-1", init_point: "https://x" }),
+      });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await client.createPreference({
+        suscripcionId: "sus-1",
+        planNombre: "plus",
+        precio: 19.99,
+        moneda: "UYU",
+      });
+
+      const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(requestBody.items[0].currency_id).toBe("UYU");
     });
 
     it("bounds the request with an application-level abort timeout", async () => {
@@ -72,6 +97,7 @@ describe("HttpMercadoPagoClient", () => {
         suscripcionId: "sus-1",
         planNombre: "plus",
         precio: 19.99,
+        moneda: "ARS",
       });
 
       expect(timeoutSpy).toHaveBeenCalled();
@@ -95,6 +121,7 @@ describe("HttpMercadoPagoClient", () => {
           suscripcionId: "sus-1",
           planNombre: "plus",
           precio: 19.99,
+          moneda: "ARS",
         }),
       ).rejects.toThrow(
         "Mercado Pago preference creation failed with status 502",
@@ -114,6 +141,7 @@ describe("HttpMercadoPagoClient", () => {
           suscripcionId: "sus-1",
           planNombre: "plus",
           precio: 19.99,
+          moneda: "ARS",
         }),
       ).rejects.toThrow("Mercado Pago response did not include an init_point");
     });

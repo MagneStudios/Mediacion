@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -8,6 +8,7 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
+import { QuotaLimitDialog } from '@/features/billing/components/QuotaLimitDialog';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { CaseReviewCard } from '@/features/cases/components/CaseReviewCard';
 import { PrivacyNotice } from '@/features/cases/components/PrivacyNotice';
@@ -15,6 +16,7 @@ import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow'
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
 import { blurActiveElement } from '@/utils/blur-active-element';
+import { getQuotaLimit, type QuotaLimit } from '@/utils/quota-limit';
 
 type CreateStatus = 'idle' | 'submitting' | 'error';
 
@@ -23,7 +25,26 @@ export default function CaseCreateReviewScreen() {
   const router = useRouter();
   const { draft, setCreatedCase } = useCaseCreationFlow();
   const [status, setStatus] = useState<CreateStatus>('idle');
+  const [quotaLimit, setQuotaLimit] = useState<QuotaLimit | null>(null);
+  const [leavingToPlans, setLeavingToPlans] = useState(false);
   const { horizontalPadding } = useResponsiveLayout();
+
+  // Navigating out of the dialog is deferred one commit on purpose. The modal
+  // renders through a portal that lives outside this screen's tree, and
+  // pushing a route freezes the screen behind it — so closing and navigating
+  // in the same handler left the dialog painted on top of Mi plan, because the
+  // state that would have unmounted it never got committed. Both updates batch
+  // into one render, and this effect runs after it, with the modal already
+  // gone. Found in the browser: RNTL unmounts the Modal synchronously and
+  // cannot see this.
+  useEffect(() => {
+    if (!leavingToPlans) return;
+    setLeavingToPlans(false);
+    blurActiveElement();
+    // `/profile/plan` is where plans live today. When the public pricing page
+    // of the spec §9.1 lands (task A7), this is the one line that moves.
+    router.push('/profile/plan');
+  }, [leavingToPlans, router]);
 
   const handleCreate = async () => {
     if (status === 'submitting' || !draft.metodo) return;
@@ -38,7 +59,17 @@ export default function CaseCreateReviewScreen() {
       setStatus('idle');
       blurActiveElement();
       router.push('/case/create/invite');
-    } catch {
+    } catch (error) {
+      // A plan limit is not a failure to retry: the button would fail again
+      // for as long as the plan says no. It gets the dialog, and the screen
+      // goes back to idle so the primary action stays honest — the draft is
+      // intact and the user can still go back and edit it.
+      const limit = getQuotaLimit(error);
+      if (limit) {
+        setQuotaLimit(limit);
+        setStatus('idle');
+        return;
+      }
       setStatus('error');
     }
   };
@@ -114,6 +145,15 @@ export default function CaseCreateReviewScreen() {
           {t('caseCreation.review.edit')}
         </Button>
       </View>
+
+      <QuotaLimitDialog
+        limit={quotaLimit}
+        onDismiss={() => setQuotaLimit(null)}
+        onUpgrade={() => {
+          setQuotaLimit(null);
+          setLeavingToPlans(true);
+        }}
+      />
     </ScrollView>
   );
 }

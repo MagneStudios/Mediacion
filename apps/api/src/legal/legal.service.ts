@@ -17,6 +17,7 @@ import { buildAcceptancesPdf } from "./acceptance-pdf";
 import { LegalRepository } from "./legal.repository";
 import type {
   AcceptanceExportFilters,
+  AcceptanceExportRow,
   AceptacionRequestMetadata,
   AceptacionStatus,
   AcuerdoTipo,
@@ -25,7 +26,7 @@ import type {
   LegalDocumentView,
   SolicitudReceipt,
 } from "./legal.types";
-import { documentoTipos } from "./legal.types";
+import { documentoTipos, exportMaxRows } from "./legal.types";
 import {
   assertValidArrepentimiento,
   assertValidContacto,
@@ -66,6 +67,18 @@ function assertValidRange(filters: AcceptanceExportFilters): void {
   }
   if (filters.desde > filters.hasta) {
     throw invalidInput("desde must not be after hasta");
+  }
+}
+
+function assertWithinExportCap(rows: AcceptanceExportRow[]): void {
+  if (rows.length > exportMaxRows) {
+    throw new HttpException(
+      {
+        code: "export_too_large",
+        message: `La exportación supera el máximo de ${exportMaxRows} filas; acotá el rango de fechas o los filtros`,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
   }
 }
 
@@ -180,6 +193,7 @@ export class LegalService {
   ): Promise<AcceptanceExport> {
     assertValidRange(filters);
     const rows = await this.legalRepository.listAcceptances(filters);
+    assertWithinExportCap(rows);
     return {
       filename: buildAcceptancesFilename(
         filters.desde,
@@ -195,6 +209,7 @@ export class LegalService {
   ): Promise<AcceptancePdfExport> {
     assertValidRange(filters);
     const rows = await this.legalRepository.listAcceptances(filters);
+    assertWithinExportCap(rows);
     return {
       filename: buildAcceptancesFilename(
         filters.desde,

@@ -31,6 +31,8 @@ EXPECTED_TABLES = [
     "mediaciones", "acuerdos", "firmas", "tareas", "incumplimientos",
     "notificaciones", "auditoria", "facturas", "envios_email",
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
+    "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
+    "usage_counters", "lawyer_requests", "payment_events",
 ]
 
 EXPECTED_FUNCTIONS = [
@@ -47,6 +49,7 @@ EXPECTED_FUNCTIONS = [
     "is_owner_estudio_of_case",
     "is_own_subscription",
     "has_accepted_current",
+    "consume_quota",
 ]
 
 EXPECTED_ENUMS = [
@@ -56,6 +59,7 @@ EXPECTED_ENUMS = [
     "estado_mediacion", "estado_acuerdo", "tipo_tarea", "estado_tarea",
     "estado_suscripcion", "estado_pago", "canal_notificacion",
     "estado_notificacion", "estado_arrepentimiento",
+    "estado_solicitud_abogado",
 ]
 
 RLS_TABLES = [
@@ -66,6 +70,8 @@ RLS_TABLES = [
     "configuracion", "auditoria", "planes", "inversores",
     "facturas", "envios_email",
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
+    "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
+    "usage_counters", "lawyer_requests", "payment_events",
 ]
 
 RESULTS = []
@@ -157,7 +163,7 @@ def main():
         # 5. Catalog seeds
         print()
         print("=== Catalog Seeds ===")
-        check("Planes seeded", cur, "SELECT COUNT(*) FROM planes", 4, "4 plans expected")
+        check("Planes seeded", cur, "SELECT COUNT(*) FROM planes", 6, "6 plans expected")
         check("Configuracion seeded", cur, "SELECT COUNT(*) FROM configuracion", 7, "7 config entries expected")
         check("Legal documents seeded", cur, "SELECT COUNT(*) FROM legal_documents", 2, "terms + privacy v1.0 expected")
 
@@ -171,11 +177,11 @@ def main():
         """)
         check("updated_at triggers installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='set_updated_at'",
-              19, "19 tables have set_updated_at")
+              21, "21 tables have set_updated_at")
 
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",
-              11, "11 audit trigger names")
+              12, "12 audit trigger names")
 
         check("Propuesta state machine trigger installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trigger_validate_propuesta_estado'",

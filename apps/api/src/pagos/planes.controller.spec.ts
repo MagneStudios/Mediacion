@@ -25,6 +25,7 @@ describe("GET /planes authenticated end-to-end", () => {
       limite_casos: -1,
       limite_iteraciones_ia: -1,
       precio: 19.99,
+      moneda: "ARS",
     },
   ];
 

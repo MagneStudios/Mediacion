@@ -116,6 +116,8 @@ export default function MyPlanScreen() {
           casosLabel={t('admin.planes.card.casosLabel')}
           carpetasLabel={t('admin.planes.card.carpetasLabel')}
           iteracionesLabel={t('admin.planes.card.iteracionesLabel')}
+          taxesIncludedLabel={t('billing.myPlan.taxesIncluded')}
+          netoLabel={t('billing.checkout.breakdown.neto')}
           subscribeLabel={t('billing.myPlan.subscribeAction')}
           onSubscribe={() => {
             blurActiveElement();

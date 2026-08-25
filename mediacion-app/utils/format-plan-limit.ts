@@ -12,12 +12,19 @@ export function formatPlanLimit(value: number | null): string {
   return String(value);
 }
 
-/** Locale-aware price, e.g. "$25.00" — same Intl.NumberFormat pattern as formatAgreementDate's Intl.DateTimeFormat use. */
-export function formatPlanPrice(precio: number): string {
+/**
+ * Locale-aware price in the plan's own currency (punto #24) — `moneda`
+ * always comes from the data (`Plan.moneda` / `MockInvoice.moneda`), never
+ * from a literal in a component. Same Intl.NumberFormat pattern as
+ * formatAgreementDate's Intl.DateTimeFormat use.
+ */
+export function formatPlanPrice(precio: number, moneda: string): string {
   const locale = i18n.language === 'en' ? 'en-US' : 'es-AR';
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(precio);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: moneda }).format(precio);
   } catch {
-    return `$${precio.toFixed(2)}`;
+    // The fallback keeps the currency code visible: a bare `$` would revive
+    // the exact ambiguity (which currency is this?) punto #24 exists to kill.
+    return `${moneda} ${precio.toFixed(2)}`;
   }
 }

@@ -61,6 +61,7 @@ export class FirmasRepository {
       });
   }
 
+  /** Email match is case-insensitive: providers may re-case the address. */
   findByEnvelopeAndEmail(
     envelopeId: string,
     email: string,
@@ -71,7 +72,9 @@ export class FirmasRepository {
       .innerJoin("usuarios", "usuarios.id", "firmas.usuario_id")
       .select(["firmas.id", "firmas.acuerdo_id", "firmas.docusign_status"])
       .where("acuerdos.docusign_envelope_id", "=", envelopeId)
-      .where("usuarios.email", "=", email)
+      .where((eb) =>
+        eb(eb.fn("lower", ["usuarios.email"]), "=", email.toLowerCase()),
+      )
       .executeTakeFirst();
   }
 

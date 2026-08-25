@@ -46,6 +46,13 @@ function normalizeInput(input: PlanInput): PlanInput {
   return { ...input, nombre: input.nombre.trim() };
 }
 
+// Mirrors the DB CHECK (`planes_moneda_check`, `moneda IN ('ARS')`): a moneda
+// the real table would reject must not silently succeed in the mock. An
+// omitted moneda is fine — the column default covers it.
+function violatesMonedaCheck(input: PlanInput): boolean {
+  return input.moneda !== undefined && input.moneda !== 'ARS';
+}
+
 export function createMockPlansService(): PlansService {
   return {
     async listPlanes() {
@@ -66,7 +73,12 @@ export function createMockPlansService(): PlansService {
       if (plans.some((plan) => plan.nombre === input.nombre)) {
         return rejectAfter('plan_nombre_taken', 400);
       }
-      const created: Plan = { id: generateMockPlanId(), ...input };
+      if (violatesMonedaCheck(input)) {
+        return rejectAfter('plan_moneda_invalid', 400);
+      }
+      // `moneda` mirrors the DB column default ('ARS'): the ABM has no
+      // currency picker, so an omitted moneda gets what the schema would set.
+      const created: Plan = { id: generateMockPlanId(), ...input, moneda: input.moneda ?? 'ARS' };
       const committed = await delay(created, 700);
       plans = [...plans, committed];
       return committed;
@@ -84,7 +96,13 @@ export function createMockPlansService(): PlansService {
       if (plans.some((plan) => plan.id !== id && plan.nombre === input.nombre)) {
         return rejectAfter('plan_nombre_taken', 400);
       }
-      const updated: Plan = { ...existing, ...input };
+      if (violatesMonedaCheck(input)) {
+        return rejectAfter('plan_moneda_invalid', 400);
+      }
+      // The spread would overwrite `moneda` with `undefined` when the input
+      // carries the key without a value — an update that says nothing about
+      // the currency keeps the row's.
+      const updated: Plan = { ...existing, ...input, moneda: input.moneda ?? existing.moneda };
       const committed = await delay(updated, 700);
       plans = plans.map((plan) => (plan.id === id ? committed : plan));
       return committed;

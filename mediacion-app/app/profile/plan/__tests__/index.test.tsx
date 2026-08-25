@@ -28,8 +28,9 @@ jest.mock('@/features/plans/hooks/usePlans', () => ({
 // eslint-disable-next-line import/first
 import MyPlanScreen from '../index';
 
-const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0 };
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25 };
+const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
+const simplePlan: Plan = { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 5, limiteCasos: 3, limiteIteracionesIa: 10, precio: 9.99, moneda: 'ARS' };
 
 async function renderScreen() {
   await render(
@@ -65,6 +66,36 @@ describe('MyPlanScreen', () => {
 
     expect(screen.getByText(i18n.t('billing.myPlan.currentBadge'))).toBeTruthy();
     expect(screen.getAllByText(i18n.t('billing.myPlan.subscribeAction'))).toHaveLength(1);
+  });
+
+  /**
+   * The heart of punto #24 in the UI: the price the catalog card leads with
+   * is the FINAL one. 9.99 net + AR IVA 21% (2.10) → 12.09 total; the jest
+   * runtime language is 'en', so Intl renders en-US + ARS as "ARS<nbsp>…"
+   * (same empirically verified format as checkout.test.tsx).
+   */
+  it('the catalog card shows the final price with taxes included, the legend, and the net as secondary data', async () => {
+    mockSubscriptionResult = { status: 'success', subscription: null, reload: jest.fn() };
+    mockPlansResult = { status: 'success', plans: [simplePlan], refresh: jest.fn() };
+    await renderScreen();
+
+    expect(screen.getByText('ARS 12.09')).toBeTruthy();
+    expect(screen.getByText(i18n.t('billing.myPlan.taxesIncluded'))).toBeTruthy();
+    expect(
+      screen.getByText(`${i18n.t('billing.checkout.breakdown.neto')}: ARS 9.99`),
+    ).toBeTruthy();
+  });
+
+  it('a free plan shows only the formatted zero — no taxes legend and no duplicated net', async () => {
+    mockSubscriptionResult = { status: 'success', subscription: null, reload: jest.fn() };
+    mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+    await renderScreen();
+
+    expect(screen.getByText('ARS 0.00')).toBeTruthy();
+    expect(screen.queryByText(i18n.t('billing.myPlan.taxesIncluded'))).toBeNull();
+    expect(
+      screen.queryByText(`${i18n.t('billing.checkout.breakdown.neto')}: ARS 0.00`),
+    ).toBeNull();
   });
 
   it('navigates to checkout with the pressed plan id', async () => {
@@ -147,6 +178,30 @@ describe('MyPlanScreen', () => {
       await renderWithEstado('pendiente_pago', null);
       expect(screen.getByText(i18n.t('billing.myPlan.notice.pendingPayment'))).toBeTruthy();
     });
+  });
+
+  /**
+   * BE decided (18/08) that `fecha_fin` is the instant of the baja — there is
+   * no data backing any "until the end of the paid period" promise, so the
+   * dialog must not make one. Aligned with `billing.myPlan.notice.cancelled`.
+   */
+  it('opens the baja dialog with copy that promises no further charge and no remaining validity', async () => {
+    mockSubscriptionResult = {
+      status: 'success',
+      subscription: { id: 'sub-1', planId: 'plan-base', estado: 'activa', fechaInicio: null, fechaFin: null },
+      reload: jest.fn(),
+    };
+    mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+    await renderScreen();
+
+    fireEvent.press(screen.getByText(i18n.t('billing.myPlan.cancel.action')));
+
+    expect(await screen.findByText(i18n.t('billing.myPlan.cancel.dialogBody'))).toBeTruthy();
+    const esBody = i18n.t('billing.myPlan.cancel.dialogBody', { lng: 'es-AR' });
+    const enBody = i18n.t('billing.myPlan.cancel.dialogBody', { lng: 'en' });
+    expect(esBody).toContain('No se vuelve a cobrar');
+    expect(esBody).not.toMatch(/hasta el final del per/i);
+    expect(enBody).not.toMatch(/until the end of the period/i);
   });
 
   it('says nothing extra about an active subscription, and offers the baja', async () => {

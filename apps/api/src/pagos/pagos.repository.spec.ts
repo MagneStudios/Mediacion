@@ -13,6 +13,7 @@ describe("PagosRepository", () => {
         kysely: { selectFrom },
         selectFrom,
         innerJoin,
+        select,
         idWhere,
         ownerWhere,
         executeTakeFirst,
@@ -35,7 +36,12 @@ describe("PagosRepository", () => {
     }
 
     it("joins suscripciones with planes and selects only the fields needed for a preference", async () => {
-      const row = { id: "sus-1", plan_nombre: "plus", plan_precio: 19.99 };
+      const row = {
+        id: "sus-1",
+        plan_nombre: "plus",
+        plan_precio: 19.99,
+        plan_moneda: "ARS",
+      };
       const fake = buildFakeSelectKysely(row);
       const repository = new PagosRepository(fake.kysely as never);
 
@@ -50,6 +56,12 @@ describe("PagosRepository", () => {
         "planes.id",
         "suscripciones.plan_id",
       );
+      expect(fake.select).toHaveBeenCalledWith([
+        "suscripciones.id",
+        "planes.nombre as plan_nombre",
+        "planes.precio as plan_precio",
+        "planes.moneda as plan_moneda",
+      ]);
       expect(fake.idWhere).toHaveBeenCalledWith(
         "suscripciones.id",
         "=",

@@ -1,5 +1,5 @@
 import { __mockForceBillingFailure, __resetMockBilling, createMockBillingService } from '../billing.service';
-import { __resetMockPlans } from '../plans.service';
+import { __resetMockPlans, plansService } from '../plans.service';
 
 describe('billing.service — R-09 checkout', () => {
   beforeEach(() => {
@@ -28,6 +28,16 @@ describe('billing.service — R-09 checkout', () => {
     expect(result.invoice).toEqual(
       expect.objectContaining({ estado: 'emitida', neto: 25, iva: 5.25, impuestos: 0, total: 30.25 }),
     );
+  });
+
+  it("the invoice snapshots the plan's moneda — the comprobante formats with data, never a literal (punto #24)", async () => {
+    const service = createMockBillingService();
+    const plan = await plansService.getPlan('plan-estudio');
+
+    const { invoice } = await service.subscribeToPlan('plan-estudio');
+
+    expect(plan?.moneda).toBe('ARS');
+    expect(invoice.moneda).toBe(plan?.moneda);
   });
 
   it('becomes the current subscription after subscribing', async () => {

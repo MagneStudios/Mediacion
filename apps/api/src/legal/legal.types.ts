@@ -60,6 +60,8 @@ export type ContactoDto = { nombre: string; email: string; mensaje: string };
 
 export type SolicitudReceipt = { id: string; received_at: string | null };
 
+export const exportMaxRows = 10000;
+
 export const acceptanceExportColumns = [
   "user_id",
   "document_type",

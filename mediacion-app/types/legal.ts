@@ -12,6 +12,14 @@
 export type LegalDocumentType = 'terms' | 'privacy';
 
 /**
+ * Every `LegalDocumentType`, as a value: the surfaces that sweep "all legal
+ * documents" (`VersionNoticeBanner`, `ReacceptanceGate`) iterate this instead
+ * of each redeclaring its own `['terms', 'privacy']` literal — a new document
+ * type is added here once or the compiler flags the drift.
+ */
+export const legalDocumentTypes: readonly LegalDocumentType[] = ['terms', 'privacy'];
+
+/**
  * Everything an acceptance row can be about. `marketing` has no document
  * text — it is the optional comms opt-in, stored as its own row (instructivo
  * §3: "Qué se aceptó: Términos, Privacidad, marketing. Cada uno como un

@@ -24,7 +24,8 @@ export type SubscriptionNoticeKey =
   | 'cancelledUndated'
   | 'expired'
   | 'expiredUndated'
-  | 'pendingPayment';
+  | 'pendingPayment'
+  | 'paused';
 
 export type SubscriptionNotice = {
   /** Key under `billing.myPlan.notice` in the locale files. */
@@ -58,6 +59,13 @@ export function getSubscriptionNotice(
     case 'pendiente_pago':
       // No date: nothing has ended, the contract never started being charged.
       return { key: 'pendingPayment', fechaFin: null };
+    case 'pausada':
+      // Paused is reversible and nothing ended, so no date either. This branch
+      // exists because adding `pausada` to `EstadoSuscripcion` broke the guard
+      // below — which is the guard doing its job: the value had been reachable
+      // from the API since the monetización migration and the screen would
+      // have shown nothing at all for it.
+      return { key: 'paused', fechaFin: null };
     default: {
       // A fifth `estado_suscripcion` value fails `tsc` here rather than
       // silently rendering nothing on a screen that owes the user an answer.

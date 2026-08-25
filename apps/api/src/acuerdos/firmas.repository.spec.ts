@@ -131,6 +131,27 @@ describe("FirmasRepository", () => {
       expect(fakeSelect.selectFrom).toHaveBeenCalledWith("firmas");
       expect(result).toBe(row);
     });
+
+    it("compares the recipient email case-insensitively with lower() on both sides", async () => {
+      const fakeSelect = createFakeSelect(undefined);
+      const repository = new FirmasRepository(fakeSelect as never);
+
+      await repository.findByEnvelopeAndEmail("envelope-1", "A@Example.COM");
+
+      const whereCallback = fakeSelect.where2.mock.calls[0][0] as (
+        eb: unknown,
+      ) => unknown;
+      expect(typeof whereCallback).toBe("function");
+      const lowerExpression = { expression: "lower(usuarios.email)" };
+      const fn = jest.fn().mockReturnValue(lowerExpression);
+      const eb = Object.assign(jest.fn().mockReturnValue("comparison"), {
+        fn,
+      });
+      const built = whereCallback(eb);
+      expect(fn).toHaveBeenCalledWith("lower", ["usuarios.email"]);
+      expect(eb).toHaveBeenCalledWith(lowerExpression, "=", "a@example.com");
+      expect(built).toBe("comparison");
+    });
   });
 
   describe("allSignedForAcuerdo", () => {

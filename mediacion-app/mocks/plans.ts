@@ -9,8 +9,8 @@ import type { Plan } from '../types/plan';
  * `null` convention the migration introduced.
  */
 export const mockPlans: Plan[] = [
-  { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0 },
-  { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 10, limiteCasos: 5, limiteIteracionesIa: 15, precio: 9.99 },
-  { id: 'plan-plus', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99 },
-  { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25.0 },
+  { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' },
+  { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 10, limiteCasos: 5, limiteIteracionesIa: 15, precio: 9.99, moneda: 'ARS' },
+  { id: 'plan-plus', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99, moneda: 'ARS' },
+  { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25.0, moneda: 'ARS' },
 ];

@@ -38,6 +38,7 @@ const invoice: MockInvoice = {
   iva: 5.25,
   impuestos: 0,
   total: 30.25,
+  moneda: 'ARS',
   estado: 'emitida',
   createdAt: '2026-08-10T00:00:00.000Z',
 };
@@ -67,15 +68,15 @@ describe('PlanReceiptScreen', () => {
   it('shows the invoice breakdown', async () => {
     mockGetInvoiceForSubscription.mockResolvedValue(invoice);
     await renderScreen();
-    await waitFor(() => expect(screen.getByText('$30.25')).toBeTruthy());
-    expect(screen.getByText('$25.00')).toBeTruthy();
-    expect(screen.getByText('$5.25')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('ARS\u00a030.25')).toBeTruthy());
+    expect(screen.getByText('ARS\u00a025.00')).toBeTruthy();
+    expect(screen.getByText('ARS\u00a05.25')).toBeTruthy();
   });
 
   it('never fabricates a comprobante numero when none was assigned (no ARCA credentials yet)', async () => {
     mockGetInvoiceForSubscription.mockResolvedValue(invoice);
     await renderScreen();
-    await waitFor(() => expect(screen.getByText('$30.25')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('ARS\u00a030.25')).toBeTruthy());
     expect(screen.queryByText(/Comprobante N/)).toBeNull();
     expect(screen.queryByText(/Receipt No/)).toBeNull();
   });

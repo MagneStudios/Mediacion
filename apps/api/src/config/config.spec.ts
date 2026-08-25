@@ -312,6 +312,76 @@ describe("loadConfig", () => {
     expect(appConfig.docusignOauthBase).toBe("account-d.docusign.com");
   });
 
+  const signnowEnvVars = [
+    { key: "SIGNNOW_CLIENT_ID", field: "signnowClientId" },
+    { key: "SIGNNOW_CLIENT_SECRET", field: "signnowClientSecret" },
+    { key: "SIGNNOW_USER_EMAIL", field: "signnowUserEmail" },
+    { key: "SIGNNOW_USER_PASSWORD", field: "signnowUserPassword" },
+    { key: "SIGNNOW_WEBHOOK_SECRET", field: "signnowWebhookSecret" },
+    {
+      key: "SIGNNOW_WEBHOOK_CALLBACK_URL",
+      field: "signnowWebhookCallbackUrl",
+    },
+  ] as const;
+
+  it.each(signnowEnvVars)(
+    "leaves $field unconfigured in production when $key is missing",
+    ({ field }) => {
+      const appConfig = loadConfig({
+        NODE_ENV: "production",
+        SUPABASE_JWT_SECRET: "test-secret",
+        DATABASE_URL: "postgresql://user:pass@host:5432/db",
+        CRON_SECRET: "cron-secret",
+      });
+
+      expect(appConfig[field]).toBe("");
+    },
+  );
+
+  it.each(signnowEnvVars)(
+    "uses a safe placeholder for $field when NODE_ENV is test and unset",
+    ({ field }) => {
+      const appConfig = loadConfig({ NODE_ENV: "test" });
+
+      expect(appConfig[field]).toContain("dev-placeholder");
+    },
+  );
+
+  it("defaults SIGNNOW_BASE_PATH to the eval sandbox host when missing", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "production",
+      SUPABASE_JWT_SECRET: "test-secret",
+      DATABASE_URL: "postgresql://user:pass@host:5432/db",
+      CRON_SECRET: "cron-secret",
+    });
+
+    expect(appConfig.signnowBasePath).toBe("https://api-eval.signnow.com");
+  });
+
+  it("accepts explicit signNow values", () => {
+    const appConfig = loadConfig({
+      NODE_ENV: "test",
+      SIGNNOW_BASE_PATH: "https://api.signnow.com",
+      SIGNNOW_CLIENT_ID: "sn-client",
+      SIGNNOW_CLIENT_SECRET: "sn-secret",
+      SIGNNOW_USER_EMAIL: "owner@example.com",
+      SIGNNOW_USER_PASSWORD: "sn-password",
+      SIGNNOW_WEBHOOK_SECRET: "sn-whsec",
+      SIGNNOW_WEBHOOK_CALLBACK_URL:
+        "https://mediacion-mu.vercel.app/api/webhooks/signnow",
+    });
+
+    expect(appConfig.signnowBasePath).toBe("https://api.signnow.com");
+    expect(appConfig.signnowClientId).toBe("sn-client");
+    expect(appConfig.signnowClientSecret).toBe("sn-secret");
+    expect(appConfig.signnowUserEmail).toBe("owner@example.com");
+    expect(appConfig.signnowUserPassword).toBe("sn-password");
+    expect(appConfig.signnowWebhookSecret).toBe("sn-whsec");
+    expect(appConfig.signnowWebhookCallbackUrl).toBe(
+      "https://mediacion-mu.vercel.app/api/webhooks/signnow",
+    );
+  });
+
   it("defaults SMTP_PORT to 587 when unset", () => {
     const appConfig = loadConfig({ NODE_ENV: "test" });
 

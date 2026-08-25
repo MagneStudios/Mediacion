@@ -10,6 +10,8 @@ import { formatPlanPrice } from '../../../utils/format-plan-limit';
 
 export type TaxBreakdownSummaryProps = {
   breakdown: TaxBreakdown;
+  /** Punto #24: the currency comes in as data (plan/invoice), never as a literal here. */
+  moneda: string;
   netoLabel: string;
   ivaLabel: string;
   otrosImpuestosLabel: string;
@@ -23,14 +25,14 @@ export type TaxBreakdownSummaryProps = {
  * line item exists in the UI the moment a country config actually charges
  * one — no conditional hiding that would need a second code path later.
  */
-export function TaxBreakdownSummary({ breakdown, netoLabel, ivaLabel, otrosImpuestosLabel, totalLabel }: TaxBreakdownSummaryProps) {
+export function TaxBreakdownSummary({ breakdown, moneda, netoLabel, ivaLabel, otrosImpuestosLabel, totalLabel }: TaxBreakdownSummaryProps) {
   return (
     <Card style={styles.card}>
-      <Row label={netoLabel} value={formatPlanPrice(breakdown.neto)} />
-      <Row label={ivaLabel} value={formatPlanPrice(breakdown.iva)} />
-      <Row label={otrosImpuestosLabel} value={formatPlanPrice(breakdown.otrosImpuestos)} />
+      <Row label={netoLabel} value={formatPlanPrice(breakdown.neto, moneda)} />
+      <Row label={ivaLabel} value={formatPlanPrice(breakdown.iva, moneda)} />
+      <Row label={otrosImpuestosLabel} value={formatPlanPrice(breakdown.otrosImpuestos, moneda)} />
       <Divider tone="soft" />
-      <Row label={totalLabel} value={formatPlanPrice(breakdown.total)} emphasized />
+      <Row label={totalLabel} value={formatPlanPrice(breakdown.total, moneda)} emphasized />
     </Card>
   );
 }

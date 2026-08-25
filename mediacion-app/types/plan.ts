@@ -13,6 +13,10 @@
  *
  * `precio` is the net price, without taxes (R-09) — `configuracion.impuestos`
  * (not modeled here yet) is what turns it into a checkout total.
+ *
+ * `moneda` (punto #24) mirrors `planes.moneda`: the currency the gateway
+ * actually charges (`'ARS'` today, enforced by the DB CHECK). The UI never
+ * invents a currency literal — it always formats with this field.
  */
 export type Plan = {
   id: string;
@@ -21,14 +25,22 @@ export type Plan = {
   limiteCasos: number | null;
   limiteIteracionesIa: number;
   precio: number;
+  moneda: string;
 };
 
+/**
+ * `moneda` is optional here because it mirrors the DB Insert shape: the
+ * column has a default (`'ARS'`) and the admin ABM has no currency picker
+ * (deliberately — adding one is a product decision, see the spec's
+ * "Ask First"). The mock CRUD applies the same default the DB would.
+ */
 export type PlanInput = {
   nombre: string;
   limiteCarpetas: number;
   limiteCasos: number | null;
   limiteIteracionesIa: number;
   precio: number;
+  moneda?: string;
 };
 
 /**
