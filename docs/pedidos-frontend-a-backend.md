@@ -1,6 +1,8 @@
 # Pedidos de Frontend — endpoints que faltan (módulo legal / TyC)
 
-**Fecha:** 16/08/2026, ampliado el 18/08 · **Autor:** Frontend · **Para:** Backend (§1–§6) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
+**Fecha:** 16/08/2026, ampliado el 18/08 y el 25/08 · **Autor:** Frontend · **Para:** Backend (§1–§6, §8–§10) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
+
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -298,6 +300,70 @@ Preferimos (1), pero avisamos antes de necesitarlo, no después.
 
 - El export es el **único** endpoint de la API que no responde JSON. Le hicimos una puerta propia en el cliente HTTP (`requestText`) en vez de un flag en `request`, porque `request<T>` devolviendo `undefined` para una respuesta exitosa es un tipo que miente. Los **errores** sí siguen siendo el envelope de siempre — el filtro de excepciones contesta antes que el handler de texto — así que se parsean igual que en todas las rutas.
 - `POST /acuerdos/:id/incumplimiento` mueve el acuerdo a `con_aviso` en la misma transacción. Lo consumimos **releyendo el acuerdo** después del write en vez de parchear el estado localmente: lo que la pantalla muestra es el estado del servidor, no nuestra suposición de lo que el write hizo.
+
+---
+
+## 10 · Los datos para conectarnos a la API real — lo único que nos frena ahora
+
+**Autor:** Frontend, 25/08 · **Para:** Backend (§10.1, §10.2, §10.4) y DB (§10.3, §10.5) · **Bloqueante para verificar, no para seguir construyendo**
+
+**Por qué recién ahora.** Hasta el fix de `custom_access_token` de hoy (`docs/changelogs-db/2026-08-25.md`), `POST /auth/v1/token` devolvía **500 en cada login**: no es que no hubiéramos levantado la app contra la API, es que no se podía entrar. Por eso las tres entregas de esta rama dicen, todas, "sin API viva". Ahora hay cuatro usuarios dev con login verificado en Cloud, y eso cambia.
+
+Integramos cuatro endpoints esta semana —`GET /planes`, `GET /casos/:id/invitaciones`, incumplimientos y el export de acuerdo— y **los cuatro están verificados sólo contra mocks y contra la lectura de su código**. Queremos cerrar eso antes de seguir sumando integraciones a ciegas.
+
+### 10.1 · Los tres valores del bundle
+
+`mediacion-app/env.example` los lista; necesitamos los reales:
+
+| Variable | Qué es | Quién lo tiene |
+|---|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | URL del proyecto de Supabase Cloud (el gateway de Kong) | DB / quien creó el proyecto |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | La **anon** key | ídem |
+| `EXPO_PUBLIC_API_URL` | Base de la API de Nest, sin barra final | BE — ver §10.2 |
+
+**No manden la `service_role` key.** `config/env.ts` se niega a arrancar si detecta una en ese slot (decodifica el payload y busca `"role":"service_role"`), justamente porque Expo inlinea estos valores dentro del bundle del cliente: esa key ahí es RLS bypasseado para cualquiera que abra las devtools. La anon es publicable por diseño; la otra no.
+
+Van a un `.env` local que **no se commitea**.
+
+### 10.2 · ¿La API de Nest está desplegada en algún lado?
+
+Si hay una URL alcanzable, con eso alcanza. Si no, la levantamos local contra la DB de Cloud y necesitamos saber **qué variables pedirle a la API**, que según `apps/api/src/config/config.ts` son dos obligatorias y una que nos importa a nosotros:
+
+- `SUPABASE_JWT_SECRET` — el secret del proyecto de Cloud. Sin esto el guard rechaza todos los tokens.
+- `DATABASE_URL` — la connection string de Cloud.
+- **`CORS_ORIGINS`** — ver §10.4. Sin esto no hay Expo Web contra API desplegada, y es el que se olvida.
+
+El resto (`OPENROUTER_API_KEY`, los ocho `DOCUSIGN_*`, `OPERACIONES_EMAIL`) los dejamos vacíos: degradan a placeholder o a log y no bloquean lo que vamos a probar.
+
+### 10.3 · ¿Cloud tiene la Fase 1 de monetización aplicada?
+
+Pregunta de una línea, con consecuencia visible. Si el seed de `20260821120000_monetizacion_fase1.sql` está en Cloud, **la pantalla de planes va a mostrar seis tarjetas** (`base`, `simple`, `plus`, `estudio` + `particular` + `corporativo`), tres de un modelo de precios que ya no existe, y `corporativo` se va a ver **gratis** porque su `precio` es `0.00` igual que el de `base`.
+
+No es un bug que vayamos a tapar desde el front: es §5.1 y §5.2 de `docs/pedidos-frontend-monetizacion.md`, sigue abierto, y **se arregla en la fuente**. Lo preguntamos para saber si al conectarnos vamos a estar mirando eso o no, y para que nadie lo reporte como una regresión de la integración del catálogo.
+
+### 10.4 · CORS para Expo Web
+
+`applyCors` (`apps/api/src/main.ts`) es opt-in: con `CORS_ORIGINS` sin setear **no habilita CORS en absoluto**, que es la decisión correcta para que un deploy sin configurar no quede abierto. Pero significa que contra una API desplegada, desde el navegador, no nos entra una sola request.
+
+Corremos Expo Web en `http://localhost:8081`. Si prueban desde otro puerto, el suyo. No hace falta comodín.
+
+### 10.5 · Dos cosas que vimos al traer el merge
+
+Ninguna es de FE y ninguna bloquea; las anotamos acá porque las vimos nosotros.
+
+- **`scripts/setup_test_env.ps1` quedó apuntando a un archivo que no está en el repo.** Le agregaron el paso `tmp/test_00_dev_users.sql` y `tmp/` está en `.gitignore` (línea 65), así que un clone limpio falla en el primer paso. A nosotros no nos afecta si apuntamos a Cloud, pero a cualquiera que levante el entorno local sí.
+- **La password de los usuarios dev quedó en un changelog versionado** (`docs/changelogs-db/2026-08-25.md`). Para usuarios de un proyecto de desarrollo es práctica normal; vale confirmar que ese proyecto de Cloud no comparte nada con datos reales, porque el repo es el lugar donde esa password va a seguir estando.
+
+### 10.6 · Qué vamos a hacer con esto, para que sepan qué esperar
+
+Runbook completo en `docs/frontend-conexion-backend.md`. En corto, las dos cosas que hoy están **deducidas y no observadas**, y que sólo la API real contesta:
+
+1. **`GET /planes` — ¿`precio` viaja como `"9.99"` o como `9.99`?** El tipo de ustedes dice `number`, pero `pg` devuelve `numeric` como **string** salvo que se registre un type parser, y `apps/api/src/database/kysely.provider.ts` no registra ninguno. Nuestro mapper acepta los dos a propósito, pero ninguna spec de BE fija el shape de lectura, así que hoy nadie sabe cuál es. **Si es string, vale que lo sepan ustedes también**: cualquier consumidor que haga aritmética sobre ese campo se lleva una sorpresa.
+2. **`GET /casos/:id/invitaciones` — el shape real de `InvitacionView`**, que leímos de `invitaciones.types.ts` y nunca vimos en el cable.
+
+Los dos mappers toleran lo que venga; lo que queremos es dejar de decir "deducido" en los changelogs.
+
+---
 
 ---
 
