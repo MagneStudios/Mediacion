@@ -10,6 +10,8 @@ const mockReportBreach = jest.fn();
 const mockResetBreachStatus = jest.fn();
 const mockNoticesReload = jest.fn();
 const mockExportAgreement = jest.fn();
+const mockTasksReload = jest.fn();
+const mockCompleteTask = jest.fn();
 
 const mockAgreementHook = {
   status: 'loading' as 'loading' | 'error' | 'success',
@@ -20,6 +22,23 @@ const mockAgreementHook = {
   breachStatus: 'idle' as 'idle' | 'pending' | 'error',
   reportBreach: mockReportBreach,
   resetBreachStatus: mockResetBreachStatus,
+};
+
+const mockTasksHook = {
+  status: 'success' as 'loading' | 'error' | 'success',
+  tasks: [] as {
+    id: string;
+    caseId: string;
+    agreementId: string;
+    tipo: 'tarea' | 'evento_calendario';
+    description: string;
+    eventDate: string | null;
+    estado: 'pendiente' | 'en_progreso' | 'completada';
+    createdAt: string;
+  }[],
+  reload: mockTasksReload,
+  updatingTaskId: null as string | null,
+  completeTask: mockCompleteTask,
 };
 
 const mockBreachNoticesHook = {
@@ -45,6 +64,14 @@ jest.mock('@/features/agreements/hooks/useAgreement', () => ({
 
 jest.mock('@/features/agreements/hooks/useBreachNotices', () => ({
   useBreachNotices: () => mockBreachNoticesHook,
+}));
+
+let lastUseTasksArg: string | null | undefined;
+jest.mock('@/features/tasks/hooks/useTasks', () => ({
+  useTasks: (caseId: string | null) => {
+    lastUseTasksArg = caseId;
+    return mockTasksHook;
+  },
 }));
 
 jest.mock('@/services/agreements.service', () => ({
@@ -105,6 +132,12 @@ beforeEach(() => {
   mockAgreementHook.breachStatus = 'idle';
   mockBreachNoticesHook.notices = [];
   mockBreachNoticesHook.status = 'success';
+  mockTasksReload.mockClear();
+  mockCompleteTask.mockClear();
+  mockTasksHook.status = 'success';
+  mockTasksHook.tasks = [];
+  mockTasksHook.updatingTaskId = null;
+  lastUseTasksArg = undefined;
 });
 
 async function renderScreen() {
@@ -322,6 +355,90 @@ describe('AgreementDashboardScreen — breach notice behavior', () => {
     expect(screen.getByPlaceholderText(i18n.t('agreement.breachNotice.form.descriptionPlaceholder')).props.value).toBe(
       'They missed the handover.',
     );
+  });
+});
+
+describe('AgreementDashboardScreen — tasks (RN-14)', () => {
+  const pendingTask = {
+    id: 'tar-1',
+    caseId: 'case-1',
+    agreementId: 'agr-1',
+    tipo: 'tarea' as const,
+    description: 'Económico — punto acordado: 45000',
+    eventDate: null,
+    estado: 'pendiente' as const,
+    createdAt: '2026-05-29T12:00:01.000Z',
+  };
+
+  it('does not even ask for tasks while the agreement is unsigned', async () => {
+    // Tasks are generated only once every signature completed, so the answer
+    // is known in advance and the request is not worth making.
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('borrador');
+    await renderScreen();
+
+    expect(lastUseTasksArg).toBeNull();
+    expect(screen.queryByText(i18n.t('tasks.section.title'))).toBeNull();
+  });
+
+  it('asks for them once the agreement is signed', async () => {
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('firmado');
+    await renderScreen();
+
+    expect(lastUseTasksArg).toBe('case-1');
+    expect(screen.getByText(i18n.t('tasks.section.title'))).toBeTruthy();
+  });
+
+  it('renders the task with its estado and a way to complete it', async () => {
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('firmado');
+    mockTasksHook.tasks = [pendingTask];
+    await renderScreen();
+
+    expect(screen.getByText(pendingTask.description)).toBeTruthy();
+    expect(screen.getByText(i18n.t('tasks.status.pendiente'))).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: i18n.t('tasks.card.completeAccessibility', { descripcion: pendingTask.description }) }),
+    );
+    expect(mockCompleteTask).toHaveBeenCalledWith('tar-1');
+  });
+
+  it('offers no completion action on an already completed task', async () => {
+    // There is nothing left to do to it, and the API has no "uncomplete".
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('firmado');
+    mockTasksHook.tasks = [{ ...pendingTask, estado: 'completada' }];
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('tasks.status.completada'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('tasks.card.completeAction'))).toBeNull();
+  });
+
+  it('shows the empty state rather than nothing, because empty is the normal state', async () => {
+    // With DOCUSIGN_* unset the webhook never fires and no task is ever
+    // generated — the copy says exactly that.
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('firmado');
+    mockTasksHook.tasks = [];
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('tasks.section.empty.title'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('tasks.section.empty.description'))).toBeTruthy();
+  });
+
+  it('offers a retry when the list could not be read, instead of an empty list', async () => {
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('firmado');
+    mockTasksHook.status = 'error';
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('tasks.section.error.title'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('tasks.section.empty.title'))).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('common.retry') }));
+    expect(mockTasksReload).toHaveBeenCalledTimes(1);
   });
 });
 

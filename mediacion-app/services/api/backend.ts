@@ -15,6 +15,7 @@ import { createApiNoticesService, type ApiNoticesService } from './notices.api-s
 import { createApiPlansService, type ApiPlansService } from './plans.api-service';
 import { createApiPositionsService, type PositionsApiService } from './positions.api-service';
 import { createApiProfileService, type ProfileApiService } from './profile.api-service';
+import { createApiTasksService, type ApiTasksService } from './tasks.api-service';
 import { createSupabaseAuthService, type AuthService } from '../auth/auth.service';
 
 export type Backend = {
@@ -41,6 +42,11 @@ export type Backend = {
    * leave unavailable.
    */
   plans: ApiPlansService;
+  /**
+   * The list and the estado update. `POST /tareas/:id/calendario` is not wired
+   * — see the header of `services/tasks.service.ts`.
+   */
+  tasks: ApiTasksService;
 };
 
 /** Seams so a suite can build the stack without a network or native storage. */
@@ -107,5 +113,6 @@ export function createBackend(
     legal: createApiLegalService(http),
     billing: createApiBillingService(http),
     plans: createApiPlansService(http),
+    tasks: createApiTasksService(http),
   };
 }

@@ -2,7 +2,7 @@
 
 **Fecha:** 16/08/2026, ampliado el 18/08 y el 25/08 · **Autor:** Frontend · **Para:** Backend (§1–§6, §8–§10) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
 
-> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -364,6 +364,42 @@ Runbook completo en `docs/frontend-conexion-backend.md`. En corto, las dos cosas
 Los dos mappers toleran lo que venga; lo que queremos es dejar de decir "deducido" en los changelogs.
 
 ---
+
+---
+
+## 11 · `POST /tareas/:id/calendario` — pide una fecha que ninguna tarea tiene
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **No bloquea:** integramos los otros dos endpoints de tareas y la sección anda
+
+Integramos `GET /casos/:casoId/tareas` y `PATCH /tareas/:id`. **El tercero no**, y no es por falta de ganas.
+
+### 11.1 · El problema, en tres líneas de su propio código
+
+- `buildTareasFromAcuerdo` genera las tareas **sin `fecha_evento`** (`tarea-generation.ts`: sólo pone `acuerdo_id`, `caso_id`, `tipo` y `descripcion`).
+- `resolveFechaEvento` hace `input.fecha_evento ?? tarea.fecha_evento` y tira `400 invalid_input` si los dos faltan (`tareas.service.ts`).
+- `scheduleCalendarEvent` es lo **único** que escribe `fecha_evento` … y es justamente el endpoint que la exige.
+
+O sea: **el endpoint que setea la fecha requiere la fecha**. Ninguna tarea generada puede pasar por ahí sin que el cliente invente una.
+
+### 11.2 · Por qué no la inventamos nosotros
+
+Podríamos mandar "hoy + 7 días" y el endpoint contestaría 200. Sería un evento de calendario en una fecha **que nadie eligió**, sobre un acuerdo legal. Preferimos no tener la función a tenerla mintiendo.
+
+La otra salida es que la elija el usuario, y eso es UI nueva: **no hay ningún selector de fecha en toda la app** (el design system tiene `Input`, `Checkbox` y `SelectableCard`, nada de fechas). Antes de construirlo hace falta responder qué significa "la fecha" de una tarea como *"Económico — punto acordado: 45000"*, que es una pregunta de Producto, no de implementación.
+
+### 11.3 · Las tres opciones, para que elijan
+
+1. **El generador pone una fecha.** `buildTareasFromAcuerdo` la deriva del acuerdo (`fecha` + N días, o lo que Producto defina) y genera `tipo: 'evento_calendario'` donde corresponda. Nosotros no tocamos nada: la sección ya renderiza `eventDateLabel` cuando el dato viene.
+2. **La elige el usuario.** Necesitamos la definición de Producto y construimos el selector. Avisen y lo estimamos.
+3. **El endpoint se retira.** Si el calendario no está en el alcance de esta fase, mejor que no exista a que exista sin poder llamarse.
+
+Nos sirve cualquiera. Lo que no nos sirve es dejarlo como está, porque hoy es una ruta que **no se puede invocar desde ningún cliente honesto**.
+
+### 11.4 · Y una cosa que conviene que sepan de las tareas en general
+
+Las tareas se generan en **un solo lugar**: el webhook de DocuSign, cuando todas las firmas de un acuerdo completan (`docusign-webhook.service.ts` → `generateForAcuerdo`). Nada más las crea.
+
+Con las ocho `DOCUSIGN_*` sin configurar el webhook nunca dispara, así que **`GET /casos/:casoId/tareas` devuelve `[]` siempre**. No es un bug y nuestra sección lo dice con su estado vacío ("Las tareas van a aparecer acá una vez que el acuerdo las genere"). Lo anotamos para que nadie mire una lista vacía y reporte la integración como rota — y para que quede claro que **probar tareas punta a punta depende de DocuSign configurado**, no de nosotros.
 
 ---
 

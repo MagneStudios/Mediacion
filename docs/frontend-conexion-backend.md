@@ -100,7 +100,15 @@ Es deliberado: la API expone `GET /planes` y nada más. Delegarlas al mock habr�
 
 **Consecuencia visible:** con backend configurado, suscribirse por el checkout demo **no** aparece en "Mi plan", porque esa pantalla refleja la fila real de `suscripciones`. Es la verdad del estado actual, no un bug. `services/api/billing.backed-service.ts` lo explica.
 
-### 5.6 · Export de acuerdo
+### 5.6 · Tareas: la lista va a estar vacía, y está bien
+
+`GET /casos/:casoId/tareas` está integrado, pero **las tareas se generan en un solo lugar**: el webhook de DocuSign, cuando todas las firmas de un acuerdo completan. Con las ocho `DOCUSIGN_*` sin configurar el webhook nunca dispara, así que la lista responde `[]` **siempre**.
+
+La sección lo dice con su estado vacío ("Las tareas van a aparecer acá una vez que el acuerdo las genere"). No es la integración rota: **probar tareas punta a punta depende de DocuSign configurado**.
+
+`POST /tareas/:id/calendario` **no está integrado** a propósito: exige un `fecha_evento` que ninguna tarea generada tiene y que sólo se puede setear… por ese mismo endpoint. Ver `docs/pedidos-frontend-a-backend.md` §11.
+
+### 5.7 · Export de acuerdo
 
 `GET /acuerdos/:id/exportar` es el **único endpoint de la API que no contesta JSON** (`text/plain`). Tiene su propia puerta en el cliente HTTP (`requestText`); los errores sí siguen siendo el envelope de siempre.
 

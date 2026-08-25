@@ -32,6 +32,7 @@ describe('createBackend', () => {
     expect(backend?.positions.getOwnPositions).toBeInstanceOf(Function);
     expect(backend?.profile.getProfile).toBeInstanceOf(Function);
     expect(backend?.plans.listPlanes).toBeInstanceOf(Function);
+    expect(backend?.tasks.listTasks).toBeInstanceOf(Function);
     expect(backend?.auth.signIn).toBeInstanceOf(Function);
   });
 
