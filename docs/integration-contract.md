@@ -29,7 +29,8 @@ En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md
 | `GET /casos/:id/categorias` | Redundante: devuelve una lista **estática** (`categoriasBase`) idéntica al union de `types/position.ts`. Verificado valor por valor | No — pero es una ruta que quizá les convenga retirar |
 | `GET /casos/:id/plazo` | Redundante: `plazo`, `sla_tipo`, `ronda_actual` y `semaforo` ya viajan en `CaseSummary`/`CaseDetail` | No |
 | `PATCH /casos/:id/plazo` · `PATCH /casos/:id/estado` | No hay UI que los use ni pedido de Producto para que la haya | No — **avisen si esperaban que existiera** |
-| `POST /auth/biometria` · `POST /auth/consentimiento` | No existe flujo de onboarding en la app | No — mismo comentario |
+| `POST /auth/biometria` | El proveedor biométrico es *"a definir"* (doc técnica §Calendario y biometría) y la app no tiene SDK. Lo único construible hoy sería auto-certificar la identidad del propio usuario. **Además: cualquier usuario autenticado puede marcarse `aprobada`** — la misma regla que `profile-allowlist.ts` enforcea en `PATCH /me` la saltea esta ruta | **Sí** — §12 |
+| `POST /auth/consentimiento` | Es la firma de identidad por DocuSign (inerte) + la aceptación de T&C, que ya resuelve `POST /legal/aceptaciones`. Grabarlo sería un segundo registro de lo mismo | **Sí** — §12.3 |
 | `PATCH /mediacion/:id` | `@Roles("mediador","admin")` — no es de la app de partes | No |
 | `GET /legal/aceptaciones/export(/pdf)` · `GET /metricas` · `GET /auditoria` · `PATCH /config/ia` · los cuatro de `/estudios` | `@Roles("admin"\|"estudio")` — son del panel, y `apps/panel` hoy tiene sólo un `package.json` | No |
 | `POST /inversores` | Público, para una landing que no es esta app | No |
@@ -38,10 +39,11 @@ En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md
 ### Lo que necesitamos de Backend, por orden
 
 1. **§10 — los datos para conectarnos a la API real.** Es lo único que nos frena para dejar de verificar contra mocks. Hasta el fix de auth del 25/08 no se podía ni hacer login, así que **las cuatro integraciones nuevas están verificadas sólo contra mocks y contra la lectura de su código**.
-2. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
-3. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
-4. **§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`** (`max_negotiations_per_period`, `max_clients_per_period`). Sigue abierto: `planColumns` tiene siete columnas, verificado hoy.
-5. **§9 — `Content-Disposition` en `exposedHeaders`.** Sólo el día que guardemos archivos de verdad.
+2. **§12.2 — el resultado biométrico lo escribe el cliente.** No nos bloquea a nosotros (no vamos a construir esa pantalla), pero es su propia regla contradiciéndose entre dos rutas y conviene que lo miren antes de que algo dependa de esa columna.
+3. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
+4. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
+5. **§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`** (`max_negotiations_per_period`, `max_clients_per_period`). Sigue abierto: `planColumns` tiene siete columnas, verificado hoy.
+6. **§9 — `Content-Disposition` en `exposedHeaders`.** Sólo el día que guardemos archivos de verdad.
 
 ### Dos cosas que no son pedidos, pero les ahorran una sorpresa
 

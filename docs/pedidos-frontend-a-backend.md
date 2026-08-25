@@ -4,7 +4,7 @@
 
 > **El inventario completo de la superficie de la API —qué consumimos, qué no y por qué— vive en `docs/integration-contract.md` §0.2 (25/08).** Este documento son los pedidos; ese es el estado.
 >
-> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§12** (onboarding — incluye un agujero: hoy cualquier usuario autenticado puede marcarse como biométricamente verificado), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -402,6 +402,53 @@ Nos sirve cualquiera. Lo que no nos sirve es dejarlo como está, porque hoy es u
 Las tareas se generan en **un solo lugar**: el webhook de DocuSign, cuando todas las firmas de un acuerdo completan (`docusign-webhook.service.ts` → `generateForAcuerdo`). Nada más las crea.
 
 Con las ocho `DOCUSIGN_*` sin configurar el webhook nunca dispara, así que **`GET /casos/:casoId/tareas` devuelve `[]` siempre**. No es un bug y nuestra sección lo dice con su estado vacío ("Las tareas van a aparecer acá una vez que el acuerdo las genere"). Lo anotamos para que nadie mire una lista vacía y reporte la integración como rota — y para que quede claro que **probar tareas punta a punta depende de DocuSign configurado**, no de nosotros.
+
+---
+
+## 12 · Onboarding — no lo vamos a construir todavía, y uno de los dos endpoints tiene un problema de diseño
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **§12.2 conviene leerlo aunque el resto no**
+
+Cerrando el inventario quedaban `POST /auth/biometria` y `POST /auth/consentimiento`. Los miramos para integrarlos y **decidimos no hacerlo**. Las razones no son de esfuerzo.
+
+### 12.1 · Biometría: el proveedor no existe, y la app no puede validar nada
+
+`Mediacion_Documentacion_Tecnica_v1_0.md` §"Calendario y biometría" dice, textual: *"verificación de identidad en el onboarding mediante **proveedor a definir**; se guarda el resultado de la validación, no la biometría cruda"*.
+
+O sea que el proveedor es una decisión abierta. Y del lado de la app: **no hay ningún SDK biométrico ni de KYC instalado** (`expo-local-authentication` no está entre las dependencias, ni ninguna otra).
+
+Entonces, la única pantalla que podríamos construir hoy es una que mande `{"resultado": "aprobada"}` **sin que ninguna validación haya ocurrido**. Es la app auto-certificando la identidad de su propio usuario, en un producto de mediación legal donde RN-12 trata la biometría como dato sensible. No lo vamos a hacer.
+
+### 12.2 · Y ese es el problema: hoy **cualquier usuario autenticado puede aprobarse a sí mismo**
+
+Esto no es una crítica de estilo, es su propia regla contradiciéndose entre dos rutas.
+
+`apps/api/src/me/profile-allowlist.ts` dice, textual:
+
+> *"`rol`, `email`, `activo`, `estudio_id` y **`verif_biometrica`** are deliberately absent: they are privilege or identity fields and **must never be settable from a self-service patch**."*
+
+Correcto, y `PATCH /me` lo cumple. Pero **`POST /auth/biometria` hace exactamente eso**: sin `@Roles`, sin verificación de origen, sin firma de proveedor. `OnboardingService.recordBiometricResult` valida que `resultado` esté en `['aprobada','rechazada']` y escribe la columna. Cualquiera con un token válido manda `{"resultado":"aprobada"}` y queda verificado.
+
+**Hoy el impacto es bajo**, y lo verificamos: `verif_biometrica` no gatea nada en `apps/api` — sólo viaja en `AuthenticatedUser` y en `GET /me`. Pero es un campo de identidad, y el día que algo dependa de él (habilitar un caso, firmar, contratar) el agujero pasa a ser el que decide.
+
+**Lo que sugerimos**, y no es de FE decidirlo: que el resultado entre por donde entran los otros hechos verificados, o sea **un callback del proveedor server-side**, como ya hace `POST /webhooks/docusign` para las firmas. El cliente inicia la verificación; quién dice que salió bien es el proveedor, no el cliente. Con esa forma nosotros integramos sin problema: iniciamos, mostramos estado, y leemos el resultado de `GET /me`.
+
+### 12.3 · Consentimiento: es la firma de identidad de DocuSign, y la mitad ya existe en otro lado
+
+La documentación técnica (§Endpoints, línea de `/auth/consentimiento`) lo define como *"Firma de identidad (DocuSign) y aceptación de T&C"*. Dos cosas, y las dos tienen problema:
+
+- **La firma de identidad por DocuSign no existe en ningún flujo de la app.** Lo único cableado a DocuSign es la firma del acuerdo. Un envelope de onboarding no lo genera ni lo consume nadie, y DocuSign está inerte hasta que se configuren las ocho `DOCUSIGN_*`.
+- **La aceptación de T&C ya está resuelta y en producción**, por el módulo legal: `POST /legal/aceptaciones` con su tabla, su re-aceptación bloqueante y su banner. Grabar además `usuarios.consentimiento_fecha` sería un **segundo registro de lo mismo**, con dos fechas que pueden discrepar y ninguna regla que diga cuál manda.
+
+Antes de tocarlo necesitamos saber si `consentimiento_*` es la firma de identidad (y entonces depende del envelope de onboarding, no de nosotros) o si quedó como duplicado del módulo legal (y entonces conviene retirarlo).
+
+### 12.4 · Qué necesitamos para poder hacerlo
+
+1. **El proveedor de biometría**, o la decisión de que el onboarding biométrico no entra en esta fase.
+2. **La forma del endpoint** una vez que exista el proveedor — sugerencia en §12.2.
+3. **Qué es `consentimiento_*`** y cómo convive con `legal_acceptances`.
+
+Con eso construimos el flujo. Sin eso, lo único que podemos entregar es una pantalla que miente sobre una verificación de identidad, y preferimos no tenerla.
 
 ---
 
