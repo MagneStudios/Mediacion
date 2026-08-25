@@ -11,6 +11,13 @@ export type AppConfig = {
   docusignUserId: string;
   docusignOauthBase: string;
   docusignPrivateKey: string;
+  signnowBasePath: string;
+  signnowClientId: string;
+  signnowClientSecret: string;
+  signnowUserEmail: string;
+  signnowUserPassword: string;
+  signnowWebhookSecret: string;
+  signnowWebhookCallbackUrl: string;
   mpAccessToken: string;
   mpWebhookSecret: string;
   smtpHost: string;
@@ -43,6 +50,14 @@ const placeholderDocusignWebhookSecret = "dev-placeholder-docusign-webhook";
 const placeholderDocusignUserId = "dev-placeholder-docusign-user-id";
 const placeholderDocusignOauthBase = "account-d.docusign.com";
 const placeholderDocusignPrivateKey = "dev-placeholder-docusign-private-key";
+const fallbackSignnowBasePath = "https://api-eval.signnow.com";
+const placeholderSignnowClientId = "dev-placeholder-signnow-client-id";
+const placeholderSignnowClientSecret = "dev-placeholder-signnow-client-secret";
+const placeholderSignnowUserEmail = "signnow@dev-placeholder.test";
+const placeholderSignnowUserPassword = "dev-placeholder-signnow-password";
+const placeholderSignnowWebhookSecret = "dev-placeholder-signnow-webhook";
+const placeholderSignnowWebhookCallbackUrl =
+  "https://dev-placeholder.test/api/webhooks/signnow";
 const placeholderMpAccessToken = "dev-placeholder-mp-access-token";
 const placeholderMpWebhookSecret = "dev-placeholder-mp-webhook-secret";
 const placeholderSmtpHost = "dev-placeholder-smtp-host";
@@ -222,6 +237,40 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     isTestEnv,
     placeholderDocusignPrivateKey,
   );
+  const signnowBasePath = parseWithFallback(
+    environment.SIGNNOW_BASE_PATH,
+    fallbackSignnowBasePath,
+  );
+  const signnowClientId = parseOptionalCredential(
+    environment.SIGNNOW_CLIENT_ID,
+    isTestEnv,
+    placeholderSignnowClientId,
+  );
+  const signnowClientSecret = parseOptionalCredential(
+    environment.SIGNNOW_CLIENT_SECRET,
+    isTestEnv,
+    placeholderSignnowClientSecret,
+  );
+  const signnowUserEmail = parseOptionalCredential(
+    environment.SIGNNOW_USER_EMAIL,
+    isTestEnv,
+    placeholderSignnowUserEmail,
+  );
+  const signnowUserPassword = parseOptionalCredential(
+    environment.SIGNNOW_USER_PASSWORD,
+    isTestEnv,
+    placeholderSignnowUserPassword,
+  );
+  const signnowWebhookSecret = parseOptionalCredential(
+    environment.SIGNNOW_WEBHOOK_SECRET,
+    isTestEnv,
+    placeholderSignnowWebhookSecret,
+  );
+  const signnowWebhookCallbackUrl = parseOptionalCredential(
+    environment.SIGNNOW_WEBHOOK_CALLBACK_URL,
+    isTestEnv,
+    placeholderSignnowWebhookCallbackUrl,
+  );
   const mpAccessToken = parseOptionalCredential(
     environment.MP_ACCESS_TOKEN,
     isTestEnv,
@@ -297,6 +346,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     docusignUserId,
     docusignOauthBase,
     docusignPrivateKey,
+    signnowBasePath,
+    signnowClientId,
+    signnowClientSecret,
+    signnowUserEmail,
+    signnowUserPassword,
+    signnowWebhookSecret,
+    signnowWebhookCallbackUrl,
     mpAccessToken,
     mpWebhookSecret,
     smtpHost,

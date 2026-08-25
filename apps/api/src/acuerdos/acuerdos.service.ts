@@ -152,6 +152,7 @@ export class AcuerdosService {
       }));
       const envelope = await this.docusignClient.createEnvelope({
         acuerdoId,
+        documentText: buildAgreementDocument(acuerdo),
         signers,
       });
       envelopeId = envelope.envelopeId;

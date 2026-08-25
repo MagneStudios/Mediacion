@@ -312,11 +312,17 @@ describe("AcuerdosService", () => {
       expect(claimForSignature).toHaveBeenCalledWith("acuerdo-1");
       expect(createEnvelope).toHaveBeenCalledWith({
         acuerdoId: "acuerdo-1",
+        documentText: expect.stringContaining("ACUERDO DE MEDIACIÓN"),
         signers: [
           { usuarioId: "user-a", email: "a@example.com", name: "Ana Perez" },
           { usuarioId: "user-b", email: "b@example.com", name: "Beto Diaz" },
         ],
       });
+      const { documentText } = createEnvelope.mock.calls[0][0] as {
+        documentText: string;
+      };
+      expect(documentText).toContain("Identificador: acuerdo-1");
+      expect(documentText).toContain("Caso: caso-1");
       expect(persistSignatureEnvelope).toHaveBeenCalledWith(
         "acuerdo-1",
         "envelope-1",
