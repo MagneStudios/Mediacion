@@ -10,11 +10,9 @@ import { typography } from '@/design-system/tokens/typography';
 import { CaseCreationProgress } from '@/features/cases/components/CaseCreationProgress';
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import type { MetodoCaso } from '@/types/case';
+import { metodosEnOrden } from '@/types/case';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { getMethodIcon } from '@/utils/get-method-icon';
-
-const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
 export default function CaseCreateMethodScreen() {
   const { t } = useTranslation();
@@ -44,7 +42,7 @@ export default function CaseCreateMethodScreen() {
       </View>
 
       <View style={styles.options} accessibilityRole="radiogroup">
-        {METHODS.map((metodo) => (
+        {metodosEnOrden.map((metodo) => (
           <SelectableCard
             key={metodo}
             icon={getMethodIcon(metodo)}
