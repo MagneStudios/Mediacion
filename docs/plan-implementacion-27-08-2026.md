@@ -29,9 +29,9 @@ Dueño = quien abre el ticket y responde por el punto. El resto acompaña. Crite
 |---|---|---|---|---|---|
 | C-01 | Pago por ambas partes | **DB** → BE | FE (último, chico) | **Sí** (enum + CHECK) | 🔴 **Bloqueado** — falta definir qué se divide |
 | C-02 | Arbitraje fuera de alcance | **DB** (el texto vive en una migración) | FE (mock + gate), BE (aviso) | Sí (texto + versión) | 🟡 Premisa distinta — ver §3.2 |
-| C-03 | Texto de negociación | **FE** | — (visto de legales) | — | 🟢 Listo para hacer |
-| C-04 | Orden por injerencia | **FE** | — | — | 🟢 **Ya se cumple** — sólo falta deduplicar |
-| C-05 | Texto de conciliación | **FE** | — | — | 🟢 Listo para hacer |
+| C-03 | Texto de negociación | **FE** | — (visto de legales) | — | 🟢 Listo para hacer — espera la redacción |
+| C-04 | Orden por injerencia | **FE** | — | — | ✅ **Hecho** (PR #114) — ya se cumplía; se deduplió el criterio |
+| C-05 | Texto de conciliación | **FE** | — | — | ✅ **Hecho** (PR #114) |
 | C-06 | Botón de asesoramiento por mail | **FE** | — (Producto decide ubicación) | — | 🟡 Choca con lo existente — ver §3.6 |
 | C-07 | Marca / logo | **FE** (assets + `app.json`) | fuera de dev: SAS, INPI, diseño | — | 🔴 Bloqueado por cliente |
 | C-08 | Modelo de acuerdo | **BE** | DB (persistencia), FE (consume) | Sí | 🔴 Bloqueado por cliente |
@@ -40,9 +40,11 @@ Dueño = quien abre el ticket y responde por el punto. El resto acompaña. Crite
 
 ---
 
-## 2 · Lo que se puede hacer ya (una tarde) — **todo FE**
+## 2 · Fase 0 — **todo FE**, sin dependencias
 
 Tres cambios, sin DB, sin backend, sin dependencias entre sí ni con nadie. Es el único bloque del documento que no espera a otro rol.
+
+> **Estado al 27/08: C-05 y C-04 están hechos y mergeados** (PR #114, changelog `docs/changelogs/2026-08-27.md`). Queda C-03, que espera la redacción final del estudio.
 
 ### C-05 — Texto de conciliación
 
@@ -65,12 +67,12 @@ La observación del cliente de que *"velará"* puede cambiar no agrega trabajo: 
 
 **El orden pedido ya es el que está en producción.** Los cuatro lugares del repo donde se declara la secuencia ya dicen `negociacion → conciliacion → mediacion`:
 
-- [`app/case/create/method.tsx:17`](../mediacion-app/app/case/create/method.tsx) — selector de método
-- [`features/cases/components/CaseFilters.tsx:20`](../mediacion-app/features/cases/components/CaseFilters.tsx) — filtros del listado
+- [`app/case/create/method.tsx`](../mediacion-app/app/case/create/method.tsx) — selector de método
+- [`features/cases/components/CaseFilters.tsx`](../mediacion-app/features/cases/components/CaseFilters.tsx) — filtros del listado
 - [`apps/api/src/casos/casos.service.ts:25`](../apps/api/src/casos/casos.service.ts) — validación (no es orden de presentación)
 - `packages/db-types/src/database.types.ts:1785` — generado desde el enum, no se toca a mano
 
-No hay cambio de comportamiento que hacer. Lo que sí corresponde, y es lo que el cliente pide en el fondo, es que el criterio viva en **un** lugar: hoy el array está copiado en dos pantallas y nada impide que la tercera nazca desordenada. Se exporta una constante `METODOS_EN_ORDEN` (con el comentario de *por qué* ese orden: injerencia creciente) y las dos pantallas la consumen.
+No hubo cambio de comportamiento que hacer. Lo que sí correspondía, y es lo que el cliente pide en el fondo, es que el criterio viva en **un** lugar: el array estaba copiado en las dos pantallas y nada impedía que la tercera naciera desordenada. Quedó en `metodosEnOrden` (`types/case.ts`, con el comentario de *por qué* ese orden: injerencia creciente), las dos pantallas la consumen, y un test fija la secuencia.
 
 **Alcance del ticket de FE: sólo los dos primeros archivos.** De los otros dos que aparecen en la búsqueda:
 
@@ -80,7 +82,7 @@ No hay cambio de comportamiento que hacer. Lo que sí corresponde, y es lo que e
 Dos aclaraciones sobre el pedido tal como está escrito:
 
 - **No hay tabla de métodos.** Son un `ENUM` de Postgres (`metodo_caso`, `supabase/migrations/20260721191644_enums.sql:18`). Crear una tabla ABM para tres valores fijos que nunca cambian agrega una migración, una consulta y un cache para no ganar nada. La constante alcanza.
-- **No hay panel admin ni reportes donde aplicar el orden.** `apps/panel/` es hoy un stub con un `package.json` vacío. Cuando exista, que consuma la constante.
+- **No hay panel admin ni reportes donde aplicar el orden.** `apps/panel/` es hoy un stub con un `package.json` vacío. Cuando exista, que consuma `metodosEnOrden`.
 
 ---
 
@@ -184,13 +186,13 @@ Se puede empezar sin el modelo definitivo —el conjunto de variables sale de lo
 
 Orden de merge de siempre: **DB → Backend → Frontend**. Donde una fase toca los tres, el ticket de front no se abre hasta que la migración esté mergeada.
 
-### Fase 0 — C-05, C-03, C-04 · sólo FE, sin dependencias
+### Fase 0 — C-05, C-03, C-04 · sólo FE, sin dependencias · ✅ dos de tres
 
 - **DB:** —
 - **Backend:** —
-- **Frontend:** dos valores de i18n en `es-AR.json` + `en.json` (descripciones de conciliación y negociación) y la constante `METODOS_EN_ORDEN` consumida por `method.tsx` y `CaseFilters.tsx`.
+- **Frontend:** ✅ el valor de i18n de conciliación en `es-AR.json` + `en.json`, y la constante `metodosEnOrden` en `types/case.ts` consumida por `method.tsx` y `CaseFilters.tsx`, con un test que fija el orden. ⏳ falta el valor de negociación (C-03).
 
-Se puede hacer hoy. C-03 se escribe cuando el estudio dé el visto a la redacción; no bloquea a C-05 ni a C-04.
+C-03 se escribe cuando el estudio dé el visto a la redacción; no bloqueaba a C-05 ni a C-04, que ya entraron.
 
 ### Fase 1 — C-06 · sólo FE, espera un dato
 
@@ -247,7 +249,7 @@ La primera es deuda ya documentada en `services/api/cases.backed-service.ts:69`:
 
 ## 5.2 · Tu carril (FE), en una línea
 
-De los ocho puntos, **cuatro son tuyos**: C-03, C-04, C-05 y C-06. Los tres primeros no dependen de nadie y entran hoy. C-06 entra apenas lleguen la dirección de mail y la decisión de ubicación.
+De los ocho puntos, **cuatro son tuyos**: C-03, C-04, C-05 y C-06. **C-04 y C-05 ya están** (PR #114). C-03 espera la redacción del estudio; C-06, la dirección de mail y la decisión de ubicación.
 
 De los otros cuatro: C-02 y C-07 te dan tareas chicas de acompañamiento (espejar el mock, reemplazar assets), C-01 te da un ticket chico que va **al final** de la cadena, y C-08 es de BE — vos consumís.
 
@@ -255,13 +257,32 @@ De los otros cuatro: C-02 y C-07 te dan tareas chicas de acompañamiento (espeja
 
 ## 6 · Qué preguntarle al cliente
 
-Ordenado por cuánto destraba.
+Ordenado por cuánto destraba. **"Quién pregunta" es quien lleva la consulta**, para no duplicar el pedido ni preguntar algo que después no puede accionar. Cada uno destraba lo suyo.
 
-1. **Pago compartido (C-01):** ¿cada parte paga su propia suscripción, o se introduce un precio por caso que se divide? Sin esto no se puede empezar el punto más grande del documento.
-2. **Asesoramiento vs. abogado pago (C-06):** ¿el botón gratuito de asesoramiento convive con el servicio de ARS 40.000, lo precede o lo reemplaza? Recordar que el alcance de ese servicio sigue siendo la decisión #1 pendiente del spec de monetización, y que es bloqueante para publicar.
-3. **Dirección de mail del estudio (C-06):** único dato que falta para entregar la fase 1.
-4. **Arbitraje en los TyC (C-02):** ¿se eliminan las cláusulas H.5–H.6 o se marcan como no disponibles? ¿Amerita nueva versión con reaceptación de todos los usuarios?
-5. **Redacción de negociación (C-03):** confirmar que "velará por que se respeten las formas" no tensiona los límites de responsabilidad que fijan los propios TyC.
-6. **Logo (C-07):** hay tres definiciones en circulación (dos personas abrazándose / familia de tres / bloqueado por SAS). Cuál vale.
-7. **Nombre para las tiendas (C-07):** aunque el registro de marca siga en trámite, hace falta el nombre y el bundle id para poder publicar.
-8. **Modelo de acuerdo (C-08):** aunque sea la estructura, para no inventar un esquema de variables que después no encaje.
+| # | Pregunta | Quién pregunta |
+|---|---|---|
+| 1 | Pago compartido (C-01) | **DB** |
+| 2 | Asesoramiento vs. abogado pago (C-06) | **FE** → Producto |
+| 3 | Dirección de mail del estudio (C-06) | **FE** → Administración |
+| 4 | Arbitraje en los TyC (C-02) | **DB** |
+| 5 | Redacción de negociación (C-03) | **FE** → estudio |
+| 6 | Logo (C-07) | **FE** → Producto |
+| 7 | Nombre para las tiendas (C-07) | **FE** → Administración |
+| 8 | Modelo de acuerdo (C-08) | **BE** → estudio |
+
+1. **Pago compartido (C-01) · DB:** ¿cada parte paga su propia suscripción, o se introduce un precio por caso que se divide? De la respuesta depende si es un valor más en el CHECK de `invitaciones.pago_a_cargo` o una tabla de pagos nueva. Sin esto no se puede empezar el punto más grande del documento.
+2. **Asesoramiento vs. abogado pago (C-06) · FE → Producto:** ¿el botón gratuito de asesoramiento convive con el servicio de ARS 40.000, lo precede o lo reemplaza? Recordar que el alcance de ese servicio sigue siendo la decisión #1 pendiente del spec de monetización, y que es bloqueante para publicar.
+3. **Dirección de mail del estudio (C-06) · FE → Administración:** único dato que falta para entregar la fase 1.
+4. **Arbitraje en los TyC (C-02) · DB:** ¿se eliminan las cláusulas H.5–H.6 o se marcan como no disponibles? Y la parte que es nuestra, no del cliente: sacar una sección entera es una fila nueva en `legal_documents` con `version` nueva, y como `has_accepted_current` matchea por versión exacta, **todos los usuarios pasan a "no aceptaron la vigente"** apenas entre. Definir si va con `is_substantial = true` (reaceptación bloqueante) o no.
+5. **Redacción de negociación (C-03) · FE → estudio:** confirmar que "velará por que se respeten las formas" no tensiona los límites de responsabilidad que fijan los propios TyC.
+6. **Logo (C-07) · FE → Producto:** hay tres definiciones en circulación (dos personas abrazándose / familia de tres / bloqueado por SAS). Cuál vale.
+7. **Nombre para las tiendas (C-07) · FE → Administración:** aunque el registro de marca siga en trámite, hace falta el nombre y el bundle id para poder publicar.
+8. **Modelo de acuerdo (C-08) · BE → estudio:** aunque sea la estructura, para no inventar un esquema de variables que después no encaje.
+
+---
+
+## 7 · Si sos DB o BE y llegaste hasta acá
+
+**DB (@MarianooFernandezz).** Tuyos son **C-01** y **C-02**, los dos hoy bloqueados por definiciones que destrabás vos preguntando: son las preguntas **1** y **4** de §6. El detalle técnico de cada uno está en §3.1 y §3.2, tus bullets de fase en §5 (Fase 2 y Fase 3) y lo que tenés que congelar antes de que FE escriba nada, en §5.1. El precedente del artefacto que te corresponde escribir es `docs/decisiones-db/2026-08-10-cambios-reunion.md`, que hizo lo mismo para los cambios del 07/08.
+
+**BE (@DonatoBruno00).** Tuyo es **C-08** (§4, más grande de lo que se lee: no hay plantilla que reemplazar, hay que construir la capa de documento) y la mitad de backend de **C-01** (§5, Fase 3). Ojo con una frontera que ya está abierta como pedido: `pago_a_cargo` en `GET /casos/:id/invitaciones` es el §8 de `docs/pedidos-frontend-a-backend.md`, archivado el 25/08 como "una columna al select". Con C-01 deja de ser comodidad y pasa a bloqueante: no se le puede mostrar a alguien cuánto tiene que pagar con un dato que el front recuerda solo.
