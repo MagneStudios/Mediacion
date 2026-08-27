@@ -24,6 +24,22 @@ export type EstadoCaso =
 /** Resolution method chosen for a case. Matches the `metodo_caso` enum. */
 export type MetodoCaso = 'negociacion' | 'conciliacion' | 'mediacion';
 
+/**
+ * C-04 (cambios cliente 27/08): the order every surface must present the
+ * methods in — ascending degree of third-party involvement in the process.
+ * Negotiation is between the parties alone; conciliation adds guidance;
+ * mediation puts a neutral third party in the middle.
+ *
+ * The criterion is the client's and applies app-wide, so it lives here once
+ * instead of being re-typed per screen — the method picker and the dashboard
+ * filters used to declare the same literal each, and nothing stopped the
+ * third surface from being born out of order.
+ *
+ * Presentation only. The backend's validation array (`casos.service.ts`) is a
+ * different concern and carries no ordering meaning.
+ */
+export const metodosEnOrden: readonly MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
+
 /** Invitation delivery method. Matches the `tipo_invitacion` enum. */
 export type TipoInvitacion = 'link' | 'codigo' | 'email';
 

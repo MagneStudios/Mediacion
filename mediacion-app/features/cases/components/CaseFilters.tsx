@@ -5,7 +5,7 @@ import { semanticColors } from '../../../design-system/tokens/colors';
 import { radii } from '../../../design-system/tokens/radii';
 import { layout, spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
-import type { MetodoCaso } from '../../../types/case';
+import { type MetodoCaso, metodosEnOrden } from '../../../types/case';
 
 /** 'all' plus the three real, backend-aligned resolution methods — never a category Stitch invented. */
 export type CaseFilterValue = 'all' | MetodoCaso;
@@ -16,8 +16,6 @@ export type CaseFiltersProps = {
   allLabel: string;
   methodLabels: Record<MetodoCaso, string>;
 };
-
-const METHODS: MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
 if (Platform.OS === 'web') {
   try {
@@ -45,7 +43,7 @@ export function CaseFilters({ value, onChange, allLabel, methodLabels }: CaseFil
   const chips = (
     <>
       <FilterChip label={allLabel} selected={value === 'all'} onPress={() => onChange('all')} compact={isCompact} />
-      {METHODS.map((metodo) => (
+      {metodosEnOrden.map((metodo) => (
         <FilterChip
           key={metodo}
           label={methodLabels[metodo]}

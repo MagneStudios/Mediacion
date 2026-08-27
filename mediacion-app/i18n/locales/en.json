@@ -420,7 +420,7 @@
       "subtitle": "You can change this later if the case needs it.",
       "descriptions": {
         "negociacion": "The parties exchange proposals and look for a point of agreement.",
-        "conciliacion": "The process includes guidance to bring the positions closer together.",
+        "conciliacion": "The process includes guidance and suggests options to bring the positions closer together.",
         "mediacion": "A neutral third party supports the dialogue and helps reach an agreement."
       },
       "selected": "Selected",
