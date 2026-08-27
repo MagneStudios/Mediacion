@@ -23,22 +23,26 @@ Ninguna de estas cuatro observaciones invalida el pedido de fondo. Lo que cambia
 
 ## 1 · Mapa por requerimiento
 
-| # | Título | Capa(s) | Impacto DB | Tipo | Estado |
+Dueño = quien abre el ticket y responde por el punto. El resto acompaña. Criterio de `docs/reparto-tyc-devs.md`: un dueño por cosa, y la lógica baja nunca sube.
+
+| # | Título | **Dueño** | Acompañan | Impacto DB | Estado |
 |---|---|---|---|---|---|
-| C-01 | Pago por ambas partes | **DB + API + Front** | **Sí** | Modelo de negocio | 🔴 **Bloqueado** — falta definir qué se divide |
-| C-02 | Arbitraje fuera de alcance | Texto legal (TyC) | Sí (migración de texto) | Contenido legal | 🟡 Premisa distinta — ver §3.2 |
-| C-03 | Texto de negociación | Front (i18n) | — | Copy | 🟢 Listo para hacer (con visto legal) |
-| C-04 | Orden por injerencia | Front (2 archivos) | — | Refactor menor | 🟢 **Ya se cumple** — sólo falta deduplicar |
-| C-05 | Texto de conciliación | Front (i18n) | — | Copy | 🟢 Listo para hacer |
-| C-06 | Botón de asesoramiento por mail | Front | — | Feature nueva | 🟡 Choca con lo existente — ver §3.6 |
-| C-07 | Marca / logo | Front + assets + `app.json` | — | Branding | 🔴 Bloqueado por cliente (SAS + INPI) |
-| C-08 | Modelo de acuerdo | **API + DB** | Sí | Feature nueva (no "reemplazo") | 🔴 Bloqueado por cliente |
+| C-01 | Pago por ambas partes | **DB** → BE | FE (último, chico) | **Sí** (enum + CHECK) | 🔴 **Bloqueado** — falta definir qué se divide |
+| C-02 | Arbitraje fuera de alcance | **DB** (el texto vive en una migración) | FE (mock + gate), BE (aviso) | Sí (texto + versión) | 🟡 Premisa distinta — ver §3.2 |
+| C-03 | Texto de negociación | **FE** | — (visto de legales) | — | 🟢 Listo para hacer |
+| C-04 | Orden por injerencia | **FE** | — | — | 🟢 **Ya se cumple** — sólo falta deduplicar |
+| C-05 | Texto de conciliación | **FE** | — | — | 🟢 Listo para hacer |
+| C-06 | Botón de asesoramiento por mail | **FE** | — (Producto decide ubicación) | — | 🟡 Choca con lo existente — ver §3.6 |
+| C-07 | Marca / logo | **FE** (assets + `app.json`) | fuera de dev: SAS, INPI, diseño | — | 🔴 Bloqueado por cliente |
+| C-08 | Modelo de acuerdo | **BE** | DB (persistencia), FE (consume) | Sí | 🔴 Bloqueado por cliente |
+
+**Fuera del equipo de desarrollo:** redacción legal y decisión sobre el arbitraje (estudio) · alcance del servicio de abogado y ubicación del botón de asesoramiento (Producto) · dirección de mail, nombre de marca y alta de SAS (Administración) · modelo de acuerdo (estudio).
 
 ---
 
-## 2 · Lo que se puede hacer ya (una tarde)
+## 2 · Lo que se puede hacer ya (una tarde) — **todo FE**
 
-Tres cambios, sin DB, sin backend, sin dependencias entre sí.
+Tres cambios, sin DB, sin backend, sin dependencias entre sí ni con nadie. Es el único bloque del documento que no espera a otro rol.
 
 ### C-05 — Texto de conciliación
 
@@ -67,6 +71,11 @@ La observación del cliente de que *"velará"* puede cambiar no agrega trabajo: 
 - `packages/db-types/src/database.types.ts:1785` — generado desde el enum, no se toca a mano
 
 No hay cambio de comportamiento que hacer. Lo que sí corresponde, y es lo que el cliente pide en el fondo, es que el criterio viva en **un** lugar: hoy el array está copiado en dos pantallas y nada impide que la tercera nazca desordenada. Se exporta una constante `METODOS_EN_ORDEN` (con el comentario de *por qué* ese orden: injerencia creciente) y las dos pantallas la consumen.
+
+**Alcance del ticket de FE: sólo los dos primeros archivos.** De los otros dos que aparecen en la búsqueda:
+
+- `casos.service.ts:25` es un array de **validación** de BE, no de presentación. No comparte propósito con la constante de UI y no se toca desde front.
+- `database.types.ts` es generado desde el enum: lo regenera DB, nunca se edita a mano.
 
 Dos aclaraciones sobre el pedido tal como está escrito:
 
@@ -171,18 +180,76 @@ Se puede empezar sin el modelo definitivo —el conjunto de variables sale de lo
 
 ---
 
-## 5 · Orden sugerido
+## 5 · Fases, abiertas por rol
 
-| Fase | Qué | Depende de |
-|---|---|---|
-| **0** | C-05 + C-03 (i18n) y C-04 (constante única) | C-03 espera visto del estudio |
-| **1** | C-06 sólo en Ayuda, con copy diferenciado del canal de reclamos | Dirección de mail del estudio |
-| **2** | C-02: corrección de los TyC | Decisión del estudio + criterio de reaceptación |
-| **3** | C-01 | Definición (a) o (b) + deuda de `pago_a_cargo` en la API |
-| **4** | C-08 | Modelo de acuerdo del estudio |
-| **5** | C-07 | SAS + marca |
+Orden de merge de siempre: **DB → Backend → Frontend**. Donde una fase toca los tres, el ticket de front no se abre hasta que la migración esté mergeada.
 
-La fase 0 se puede hacer hoy. La 1, apenas llegue la dirección de mail. De la 2 en adelante, todo espera al cliente.
+### Fase 0 — C-05, C-03, C-04 · sólo FE, sin dependencias
+
+- **DB:** —
+- **Backend:** —
+- **Frontend:** dos valores de i18n en `es-AR.json` + `en.json` (descripciones de conciliación y negociación) y la constante `METODOS_EN_ORDEN` consumida por `method.tsx` y `CaseFilters.tsx`.
+
+Se puede hacer hoy. C-03 se escribe cuando el estudio dé el visto a la redacción; no bloquea a C-05 ni a C-04.
+
+### Fase 1 — C-06 · sólo FE, espera un dato
+
+- **DB:** —
+- **Backend:** — (no hay endpoint: el mail sale del cliente de correo del usuario)
+- **Frontend:** componente de asesoramiento con la cadena `mailto:` → Gmail web → copiar dirección, claves de i18n, y `EXPO_PUBLIC_CONTACTO_ASESORAMIENTO_EMAIL` en `config/env-source.ts` + `env.example`. Ubicación inicial: sólo Ayuda.
+
+Espera la dirección de mail (Administración) y la decisión de ubicación (Producto). El evento de analytics queda fuera de alcance: no hay capa donde mandarlo.
+
+### Fase 2 — C-02 · DB primero
+
+- **DB:** corrección del articulado en la migración de TyC (`20260814170000_tyc_legal.sql`, cláusulas H.5–H.6) y decisión de si sube versión.
+- **Backend:** si sube versión con reaceptación, el aviso de cambio a usuarios activos (punto #15 del instructivo).
+- **Frontend:** espejar el texto en `mocks/legal-texts.ts` y verificar el comportamiento de `ReacceptanceGate` / `VersionNoticeBanner` con la versión nueva.
+
+FE no toca el texto legal: vive en una migración y su dueño es DB. Lo que le llega a front es el espejo del mock y el gate.
+
+### Fase 3 — C-01 · la cadena completa
+
+- **DB:** ampliar el CHECK de `invitaciones.pago_a_cargo`, valor nuevo en el enum `estado_caso` para el intermedio, y —sólo en la lectura (b)— la tabla `case_payments`.
+- **Backend:** exponer `pago_a_cargo` en `GET /casos/:id/invitaciones` (hoy no lo devuelve), órdenes de pago de Mercado Pago y el webhook que libera el caso con ambos pagos acreditados.
+- **Frontend:** tercera opción en el selector de `invite.tsx`, el monto visible antes de aceptar, y el estado de espera en `payment-required.tsx`.
+
+**El trabajo de FE acá es chico y va último.** No se puede empezar antes: mostrar "cuánto te toca pagar" depende de un campo que el backend todavía no manda.
+
+### Fase 4 — C-08 · BE
+
+- **DB:** persistencia de la plantilla y sus versiones, si se decide versionarla.
+- **Backend:** dueño. Capa de plantilla con variables sobre `agreement-content.ts` y `acuerdo-export.ts`, más la integración con firma.
+- **Frontend:** consume el documento generado. No define el esquema de variables, lo propone si la pantalla necesita algo.
+
+### Fase 5 — C-07 · FE, fuera de dev
+
+- **Frontend:** reemplazo de assets en `assets/images/` y `name` / `scheme` / `android.package` / `ios.bundleIdentifier` en `app.json`.
+- Todo lo demás (SAS, INPI, diseño del logo, nombre en tiendas) es de Administración y Producto.
+
+---
+
+## 5.1 · Fronteras a congelar antes de escribir código
+
+Los puntos donde dos roles se tocan, en el formato de `docs/reparto-tyc-devs.md` §05.
+
+| Frontera | Qué se congela | Lo produce | Lo consume |
+|---|---|---|---|
+| `pago_a_cargo` en la invitación | Que `GET /casos/:id/invitaciones` lo devuelva, y con qué nombre | **BE** (revisa DB) | FE |
+| Modalidad de pago | Los valores válidos del CHECK y del enum de estado | **DB** | BE, FE |
+| Monto a pagar por la contraparte | Quién lo calcula y en qué unidad viaja | **BE** | FE |
+| Variables del acuerdo | El conjunto de campos de la plantilla | **BE** (con el modelo del estudio) | FE |
+| Texto legal de los TyC | El articulado y el número de versión | **DB** | FE (mock, gate), BE (aviso) |
+
+La primera es deuda ya documentada en `services/api/cases.backed-service.ts:69`: hoy el front recuerda `pago_a_cargo` localmente porque la API no lo devuelve. Mientras sea un mock, pasa. En cuanto haya que mostrar un monto real, es un dato inventado en el cliente.
+
+---
+
+## 5.2 · Tu carril (FE), en una línea
+
+De los ocho puntos, **cuatro son tuyos**: C-03, C-04, C-05 y C-06. Los tres primeros no dependen de nadie y entran hoy. C-06 entra apenas lleguen la dirección de mail y la decisión de ubicación.
+
+De los otros cuatro: C-02 y C-07 te dan tareas chicas de acompañamiento (espejar el mock, reemplazar assets), C-01 te da un ticket chico que va **al final** de la cadena, y C-08 es de BE — vos consumís.
 
 ---
 
