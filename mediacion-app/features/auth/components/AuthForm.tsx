@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorState, Input } from '@/design-system';
+import { Button, ErrorState, Input, Logo } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
@@ -65,6 +65,18 @@ export function AuthForm({
 
   return (
     <View style={styles.container}>
+      {/*
+        Sign-in and sign-up are the two screens a visitor can reach before the
+        app has shown them anything else, so the mark goes here — once, in the
+        shared form — rather than being pasted into both routes.
+
+        Decorative on purpose: the heading right below already names the
+        screen, and the product name is still undefined anyway (see `Logo`).
+      */}
+      <View style={styles.brand}>
+        <Logo size={56} />
+      </View>
+
       <Text style={styles.title} accessibilityRole="header">
         {title}
       </Text>
@@ -110,6 +122,9 @@ export function AuthForm({
 const styles = StyleSheet.create({
   container: {
     gap: spacing.md,
+  },
+  brand: {
+    alignItems: 'center',
   },
   title: {
     fontFamily: typography.headline.fontFamily,

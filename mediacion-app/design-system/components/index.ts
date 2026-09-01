@@ -38,3 +38,5 @@ export { Surface } from './Surface';
 export type { SurfaceProps, SurfaceLevel } from './Surface';
 export { Divider } from './Divider';
 export type { DividerProps } from './Divider';
+export { Logo } from './Logo';
+export type { LogoProps } from './Logo';
