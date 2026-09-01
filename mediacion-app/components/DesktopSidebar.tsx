@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '../design-system/components/Icon';
+import { Logo } from '../design-system/components/Logo';
 import { colors, semanticColors } from '../design-system/tokens/colors';
 import { radii } from '../design-system/tokens/radii';
 import { sidebarWidth } from '../design-system/tokens/layout';
@@ -62,10 +63,17 @@ export function DesktopSidebar() {
 
   return (
     <View style={styles.container} accessibilityLabel={t('common.mainNavigation')}>
+      {/*
+        The real mark replaces the placeholder tile it used to sit in — a
+        filled square holding a `scale` glyph. The mark is itself a rounded
+        container, so nesting it inside another one produced two sets of
+        corners; and at the 22px the glyph used it would fall under the 32px
+        floor the brand pack sets (see `Logo`).
+
+        Decorative: the product name is right beside it.
+      */}
       <View style={styles.brand}>
-        <View style={styles.brandMark}>
-          <Icon name="scale" size={22} color={semanticColors.action.primaryFg} strokeWidth={2.2} />
-        </View>
+        <Logo size={40} />
         <Text style={styles.brandName}>Mediación</Text>
       </View>
 
@@ -116,14 +124,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.xs,
     marginBottom: spacing.xxl,
-  },
-  brandMark: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: semanticColors.action.primaryBg,
   },
   brandName: {
     fontFamily: typography.headline.fontFamily,

@@ -616,6 +616,17 @@ POST   /api/admin/lawyer-requests/:id/refund
 
 ### 10.2 Logo
 
+> ⚠️ **Superado el 01/09/2026.** El cliente eligió otro concepto: **cuatro figuras —dos mayores y
+> dos menores— dentro de un contenedor redondeado** (pack `refugio`, ya integrado; ver
+> `docs/respuestas-cliente-01-09-2026.md` §6 y `docs/changelogs/2026-09-01.md`). El brief de abajo
+> queda como registro de lo que se había pedido, **no** como encargo vigente: si se le pasa a un
+> diseñador, va a dibujar el logo equivocado.
+>
+> Dos requisitos de esta sección **siguen sin cumplirse** con el pack entregado y hay que
+> resolverlos: la legibilidad a 16×16 px (el pack declara 32 px como mínimo, y a 16 px las figuras
+> del medio se empastan) y los entregables que faltan — logotipo, lockup horizontal y vertical, y
+> OG image de 1200×630. Lo entregado es sólo el isotipo.
+
 Concepto: **una familia de 3 personas** — dos figuras (padres) en la parte superior y una figura
 en el medio/abajo, formando una composición triangular.
 
