@@ -60,7 +60,10 @@ supabase/migrations/
 ├── 20260817130000_rate_limit_counters.sql  # Contador de rate limit compartido para módulo legal (PK compuesta, ventana fija, server-only)
 ├── 20260817140000_has_accepted_current_vigencia.sql  # Fix: has_accepted_current usa vigencia real (valid_from/valid_to) en vez de valid_to IS NULL
 ├── 20260821000000_revert_has_accepted_current_grant.sql  # O1: REVOKE EXECUTE has_accepted_current de authenticated (helper de servidor, decisión revertida)
-└── 20260821120000_monetizacion_fase1.sql  # O2: Monetización Pactum Fase 1 — enum pausada + estado_solicitud_abogado, planes.max_*, suscripciones billing/MP, usage_counters, lawyer_requests, payment_events, consume_quota, seeds particular/corporativo
+├── 20260821120000_monetizacion_fase1.sql  # O2: Monetización Pactum Fase 1 — enum pausada + estado_solicitud_abogado, planes.max_*, suscripciones billing/MP, usage_counters, lawyer_requests, payment_events, consume_quota, seeds particular/corporativo
+├── 20260823120000_planes_moneda.sql  # moneda en planes (CHECK 'ARS')
+├── 20260825000000_custom_access_token.sql  # custom_access_token para ver JWT
+└── 20260902120000_c01_gate_suscripciones.sql  # C-01: gate "ambos al día" — ADD VALUE pendiente_suscripciones, caso_ambas_partes_suscripciones_activas(), trg_casos_gate_suscripciones
 ```
 
 ## Modelo de datos (33 tablas)
@@ -71,7 +74,7 @@ supabase/migrations/
 - `carpetas` — organización de casos por estudio
 
 ### Casos y vinculación
-- `casos` — sala de mediación, estado, ronda_actual, SLA
+- `casos` — sala de mediación, estado, ronda_actual, SLA. Gate C-01: el trigger `trg_casos_gate_suscripciones` impide pasar a `activo`/`en_negociacion` si alguna de las dos partes en disputa no tiene suscripción activa (ver función `caso_ambas_partes_suscripciones_activas` y sección *Gate de suscripciones (C-01)*)
 - `caso_partes` — relación caso-usuario (parte_a, parte_b, mediador)
 - `invitaciones` — link/código/correo para unir contraparte
 
@@ -116,7 +119,7 @@ supabase/migrations/
 
 ### Enums (21)
 
-`estado_caso` tiene 8 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08).
+`estado_caso` tiene 9 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado, pendiente_suscripciones`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08). `pendiente_suscripciones` (C-01) es el estado que refleja un caso transitoriamente bloqueado por no tener ambas partes al día; la activación real solo ocurre vía transición validada por el gate.
 
 `estado_arrepentimiento` tiene 4 valores: `recibida, en_proceso, resuelta, rechazada`. Usado tanto por `solicitudes_arrepentimiento` como por `solicitudes_contacto` (reutilizado por diseño).
 
@@ -135,6 +138,16 @@ supabase/migrations/
 | `solicitudes_contacto` | Sí | `CON-0001…` |
 | `rate_limit_counters` | Sí | — |
 | `user_agreements` | **No** | Tiene SELECT propio para `authenticated` (contrato FE) |
+
+### Gate de suscripciones (C-01)
+
+Impide que un caso entre a `activo` o `en_negociacion` si alguna de las dos partes en disputa no tiene una suscripción activa ("ambos al día", Opción A — `docs/decisiones-db/2026-09-02-c01-c02-cliente.md`, respuesta cliente punto 1 de `docs/respuestas-cliente-01-09-2026.md`).
+
+- **Verifier** `caso_ambas_partes_suscripciones_activas(p_caso_id UUID)` — SECURITY DEFINER, `search_path=''`, devuelve `boolean`, no es RPC (sin EXECUTE a authenticated). Cuenta las partes en disputa (`rol_en_caso IN ('parte_a','parte_b')` — el mediador, rol `mediador`, no paga suscripción y se agrega desde ronda 3, RN-05, por lo que no debe bloquear) y verifica que cada una tenga una suscripción `activa`. Resolución de suscripción efectiva espejo de `consume_quota`: propia del usuario **O** la del estudio (`coalesce(usuarios.estudio_id, ...)` vía XOR de `suscripciones`). Conjunto vacío → `true` por diseño (un caso sin partes puede insertarse en `activo`; la validación real ocurre en la transición).
+- **Trigger** `trg_casos_gate_suscripciones` — `BEFORE INSERT OR UPDATE OF estado ON casos`. Guardo `TG_OP='UPDATE' AND OLD.estado IS DISTINCT FROM NEW.estado OR TG_OP='INSERT'`; si `NEW.estado IN ('activo','en_negociacion')` y el verifier devuelve `false` → `RAISE EXCEPTION` errcode **P0001** `caso_bloqueado_suscripciones` (→ HTTP 409).
+- **Estado** `pendiente_suscripciones` agregado al enum `estado_caso` (9 valores); refleja un caso que el BE marca transitoriamente bloqueado por no tener ambas partes al día (la activación real solo ocurre vía transición validada por el gate).
+- RLS: el trigger/verifier operan vía `service_role` (BYPASSRLS) leyendo `caso_partes`; `suscripciones` se lee con RLS owner pero la función SECURITY DEFINER con `search_path=''` no depende de la sesión del cliente.
+- Garantías verificadas en `tmp/test_18_gate_suscripciones.sql`: (1) UPDATE a `activo` con contraparte sin suscripción → rechazado P0001; (2) UPDATE a `activo` con ambas al día → pasa; (3) INSERT directo en `activo` sin partes → permitido por diseño (empty-set → true).
 
 ### Enforcement de cuotas: consume_quota (Pactum Fase 1)
 
@@ -180,6 +193,7 @@ Ninguna FK legal usa `ON DELETE CASCADE`:
 | No contratar sin aceptación | Trigger `validate_suscripcion_aceptacion` en `suscripciones`: usuario_id exige aceptación vigente de terms (`has_accepted_current`) |
 | Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
 | `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno. El GRANT a authenticated de `20260817140000` fue revertido en `20260821000000` (helper de servidor) |
+| Gate "ambos al día" (C-01) | Trigger `trg_casos_gate_suscripciones` bloquea `activo`/`en_negociacion` si alguna de las dos partes no tiene suscripción activa. Verifier SECURITY DEFINER solo revisa `parte_a`/`parte_b` (el mediador no paga); empty-set → true. Estado `pendiente_suscripciones` agregado. Decisión: `docs/decisiones-db/2026-09-02-c01-c02-cliente.md` |
 
 ## Comandos útiles
 
@@ -248,20 +262,22 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_15_e2e_flow_full.sql` | E2E full: 17 pasos (A-Q) cubriendo toda la máquina de estados + auditoría |
 | `test_16_tyc_legal.sql` | Módulo legal: has_accepted_current, append-only (UPDATE/DELETE), trigger anti-contratación, codigo ARR, única vigente |
 | `test_17_cuotas.sql` | Monetización: consume_quota 3x + 4ta QUOTA_EXCEEDED (P0002), contador no se infla, NULL = ilimitado, herencia default (cliente de estudio), histórico por período |
+| `test_18_gate_suscripciones.sql` | C-01 gate "ambos al día": (1) UPDATE a activo con contraparte sin suscripción → rechazado P0001, (2) UPDATE a activo con ambas al día → pasa, (3) INSERT directo en activo sin partes → permitido (empty-set → true) |
 
 ### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 80/80 PASS
-- 33 tablas, 14 funciones (incluye consume_quota), 21 enums, 33 RLS, 6 planes, 7 configs, 2 legal docs, 21 updated_at triggers, 12 audit triggers
+**Schema validation (smoke_migrations.py):** 85/85 PASS
+- 33 tablas, 16 funciones (incluye `consume_quota`, `caso_ambas_partes_suscripciones_activas`), 21 enums, 33 RLS, 6 planes, 7 configs, 2 legal docs, 21 updated_at triggers, 12 audit triggers + trigger gate C-01
 
-**RLS validation (validate_rls.py):** 45/45 PASS
+**RLS validation (validate_rls.py):** 49/49 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
 - Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos; has_accepted_current denegado a anon Y authenticated
 - Módulo legal: anon lee legal_documents vigente; cada usuario ve solo sus user_agreements; INSERT/has_accepted_current denegados a authenticated
 - Monetización Fase 1: usage_counters owner-only (SELECT propio), lawyer_requests participantes del caso, payment_events server-only, consume_quota denegado a authenticated
 - Carrera concurrente: 2 requests con 2/3 consumidas terminan en 3/3 (no 4/3)
+- C-01 gate: UPDATE a `activo`/`en_negociacion` con contraparte sin suscripción → P0001 (2); UPDATE a `activo` con ambas al día → pasa; INSERT directo en `activo` sin partes → pasa (diseño)
 
-**SQL tests (16 tests — setup + 12 standalone + 2 E2E + cuotas):**
+**SQL tests (17 tests — setup + 12 standalone + 2 E2E + cuotas + gate):**
 - RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
 - Integrity: CHECK XOR, unique constraints (caso_partes, rondas, acuerdos, propuestas, tareas), FK protection, state machine
 - Triggers: handle_new_user (rol default + explícito), sync_ronda_actual, audit trail, updated_at

@@ -51,6 +51,8 @@ EXPECTED_FUNCTIONS = [
     "has_accepted_current",
     "consume_quota",
     "custom_access_token",
+    "caso_ambas_partes_suscripciones_activas",
+    "trg_casos_gate_suscripciones_fn",
 ]
 
 EXPECTED_ENUMS = [
@@ -187,6 +189,17 @@ def main():
         check("Propuesta state machine trigger installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trigger_validate_propuesta_estado'",
               1, "propuesta estado trigger")
+
+        # 6b. C-01 gate de suscripciones: enum value + trigger
+        print()
+        print("=== C-01 Gate Suscripciones ===")
+        check("estado_caso.pendiente_suscripciones exists", cur,
+              "SELECT NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid "
+              "WHERE t.typname = 'estado_caso' AND e.enumlabel = 'pendiente_suscripciones') = false",
+              True, "ADD VALUE 'pendiente_suscripciones' aplicado")
+        check("gate trigger installed", cur,
+              "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trg_casos_gate_suscripciones'",
+              1, "trigger de gate de suscripciones sobre casos")
 
         # 7. UNIQUE constraints
         print()

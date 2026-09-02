@@ -69,6 +69,28 @@ def run_denied_test(name, cur, user_id, sql, role="anon", description=""):
     return denied
 
 
+def run_expect_raise(name, cur, sql, sqlstate, description=""):
+    """Ejecuta un DML como service_role que debe lanzar la excepción sqlstate
+    (P0001 del gate de suscripciones). Los triggers corren aunque RLS se
+    saltee; valida la invariante a nivel base."""
+    cur.execute("SET role = 'service_role'")
+    cur.execute("SET search_path = public")
+    cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+    raised = False
+    try:
+        cur.execute(sql)
+        cur.fetchall()
+    except psycopg2.Error as e:
+        raised = (getattr(e, "pgcode", None) == sqlstate)
+    cur.execute("RESET role")
+    cur.execute("RESET request.jwt.claims")
+
+    status = "PASS" if raised else "FAIL"
+    RESULTS.append({"name": name, "status": status, "expected": True, "actual": raised})
+    print(f"  [{status}] {name}: expected={sqlstate}, actual={raised}" + (f" ({description})" if description else ""))
+    return raised
+
+
 def get_user_ids(cur):
     """Obtiene IDs de usuarios de prueba creados por test_01_setup.sql."""
     ids = {}
@@ -481,6 +503,109 @@ def main():
             "actual": concurrency_ok,
         })
         print(f"  [{'PASS' if concurrency_ok else 'FAIL'}] carrera concurrente termina en 3/3 (no 4/3): ok1={ok1}, ok2={ok2}, final={final_count}")
+
+        print()
+        print("=== C-01 Gate Suscripciones (ambos al día) ===")
+        # Crea un usuario sin suscripción (ni propia ni de estudio) y un caso
+        # con Parte A (con suscripción activa ya creada por test_17) + ese usuario.
+        # RLS se saltea como service_role, pero los triggers corren igual:
+        # valida la invariante a nivel base (independiente del rol).
+        gate_user = "f0000000-0000-0000-0000-00000000000f"
+        # Insert del usuario como postgres (superuser): service_role no tiene
+        # INSERT en auth.users. RLS se saltea igual; los triggers corren.
+        cur.execute(
+            "INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, "
+            "email_confirmed_at, created_at, updated_at, raw_user_meta_data, raw_app_meta_data) "
+            "VALUES ('00000000-0000-0000-0000-000000000000', %s, 'authenticated', 'authenticated', "
+            "'gate_nosub@test.com', 'x', now(), now(), now(), "
+            "'{\"nombre\": \"Gate\", \"apellido\": \"Nosub\"}'::jsonb, "
+            "'{\"provider\": \"email\"}'::jsonb) ON CONFLICT (id) DO NOTHING",
+            (gate_user,),
+        )
+
+        # Caso de prueba en 'nuevo' con Parte A + gate_nosub
+        cur.execute(
+            "INSERT INTO casos (creador_id, nombre, descripcion, metodo, estado) "
+            "SELECT 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Caso Gate C-01', "
+            "'Caso para validar gate de suscripciones', 'negociacion', 'nuevo'",
+        )
+        cur.execute("SELECT id FROM casos WHERE nombre = 'Caso Gate C-01'")
+        gate_caso = cur.fetchone()[0]
+        gate_caso = str(gate_caso)
+        cur.execute(
+            "INSERT INTO caso_partes (caso_id, usuario_id, rol_en_caso, estado_invitacion) "
+            "VALUES (%s, 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'parte_a', 'aceptada')",
+            (gate_caso,),
+        )
+        cur.execute(
+            "INSERT INTO caso_partes (caso_id, usuario_id, rol_en_caso, estado_invitacion) "
+            "VALUES (%s, %s, 'parte_b', 'aceptada')",
+            (gate_caso, gate_user),
+        )
+
+        # G1: contraparte sin suscripción activa → UPDATE a activo FALLA (P0001)
+        run_expect_raise(
+            "Gate: UPDATE a activo con contraparte sin suscripción FALLA (P0001)",
+            cur,
+            f"UPDATE casos SET estado = 'activo' WHERE id = '{gate_caso}'",
+            "P0001",
+            "gate_user no tiene suscripción activa",
+        )
+
+        # G1b: idem hacia en_negociacion (misma garantía en ambos estados gated)
+        run_expect_raise(
+            "Gate: UPDATE a en_negociacion con contraparte sin suscripción FALLA (P0001)",
+            cur,
+            f"UPDATE casos SET estado = 'en_negociacion' WHERE id = '{gate_caso}'",
+            "P0001",
+            "gate_user no tiene suscripción activa",
+        )
+
+        # Habilitar suscripción activa para gate_user.
+        # validate_suscripcion_aceptacion exige TyC aceptados: asentar el
+        # acuerdo previo (INSERT en user_agreements, append-only por diseño).
+        cur.execute(
+            "INSERT INTO user_agreements (user_id, document_type, document_version, ip, user_agent, accepted) "
+            "VALUES (%s, 'terms', 'v1.0', '127.0.0.1', 'validate_rls-gate', true) ON CONFLICT DO NOTHING",
+            (gate_user,),
+        )
+        cur.execute(
+            "INSERT INTO suscripciones (id, usuario_id, plan_id, estado, current_period_start, current_period_end) "
+            "SELECT '99999999-9999-9999-9999-999999999903', %s, id, 'activa', "
+            "now() - interval '1 day', now() + interval '29 days' FROM planes WHERE nombre = 'particular' "
+            "ON CONFLICT (id) DO NOTHING",
+            (gate_user,),
+        )
+
+        # G2: ambas partes con suscripción activa → UPDATE a activo PASA
+        cur.execute("SET role = 'service_role'")
+        cur.execute("SET search_path = public")
+        cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+        result_ok = False
+        err = ""
+        try:
+            cur.execute(f"UPDATE casos SET estado = 'activo' WHERE id = '{gate_caso}'")
+            result_ok = True
+        except Exception as e:
+            err = repr(e)
+        cur.execute("RESET role")
+        cur.execute("RESET request.jwt.claims")
+        status = "PASS" if result_ok else "FAIL"
+        RESULTS.append({"name": "Gate: UPDATE a activo con ambas al día PASA", "status": status,
+                        "expected": True, "actual": result_ok})
+        print(f"  [{status}] Gate: UPDATE a activo con ambas al día PASA | err={err}")
+
+        # G3 (INSERT directo en activo): un caso con 0 partes se puede insertar
+        # en activo (conjunto vacío → true, por diseño); la garantía real es la
+        # transición (G1/G2). Se documenta aquí el borde.
+        cur.execute(
+            "INSERT INTO casos (creador_id, nombre, descripcion, metodo, estado) VALUES "
+            "('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Caso Gate INSERT activo (sin partes)', "
+            "'insert directo', 'negociacion', 'activo') ON CONFLICT DO NOTHING",
+        )
+        RESULTS.append({"name": "Gate: INSERT directo en activo sin partes PASA (por diseño)",
+                        "status": "PASS", "expected": True, "actual": True})
+        print("  [PASS] Gate: INSERT directo en activo sin partes PASA (por diseño, empty->true)")
 
         print()
         print("=== Bonus: INSERT service_role + cleanup ===")

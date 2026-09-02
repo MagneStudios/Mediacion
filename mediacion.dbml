@@ -26,6 +26,7 @@ Enum metodo_caso {
 
 Enum estado_caso {
   nuevo
+  pendiente_suscripciones [note: 'C-01: caso bloqueado hasta que ambas partes tengan suscripción activa']
   activo
   en_negociacion
   acordado
