@@ -1556,12 +1556,14 @@ export type Database = {
         | "rechazada";
       estado_caso:
         | "nuevo"
+        | "pendiente_suscripciones"
         | "activo"
         | "en_negociacion"
         | "acordado"
         | "cerrado"
         | "terminado"
-        | "vencido";
+        | "vencido"
+        | "expirado";
       estado_invitacion: "pendiente" | "aceptada" | "rechazada" | "expirada";
       estado_mediacion:
         | "solicitada"
@@ -1745,6 +1747,7 @@ export const Constants = {
       ],
       estado_caso: [
         "nuevo",
+        "pendiente_suscripciones",
         "activo",
         "en_negociacion",
         "acordado",
