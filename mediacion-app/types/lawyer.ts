@@ -18,7 +18,7 @@ export type EstadoSolicitudAbogado =
 
 /**
  * El precio, en unidades mínimas enteras — nunca `float` (spec §12: "todos los
- * montos se manejan en enteros de unidad mínima"). ARS 40.000 son 4.000.000.
+ * montos se manejan en enteros de unidad mínima"). ARS 50.000 son 5.000.000.
  */
 export type LawyerFee = {
   currency: 'ARS' | 'USD';
@@ -29,7 +29,7 @@ export type LawyerFee = {
  * Lo que se le muestra al usuario antes de cobrarle.
  *
  * **`scope` y `responseHours` son nullable a propósito, y hoy son null.** El
- * alcance del servicio de ARS 40.000 —¿es una consulta puntual, el patrocinio
+ * alcance del servicio de ARS 50.000 —¿es una consulta puntual, el patrocinio
  * del caso entero, cuántas horas, en cuánto responden?— es la decisión #1 de
  * las pendientes del spec y la tiene que definir **Solmi & Asociados**. El
  * spec la marca como *bloqueante para publicar*: "no se puede cobrar sin decir

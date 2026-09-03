@@ -44,6 +44,8 @@ export function getMediatorEligibility(
     return 'available';
   }
 
-  // 'nuevo': no round has started yet, so accompaniment is never available.
+  // 'nuevo' y 'pendiente_suscripciones' (C-01): ninguna ronda empezó todavía
+  // —en el segundo caso el gate de DB impide siquiera activar el caso—, así
+  // que el acompañamiento nunca está disponible.
   return 'unavailable_before_round_3';
 }

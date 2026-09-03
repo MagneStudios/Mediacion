@@ -569,6 +569,7 @@
       "proposalReady": "Proposal ready",
       "signed": "Signed",
       "awaitingCounterparty": "Waiting for the other party",
+      "awaitingSubscriptions": "Subscriptions not active yet",
       "expired": "Invitation expired",
       "sla": "SLA {{hours}} h"
     },

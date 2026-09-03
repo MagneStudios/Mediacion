@@ -569,6 +569,7 @@
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
       "awaitingCounterparty": "Esperando a la contraparte",
+      "awaitingSubscriptions": "Falta activar suscripciones",
       "expired": "Invitación vencida",
       "sla": "SLA {{hours}} h"
     },

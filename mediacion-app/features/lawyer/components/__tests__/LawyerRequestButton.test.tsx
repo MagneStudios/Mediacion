@@ -27,13 +27,13 @@ jest.mock('@/services/lawyer.service', () => ({
 import { LawyerRequestButton } from '../LawyerRequestButton';
 
 const pendingScopeOffer: LawyerServiceOffer = {
-  fee: { currency: 'ARS', amountMinor: 4_000_000 },
+  fee: { currency: 'ARS', amountMinor: 5_000_000 },
   scope: null,
   responseHours: null,
 };
 
 const publishableOffer: LawyerServiceOffer = {
-  fee: { currency: 'ARS', amountMinor: 4_000_000 },
+  fee: { currency: 'ARS', amountMinor: 5_000_000 },
   scope: ['Una consulta de una hora', 'Revisión del expediente'],
   responseHours: 48,
 };
@@ -132,11 +132,11 @@ describe('LawyerRequestButton', () => {
     });
 
     it('shows the price in the currency the offer carries, not a hardcoded one', async () => {
-      // El precio viaja en unidades mínimas: 4.000.000 son ARS 40.000.
+      // El precio viaja en unidades mínimas: 5.000.000 son ARS 50.000.
       await renderButton();
       fireEvent.press(screen.getByText(i18n.t('lawyer.action')));
 
-      const shown = await screen.findByText(new RegExp('40'));
+      const shown = await screen.findByText(new RegExp('50'));
       expect(shown).toBeTruthy();
       expect(screen.queryByText(i18n.t('lawyer.dialog.scopePending'))).toBeNull();
     });

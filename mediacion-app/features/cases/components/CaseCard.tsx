@@ -38,6 +38,11 @@ const CTA_KEY: Record<CaseStatusLabelKey, 'continue' | 'respond' | 'view'> = {
   proposalReady: 'respond',
   signed: 'view',
   awaitingCounterparty: 'view',
+  // C-01: 'view' y no 'continue'. Desde la tarjeta no se puede resolver el
+  // bloqueo —la suscripción que falta puede ser la de la contraparte— así que
+  // prometer "continuar" lleva a un caso que no abre. Abrir el detalle, que sí
+  // explica qué está pasando, es lo único honesto que se puede ofrecer acá.
+  awaitingSubscriptions: 'view',
   expired: 'view',
 };
 

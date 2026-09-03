@@ -24,7 +24,7 @@ type RequestStatus = 'idle' | 'submitting' | 'error';
  * negociación escaló" ni la vamos a inventar.
  *
  * **Hoy no se puede contratar, y eso se muestra en vez de disimularse.** El
- * alcance del servicio de ARS 40.000 —qué incluye, en cuánto responden— lo
+ * alcance del servicio de ARS 50.000 —qué incluye, en cuánto responden— lo
  * debe Solmi & Asociados (decisión #1 del spec), que lo marca como
  * *bloqueante para publicar*: "no se puede cobrar sin decir qué se entrega".
  * Así que mientras `offer.scope` sea null, el modal lo dice y el botón de

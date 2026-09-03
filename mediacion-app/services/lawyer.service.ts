@@ -37,7 +37,7 @@ export type LawyerService = {
  * El precio se congela al crear la solicitud: si el usuario paga dos horas
  * después, paga el que vio.
  */
-const mockFee = { currency: 'ARS' as const, amountMinor: 4_000_000 };
+const mockFee = { currency: 'ARS' as const, amountMinor: 5_000_000 };
 
 const failures = createFailureController<'requestLawyer'>();
 

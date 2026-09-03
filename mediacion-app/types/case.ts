@@ -13,6 +13,18 @@ export type RolUsuario = 'admin' | 'parte' | 'mediador' | 'estudio';
 
 export type EstadoCaso =
   | 'nuevo'
+  /**
+   * C-01: el caso no puede abrirse porque alguna de las dos partes en disputa
+   * no tiene la suscripción al día. Es la opción A que el cliente eligió el
+   * 01/09/2026 —cada parte paga la suya— implementada en DB como un gate:
+   * `trg_casos_gate_suscripciones` bloquea la transición a
+   * `activo`/`en_negociacion` mientras el verificador dé false
+   * (`20260902120000_c01_gate_suscripciones.sql`).
+   *
+   * El mediador no cuenta: no paga suscripción y se suma recién en ronda 3,
+   * así que nunca es el que bloquea.
+   */
+  | 'pendiente_suscripciones'
   | 'activo'
   | 'en_negociacion'
   | 'acordado'
@@ -63,7 +75,19 @@ export type CaseVisualStatus = 'success' | 'warning' | 'error' | 'info' | 'neutr
  * show a different label depending on what's pending for this party.
  * Keys match `cases.status.*` in the i18n resources.
  */
-export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty' | 'expired';
+export type CaseStatusLabelKey =
+  | 'inReview'
+  | 'proposalReady'
+  | 'signed'
+  | 'awaitingCounterparty'
+  /**
+   * C-01: falta al menos una suscripción para que el caso se abra. La etiqueta
+   * es deliberadamente impersonal —no dice *quién* está en falta— porque las
+   * dos partes ven la misma tarjeta y el estado de pago de la contraparte no
+   * es un dato que le corresponda a esta parte.
+   */
+  | 'awaitingSubscriptions'
+  | 'expired';
 
 export type CaseSummary = {
   id: string;
