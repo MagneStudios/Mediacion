@@ -135,7 +135,10 @@ describeDb(
       const subscriptionA = await giveActiveSubscription(kysely, userAId);
       const subscriptionB = await giveActiveSubscription(kysely, userBId);
       planIds = [subscriptionA.planId, subscriptionB.planId];
-      suscripcionIds = [subscriptionA.suscripcionId, subscriptionB.suscripcionId];
+      suscripcionIds = [
+        subscriptionA.suscripcionId,
+        subscriptionB.suscripcionId,
+      ];
     });
 
     afterAll(async () => {
@@ -146,7 +149,8 @@ describeDb(
             kysely.deleteFrom("suscripciones").where("id", "=", id).execute(),
         ),
         ...planIds.map(
-          (id) => () => kysely.deleteFrom("planes").where("id", "=", id).execute(),
+          (id) => () =>
+            kysely.deleteFrom("planes").where("id", "=", id).execute(),
         ),
         () => deleteAuthUser(kysely, userAId),
         () => deleteAuthUser(kysely, userBId),

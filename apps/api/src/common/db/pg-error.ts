@@ -19,12 +19,13 @@ const conflictCodes = new Set([uniqueViolationCode, triggerExceptionCode]);
  * `ConflictError`, exactly as before. Adding a trigger to this map is a
  * one-line decision, not a default.
  */
-const knownTriggerConflicts: Record<string, { code: string; message: string }> = {
-  caso_bloqueado_suscripciones: {
-    code: "caso_bloqueado_suscripciones",
-    message: "Both parties in the case need an active subscription",
-  },
-};
+const knownTriggerConflicts: Record<string, { code: string; message: string }> =
+  {
+    caso_bloqueado_suscripciones: {
+      code: "caso_bloqueado_suscripciones",
+      message: "Both parties in the case need an active subscription",
+    },
+  };
 
 function isPgError(error: unknown): error is { code: string; message: string } {
   return (
@@ -45,7 +46,8 @@ function triggerSlug(message: string): string | null {
 
 export function toDomainError(error: unknown): Error {
   if (isPgError(error) && conflictCodes.has(error.code)) {
-    const slug = error.code === triggerExceptionCode ? triggerSlug(error.message) : null;
+    const slug =
+      error.code === triggerExceptionCode ? triggerSlug(error.message) : null;
     const known = slug !== null ? knownTriggerConflicts[slug] : undefined;
     if (known) {
       return new ConflictError(error.message, known.code, known.message);
