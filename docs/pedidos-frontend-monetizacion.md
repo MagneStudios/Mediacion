@@ -1,6 +1,6 @@
 # Pedidos de Frontend — Monetización Pactum
 
-**Fecha:** 23/08/2026 · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
+**Fecha:** 23/08/2026, ampliado el 03/09 (§3.5, §3.6) · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
 **Origen:** `docs/PACTUM-monetizacion-spec.md` v1.0 · `docs/contrato-spec-repo-monetizacion.md` · `docs/changelogs-db/2026-08-21.md`
 **Rama de FE:** `feat/frontend-monetizacion-pactum` · **Plan completo:** `docs/plan-frontend-monetizacion.md`
 
@@ -123,19 +123,62 @@ back_url: <APP_URL>/billing/callback
 - La pantalla consulta `GET /suscripciones/vigente` cada 3 s hasta 60 s esperando que `estado` pase a `activa`. **No necesitamos ningún endpoint nuevo para esto.**
 - **Si mueven la ruta, avisen.** Es de las pocas cosas nuestras que quedan congeladas en una configuración de MercadoPago y no se puede cambiar de un solo lado.
 
-### 3.5 · Abogado — todavía no congelamos el shape, y es a propósito
+### 3.5 · Abogado — todavía no congelamos el shape entero, pero el handoff ya sí (actualizado 03/09)
 
 `POST /casos/:id/solicitud-abogado` → `{ init_point }` y `GET /casos/:id/solicitud-abogado` → estado actual.
 
-**No los especificamos en detalle todavía** porque el alcance del servicio (decisión #1 del spec, de Solmi & Asociados) cambia qué campos necesita la pantalla, y congelar un shape antes de saberlo es cómo se arma un contrato que hay que renegociar. El spec lo marca como *bloqueante para publicar*: "no se puede cobrar sin decir qué se entrega".
+**No especificamos el shape completo todavía** porque el alcance del servicio (decisión #1 del spec, de Solmi & Asociados) cambia qué campos necesita la pantalla, y congelar un contrato antes de saberlo es cómo se arma uno que hay que renegociar. El spec lo marca como *bloqueante para publicar*: "no se puede cobrar sin decir qué se entrega".
 
 Lo que sí les sirve saber ahora:
 
+- **El precio subió: ARS 40.000 → 50.000** (respuesta del cliente del 01/09, punto 2 — `docs/respuestas-cliente-01-09-2026.md`). `LAWYER_FEE_ARS_MINOR` en su config sigue en `4000000`; hay que moverlo a `5000000` para no quedar desalineados con el mock, que ya lo tiene. El USD sigue en 30 porque el cliente no lo tocó — es una pregunta abierta aparte (¿sube también, o se mantiene?), no algo para resolver de este lado.
 - El precio se **congela** en `lawyer_requests.monto_minor` al crear la solicitud, no se re-cotiza en el webhook (spec §7.3). Nuestro modal ya muestra el precio que trae la oferta.
 - Ante un segundo intento sobre el mismo caso, **reusar la solicitud `pendiente_pago` existente** en vez de crear otra (spec §7.6). Nuestro mock ya lo hace de este lado; la garantía es de ustedes más el índice único.
 - Montos en **unidades mínimas enteras**, nunca float.
 
-Cuando Solmi entregue el alcance, mandamos la ficha completa.
+**Lo nuevo: el handoff por WhatsApp (spec §7.5) sí se puede congelar hoy, aunque el alcance no esté.** El cliente eligió el fallback v1 el 01/09 — un `wa.me` que el usuario mismo dispara, sin WhatsApp Business API — y ya lo construimos contra el mock (`docs/changelogs/2026-09-03-whatsapp-handoff.md`). Lo que necesitamos que `GET /casos/:id/solicitud-abogado` devuelva, una vez que el estado sea `pagada`, no depende del alcance:
+
+```json
+{
+  "estado": "pagada",
+  "handoff": {
+    "estudio_whatsapp": "+5491155554444",
+    "codigo": "lawreq-0007"
+  }
+}
+```
+
+- `estudio_whatsapp`: el número del estudio, **en formato internacional** (con o sin `+`; nosotros normalizamos a dígitos antes de armar el `wa.me`). Puede ser `null` — es el estado real ahora mismo, el número todavía no lo pasó Administración. Mientras tanto usamos `EXPO_PUBLIC_ESTUDIO_WHATSAPP` como fallback de nuestro lado, pero el payload de ustedes gana en cuanto exista.
+- `codigo`: un identificador corto (alcanza con el id de la solicitud, `lawreq-0007`). **Es el único dato de la negociación que va a viajar en la URL de `wa.me`** — nunca el nombre de la contraparte ni el objeto del caso, por la restricción explícita del spec §7.5. Nuestro `buildHandoffUrl` lo valida y rechaza cualquier otra cosa.
+
+Cuando Solmi entregue el alcance, mandamos la ficha completa del resto del endpoint.
+
+---
+
+### 3.6 · Código tipado para el gate de suscripciones — C-01 (nuevo, 03/09)
+
+**Qué desbloquea:** que la pantalla de un caso distinga "te falta suscribirte a vos" (o a la contraparte) de cualquier otro 409, sin matchear un mensaje de Postgres.
+
+DB entregó el gate el 02/09 (`20260902120000_c01_gate_suscripciones.sql`, ver `docs/changelogs-db/2026-09-02.md`): el trigger `trg_casos_gate_suscripciones` bloquea la transición de un caso a `activo`/`en_negociacion` mientras alguna de las dos partes no tenga suscripción activa, y levanta:
+
+```
+RAISE EXCEPTION 'caso_bloqueado_suscripciones' ... (errcode P0001)
+```
+
+`apps/api/src/common/db/pg-error.ts` ya mapea `P0001` a un `ConflictError` de dominio — pero **genérico**: cualquier trigger que dispare `P0001` cae en el mismo tipo, con el mensaje crudo de Postgres como único dato. Hoy eso sale como un `409` sin forma de distinguirlo de otro conflicto (por ejemplo el de `acuerdos.repository.ts` o el de `negociacion-rondas`) salvo comparando el string del mensaje contra la base — que es exactamente el acoplamiento que no queremos escribir.
+
+**Lo que pedimos:** un código de error propio para este caso puntual, algo como
+
+```json
+{
+  "statusCode": 409,
+  "error": "caso_bloqueado_suscripciones"
+}
+```
+
+que `ConflictError` (o una subclase) pueda cargar además del mensaje, para que el front matchee contra `error`, no contra texto libre. El front ya modela el estado `pendiente_suscripciones` de este lado (`docs/changelogs/2026-09-03.md`); lo único que falta es no tener que adivinar el error.
+
+No es urgente para nada que esté en producción hoy —el gate no lo dispara ninguna pantalla real todavía, sólo lo ejercita el test nuevo de FE—, pero conviene resolverlo antes de que el checkout de suscripciones esté conectado y un caso se quede en este estado con un usuario real mirando la pantalla.
 
 ---
 
@@ -189,7 +232,7 @@ No es un reproche: es que cuando DB agrega un valor de enum, la punta que lo con
 
 Igual que en TyC: cada servicio de FE tiene su mock y su singleton, y activar es cambiar una línea sin tocar ninguna pantalla. No integramos hasta que exista la ficha de cada endpoint (§06 del anexo de reparto).
 
-**El orden que más nos sirve:** §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.4 (`back_url`, cuando armen el preapproval) → §3.5 (abogado, cuando Solmi defina).
+**El orden que más nos sirve:** §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.4 (`back_url`, cuando armen el preapproval) → §3.6 (código tipado del gate C-01, chico y no bloquea nada hoy) → §3.5 (abogado, el handoff ya se puede implementar; el resto cuando Solmi defina).
 
 ---
 
