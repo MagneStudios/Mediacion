@@ -33,6 +33,65 @@ async function deleteAuthUser(
   await sql`delete from auth.users where id = ${id}`.execute(kysely);
 }
 
+/**
+ * Terms acceptance, then an *active* suscripcion — both required for
+ * `activateIfNuevo` to clear the C-01 gate (`trg_casos_gate_suscripciones`,
+ * `20260902120000_c01_gate_suscripciones.sql`) when this fixture's join
+ * flow transitions the caso to `activo`. Without this, `joinCase` throws
+ * `caso_bloqueado_suscripciones` instead of returning the joined caso.
+ *
+ * Mirrors the fixture in `pagos/pagos-webhook.integration.spec.ts`. Terms
+ * acceptance is itself gated by its own BEFORE INSERT trigger
+ * (`trigger_validate_suscripcion_aceptacion`, `20260814170000_tyc_legal.sql`),
+ * so the order matters: accept first, then insert the suscripcion.
+ */
+async function giveActiveSubscription(
+  kysely: Kysely<Database>,
+  usuarioId: string,
+): Promise<{ planId: string; suscripcionId: string }> {
+  const now = new Date().toISOString();
+  const terms = await kysely
+    .selectFrom("legal_documents")
+    .select("version")
+    .where("tipo", "=", "terms")
+    .where("valid_from", "<=", now)
+    .where((eb) =>
+      eb.or([eb("valid_to", "is", null), eb("valid_to", ">", now)]),
+    )
+    .executeTakeFirstOrThrow();
+  await kysely
+    .insertInto("user_agreements")
+    .values({
+      user_id: usuarioId,
+      document_type: "terms",
+      document_version: terms.version,
+      ip: "203.0.113.7",
+      user_agent: "integration",
+      accepted: true,
+    })
+    .execute();
+
+  const plan = await kysely
+    .insertInto("planes")
+    .values({
+      nombre: `invitaciones-hardening-plan-${randomUUID()}`,
+      limite_carpetas: 5,
+      limite_casos: 5,
+      limite_iteraciones_ia: 5,
+      precio: 19.99,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  const suscripcion = await kysely
+    .insertInto("suscripciones")
+    .values({ usuario_id: usuarioId, plan_id: plan.id, estado: "activa" })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  return { planId: plan.id, suscripcionId: suscripcion.id };
+}
+
 async function runCleanupSteps(
   steps: Array<() => Promise<unknown>>,
 ): Promise<void> {
@@ -52,6 +111,8 @@ describeDb(
     const userBId = randomUUID();
     const userAEmail = `hardening-a-${randomUUID()}@integration.test`;
     const userBEmail = `hardening-b-${randomUUID()}@integration.test`;
+    let planIds: string[] = [];
+    let suscripcionIds: string[] = [];
 
     beforeAll(async () => {
       kysely = new Kysely<Database>({
@@ -66,11 +127,27 @@ describeDb(
 
       await insertAuthUser(kysely, userAId, userAEmail);
       await insertAuthUser(kysely, userBId, userBEmail);
+
+      // C-01: el join transiciona el caso a `activo`, y el gate exige
+      // suscripción activa en las dos partes. Sin esto, cada test de este
+      // archivo que espera un join exitoso choca contra
+      // `caso_bloqueado_suscripciones` en vez de avanzar.
+      const subscriptionA = await giveActiveSubscription(kysely, userAId);
+      const subscriptionB = await giveActiveSubscription(kysely, userBId);
+      planIds = [subscriptionA.planId, subscriptionB.planId];
+      suscripcionIds = [subscriptionA.suscripcionId, subscriptionB.suscripcionId];
     });
 
     afterAll(async () => {
       await runCleanupSteps([
         () => cleanupAllCasesFor(userAId),
+        ...suscripcionIds.map(
+          (id) => () =>
+            kysely.deleteFrom("suscripciones").where("id", "=", id).execute(),
+        ),
+        ...planIds.map(
+          (id) => () => kysely.deleteFrom("planes").where("id", "=", id).execute(),
+        ),
         () => deleteAuthUser(kysely, userAId),
         () => deleteAuthUser(kysely, userBId),
         () => kysely.destroy(),

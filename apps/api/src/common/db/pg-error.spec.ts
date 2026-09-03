@@ -32,6 +32,53 @@ describe("toDomainError", () => {
     });
   });
 
+  it("maps a known trigger slug to its own typed conflict code (C-01)", () => {
+    const pgError = {
+      code: "P0001",
+      message:
+        "caso_bloqueado_suscripciones: ambas partes deben tener suscripción activa",
+    };
+
+    const result = toDomainError(pgError) as ConflictError;
+
+    expect(result).toBeInstanceOf(ConflictError);
+    expect(result.getStatus()).toBe(HttpStatus.CONFLICT);
+    expect(result.getResponse()).toEqual({
+      code: "caso_bloqueado_suscripciones",
+      message: "Both parties in the case need an active subscription",
+    });
+  });
+
+  it("never leaks the raw Postgres message for a known trigger slug either", () => {
+    const pgError = {
+      code: "P0001",
+      message:
+        "caso_bloqueado_suscripciones: ambas partes deben tener suscripción activa",
+    };
+
+    const result = toDomainError(pgError) as ConflictError;
+    const response = JSON.stringify(result.getResponse());
+
+    expect(response).not.toContain("ambas partes");
+  });
+
+  it("falls back to the generic conflict for a slug nobody has reviewed yet", () => {
+    // Tiene la forma "slug: texto" de un trigger deliberado, pero no está en
+    // el allowlist. Sumar un trigger al mapa es una decisión explícita, no
+    // algo que un slug con buena pinta debería ganarse solo.
+    const pgError = {
+      code: "P0001",
+      message: "algun_otro_trigger: todavía no lo revisamos",
+    };
+
+    const result = toDomainError(pgError) as ConflictError;
+
+    expect(result.getResponse()).toEqual({
+      code: "conflict",
+      message: "Conflict",
+    });
+  });
+
   it("passes through any other error unchanged", () => {
     const originalError = new Error("connection refused");
 

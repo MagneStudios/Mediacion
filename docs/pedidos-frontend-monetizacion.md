@@ -155,9 +155,13 @@ Cuando Solmi entregue el alcance, mandamos la ficha completa del resto del endpo
 
 ---
 
-### 3.6 · Código tipado para el gate de suscripciones — C-01 (nuevo, 03/09)
+### 3.6 · Código tipado para el gate de suscripciones — C-01
 
-**Qué desbloquea:** que la pantalla de un caso distinga "te falta suscribirte a vos" (o a la contraparte) de cualquier otro 409, sin matchear un mensaje de Postgres.
+> **Implementado — 03/09/2026, Backend.** `common/db/pg-error.ts` reconoce el slug `caso_bloqueado_suscripciones` del trigger y lo expone como `{ code: "caso_bloqueado_suscripciones", message: "Both parties in the case need an active subscription" }`, en vez del `{code: "conflict", message: "Conflict"}` genérico de antes. El mecanismo es un allowlist (`knownTriggerConflicts`), así que sumar otro trigger tipado más adelante es una línea, no una reescritura. Detalle en `docs/changelogs/2026-09-03-pg-error-c01-fix.md`.
+>
+> De paso se encontró y arregló la razón real por la que `ci-node` venía en rojo en `dev` desde el merge del gate (PR #115): el fixture de `invitaciones-hardening.integration.spec.ts` no le daba suscripción activa a ninguna de las dos partes, así que el propio gate bloqueaba el join que el test esperaba que funcionara. No era un bug del código de negocio — era el mismo "el gate cambió una regla real y el fixture no se enteró" que ya les tocó del lado de DB con `tmp/test_05_estados.sql` y compañía.
+
+**Qué desbloqueaba:** que la pantalla de un caso distinga "te falta suscribirte a vos" (o a la contraparte) de cualquier otro 409, sin matchear un mensaje de Postgres.
 
 DB entregó el gate el 02/09 (`20260902120000_c01_gate_suscripciones.sql`, ver `docs/changelogs-db/2026-09-02.md`): el trigger `trg_casos_gate_suscripciones` bloquea la transición de un caso a `activo`/`en_negociacion` mientras alguna de las dos partes no tenga suscripción activa, y levanta:
 
