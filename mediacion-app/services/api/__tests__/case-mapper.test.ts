@@ -87,6 +87,16 @@ describe('toStatusLabelKey', () => {
   it('reports expired over awaitingCounterparty — checked first, not the counterparty gate', () => {
     expect(toStatusLabelKey('expirado', true)).toBe('expired');
   });
+
+  it('reports awaitingSubscriptions when the C-01 gate is holding the case shut', () => {
+    expect(toStatusLabelKey('pendiente_suscripciones', true)).toBe('awaitingSubscriptions');
+  });
+
+  it('prefers awaitingCounterparty over awaitingSubscriptions while nobody has joined', () => {
+    // Sin contraparte lo accionable es que se sume alguien. Mandar a pagar
+    // primero cobra por un caso que el gate no va a abrir igual.
+    expect(toStatusLabelKey('pendiente_suscripciones', false)).toBe('awaitingCounterparty');
+  });
 });
 
 describe('toCounterpartyName', () => {

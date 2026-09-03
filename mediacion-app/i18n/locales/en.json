@@ -569,6 +569,7 @@
       "proposalReady": "Proposal ready",
       "signed": "Signed",
       "awaitingCounterparty": "Waiting for the other party",
+      "awaitingSubscriptions": "Subscriptions not active yet",
       "expired": "Invitation expired",
       "sla": "SLA {{hours}} h"
     },
@@ -1436,6 +1437,22 @@
       "error": {
         "title": "We couldn't register your request"
       }
+    },
+    "handoff": {
+      "title": "Arrange the consultation on WhatsApp",
+      "body": "Your payment is confirmed. Message the firm to arrange it — the message already carries your request number ({{code}}).",
+      "action": "Open WhatsApp",
+      "message": "Hi: I paid for legal assistance on Pactum. My request number is {{code}}. I'd like to arrange the consultation.",
+      "numberPending": "Your payment is confirmed and your request number is {{code}}. We don't have the firm's WhatsApp number yet: we're sorting it out and will let you know. Keep that request number.",
+      "unavailable": "We couldn't open WhatsApp from here. Copy the number and message them however works best for you.",
+      "numberLabel": "Firm's WhatsApp",
+      "copy": "Copy number",
+      "copied": "Copied"
+    },
+    "simulatePayment": {
+      "action": "Simulate confirmed payment (demo)",
+      "hint": "Demo shortcut: in production Mercado Pago confirms the payment.",
+      "error": "We couldn't simulate the payment confirmation."
     }
   },
   "legal": {

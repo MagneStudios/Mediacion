@@ -569,6 +569,7 @@
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
       "awaitingCounterparty": "Esperando a la contraparte",
+      "awaitingSubscriptions": "Falta activar suscripciones",
       "expired": "Invitación vencida",
       "sla": "SLA {{hours}} h"
     },
@@ -1436,6 +1437,22 @@
       "error": {
         "title": "No pudimos registrar tu solicitud"
       }
+    },
+    "handoff": {
+      "title": "Coordiná la consulta por WhatsApp",
+      "body": "Tu pago está confirmado. Escribile al estudio para coordinar: el mensaje ya viene con tu número de solicitud ({{code}}).",
+      "action": "Abrir WhatsApp",
+      "message": "Hola: pagué la asistencia legal en Pactum. Mi número de solicitud es {{code}}. Quisiera coordinar la consulta.",
+      "numberPending": "Tu pago está confirmado y tu número de solicitud es {{code}}. Todavía no tenemos el número de WhatsApp del estudio para coordinar: lo estamos gestionando y te vamos a avisar. Guardá ese número de solicitud.",
+      "unavailable": "No pudimos abrir WhatsApp desde acá. Copiá el número y escribiles por donde te quede más cómodo.",
+      "numberLabel": "WhatsApp del estudio",
+      "copy": "Copiar número",
+      "copied": "Copiado"
+    },
+    "simulatePayment": {
+      "action": "Simular pago confirmado (demo)",
+      "hint": "Atajo de demostración: en producción el pago lo confirma Mercado Pago.",
+      "error": "No pudimos simular la confirmación del pago."
     }
   },
   "legal": {

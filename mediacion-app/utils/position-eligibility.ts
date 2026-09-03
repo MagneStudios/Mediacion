@@ -16,6 +16,10 @@ export type PositionEligibility = 'ineligible' | 'read_only' | 'editable';
  */
 export function getPositionEligibility(estado: EstadoCaso): PositionEligibility {
   if (estado === 'nuevo') return 'ineligible';
+  // C-01: el caso todavía no se abrió porque falta alguna suscripción. No hay
+  // nada que cargar ni que leer — mismo trato que `nuevo`, y explícito para
+  // que se vea que el estado se consideró y no que cayó al default de abajo.
+  if (estado === 'pendiente_suscripciones') return 'ineligible';
   if (estado === 'activo' || estado === 'en_negociacion') return 'editable';
   if (estado === 'acordado') return 'read_only';
   // 'cerrado' | 'terminado' | 'vencido' — not explicitly specified; default

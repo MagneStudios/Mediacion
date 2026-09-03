@@ -228,15 +228,15 @@ Y sigue sin contestarse la del docx: **¿es el mismo modelo para negociación, c
 1. ~~**Logo (C-07)** — assets + componente `Logo`.~~ ✅ **Hecho el 01/09** (`docs/changelogs/2026-09-01.md`). Quedan abiertas las dos salvedades: el favicon a 16 px y los entregables que el pack no trae.
 2. **Cerrar C-03** — sin cambio de código. El texto vigente queda aprobado.
 3. **Sacar C-06 del backlog** — la Fase 1 entera queda sin objeto.
-4. **Precio del abogado: 40.000 → 50.000** — fixture del mock, comentarios y tests. Chico pero real, y hay que coordinar `LAWYER_FEE_ARS_MINOR` con BE para no quedar desalineados.
+4. ~~**Precio del abogado: 40.000 → 50.000**~~ ✅ **Hecho el 03/09** (`docs/changelogs/2026-09-03.md`). Falta coordinar `LAWYER_FEE_ARS_MINOR` con BE, que es quien lo configura, y el precio en USD sigue sin contestarse (pregunta #7).
 
 ### Se puede diseñar ahora, entregar cuando llegue el dato
 
-5. **Handoff por WhatsApp post-pago** — falta el número del estudio. Se puede construir contra el mock y congelar con BE qué campos devuelve la solicitud pagada.
+5. ~~**Handoff por WhatsApp post-pago**~~ ✅ **Construido contra el mock el 03/09** (`docs/changelogs/2026-09-03-whatsapp-handoff.md`). Falta el número del estudio — verificado también contra `pactum_respuestas_cliente.pdf`, no lo trae — así que la pantalla lo muestra como bloqueo explícito en vez de un botón muerto.
 
 ### Sigue bloqueado
 
-6. **C-01** — se achicó muchísimo, pero espera DB → BE, más la confirmación sobre el selector de `invite.tsx`.
+6. **C-01** — DB entregó el gate el 02/09 (`20260902120000_c01_gate_suscripciones.sql`) y **el front ya modela el estado `pendiente_suscripciones`** ✅ (03/09). Queda: que BE tipe el error del gate —hoy sale como 409 genérico con el mensaje crudo de Postgres— y la confirmación sobre el selector de `invite.tsx`.
 7. **C-02** — espejo del mock, bloqueado por DB y el estudio.
 8. **C-08** — bloqueado por el acuerdo marco, y ahora además por quién elige las cláusulas.
 

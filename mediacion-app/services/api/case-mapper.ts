@@ -82,6 +82,12 @@ export function toStatusLabelKey(
   if (!hasCounterparty) {
     return 'awaitingCounterparty';
   }
+  // C-01: chequeado después de la contraparte a propósito. Si todavía no se
+  // sumó nadie, lo que hay que hacer es esperar a la contraparte; hablar de
+  // suscripciones ahí manda a pagar por un caso que igual no puede abrirse.
+  if (estado === 'pendiente_suscripciones') {
+    return 'awaitingSubscriptions';
+  }
   if (estado === 'acordado' || estado === 'cerrado' || estado === 'terminado') {
     return 'signed';
   }

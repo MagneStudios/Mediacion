@@ -21,7 +21,7 @@ Pactum incorpora un modelo de suscripción con **3 planes** y un **producto tran
 | 1 | **Particular** | USD 19.90 / mes | 3 negociaciones por mes | Suscripción MercadoPago |
 | 2 | **Estudio Jurídico** | USD 59.90 / mes | 20 altas de clientes "Particular" por mes | Suscripción MercadoPago |
 | 3 | **Corporativo** | A consultar | Sin límites por defecto | Fuera de plataforma (venta asistida) |
-| — | **Abogado on-demand** | ARS 40.000 / USD 30 | Pago único por negociación | Checkout MercadoPago |
+| — | **Abogado on-demand** | ARS 50.000 / USD 30 ⚠️ | Pago único por negociación | Checkout MercadoPago |
 
 Adicionalmente: registrar el dominio **pactum.com** y aplicar la nueva identidad visual (ver §10).
 
@@ -186,7 +186,7 @@ create table lawyer_requests (
   status             lawyer_request_status not null default 'pending_payment',
   -- Precio congelado al momento del click (ver §7.3)
   currency           text not null,              -- 'ARS' | 'USD'
-  amount_minor       integer not null,           -- 4000000 (ARS) | 3000 (USD)
+  amount_minor       integer not null,           -- 5000000 (ARS) | 3000 (USD)
   -- MercadoPago
   mp_preference_id   text,
   mp_payment_id      text unique,
@@ -470,13 +470,18 @@ escalamiento y permite salir a producción sin definirlo.
 
 ### 7.3 Precio
 
-- **ARS 40.000** o **USD 30**, según el país/moneda de la cuenta.
+- **ARS 50.000** o **USD 30**, según el país/moneda de la cuenta.
+
+  > ⚠️ **El USD está pendiente.** El cliente subió el peso de 40.000 a 50.000 el 01/09/2026
+  > (`docs/respuestas-cliente-01-09-2026.md` §2.2) y no tocó la otra moneda. Si USD 30 queda
+  > como está, el servicio pasa a costar bastante menos fuera de Argentina que adentro.
+  > Es la pregunta #7 de esa ronda, abierta con Producto.
 - El precio se **congela** en `lawyer_requests.amount_minor` al momento de crear la solicitud.
   Si el usuario paga 2 horas después, paga el precio que vio. No re-cotizar en el webhook.
 - Guardar en config (no hardcodear):
   ```
-  LAWYER_FEE_ARS_MINOR=4000000   # ARS 40.000,00
-  LAWYER_FEE_USD_MINOR=3000      # USD 30,00
+  LAWYER_FEE_ARS_MINOR=5000000   # ARS 50.000,00
+  LAWYER_FEE_USD_MINOR=3000      # USD 30,00 — pendiente, ver arriba
   ```
 
 ### 7.4 Flujo técnico
@@ -618,7 +623,9 @@ POST   /api/admin/lawyer-requests/:id/refund
 
 > ⚠️ **Superado el 01/09/2026.** El cliente eligió otro concepto: **cuatro figuras —dos mayores y
 > dos menores— dentro de un contenedor redondeado** (pack `refugio`, ya integrado; ver
-> `docs/respuestas-cliente-01-09-2026.md` §6 y `docs/changelogs/2026-09-01.md`). El brief de abajo
+> `docs/respuestas-cliente-01-09-2026.md` §6 y `docs/changelogs/2026-09-01.md`). El pack original
+> —SVG, PNG y el LEEME del diseñador— está versionado en `mediacion-app/assets/brand/refugio/`:
+> es la fuente para regenerar assets y para encargar las piezas que faltan. El brief de abajo
 > queda como registro de lo que se había pedido, **no** como encargo vigente: si se le pasa a un
 > diseñador, va a dibujar el logo equivocado.
 >
@@ -664,7 +671,7 @@ MP_PLAN_ESTUDIO_ID=
 # Precios
 PRICE_PARTICULAR_USD_CENTS=1990
 PRICE_ESTUDIO_USD_CENTS=5990
-LAWYER_FEE_ARS_MINOR=4000000
+LAWYER_FEE_ARS_MINOR=5000000
 LAWYER_FEE_USD_MINOR=3000
 USD_ARS_RATE=
 
@@ -724,7 +731,7 @@ tabla `plans` para poder cambiarlos sin deploy.
 
 | # | Decisión | Responsable | Bloquea |
 |---|---|---|---|
-| 1 | ¿Qué incluye exactamente el servicio de abogado de ARS 40.000? Alcance, plazo, entregable | **Solmi & Asociados** | Copy del modal + publicación |
+| 1 | ¿Qué incluye exactamente el servicio de abogado de ARS 50.000? Alcance, plazo, entregable | **Solmi & Asociados** | Copy del modal + publicación |
 | 2 | Política de reembolso del pago de abogado | Negocio + Solmi | Lanzamiento |
 | 3 | ¿Los clientes de un Estudio heredan la cuota de 3 negociaciones/mes? (§3.2) | Negocio | Schema y enforcement |
 | 4 | ¿20 clientes es flujo mensual o tope de cartera? (§3.2) | Negocio | Enforcement |
