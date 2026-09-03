@@ -9,7 +9,7 @@ import { typography } from '@/design-system/tokens/typography';
 import { useCurrentSubscription } from '@/features/billing/hooks/useCurrentSubscription';
 import i18n from '@/i18n';
 import { lawyerService } from '@/services/lawyer.service';
-import type { LawyerServiceOffer } from '@/types/lawyer';
+import type { LawyerRequest, LawyerServiceOffer } from '@/types/lawyer';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatMinorAmount } from '@/utils/format-money';
 import { canRequestLawyer } from '@/utils/subscription-access';
@@ -35,7 +35,14 @@ type RequestStatus = 'idle' | 'submitting' | 'error';
  * El gate por estado de suscripción es UX, no seguridad: la validación real va
  * en el endpoint (§7.4). Ver `utils/subscription-access.ts`.
  */
-export function LawyerRequestButton({ casoId }: { casoId: string }) {
+export function LawyerRequestButton({
+  casoId,
+  onRequested,
+}: {
+  casoId: string;
+  /** Avisa la solicitud recién creada, para que quien envuelva no refetchee. */
+  onRequested?: (request: LawyerRequest) => void;
+}) {
   const { t } = useTranslation();
   const { subscription, status: subscriptionStatus } = useCurrentSubscription();
 
@@ -62,14 +69,15 @@ export function LawyerRequestButton({ casoId }: { casoId: string }) {
   const confirm = useCallback(async () => {
     setRequestStatus('submitting');
     try {
-      await lawyerService.requestLawyer(casoId);
+      const created = await lawyerService.requestLawyer(casoId);
       setRequestStatus('idle');
       setDialogVisible(false);
       blurActiveElement();
+      onRequested?.(created);
     } catch {
       setRequestStatus('error');
     }
-  }, [casoId]);
+  }, [casoId, onRequested]);
 
   // Mientras carga la suscripción no se dibuja nada: un botón que aparece
   // habilitado y se apaga medio segundo después es peor que uno que llega

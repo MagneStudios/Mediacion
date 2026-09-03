@@ -28,6 +28,17 @@ export type LawyerService = {
    */
   getRequest(casoId: string): Promise<LawyerRequest | null>;
   requestLawyer(casoId: string): Promise<LawyerRequest>;
+  /**
+   * Afordancia de demo, sólo front — igual que
+   * `casesService.simulateInvitationAcceptance`.
+   *
+   * En producción **esto no lo dispara nadie desde la app**: el pago se
+   * confirma en el webhook de Mercado Pago (§7.4), que es de BE. Acá existe
+   * únicamente para poder llegar a la pantalla de handoff sin checkout, que
+   * tampoco está construido. Cuando el webhook exista, este método se cae con
+   * el resto del mock.
+   */
+  simulatePaymentConfirmation(casoId: string): Promise<LawyerRequest>;
 };
 
 /**
@@ -39,9 +50,22 @@ export type LawyerService = {
  */
 const mockFee = { currency: 'ARS' as const, amountMinor: 5_000_000 };
 
-const failures = createFailureController<'requestLawyer'>();
+/**
+ * El número del estudio, que **todavía no llegó** (respuestas del cliente del
+ * 01/09: pidieron el handoff, no pasaron el número). `null` es el estado real,
+ * y la pantalla lo muestra como bloqueo.
+ *
+ * Cuando llegue, entra por `EXPO_PUBLIC_ESTUDIO_WHATSAPP` o —mejor— en el
+ * payload que devuelva BE. Acá se deja explícito para que se vea que falta un
+ * dato, no que falte código.
+ */
+const mockEstudioWhatsapp: string | null = null;
 
-export function __mockForceLawyerFailure(operation: 'requestLawyer'): void {
+const failures = createFailureController<'requestLawyer' | 'simulatePaymentConfirmation'>();
+
+export function __mockForceLawyerFailure(
+  operation: 'requestLawyer' | 'simulatePaymentConfirmation',
+): void {
   failures.force(operation);
 }
 
@@ -95,8 +119,29 @@ export function createMockLawyerService(): LawyerService {
         estado: 'pendiente_pago',
         fee: mockFee,
         createdAt: new Date().toISOString(),
+        // Sin pago no hay handoff: el mensaje que se le manda al estudio es
+        // de "pago confirmado", y mandarlo antes es avisar de algo que no pasó.
+        handoff: null,
       };
       const committed = await delay(created, 700);
+      requestsByCase[casoId] = committed;
+      return committed;
+    },
+
+    async simulatePaymentConfirmation(casoId) {
+      if (failures.consume('simulatePaymentConfirmation')) {
+        return rejectAfter('mock_lawyer_payment_confirmation_failed', 600);
+      }
+      const existing = requestsByCase[casoId];
+      if (!existing) {
+        return rejectAfter('mock_lawyer_request_not_found', 300);
+      }
+      const paid: LawyerRequest = {
+        ...existing,
+        estado: 'pagada',
+        handoff: { estudioWhatsapp: mockEstudioWhatsapp, codigo: existing.id },
+      };
+      const committed = await delay(paid, 600);
       requestsByCase[casoId] = committed;
       return committed;
     },

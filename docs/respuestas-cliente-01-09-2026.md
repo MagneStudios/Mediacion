@@ -232,7 +232,7 @@ Y sigue sin contestarse la del docx: **¿es el mismo modelo para negociación, c
 
 ### Se puede diseñar ahora, entregar cuando llegue el dato
 
-5. **Handoff por WhatsApp post-pago** — falta el número del estudio. Se puede construir contra el mock y congelar con BE qué campos devuelve la solicitud pagada.
+5. ~~**Handoff por WhatsApp post-pago**~~ ✅ **Construido contra el mock el 03/09** (`docs/changelogs/2026-09-03-whatsapp-handoff.md`). Falta el número del estudio — verificado también contra `pactum_respuestas_cliente.pdf`, no lo trae — así que la pantalla lo muestra como bloqueo explícito en vez de un botón muerto.
 
 ### Sigue bloqueado
 
