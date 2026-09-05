@@ -1,6 +1,6 @@
 # Pedidos de Frontend — Monetización Pactum
 
-**Fecha:** 23/08/2026, ampliado el 03/09 (§3.5, §3.6) · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
+**Fecha:** 23/08/2026, ampliado el 03/09 (§3.5, §3.6) y el 04/09 (§3.7 — **abono recurrente**, que retira el primer punto del §4) · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
 **Origen:** `docs/PACTUM-monetizacion-spec.md` v1.0 · `docs/contrato-spec-repo-monetizacion.md` · `docs/changelogs-db/2026-08-21.md`
 **Rama de FE:** `feat/frontend-monetizacion-pactum` · **Plan completo:** `docs/plan-frontend-monetizacion.md`
 
@@ -190,9 +190,31 @@ No es urgente para nada que esté en producción hoy —el gate no lo dispara ni
 
 Para que no construyan de más:
 
-- **Nada de checkout de suscripción todavía.** Seguimos sin cablearlo mientras `POST /suscripciones/:id/pago` devuelva un `init_point` de preferencia one-off en vez de confirmar un pago, y no haya endpoint de factura. Ya está asentado en `docs/tyc-contrato-frontend.md` §10.5.
+- ~~**Nada de checkout de suscripción todavía.**~~ ⚠️ **Retirado el 04/09 — ver §3.7.** Esto quedó viejo y era peligroso dejarlo: decía "no nos armen el checkout" y el cliente, en la reunión del 01/09, puso el **abono recurrente en el centro del modelo de negocio**. Si leen sólo esta línea, la pieza más importante del cambio se queda sin dueño.
 - **Ningún endpoint de `usage_counters` por cliente para el estudio.** El desglose por cliente del spec §5.1.1 es útil pero no lo consume ninguna pantalla nuestra hoy.
 - **`upgrade_url`** (ver §3.2).
+
+---
+
+## 3.7 · El abono recurrente — nuevo, 04/09, y hoy no lo tiene nadie
+
+> Agregado después de la reunión del 01/09 (`docs/CAMBIOS-PACTUM-v2-2026-09-01.md` punto 3). **Retira el primer punto del §4**, que pedía explícitamente no construir el checkout.
+
+**Qué cambió.** El cliente definió que el producto es la **renegociación continua a lo largo del tiempo**, y que por eso el cobro es *"un abono recurrente, no un pago por caso"*, con *"Mercado Pago con suscripción / pago recurrente (preapproval), no pago único"*. No es un detalle de implementación: es el fundamento del modelo de negocio que nos explicó.
+
+**Qué hay hoy.** El camino vivo es **one-off**: `POST /suscripciones/:id/pago` crea una *preference* (`checkout/preferences`, con `items[]` y `unit_price`), el webhook sólo entiende eventos de `payment`, y `applyPayment` hace `UPDATE suscripciones SET estado='activa', fecha_inicio=now()`. **Nunca se escribe `current_period_start/end` ni `mp_preapproval_id`.**
+
+Las columnas ya existen desde la fase 1 de monetización — y hay una consecuencia que conviene mirar: **`consume_quota` exige `current_period_start/end` no nulos** y lanza `NO_BILLING_PERIOD` si faltan. Como el checkout one-off nunca los llena, esa función fallaría siempre el día que alguien la invoque.
+
+**Lo que necesita el front, y que no lo tenemos que inventar:**
+
+1. **Un checkout que devuelva algo que podamos abrir** para dar de alta el preapproval. Hoy nuestro botón dice *"Pagar (simulado)"* y nunca abre el `init_point`.
+2. **`GET /suscripciones/vigente` con el período**: `current_period_end` y `cancel_at_period_end`. Sin eso la pantalla "Mi plan" no puede decir hasta cuándo está paga la suscripción — hoy `fecha_fin` es *el instante en que se registró la baja*, que es otra cosa (`docs/fichas-legal-backend.md:246`).
+3. **El webhook entendiendo eventos de preapproval**, no sólo de `payment`.
+
+**Lo que ya está construido de este lado**, para que se vea que no arranca de cero: `app/billing/callback.tsx` y `features/billing/hooks/usePaymentConfirmation.ts` están escritos **asumiendo preapproval** —con polling a `GET /suscripciones/vigente` esperando que el webhook active la suscripción—, y hoy no hay nada del checkout que navegue ahí. Es una pantalla esperando un flujo que todavía no existe.
+
+**Una consecuencia que hay que definir con Producto** (el cliente la dejó explícitamente abierta): qué pasa **al vencer** la suscripción. Su texto es *"los acuerdos firmados no se pierden; lo que se bloquea es abrir o continuar negociaciones"*. Del lado del front eso significa que un acuerdo firmado tiene que seguir siendo legible con la suscripción vencida — hoy nuestra elegibilidad no distingue ese caso.
 
 ---
 
@@ -236,7 +258,7 @@ No es un reproche: es que cuando DB agrega un valor de enum, la punta que lo con
 
 Igual que en TyC: cada servicio de FE tiene su mock y su singleton, y activar es cambiar una línea sin tocar ninguna pantalla. No integramos hasta que exista la ficha de cada endpoint (§06 del anexo de reparto).
 
-**El orden que más nos sirve:** §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.4 (`back_url`, cuando armen el preapproval) → §3.6 (código tipado del gate C-01, chico y no bloquea nada hoy) → §3.5 (abogado, el handoff ya se puede implementar; el resto cuando Solmi defina).
+**El orden que más nos sirve, actualizado el 04/09:** **§3.7 (el abono recurrente) primero** — es el fundamento del modelo de negocio y hoy no lo tiene nadie → §3.4 (`back_url`, que va con el preapproval del 3.7) → §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.6 (código tipado del gate C-01) → §3.5 (abogado, el handoff ya se puede implementar; el resto cuando Solmi defina).
 
 ---
 

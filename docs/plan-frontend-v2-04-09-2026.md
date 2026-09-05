@@ -200,9 +200,15 @@ Lo que sí existe y sirve de base: dos wizards multi-paso con el mismo patrón (
 | 6 | **¿Aprobás el texto de las tres advertencias que los TyC prometen y no mostramos?** (§4.1) | El disclaimer previo a firmar del punto 11 |
 | 7 | ¿Los nombres "Conciliación" y "Mediación" en la UI, contra lo que dice H.7? (§5.1) | Nomenclatura de producto |
 
-### A DB / BE
+### A BE
 
-Van en ficha aparte, `docs/pedidos-frontend-acuerdos-modulares.md`.
+`docs/pedidos-frontend-acuerdos-modulares.md` — `GET /acuerdos/:id`, dos campos en `GET /firmas`, la lista de negociaciones y el shape de renegociar.
+
+### A DB
+
+`docs/pedidos-frontend-a-db-acuerdos-modulares.md` — se separó porque **en este cambio el trabajo de DB es más grande que el de BE**, y como tres preguntas dentro de un doc de endpoints quedaba enterrado. Incluye el inventario verificado de lo que bloquea (constraints, el trigger `sync_ronda_actual`, el validador de transiciones), las cuatro decisiones que nos cambian el alcance, y un pedido chico y separable:
+
+> **`pendiente_suscripciones` no se puede escribir hoy, y no es culpa de BE.** `validate_caso_estado_transition()` no admite ninguna transición hacia ese estado, así que el `UPDATE` muere antes de tocar la fila. Lo habíamos pedido en la ficha de BE por error; está corregido. Es lo único de todo el paquete que **no depende del acuerdo marco ni del modelo de materias**.
 
 ---
 
