@@ -10,6 +10,7 @@ import { JoinCaseForm, type JoinCaseFormStatus } from '@/features/cases/componen
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
 import { isInvitationExpiredError } from '@/utils/is-invitation-expired-error';
+import { isSubscriptionRequiredError } from '@/utils/is-subscription-required-error';
 
 export default function CaseJoinScreen() {
   const { t } = useTranslation();
@@ -42,6 +43,16 @@ export default function CaseJoinScreen() {
       // is one the person genuinely held, and "check the code and try
       // again" is actively misleading advice for it: no code fixes an
       // elapsed 72 h window, only a brand-new invitation does.
+      // C-01: el gate exige suscripción activa en las dos partes antes de
+      // activar el caso, y del lado del server la transacción hace rollback
+      // entero — no queda nada a medio unir. Es un tercer estado y no el
+      // error genérico por el mismo motivo que `expired`: el código que la
+      // persona tiene está bien, así que "revisá el enlace o código" la manda
+      // a corregir lo único que no está roto.
+      if (isSubscriptionRequiredError(error)) {
+        setStatus('subscriptionRequired');
+        return;
+      }
       setStatus(isInvitationExpiredError(error) ? 'expired' : 'error');
     }
   }, [status, token]);
@@ -51,6 +62,9 @@ export default function CaseJoinScreen() {
     // Clears the error/expired state as soon as the code changes, so a
     // stale failure does not sit under a value the user has already
     // corrected.
+    // `subscriptionRequired` NO se limpia al tipear: el código no es el
+    // problema, así que borrar el aviso mientras la persona lo edita esconde
+    // la única explicación de por qué no pudo entrar.
     setStatus((current) => (current === 'error' || current === 'expired' ? 'idle' : current));
   }, []);
 
@@ -79,6 +93,10 @@ export default function CaseJoinScreen() {
           retryLabel={t('common.retry')}
           expiredTitle={t('caseJoin.expired.title')}
           expiredDescription={t('caseJoin.expired.description')}
+          subscriptionRequiredTitle={t('caseJoin.subscriptionRequired.title')}
+          subscriptionRequiredDescription={t('caseJoin.subscriptionRequired.description')}
+          subscriptionRequiredActionLabel={t('caseJoin.subscriptionRequired.action')}
+          onSubscriptionRequiredAction={() => router.push('/profile/plan')}
         />
       </ScrollView>
     </KeyboardAvoidingView>

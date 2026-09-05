@@ -507,6 +507,7 @@
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",
+        "liveBackendNotice": "El caso se va a activar cuando la otra parte acepte la invitación con su propio enlace o código. Acordate de que las dos partes necesitan una suscripción activa para que el caso se abra.",
         "dialog": {
           "title": "¿Simular aceptación?",
           "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
@@ -547,6 +548,11 @@
     "expired": {
       "title": "Esta invitación venció",
       "description": "Pasaron más de 72 horas desde que se envió. Pedile a la otra parte que te envíe una invitación nueva."
+    },
+    "subscriptionRequired": {
+      "title": "Falta activar una suscripción",
+      "description": "El código es correcto. Para abrir el caso, las dos partes necesitan una suscripción activa: revisá la tuya y, si ya está, avisale a la otra parte.",
+      "action": "Ver planes"
     }
   },
   "cases": {

@@ -11,6 +11,7 @@ import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
 import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import { appendCaseActivity } from '../../services/activity.service';
+import { isBackendLive } from '../../services/backend-instance';
 import { casesService } from '../../services/cases.service';
 import { appendCaseNotice } from '../../services/notices.service';
 import type { CaseInvitation } from '../../types/case';
@@ -237,14 +238,42 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
             )}
           </Card>
 
+          {/*
+            La simulación sólo existe contra los mocks. Con backend real,
+            `simulateInvitationAcceptance` es un GET que relee el caso y no
+            transiciona nada —no se puede fabricar la decisión de otra
+            persona sobre datos reales—, así que el botón confirmaba, decía
+            que todo salió bien y dejaba el caso exactamente igual.
+
+            Un botón que no puede cumplir lo que ofrece es peor que no
+            tenerlo: en vez de esconder el bloqueo, se dice de dónde va a
+            venir la aceptación de verdad.
+          */}
           <View style={styles.awaitingDemoSection}>
             <View style={styles.awaitingDemoHeader}>
               <Icon name="sparkles" size={20} color={semanticColors.text.tertiary} />
             </View>
-            <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}</Text>
-            <Button variant="secondary" fullWidth onPress={openSimulateDialog} disabled={simulateStatus === 'pending'}>
-              {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
-            </Button>
+            {isBackendLive ? (
+              <Text style={styles.bodyText}>
+                {t('caseDetail.awaitingCounterparty.simulateAcceptance.liveBackendNotice')}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.bodyText}>
+                  {t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}
+                </Text>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onPress={openSimulateDialog}
+                  disabled={simulateStatus === 'pending'}
+                >
+                  {simulateStatus === 'pending'
+                    ? t('common.loading')
+                    : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
+                </Button>
+              </>
+            )}
           </View>
         </View>
       ) : (

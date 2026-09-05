@@ -54,6 +54,18 @@ export const codeNetworkUnavailable = 'network_unavailable';
  * invitation expired" instead of a generic "check the code" message. */
 export const codeInvitationExpired = 'invitation_expired';
 /**
+ * C-01: el gate `trg_casos_gate_suscripciones` rechazó activar el caso porque
+ * alguna de las dos partes no tiene suscripción activa
+ * (`20260902120000_c01_gate_suscripciones.sql`, tipado en
+ * `apps/api/src/common/db/pg-error.ts`).
+ *
+ * Se distingue del error genérico de `joinCase` por la misma razón que
+ * `codeInvitationExpired`: reintentar no lo arregla, y "revisá el código" es
+ * un consejo activamente equivocado — el código está bien, lo que falta es
+ * una suscripción.
+ */
+export const codeCasoBloqueadoSuscripciones = 'caso_bloqueado_suscripciones';
+/**
  * No published version of a legal document (`GET /legal/documentos/:tipo`).
  * A real, calm outcome — not a failure: the legal page renders its empty
  * state for it, so the backed service maps this code to `undefined` rather

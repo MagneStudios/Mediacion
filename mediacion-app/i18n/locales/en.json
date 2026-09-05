@@ -507,6 +507,7 @@
       "simulateAcceptance": {
         "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
         "action": "Simulate invitation acceptance",
+        "liveBackendNotice": "The case will activate once the other party accepts the invitation with their own link or code. Remember that both parties need an active subscription for the case to open.",
         "dialog": {
           "title": "Simulate acceptance?",
           "body": "This action only updates the demonstration. No real invitation will be sent or accepted.",
@@ -547,6 +548,11 @@
     "expired": {
       "title": "This invitation expired",
       "description": "More than 72 hours passed since it was sent. Ask the other party to send you a new invitation."
+    },
+    "subscriptionRequired": {
+      "title": "A subscription needs activating",
+      "description": "The code is correct. To open the case, both parties need an active subscription: check yours and, if it's already active, let the other party know.",
+      "action": "See plans"
     }
   },
   "cases": {
