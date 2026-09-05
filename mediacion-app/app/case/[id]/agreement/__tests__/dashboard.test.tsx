@@ -47,10 +47,11 @@ const mockBreachNoticesHook = {
   reload: mockNoticesReload,
 };
 
+let mockSearchParams: Record<string, string> = { id: 'case-1' };
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useRouter: () => ({ push: mockRoutePush, replace: jest.fn(), dismissAll: jest.fn(), back: jest.fn() }),
-  useLocalSearchParams: () => ({ id: 'case-1' }),
+  useLocalSearchParams: () => mockSearchParams,
   usePathname: () => '/case/case-1/agreement',
 }));
 
@@ -118,6 +119,7 @@ function buildState(estado: EstadoAcuerdo) {
 }
 
 beforeEach(() => {
+  mockSearchParams = { id: 'case-1' };
   mockReload.mockClear();
   mockRoutePush.mockClear();
   mockResetBreachStatus.mockClear();
@@ -501,5 +503,44 @@ describe('AgreementDashboardScreen — con_aviso copy no longer contradicts the 
     mockAgreementHook.state = buildState('con_aviso');
     await renderScreen();
     expect(screen.queryByText(i18n.t('agreement.response.waitingOther'))).toBeNull();
+  });
+});
+
+describe('AgreementDashboardScreen — guard de acuerdo equivocado', () => {
+  it('no muestra un acuerdo distinto del que la bandeja prometio', async () => {
+    // La pantalla carga por caso y devuelve *un* acuerdo del caso. Con uno
+    // solo siempre es el correcto; con uno por materia, entrar desde la fila
+    // "Alimentos" y que se abra el de tenencia se veria igual que funcionar
+    // bien — y esta es la pantalla que firma.
+    mockSearchParams = { id: 'case-1', agreementId: 'agr-alimentos' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('enviado_a_firma');
+
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('agreement.dashboard.mismatch.title'))).toBeTruthy();
+    expect(screen.queryByText('Mock Agreement')).toBeNull();
+  });
+
+  it('muestra el acuerdo cuando el id coincide', async () => {
+    mockSearchParams = { id: 'case-1', agreementId: 'agr-1' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('enviado_a_firma');
+
+    await renderScreen();
+
+    expect(screen.queryByText(i18n.t('agreement.dashboard.mismatch.title'))).toBeNull();
+  });
+
+  it('no exige el id cuando se entra desde el caso', async () => {
+    // Entrando por el detalle del caso no hay un acuerdo prometido de
+    // antemano, asi que no hay nada que verificar.
+    mockSearchParams = { id: 'case-1' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('enviado_a_firma');
+
+    await renderScreen();
+
+    expect(screen.queryByText(i18n.t('agreement.dashboard.mismatch.title'))).toBeNull();
   });
 });

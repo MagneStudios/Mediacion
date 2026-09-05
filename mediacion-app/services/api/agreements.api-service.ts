@@ -140,6 +140,7 @@ export function createApiAgreementsService(http: HttpClient): ApiAgreementsServi
     async listSignatureInbox(): Promise<SignatureInboxItem[]> {
       const rows = await http.request<ApiSignatureInboxEntry[]>('/firmas');
       return rows.map((row) => ({
+        agreementId: row.acuerdo_id,
         caseId: row.caso_id,
         caseTitle: row.caso_nombre,
         agreementTitle: row.caso_nombre,

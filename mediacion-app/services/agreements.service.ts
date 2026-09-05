@@ -405,6 +405,7 @@ export function createMockAgreementsService(): AgreementsService {
         const signers = getSigners(agreement.id);
         const own = signers.find((signer) => signer.role === 'authenticated_party');
         items.push({
+          agreementId: agreement.id,
           caseId: caseSummary.id,
           caseTitle: caseSummary.title,
           agreementTitle: agreement.title,

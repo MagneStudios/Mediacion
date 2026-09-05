@@ -117,6 +117,10 @@
       "empty": {
         "title": "Todavía no hay un acuerdo",
         "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
+      },
+      "mismatch": {
+        "title": "No pudimos abrir ese acuerdo",
+        "description": "El acuerdo que abriste no es el que esperábamos para este caso. Volvé a la bandeja de firmas y entrá de nuevo, para no revisar un documento que no corresponde."
       }
     },
     "sharedMarker": {

@@ -117,6 +117,10 @@
       "empty": {
         "title": "There is no agreement yet",
         "description": "When both parties reach a shared proposal, the agreement will appear here."
+      },
+      "mismatch": {
+        "title": "We couldn't open that agreement",
+        "description": "The agreement you opened isn't the one we expected for this case. Go back to the signatures inbox and try again, so you don't review the wrong document."
       }
     },
     "sharedMarker": {
