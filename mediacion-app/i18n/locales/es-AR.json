@@ -1206,7 +1206,7 @@
       "accessibilityLargerText": "Texto más grande (preferencia)",
       "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
       "matriculaSection": "Matrícula profesional",
-      "matriculaHint": "Opcional. La matrícula no se verifica: lo que da validez al acuerdo es la firma digital, no este dato.",
+      "matriculaHint": "Opcional. La matrícula no se verifica: este dato no cambia el valor de lo que firmes.",
       "matriculaNumberLabel": "Número de matrícula",
       "matriculaNumberPlaceholder": "Por ejemplo: CPACF 12345",
       "matriculaAttach": "Adjuntar matrícula (simulado)",

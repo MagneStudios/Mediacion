@@ -1206,7 +1206,7 @@
       "accessibilityLargerText": "Larger text (preference)",
       "accessibilityLargerTextDescription": "This preference is saved only in this demonstration. It doesn't change the app's text size yet.",
       "matriculaSection": "Professional license",
-      "matriculaHint": "Optional. The license isn't verified: the digital signature is what makes the agreement valid, not this field.",
+      "matriculaHint": "Optional. The license isn't verified: this field doesn't change the value of what you sign.",
       "matriculaNumberLabel": "License number",
       "matriculaNumberPlaceholder": "e.g. CPACF 12345",
       "matriculaAttach": "Attach license (simulated)",
