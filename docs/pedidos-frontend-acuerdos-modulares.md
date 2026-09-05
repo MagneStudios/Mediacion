@@ -1,6 +1,7 @@
 # Pedidos de Frontend — acuerdos modulares por materia
 
-**Fecha:** 04/09/2026 · **Autor:** Frontend · **Para:** Backend (§2, §4) y **DB** (§3)
+**Fecha:** 04/09/2026, corregido el 04/09 (§2.5) · **Autor:** Frontend · **Para:** Backend
+**Hermano:** `docs/pedidos-frontend-a-db-acuerdos-modulares.md` — lo que le toca a DB, que en este cambio es más grande que lo de acá.
 **Origen:** `docs/CAMBIOS-PACTUM-v2-2026-09-01.md` puntos 1 y 2 · análisis en `docs/plan-frontend-v2-04-09-2026.md`
 **Rama de FE:** `feat/front-cambios-v2-0409`
 
@@ -103,15 +104,19 @@ Abre una ronda nueva sobre la misma materia, precargando el acuerdo vigente como
 
 ---
 
-### 2.5 · Escribir `pendiente_suscripciones` (chico, y hoy es un agujero)
+### 2.5 · ~~Escribir `pendiente_suscripciones`~~ — mal dirigido, va a DB
 
-El estado existe en el enum de `estado_caso` desde la migración del 02/09, y **el front lo soporta entero**: tipo, mapper, copy en los dos idiomas, y las tres utils de elegibilidad. Pero **nada lo escribe nunca**: el trigger `trg_casos_gate_suscripciones` sólo aborta la transición, así que el caso se queda en `nuevo`.
+> ⚠️ **Corregido el 04/09.** Esto estaba pedido acá y **no es de BE, o no todavía.** El validador de transiciones lo rechaza antes de llegar a la fila: `validate_caso_estado_transition()`, en su versión vigente (`20260810120000_cambios_reunion_07_08.sql`), no admite ninguna transición hacia `pendiente_suscripciones`, así que **aunque escribieran el código, el `UPDATE` moriría** en `Transición de estado inválida`.
+>
+> Pasa a `docs/pedidos-frontend-a-db-acuerdos-modulares.md` §3, donde va con el detalle. Si después de que DB abra la transición hace falta que BE lo escriba en el catch del gate, se lo pedimos ahí — pero primero es de DB.
 
-O sea: hay un estado modelado de punta a punta que ningún caso alcanza jamás. Cuando el gate rechaza la activación, el caso debería quedar en `pendiente_suscripciones` para que la contraparte vea *"Falta activar suscripciones"* en vez de un caso que parece recién creado.
+El estado existe en el enum de `estado_caso` desde la migración del 02/09, y **el front lo soporta entero**: tipo, mapper, copy en los dos idiomas, y las tres utils de elegibilidad. Pero **nada lo escribe nunca**, así que el caso se queda en `nuevo` — indistinguible de uno recién creado.
 
 ---
 
-## 3 · Tres preguntas para DB que deciden alcance de FE
+## 3 · Preguntas que decidían alcance de FE — movidas al doc de DB
+
+> **Movidas el 04/09 a `docs/pedidos-frontend-a-db-acuerdos-modulares.md` §5**, junto con el inventario de lo que bloquea el cambio del lado del schema. Se dejan acá para que BE sepa qué está esperando respuesta, porque los shapes de §2.3 dependen de las dos primeras.
 
 Ninguna cuesta implementar; las tres cambian qué construimos.
 
@@ -138,9 +143,9 @@ Para que no construyan de más:
 
 ## 5 · Orden que más nos sirve
 
-**§2.1 (`GET /acuerdos/:id`) → §2.2 (dos campos en `/firmas`) → §2.5 (`pendiente_suscripciones`) → §3 (las tres respuestas) → §2.3 (la lista) → §2.4 (renegociar, cuando llegue el acuerdo marco).**
+**§2.1 (`GET /acuerdos/:id`) → §2.2 (dos campos en `/firmas`) → §2.3 (la lista, cuando exista el modelo) → §2.4 (renegociar, cuando llegue el acuerdo marco).**
 
-Los tres primeros son chicos, no dependen del modelo nuevo y se pueden hacer contra el schema de hoy.
+Los dos primeros son chicos, no dependen del modelo nuevo y se pueden hacer contra el schema de hoy. `pendiente_suscripciones` sale de esta lista: es de DB primero (§2.5).
 
 ---
 
