@@ -17,10 +17,9 @@ import { appendCaseNotice } from '../../services/notices.service';
 import type { CaseInvitation } from '../../types/case';
 import { blurActiveElement } from '../../utils/blur-active-element';
 import { getPositionEligibility } from '../../utils/position-eligibility';
-import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { LawyerSection } from '../lawyer/components/LawyerSection';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
-import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
+import { NegotiationsListSection } from '../negotiation/components/NegotiationsListSection';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
@@ -282,9 +281,8 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           primary={positionsSection}
           secondary={
             <>
-              <NegotiationSummaryCard caseId={caseId} />
+              <NegotiationsListSection caseId={caseId} estado={detail.estado} />
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
-              {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
               {/*
                 Escalamiento manual del spec de monetizacion 7.2:
                 persistente dentro del caso, nunca automatico. Se dibuja
