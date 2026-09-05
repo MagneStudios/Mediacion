@@ -11,15 +11,15 @@ import { typography } from '../../design-system/tokens/typography';
 import { spacing } from '../../design-system/tokens/spacing';
 import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import { appendCaseActivity } from '../../services/activity.service';
+import { isBackendLive } from '../../services/backend-instance';
 import { casesService } from '../../services/cases.service';
 import { appendCaseNotice } from '../../services/notices.service';
 import type { CaseInvitation } from '../../types/case';
 import { blurActiveElement } from '../../utils/blur-active-element';
 import { getPositionEligibility } from '../../utils/position-eligibility';
-import { AgreementSummaryCard } from '../agreements/components/AgreementSummaryCard';
 import { LawyerSection } from '../lawyer/components/LawyerSection';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
-import { NegotiationSummaryCard } from '../negotiation/components/NegotiationSummaryCard';
+import { NegotiationsListSection } from '../negotiation/components/NegotiationsListSection';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
@@ -237,14 +237,42 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
             )}
           </Card>
 
+          {/*
+            La simulación sólo existe contra los mocks. Con backend real,
+            `simulateInvitationAcceptance` es un GET que relee el caso y no
+            transiciona nada —no se puede fabricar la decisión de otra
+            persona sobre datos reales—, así que el botón confirmaba, decía
+            que todo salió bien y dejaba el caso exactamente igual.
+
+            Un botón que no puede cumplir lo que ofrece es peor que no
+            tenerlo: en vez de esconder el bloqueo, se dice de dónde va a
+            venir la aceptación de verdad.
+          */}
           <View style={styles.awaitingDemoSection}>
             <View style={styles.awaitingDemoHeader}>
               <Icon name="sparkles" size={20} color={semanticColors.text.tertiary} />
             </View>
-            <Text style={styles.bodyText}>{t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}</Text>
-            <Button variant="secondary" fullWidth onPress={openSimulateDialog} disabled={simulateStatus === 'pending'}>
-              {simulateStatus === 'pending' ? t('common.loading') : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
-            </Button>
+            {isBackendLive ? (
+              <Text style={styles.bodyText}>
+                {t('caseDetail.awaitingCounterparty.simulateAcceptance.liveBackendNotice')}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.bodyText}>
+                  {t('caseDetail.awaitingCounterparty.simulateAcceptance.description')}
+                </Text>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onPress={openSimulateDialog}
+                  disabled={simulateStatus === 'pending'}
+                >
+                  {simulateStatus === 'pending'
+                    ? t('common.loading')
+                    : t('caseDetail.awaitingCounterparty.simulateAcceptance.action')}
+                </Button>
+              </>
+            )}
           </View>
         </View>
       ) : (
@@ -253,9 +281,8 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           primary={positionsSection}
           secondary={
             <>
-              <NegotiationSummaryCard caseId={caseId} />
+              <NegotiationsListSection caseId={caseId} estado={detail.estado} />
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
-              {detail.estado === 'acordado' ? <AgreementSummaryCard caseId={caseId} /> : null}
               {/*
                 Escalamiento manual del spec de monetizacion 7.2:
                 persistente dentro del caso, nunca automatico. Se dibuja

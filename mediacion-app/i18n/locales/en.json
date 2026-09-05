@@ -117,6 +117,10 @@
       "empty": {
         "title": "There is no agreement yet",
         "description": "When both parties reach a shared proposal, the agreement will appear here."
+      },
+      "mismatch": {
+        "title": "We couldn't open that agreement",
+        "description": "The agreement you opened isn't the one we expected for this case. Go back to the signatures inbox and try again, so you don't review the wrong document."
       }
     },
     "sharedMarker": {
@@ -507,6 +511,7 @@
       "simulateAcceptance": {
         "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
         "action": "Simulate invitation acceptance",
+        "liveBackendNotice": "The case will activate once the other party accepts the invitation with their own link or code. Remember that both parties need an active subscription for the case to open.",
         "dialog": {
           "title": "Simulate acceptance?",
           "body": "This action only updates the demonstration. No real invitation will be sent or accepted.",
@@ -547,6 +552,11 @@
     "expired": {
       "title": "This invitation expired",
       "description": "More than 72 hours passed since it was sent. Ask the other party to send you a new invitation."
+    },
+    "subscriptionRequired": {
+      "title": "A subscription needs activating",
+      "description": "The code is correct. To open the case, both parties need an active subscription: check yours and, if it's already active, let the other party know.",
+      "action": "See plans"
     }
   },
   "cases": {
@@ -1200,7 +1210,7 @@
       "accessibilityLargerText": "Larger text (preference)",
       "accessibilityLargerTextDescription": "This preference is saved only in this demonstration. It doesn't change the app's text size yet.",
       "matriculaSection": "Professional license",
-      "matriculaHint": "Optional. The license isn't verified: the digital signature is what makes the agreement valid, not this field.",
+      "matriculaHint": "Optional. The license isn't verified: this field doesn't change the value of what you sign.",
       "matriculaNumberLabel": "License number",
       "matriculaNumberPlaceholder": "e.g. CPACF 12345",
       "matriculaAttach": "Attach license (simulated)",

@@ -52,6 +52,19 @@ jest.mock('@/services/cases.service', () => ({
   },
 }));
 
+/**
+ * La afordancia de simulacion solo tiene sentido contra los mocks: con
+ * backend real `simulateInvitationAcceptance` es un GET que no transiciona
+ * nada. Se mockea el flag para poder ejercitar las dos ramas desde un solo
+ * archivo, en vez de depender de que el entorno de test no tenga env configurado.
+ */
+let mockBackendLive = false;
+jest.mock('@/services/backend-instance', () => ({
+  get isBackendLive() {
+    return mockBackendLive;
+  },
+}));
+
 jest.mock('@/services/activity.service', () => ({
   appendCaseActivity: jest.fn().mockResolvedValue(undefined),
 }));
@@ -166,6 +179,24 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
   it('shows simulate acceptance button', async () => {
     await renderScreen();
     expect(screen.getByText(t('caseDetail.awaitingCounterparty.simulateAcceptance.action'))).toBeTruthy();
+  });
+
+  it('no ofrece simular contra backend real, y dice de donde va a venir la aceptacion', async () => {
+    // Contra backend real el boton confirmaba, decia que salio bien y dejaba
+    // el caso igual: `simulateInvitationAcceptance` es solo un GET. Un boton
+    // que no puede cumplir lo que ofrece es peor que no tenerlo.
+    mockBackendLive = true;
+    try {
+      await renderScreen();
+      expect(
+        screen.queryByText(t('caseDetail.awaitingCounterparty.simulateAcceptance.action')),
+      ).toBeNull();
+      expect(
+        screen.getByText(t('caseDetail.awaitingCounterparty.simulateAcceptance.liveBackendNotice')),
+      ).toBeTruthy();
+    } finally {
+      mockBackendLive = false;
+    }
   });
 
   it('does not show positions section when awaiting counterparty', async () => {

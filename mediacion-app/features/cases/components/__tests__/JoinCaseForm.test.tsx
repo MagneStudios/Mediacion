@@ -19,6 +19,10 @@ describe('JoinCaseForm', () => {
     retryLabel: 'Retry',
     expiredTitle: 'This invitation expired',
     expiredDescription: 'Ask the other party to send you a new invitation.',
+    subscriptionRequiredTitle: 'A subscription needs activating',
+    subscriptionRequiredDescription: 'Both parties need an active subscription.',
+    subscriptionRequiredActionLabel: 'See plans',
+    onSubscriptionRequiredAction: jest.fn(),
   };
 
   afterEach(() => {
@@ -121,6 +125,28 @@ describe('JoinCaseForm', () => {
       await render(<JoinCaseForm {...baseProps} value="" onSubmit={onSubmit} />);
       screen.getByRole('button', { name: 'Join case' }).props.onClick?.({} as never);
       expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+  describe('subscriptionRequired', () => {
+    it('muestra el aviso del gate en vez del error generico', async () => {
+      await render(<JoinCaseForm {...baseProps} status="subscriptionRequired" />);
+      expect(screen.getByText('A subscription needs activating')).toBeTruthy();
+      expect(screen.queryByText("We couldn't complete this action right now")).toBeNull();
+    });
+
+    it('ofrece la accion de planes, no reintentar', async () => {
+      // Reintentar el mismo codigo valido vuelve a chocar contra el mismo gate.
+      await render(<JoinCaseForm {...baseProps} status="subscriptionRequired" />);
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'See plans' }));
+      expect(baseProps.onSubscriptionRequiredAction).toHaveBeenCalledTimes(1);
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('no ofrece el submit mientras el aviso esta visible', async () => {
+      await render(<JoinCaseForm {...baseProps} status="subscriptionRequired" />);
+      expect(screen.queryByRole('button', { name: 'Join case' })).toBeNull();
     });
   });
 });

@@ -29,7 +29,14 @@ import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function AgreementDashboardScreen() {
-  const { id: caseId } = useLocalSearchParams<{ id: string }>();
+  const { id: caseId, agreementId: expectedAgreementId } = useLocalSearchParams<{
+    id: string;
+    /**
+     * Opcional: lo manda la bandeja de firmas, que sí sabe qué acuerdo
+     * prometió abrir. Entrando desde el caso no viene, y no hace falta.
+     */
+    agreementId?: string;
+  }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { status, state, reload, prepareStatus, prepareDocument, breachStatus, reportBreach, resetBreachStatus } =
@@ -86,6 +93,30 @@ export default function AgreementDashboardScreen() {
         <EmptyState
           title={t('agreement.dashboard.empty.title')}
           description={t('agreement.dashboard.empty.description')}
+        />
+      </View>
+    );
+  }
+
+  /*
+    La pantalla se carga por caso, así que devuelve *un* acuerdo del caso.
+    Mientras haya uno solo (`UNIQUE (caso_id)`) siempre es el correcto, pero
+    el cliente pidió uno por materia: el día que haya dos, entrar desde la
+    fila "Alimentos" de la bandeja y que se abra el de tenencia se vería
+    exactamente igual que funcionar bien — y esto es una pantalla que firma.
+
+    Preferimos fallar ruidoso. Hoy esta rama es inalcanzable; el día que deje
+    de serlo, avisa en vez de mostrar el documento equivocado.
+  */
+  if (expectedAgreementId && state.agreement.id !== expectedAgreementId) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
+        <ErrorState
+          title={t('agreement.dashboard.mismatch.title')}
+          description={t('agreement.dashboard.mismatch.description')}
+          retryLabel={t('states.error.retry')}
+          onRetry={reload}
         />
       </View>
     );
