@@ -1,5 +1,9 @@
 # Pactum — Cambios solicitados (revisión legal Solmi & Asociados)
 
+> ⚠️ **Superado el 01/09/2026 por `docs/CAMBIOS-PACTUM-v2-2026-09-01.md`.** Ese documento reemplaza a éste y, donde haya contradicción, manda el nuevo. Dos puntos de acá quedaron **sin efecto**: el punto 1 (pago compartido / split 50-50 entre las partes — el modelo definitivo es suscripción individual de cada parte) y el punto 3 (agregar la frase *"la plataforma velará por que se respeten las formas y las normas de orden público"* — el cliente pidió sacarla).
+>
+> Éste queda como registro de lo que se pidió el 27/08, **no** como pedido vigente: si se lo lee suelto, se implementa el modelo de pagos equivocado.
+
 **Fecha:** 27/08/2026
 **Origen:** feedback del cliente (Solmi & Asociados) sobre la revisión de textos y flujos de la app.
 **Destinatario:** equipo de desarrollo.
