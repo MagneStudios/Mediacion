@@ -185,13 +185,31 @@ def seed_rondas_propuestas(cur, caso_ids):
     p_count = 0
 
     for caso_id in caso_ids:
+        # Acuerdos modulares: cada caso viejo se aloja en una negociación con
+        # materia=NULL ("modelo viejo"). Reutiliza la fila legacy si ya existe.
+        cur.execute(
+            "SELECT id FROM negociaciones WHERE caso_id = %s AND materia IS NULL LIMIT 1",
+            (caso_id,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "INSERT INTO negociaciones (caso_id, materia, method, estado, round) "
+                "SELECT %s, NULL, method, 'borrador', 1 FROM casos WHERE id = %s "
+                "RETURNING id",
+                (caso_id, caso_id),
+            )
+            row = cur.fetchone()
+        negociacion_id = str(row[0])
+
         n_rondas = fake.random_int(min=1, max=3)
         for r in range(1, n_rondas + 1):
             ronda_id = str(uuid.uuid4())
             estado = "completada" if r < n_rondas else "activa"
             cur.execute(
-                "INSERT INTO rondas (id, caso_id, numero, estado, fecha_fin) VALUES (%s, %s, %s, %s, %s)",
-                (ronda_id, caso_id, r, estado, fake.date_time_this_year() if estado == "completada" else None),
+                "INSERT INTO rondas (id, caso_id, negociacion_id, numero, estado, fecha_fin) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (ronda_id, caso_id, negociacion_id, r, estado, fake.date_time_this_year() if estado == "completada" else None),
             )
             r_count += 1
 
@@ -199,12 +217,13 @@ def seed_rondas_propuestas(cur, caso_ids):
                 prop_id = str(uuid.uuid4())
                 cur.execute(
                     """
-                    INSERT INTO propuestas (id, caso_id, ronda_id, contenido, fundamentacion, estado, modelo_ia)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'openai/gpt-4')
+                    INSERT INTO propuestas (id, caso_id, negociacion_id, ronda_id, contenido, fundamentacion, estado, modelo_ia)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'openai/gpt-4')
                     """,
                     (
                         prop_id,
                         caso_id,
+                        negociacion_id,
                         ronda_id,
                         f'{{"item1": "{fake.word()}", "monto": {fake.random_int(100, 900)}}}',
                         fake.paragraph(),
