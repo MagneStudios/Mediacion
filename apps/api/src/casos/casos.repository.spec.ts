@@ -1,5 +1,8 @@
 import { HttpStatus } from "@nestjs/common";
-import { ConflictError } from "../common/errors/domain-errors";
+import {
+  ConflictError,
+  QuotaExceededError,
+} from "../common/errors/domain-errors";
 import { CasosRepository } from "./casos.repository";
 import type { CreateCasoDto } from "./casos.types";
 import { estadoInvitacionAceptada } from "./casos.types";
@@ -157,6 +160,56 @@ describe("CasosRepository", () => {
         }),
       );
       expect(result).toBe(insertedCaso);
+    });
+
+    it("runs the beforeInsert hook on the transaction before inserting the caso", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+      const seenTrx: unknown[] = [];
+      const beforeInsert = jest.fn(async (trx: unknown) => {
+        expect(fakeKysely.casoValues).not.toHaveBeenCalled();
+        seenTrx.push(trx);
+      });
+
+      await repository.createCaseWithParteA(
+        { nombre: "Divorcio", metodo: "mediacion" },
+        "user-1",
+        beforeInsert,
+      );
+
+      expect(beforeInsert).toHaveBeenCalledTimes(1);
+      expect(fakeKysely.casoValues).toHaveBeenCalledTimes(1);
+      expect(seenTrx[0]).toHaveProperty("insertInto", fakeKysely.insertInto);
+    });
+
+    it("aborts the whole transaction, inserting nothing, when the hook rejects (quota exceeded)", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+      const beforeInsert = jest
+        .fn()
+        .mockRejectedValue(new QuotaExceededError(null, "QUOTA_EXCEEDED"));
+
+      await expect(
+        repository.createCaseWithParteA(
+          { nombre: "Divorcio", metodo: "mediacion" },
+          "user-1",
+          beforeInsert,
+        ),
+      ).rejects.toBeInstanceOf(QuotaExceededError);
+      expect(fakeKysely.casoValues).not.toHaveBeenCalled();
+      expect(fakeKysely.parteValues).not.toHaveBeenCalled();
+    });
+
+    it("keeps working without a hook", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await expect(
+        repository.createCaseWithParteA(
+          { nombre: "Divorcio", metodo: "mediacion" },
+          "user-1",
+        ),
+      ).resolves.toEqual({ id: "caso-1" });
     });
 
     it("never sets estado or ronda_actual explicitly on insert", async () => {

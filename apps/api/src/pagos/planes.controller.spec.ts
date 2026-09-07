@@ -26,6 +26,8 @@ describe("GET /planes authenticated end-to-end", () => {
       limite_iteraciones_ia: -1,
       precio: 19.99,
       moneda: "ARS",
+      max_negotiations_per_period: 3,
+      max_clients_per_period: null,
     },
   ];
 
@@ -66,6 +68,12 @@ describe("GET /planes authenticated end-to-end", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(plans);
+    expect(response.body[0]).toEqual(
+      expect.objectContaining({
+        max_negotiations_per_period: 3,
+        max_clients_per_period: null,
+      }),
+    );
     await app.close();
   });
 

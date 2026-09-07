@@ -13,6 +13,7 @@ import { PlanesService } from "./planes.service";
 import { SuscripcionesController } from "./suscripciones.controller";
 import { SuscripcionesRepository } from "./suscripciones.repository";
 import { SuscripcionesService } from "./suscripciones.service";
+import { UsageRepository } from "./usage.repository";
 import { MercadoPagoWebhookController } from "./webhooks/mercadopago.controller";
 
 @Module({
@@ -31,8 +32,9 @@ import { MercadoPagoWebhookController } from "./webhooks/mercadopago.controller"
     PagosService,
     PagosRepository,
     PlanLimitService,
+    UsageRepository,
     { provide: MERCADO_PAGO_CLIENT, useClass: HttpMercadoPagoClient },
   ],
-  exports: [PlanLimitService],
+  exports: [PlanLimitService, UsageRepository, SuscripcionesService],
 })
 export class PagosModule {}

@@ -1,8 +1,33 @@
 import { HttpStatus } from "@nestjs/common";
-import { ConflictError } from "../errors/domain-errors";
+import { ConflictError, QuotaExceededError } from "../errors/domain-errors";
 import { toDomainError } from "./pg-error";
 
 describe("toDomainError", () => {
+  it("maps consume_quota's P0002 to a 402 QuotaExceededError without detail", () => {
+    const pgError = { code: "P0002", message: "QUOTA_EXCEEDED" };
+
+    const result = toDomainError(pgError) as QuotaExceededError;
+
+    expect(result).toBeInstanceOf(QuotaExceededError);
+    expect(result).not.toBeInstanceOf(ConflictError);
+    expect(result.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
+    expect(result.getResponse()).toEqual({
+      code: "quota_exceeded",
+      message: "Quota exceeded for this period",
+    });
+    expect((result.cause as Error).message).toBe("QUOTA_EXCEEDED");
+  });
+
+  it("keeps consume_quota's P0001 preconditions (no subscription, no period) on the generic 409", () => {
+    const result = toDomainError({
+      code: "P0001",
+      message: "NO_BILLING_PERIOD",
+    }) as ConflictError;
+
+    expect(result).toBeInstanceOf(ConflictError);
+    expect(result.getStatus()).toBe(HttpStatus.CONFLICT);
+  });
+
   it("maps a unique-violation pg error to a 409 ConflictError with no leaked db detail", () => {
     const pgError = {
       code: "23505",

@@ -17,3 +17,28 @@ export class ConflictError extends HttpException {
     });
   }
 }
+
+export type QuotaRecurso = "negociaciones" | "clientes";
+
+export type QuotaExceededDetail = {
+  recurso: QuotaRecurso;
+  usado: number;
+  limite: number;
+  period_end: string;
+};
+
+export const quotaExceededCode = "quota_exceeded";
+export const quotaExceededMessage = "Quota exceeded for this period";
+
+export class QuotaExceededError extends HttpException {
+  constructor(
+    detail: QuotaExceededDetail | null = null,
+    cause = "quota exceeded",
+  ) {
+    super(
+      { code: quotaExceededCode, message: quotaExceededMessage, ...detail },
+      HttpStatus.PAYMENT_REQUIRED,
+      { cause: new Error(cause) },
+    );
+  }
+}

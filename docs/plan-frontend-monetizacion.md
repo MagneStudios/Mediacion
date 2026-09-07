@@ -10,7 +10,7 @@
 | Capa | Estado |
 |---|---|
 | **DB** | Fase 1 mergeada (`20260821120000_monetizacion_fase1.sql`): columnas nuevas en `planes` y `suscripciones`, tablas `usage_counters` / `lawyer_requests` / `payment_events`, función `consume_quota`, RLS, seeds y `db-types` regenerados. |
-| **BE** | **Nada.** Cero referencias a `consume_quota`, `usage_counters` o `lawyer_requests` en `apps/api/src`. `planColumns` sigue siendo las seis columnas viejas, así que `GET /planes` no expone `max_negotiations_per_period` ni `max_clients_per_period`. Las decisiones de DB lo dicen: *"los endpoints son ticket aparte (Fase 2/3)"*. |
+| **BE** | **Fase 2 entregada el 03/09** (`docs/changelogs/2026-09-03-uso-y-cuota.md`): `GET /planes` expone `max_negotiations_per_period` / `max_clients_per_period`; `GET /suscripciones/uso` (ficha §11); `POST /casos` consume `consume_quota` en la misma transacción y responde `402 quota_exceeded` con detalle dentro del envelope (ficha §12); el webhook de pago aprobado fija `current_period_start/end` (30 días). Sigue sin empezar: `lawyer_requests` (§3.5), preapproval/`back_url` (§3.4), `plans.active`/`is_self_serve` (§5). |
 | **FE** | Sin empezar. |
 
 **Consecuencia operativa: hoy no podemos cablear nada real.** El camino es el mismo que funcionó en el ciclo de TyC — construir contra el mock con el shape ya acordado, publicar el contrato para que BE implemente sin ida y vuelta, y activar cambiando un singleton. La §4 de este plan es ese contrato.

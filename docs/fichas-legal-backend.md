@@ -4,9 +4,9 @@
 
 La ficha que exige §06 del anexo de reparto, una por función. Es el handshake que FE necesita antes de cambiar el singleton de `services/legal.service.ts` de mock a backed. Los shapes de §1 a §4 son los que `mediacion-app/services/api/legal.api-service.ts` ya implementa y testea: **están congelados**. Los de §5 a §8 los define BE acá.
 
-Los de §9 y §10 son los dos pedidos de `docs/pedidos-frontend-a-backend.md`, implementados el 17/08.
+Los de §9 y §10 son los dos pedidos de `docs/pedidos-frontend-a-backend.md`, implementados el 17/08. Los de §11 y §12 son §3.1 y §3.2 de `docs/pedidos-frontend-monetizacion.md`, implementados el 03/09.
 
-Error envelope global: `{ "error": { "code", "message" } }` (`common/filters/all-exceptions.filter.ts`). Códigos nuevos de este módulo: `legal_document_not_found`, `too_many_requests`, `suscripcion_not_found`, `invalid_cron_authorization` (reusado).
+Error envelope global: `{ "error": { "code", "message", ...detalle } }` (`common/filters/all-exceptions.filter.ts`; desde el 03/09 los campos adicionales del body de una `HttpException` viajan dentro de `error`, ver §12). Códigos nuevos de este módulo: `legal_document_not_found`, `too_many_requests`, `suscripcion_not_found`, `invalid_cron_authorization` (reusado), `quota_exceeded`.
 
 **Contratar sin aceptación vigente responde `409 conflict`** (desde el 17/08). El trigger `validate_suscripcion_aceptacion` levanta `P0001`, que `toDomainError` mapea; antes levantaba `22000`, que no está mapeado, y el rechazo salía como `500 internal_error`. Cubre las dos ramas: la personal y la de estudio. El trigger también corre en `UPDATE OF usuario_id, estudio_id` — antes era solo `BEFORE INSERT`, así que reasignar la titularidad de una suscripción existente esquivaba la regla.
 
@@ -259,3 +259,63 @@ Pedido §2 de `docs/pedidos-frontend-a-backend.md`. Desbloquea el botón de baja
 
 - Las columnas salen del allowlist `suscripcionVigenteColumns` (`pagos/pagos.types.ts`), con compile-guard: si el allowlist y el tipo se desalinean, falla `tsc`, no un reviewer.
 - `fecha_inicio` y `fecha_fin` pasan por `normalizeTimestamp`.
+
+---
+
+## 11 · `GET /suscripciones/uso`
+
+Pedido §3.1 de `docs/pedidos-frontend-monetizacion.md`. Desbloquea el medidor de uso del dashboard (*"2 de 3 negociaciones este mes"*) y que el modal de límite se anticipe.
+
+| | |
+|---|---|
+| Auth | Bearer |
+| Módulo | `pagos/suscripciones.controller.ts` |
+
+- **Misma titularidad que §10**: personal (`usuario_id = caller`) antes que estudio, y la rama del estudio sólo para el titular (`rol = 'estudio'` y `activo`). Un `parte` que apenas carga el `estudio_id` recibe `404` aunque su estudio tenga plan.
+- **"Con plan" es `estado IN ('activa','vencida')`** — el mismo conjunto que acepta `consume_quota`. A diferencia de §10, acá `pendiente_pago` y `cancelada` **no** cuentan: no hay período ni cupo que medir, y la respuesta es `404 suscripcion_not_found`, el mismo código que FE ya mapea a "no tengo plan".
+- `period_start` / `period_end` salen de la suscripción **del pagador**; `usado` sale de `usage_counters` por el `usuario_id` **del caller** — el espejo exacto de `consume_quota`.
+- **Sin fila en `usage_counters` para el período ⇒ `usado: 0`**, nunca 404. `consume_quota` crea la fila recién en el primer consumo.
+- **`limite: null` ⇒ ilimitado** (plan Corporativo, `max_*_per_period` NULL).
+- **`clientes` sólo para el titular de un estudio**; para el resto va `null` entero, no `{ usado: 0, limite: null }`.
+- **Período NULL en una fila activa/vencida** (todas las anteriores al 03/09): la primera lectura calcula la ventana de 30 días anclada en `fecha_inicio` que contiene `now` (`k = floor((now − inicio) / 30d)`), la persiste en `current_period_start/end` y recién entonces lee. Se escribe una sola vez (`UPDATE ... WHERE ambas IS NULL`); un período ya persistido nunca se avanza ni se extiende desde acá. Si `fecha_inicio` también es NULL, el ancla es `now`.
+
+```json
+{
+  "period_start": "2026-08-14T00:00:00.000Z",
+  "period_end": "2026-09-13T00:00:00.000Z",
+  "negociaciones": { "usado": 2, "limite": 3 },
+  "clientes": null
+}
+```
+
+- Timestamps por `normalizeTimestamp`. Tipos con compile-guard en `pagos.types.spec.ts`: `usado` sigue a `usage_counters.*_created`, `limite` a `planes.max_*_per_period`, y el allowlist de `usage_counters` no puede incluir `created_at` (db-types la declara, la tabla no la tiene).
+
+---
+
+## 12 · `402 quota_exceeded` en `POST /casos`, y la extensión del envelope
+
+Pedido §3.2 de `docs/pedidos-frontend-monetizacion.md`. Cierra el ciclo con §11: el consumo real de la cuota de negociaciones.
+
+- **El envelope no cambia de forma**: sigue siendo `{ "error": { "code", "message" } }`, y `AllExceptionsFilter` ahora **pasa los campos adicionales** del body de una `HttpException` dentro de `error`. `code` y `message` siguen siendo obligatorios; `statusCode` (y el `error` de las excepciones built-in de Nest) nunca viajan. Toda excepción existente sin campos extra (401, 404, 409) responde exactamente lo mismo que antes.
+- `POST /casos` consume una negociación llamando a `public.consume_quota(caller, 'negotiation')` **dentro de la misma transacción** que inserta `casos` + `caso_partes`. Si el insert falla, el contador no queda incrementado; si `consume_quota` levanta, no se crea el caso.
+- `P0002` (`QUOTA_EXCEEDED`) se mapea en `toDomainError` a `QuotaExceededError` (402). El servicio lo completa con la misma lectura de §11 y lo relanza:
+
+```json
+{
+  "error": {
+    "code": "quota_exceeded",
+    "message": "Quota exceeded for this period",
+    "recurso": "negociaciones",
+    "usado": 3,
+    "limite": 3,
+    "period_end": "2026-09-13T00:00:00.000Z"
+  }
+}
+```
+
+- **Sin `upgrade_url`**, como pidió FE.
+- **El detalle es opcional**: si la lectura de §11 responde 404 para el caller (un miembro de estudio no titular, ver la deuda de abajo), el 402 sale sólo con `code` y `message`.
+- **Respuesta a la pregunta 403/402: conviven.** `403 plan_limit_exceeded` (stock sobre `limite_casos`, `PlanLimitService`) corre **antes** y se mantiene; `402 quota_exceeded` (flujo sobre `max_negotiations_per_period`) lo decide la DB. Los dos llevan el mismo cuerpo de detalle; el 403 usa `recurso: "casos"` con `usado`/`limite` y sin `period_end` (un stock no tiene período).
+- `P0001` de `consume_quota` (`NO_ACTIVE_SUBSCRIPTION`, `NO_BILLING_PERIOD`) sigue siendo el `409 conflict` genérico. Antes de consumir, la API persiste el período de la suscripción del caller si está en NULL (misma regla que §11), así que `NO_BILLING_PERIOD` sólo puede llegar para quien §11 no resuelve.
+- **Período real desde el webhook**: un pago aprobado fija `current_period_start = now` y `current_period_end = now + 30 días` en el mismo `UPDATE` que pone `estado = activa` (`billingPeriodDays = 30`, spec PACTUM §5.2).
+- **Deuda conocida**: `consume_quota` resuelve la suscripción del estudio para **cualquier** miembro (`usuarios.estudio_id`), mientras §11 sólo la resuelve para el titular. Un miembro no titular consume contra el plan del estudio pero no puede leer su uso ni obtiene el detalle del 402, y si la fila del estudio no tiene período todavía, recibe `409` en vez de que la API se lo complete. Queda anotado para DB/Producto: o `consume_quota` adopta el criterio de titularidad, o `/uso` se abre a los miembros.
