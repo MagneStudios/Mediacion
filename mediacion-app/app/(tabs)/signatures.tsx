@@ -21,9 +21,19 @@ export default function SignaturesScreen() {
   const result = useSignatureInbox();
   const { horizontalPadding } = useResponsiveLayout();
 
-  const openAgreement = (caseId: string) => {
+  /**
+   * El `agreementId` viaja aunque la ruta siga colgando del caso: la pantalla
+   * lo usa para verificar que abrió el acuerdo que esta fila prometía. Hoy no
+   * puede fallar —hay uno solo por caso— pero cuando haya uno por materia,
+   * abrir el de tenencia desde la fila de alimentos sería indistinguible de
+   * funcionar bien.
+   */
+  const openAgreement = (item: { caseId: string; agreementId: string }) => {
     blurActiveElement();
-    router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+    router.push({
+      pathname: '/case/[id]/agreement',
+      params: { id: item.caseId, agreementId: item.agreementId },
+    });
   };
 
   if (result.status === 'loading') {
@@ -71,7 +81,7 @@ export default function SignaturesScreen() {
         <View style={styles.list}>
           {groupItems.map((item) => (
             <SignatureInboxCard
-              key={item.caseId}
+              key={item.agreementId}
               caseTitle={item.caseTitle}
               agreementTitle={item.agreementTitle}
               statusLabel={statusLabelFor(item)}
@@ -79,7 +89,7 @@ export default function SignaturesScreen() {
               statusIcon={statusIcon}
               dateLabel={item.completedAt ? formatAgreementDate(item.completedAt) : undefined}
               reviewLabel={t('agreement.inbox.reviewAction')}
-              onReview={() => openAgreement(item.caseId)}
+              onReview={() => openAgreement(item)}
             />
           ))}
         </View>

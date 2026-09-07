@@ -117,6 +117,10 @@
       "empty": {
         "title": "Todavía no hay un acuerdo",
         "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
+      },
+      "mismatch": {
+        "title": "No pudimos abrir ese acuerdo",
+        "description": "El acuerdo que abriste no es el que esperábamos para este caso. Volvé a la bandeja de firmas y entrá de nuevo, para no revisar un documento que no corresponde."
       }
     },
     "sharedMarker": {
@@ -507,6 +511,7 @@
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",
+        "liveBackendNotice": "El caso se va a activar cuando la otra parte acepte la invitación con su propio enlace o código. Acordate de que las dos partes necesitan una suscripción activa para que el caso se abra.",
         "dialog": {
           "title": "¿Simular aceptación?",
           "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
@@ -547,6 +552,11 @@
     "expired": {
       "title": "Esta invitación venció",
       "description": "Pasaron más de 72 horas desde que se envió. Pedile a la otra parte que te envíe una invitación nueva."
+    },
+    "subscriptionRequired": {
+      "title": "Falta activar una suscripción",
+      "description": "El código es correcto. Para abrir el caso, las dos partes necesitan una suscripción activa: revisá la tuya y, si ya está, avisale a la otra parte.",
+      "action": "Ver planes"
     }
   },
   "cases": {
@@ -1200,7 +1210,7 @@
       "accessibilityLargerText": "Texto más grande (preferencia)",
       "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
       "matriculaSection": "Matrícula profesional",
-      "matriculaHint": "Opcional. La matrícula no se verifica: lo que da validez al acuerdo es la firma digital, no este dato.",
+      "matriculaHint": "Opcional. La matrícula no se verifica: este dato no cambia el valor de lo que firmes.",
       "matriculaNumberLabel": "Número de matrícula",
       "matriculaNumberPlaceholder": "Por ejemplo: CPACF 12345",
       "matriculaAttach": "Adjuntar matrícula (simulado)",

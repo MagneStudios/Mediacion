@@ -129,6 +129,17 @@ export type AgreementExport = {
 
 /** For the Firmas tab inbox — no provider IDs, no case internals beyond what's needed to open the case. */
 export type SignatureInboxItem = {
+  /**
+   * El acuerdo que abre esta fila. **No es redundante con `caseId`**: hoy hay
+   * un acuerdo por caso (`UNIQUE (caso_id)`), pero el cliente pidió N por
+   * caso, uno por materia. Sin este id la bandeja no puede direccionar cuál
+   * de ellos abrir, y el que se abre —y potencialmente se firma— es el que
+   * la API devuelva primero.
+   *
+   * El backend ya lo mandaba en `GET /firmas` como `acuerdo_id`; sólo faltaba
+   * de este lado.
+   */
+  agreementId: string;
   caseId: string;
   caseTitle: string;
   agreementTitle: string;

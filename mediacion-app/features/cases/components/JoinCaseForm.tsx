@@ -5,7 +5,12 @@ import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 
-export type JoinCaseFormStatus = 'idle' | 'submitting' | 'error' | 'expired';
+export type JoinCaseFormStatus =
+  | 'idle'
+  | 'submitting'
+  | 'error'
+  | 'expired'
+  | 'subscriptionRequired';
 
 export type JoinCaseFormProps = {
   value: string;
@@ -29,6 +34,15 @@ export type JoinCaseFormProps = {
    */
   expiredTitle: string;
   expiredDescription?: string;
+  /**
+   * C-01: la invitación es válida, pero el caso no puede activarse hasta que
+   * las dos partes tengan suscripción. Como `expired`, no ofrece reintentar
+   * —el código está bien— pero sí una acción que resuelve el bloqueo.
+   */
+  subscriptionRequiredTitle: string;
+  subscriptionRequiredDescription?: string;
+  subscriptionRequiredActionLabel: string;
+  onSubscriptionRequiredAction: () => void;
 };
 
 /**
@@ -53,6 +67,10 @@ export function JoinCaseForm({
   retryLabel,
   expiredTitle,
   expiredDescription,
+  subscriptionRequiredTitle,
+  subscriptionRequiredDescription,
+  subscriptionRequiredActionLabel,
+  onSubscriptionRequiredAction,
 }: JoinCaseFormProps) {
   const isSubmitting = status === 'submitting';
   const canSubmit = value.trim().length > 0 && !isSubmitting;
@@ -78,6 +96,15 @@ export function JoinCaseForm({
         // No onRetry/retryLabel on purpose — an expired token cannot become
         // valid by resubmitting it.
         <ErrorState title={expiredTitle} description={expiredDescription} />
+      ) : status === 'subscriptionRequired' ? (
+        // La acción no es reintentar: es ir a suscribirse. Reenviar el mismo
+        // código válido vuelve a chocar contra el mismo gate.
+        <ErrorState
+          title={subscriptionRequiredTitle}
+          description={subscriptionRequiredDescription}
+          retryLabel={subscriptionRequiredActionLabel}
+          onRetry={onSubscriptionRequiredAction}
+        />
       ) : status === 'error' ? (
         <ErrorState title={errorTitle} description={errorDescription} retryLabel={retryLabel} onRetry={onSubmit} />
       ) : (
