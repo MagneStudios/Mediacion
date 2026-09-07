@@ -85,7 +85,7 @@ Los dos pueden venir `null` mientras el modelo nuevo no exista — lo tratamos c
 **Reglas de borde que nos importan, porque son las que rompen callado:**
 
 - **`acuerdo_vigente: null`** cuando la negociación todavía no produjo ninguno. Nunca un objeto con campos vacíos o en cero: la diferencia entre "no hay acuerdo" y "hay uno en borrador" cambia qué botón dibuja la tarjeta.
-- **`subject_type` nullable**, con el significado *"esta negociación viene del modelo viejo y no tiene materia asignada"*. **Nunca `'otra'` como relleno** — la pantalla sabe decir "todavía no está dividido por materia", y un `'otra'` inventado nos haría mostrar una etiqueta falsa. Es el mismo criterio que ya acordamos con `pago_a_cargo`.
+- **`subject_type` nullable**, con el significado *"esta negociación viene del modelo viejo y no tiene materia asignada"*. **Nunca `'otro'` como relleno** — la pantalla sabe decir "todavía no está dividido por materia", y un `'otro'` inventado nos haría mostrar una etiqueta falsa. (DB congeló el enum el 06/09 como `materia_acuerdo = tenencia | alimentos | bienes | **otro**`, con `materia` nullable — tal cual lo pedimos.) Es el mismo criterio que ya acordamos con `pago_a_cargo`.
 - **Un caso sin negociaciones devuelve `[]`, no 404.** Un array vacío es un estado normal (caso recién creado); un 404 nos obliga a tratar "no hay" como error.
 
 **Y una pregunta que arrastra:** ¿qué pasa con `casos.ronda_actual`? Hoy lo consumimos como `CaseSummary.roundNumber` en cada tarjeta del dashboard. Con N negociaciones, ¿se retira, o pasa a ser el máximo entre las negociaciones? Cualquiera nos sirve, pero necesitamos saber cuál.
