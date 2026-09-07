@@ -69,6 +69,29 @@ def run_denied_test(name, cur, user_id, sql, role="anon", description=""):
     return denied
 
 
+def run_pass(name, cur, sql, description=""):
+    """Ejecuta un DML como service_role que debe completar sin excepción.
+    No llama fetchall() tras el statement (un UPDATE no devuelve filas)."""
+    cur.execute("SET role = 'service_role'")
+    cur.execute("SET search_path = public")
+    cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+    ok = True
+    err = ""
+    try:
+        cur.execute(sql)
+    except Exception as e:
+        ok = False
+        err = repr(e)
+    cur.execute("RESET role")
+    cur.execute("RESET request.jwt.claims")
+
+    status = "PASS" if ok else "FAIL"
+    RESULTS.append({"name": name, "status": status, "expected": True, "actual": ok})
+    print(f"  [{status}] {name}: expected=ok, actual={ok}" + (f" | err={err}" if err else "") +
+          (f" ({description})" if description else ""))
+    return ok
+
+
 def run_expect_raise(name, cur, sql, sqlstate, description=""):
     """Ejecuta un DML como service_role que debe lanzar la excepción sqlstate
     (P0001 del gate de suscripciones). Los triggers corren aunque RLS se
@@ -180,6 +203,132 @@ def main():
                 cur, ids["non_member"],
                 f"SELECT COUNT(*) FROM casos WHERE id = '{caso_id}'",
                 0,
+            )
+
+        print()
+        print("=== RLS: Negociaciones (Parte 3 aditivo) ===")
+        # Insert como service_role (patrón server-side); RLS se prueba con
+        # authenticated (parte del caso vs no-miembro).
+        cur.execute("SET role = 'service_role'")
+        cur.execute("SET search_path = public")
+        cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+        cur.execute(
+            "INSERT INTO negociaciones (id, caso_id, materia, method, estado, round) VALUES "
+            "('eeeeeeee-0000-0000-0000-000000000001', %s, 'otro', 'negociacion', 'borrador', 1) "
+            "ON CONFLICT (id) DO NOTHING",
+            (caso_id,),
+        )
+        cur.execute("RESET role")
+        cur.execute("RESET request.jwt.claims")
+        if "parte_a" in ids:
+            run_test(
+                "Parte A ve la negociación de su caso",
+                cur, ids["parte_a"],
+                f"SELECT COUNT(*) FROM negociaciones WHERE caso_id = '{caso_id}'",
+                1, "policy negociaciones_all: is_part_of_case(caso_id)",
+            )
+        if "non_member" in ids:
+            run_test(
+                "Non-member ve 0 negociaciones del caso ajeno",
+                cur, ids["non_member"],
+                f"SELECT COUNT(*) FROM negociaciones WHERE caso_id = '{caso_id}'",
+                0, "no-miembro aislado vía RLS",
+            )
+
+        print()
+        print("=== RLS: Rondas/Propuestas/Acuerdos (Parte 4, por negociación) ===")
+        # Sin re-seteo por fila: verificamos que las policies resuelven el caso
+        # vía negociacion_id -> negociaciones.caso_id (inserto como service_role).
+        cur.execute("SET role = 'service_role'")
+        cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+        cur.execute(
+            "INSERT INTO rondas (id, caso_id, negociacion_id, numero, estado) VALUES "
+            "('ddd11111-0000-0000-0000-000000000001', %s, "
+            "'eeeeeeee-0000-0000-0000-000000000001', 1, 'activa') "
+            "ON CONFLICT (id) DO NOTHING",
+            (caso_id,),
+        )
+        cur.execute(
+            "INSERT INTO propuestas (id, caso_id, negociacion_id, ronda_id, contenido, estado) VALUES "
+            "('ddd11111-0000-0000-0000-000000000002', %s, "
+            "'eeeeeeee-0000-0000-0000-000000000001', "
+            "'ddd11111-0000-0000-0000-000000000001',"
+            "'{\"propuesta\": \"punto medio\"}'::jsonb, 'pendiente') "
+            "ON CONFLICT (id) DO NOTHING",
+            (caso_id,),
+        )
+        cur.execute(
+            "INSERT INTO acuerdos (id, caso_id, negociacion_id, contenido, estado) VALUES "
+            "('ddd11111-0000-0000-0000-000000000003', %s, "
+            "'eeeeeeee-0000-0000-0000-000000000001',"
+            "'{\"acuerdo\": \"test\"}'::jsonb, 'borrador') "
+            "ON CONFLICT (id) DO NOTHING",
+            (caso_id,),
+        )
+        cur.execute("RESET role")
+        cur.execute("RESET request.jwt.claims")
+        if "parte_a" in ids:
+            run_test(
+                "Parte A ve rondas de su caso (vía negociación)",
+                cur, ids["parte_a"],
+                f"SELECT COUNT(*) FROM rondas WHERE caso_id = '{caso_id}'",
+                1, "policy rondas_select resuelve caso por negociacion_id",
+            )
+            run_test(
+                "Parte A ve propuestas de su caso (vía negociación)",
+                cur, ids["parte_a"],
+                f"SELECT COUNT(*) FROM propuestas WHERE caso_id = '{caso_id}'",
+                1, "policy propuestas_select resuelve caso por negociacion_id",
+            )
+            run_test(
+                "Parte A ve acuerdos de su caso (vía negociación)",
+                cur, ids["parte_a"],
+                f"SELECT COUNT(*) FROM acuerdos WHERE caso_id = '{caso_id}'",
+                1, "policy acuerdos_select resuelve caso por negociacion_id",
+            )
+        if "non_member" in ids:
+            run_test(
+                "Non-member ve 0 rondas del caso ajeno",
+                cur, ids["non_member"],
+                f"SELECT COUNT(*) FROM rondas WHERE caso_id = '{caso_id}'",
+                0, "aislamiento por negociación (rondas)",
+            )
+            run_test(
+                "Non-member ve 0 propuestas del caso ajeno",
+                cur, ids["non_member"],
+                f"SELECT COUNT(*) FROM propuestas WHERE caso_id = '{caso_id}'",
+                0, "aislamiento por negociación (propuestas)",
+            )
+            run_test(
+                "Non-member ve 0 acuerdos del caso ajeno",
+                cur, ids["non_member"],
+                f"SELECT COUNT(*) FROM acuerdos WHERE caso_id = '{caso_id}'",
+                0, "aislamiento por negociación (acuerdos)",
+            )
+
+        print()
+        print("=== Parte 5: versionado de acuerdos (aditivo) ===")
+        # INSERT con defaults (version=1, vigente=true, valid_from=now) es válido
+        # y la RLS sigue resolviendo el caso por negociación.
+        cur.execute("SET role = 'service_role'")
+        cur.execute("SET request.jwt.claims = '{\"role\": \"service_role\"}'")
+        cur.execute(
+            "INSERT INTO acuerdos (id, caso_id, negociacion_id, contenido, estado) VALUES "
+            "('ddd11111-0000-0000-0000-000000000004', %s, "
+            "'eeeeeeee-0000-0000-0000-000000000001',"
+            "'{\"acuerdo\": \"v1\"}'::jsonb, 'borrador') "
+            "ON CONFLICT (id) DO NOTHING",
+            (caso_id,),
+        )
+        cur.execute("RESET role")
+        cur.execute("RESET request.jwt.claims")
+        if "parte_a" in ids:
+            run_test(
+                "Parte 5: acuerdo v1 con defaults vigentes (vigente=true)",
+                cur, ids["parte_a"],
+                "SELECT COUNT(*) FROM acuerdos WHERE id = 'ddd11111-0000-0000-0000-000000000004' "
+                "AND version = 1 AND vigente = true AND valid_from IS NOT NULL",
+                1, "defaults versionado aplicados + RLS por negociación OK",
             )
 
         print()
@@ -606,6 +755,53 @@ def main():
         RESULTS.append({"name": "Gate: INSERT directo en activo sin partes PASA (por diseño)",
                         "status": "PASS", "expected": True, "actual": True})
         print("  [PASS] Gate: INSERT directo en activo sin partes PASA (por diseño, empty->true)")
+
+        print()
+        print("=== P1: pendiente_suscripciones writable (máquina de estados) ===")
+        # Caso en 'nuevo' con parte_a + gate_user; gate_user ya obtuvo su
+        # suscripción activa en la sección del gate (G2), así que ambas al día.
+        cur.execute(
+            "INSERT INTO casos (creador_id, nombre, descripcion, metodo, estado) VALUES "
+            "('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Caso P1 pendiente suscripciones', "
+            "'transiciones pendiente_suscripciones', 'negociacion', 'nuevo')",
+        )
+        cur.execute("SELECT id FROM casos WHERE nombre = 'Caso P1 pendiente suscripciones'")
+        p1_caso = str(cur.fetchone()[0])
+        cur.execute(
+            "INSERT INTO caso_partes (caso_id, usuario_id, rol_en_caso, estado_invitacion) "
+            "VALUES (%s, 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'parte_a', 'aceptada')",
+            (p1_caso,),
+        )
+        cur.execute(
+            "INSERT INTO caso_partes (caso_id, usuario_id, rol_en_caso, estado_invitacion) "
+            "VALUES (%s, %s, 'parte_b', 'aceptada')",
+            (p1_caso, gate_user),
+        )
+
+        # P1a: nuevo → pendiente_suscripciones es permitida (no lanza)
+        run_pass(
+            "P1: nuevo -> pendiente_suscripciones permitida",
+            cur,
+            f"UPDATE casos SET estado = 'pendiente_suscripciones' WHERE id = '{p1_caso}'",
+            "máquina de estados acepta la nueva transición",
+        )
+
+        # P1b: pendiente_suscripciones → activo pasa cuando ambas al día
+        run_pass(
+            "P1: pendiente_suscripciones -> activo pasa (ambas al día)",
+            cur,
+            f"UPDATE casos SET estado = 'activo' WHERE id = '{p1_caso}'",
+            "gate C-01 sigue pasando (ambas partes con suscripción activa)",
+        )
+
+        # P1c: pendiente_suscripciones → acordado sigue inválida (P0001)
+        run_expect_raise(
+            "P1: pendiente_suscripciones -> acordado inválida (P0001)",
+            cur,
+            f"UPDATE casos SET estado = 'acordado' WHERE id = '{p1_caso}'",
+            "P0001",
+            "la máquina de estados sigue rechazando transiciones no contempladas",
+        )
 
         print()
         print("=== Bonus: INSERT service_role + cleanup ===")

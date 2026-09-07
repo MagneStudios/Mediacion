@@ -1,6 +1,6 @@
 # Proyecto Mediación — Documentación de Base de Datos
 
-> Última actualización: 2026-08-21
+> Última actualización: 2026-09-06
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 33 tablas |
+| RLS | Habilitado en las 34 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
@@ -64,9 +64,13 @@ supabase/migrations/
 ├── 20260823120000_planes_moneda.sql  # moneda en planes (CHECK 'ARS')
 ├── 20260825000000_custom_access_token.sql  # custom_access_token para ver JWT
 └── 20260902120000_c01_gate_suscripciones.sql  # C-01: gate "ambos al día" — ADD VALUE pendiente_suscripciones, caso_ambas_partes_suscripciones_activas(), trg_casos_gate_suscripciones
+├── 20260906100000_pendiente_suscripciones_writable.sql  # P1: validate_caso_estado_transition() admite nuevo→pendiente_suscripciones y pendiente_suscripciones→{activo,en_negociacion,terminado,vencido,expirado}
+├── 20260906110000_negociaciones.sql  # Parte 3: tabla negociaciones (UNIQUE caso_id+materia), enums materia_acuerdo/estado_negociacion, items.negociacion_id nullable, policy negociaciones_all
+├── 20260906120000_acuerdos_recolocar.sql  # Parte 4 (breaking): rondas/propuestas/acuerdos cuelgan de negociacion_id (backfill 'otro'), se caen ronda_actual, sync_ronda_actual() y 3 uniques
+└── 20260906130000_acuerdos_versionado.sql  # Parte 5: version/vigente/valid_from/supersedes_agreement_id en acuerdos + idx_acuerdos_negociacion_vigente
 ```
 
-## Modelo de datos (33 tablas)
+## Modelo de datos (34 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -74,21 +78,22 @@ supabase/migrations/
 - `carpetas` — organización de casos por estudio
 
 ### Casos y vinculación
-- `casos` — sala de mediación, estado, ronda_actual, SLA. Gate C-01: el trigger `trg_casos_gate_suscripciones` impide pasar a `activo`/`en_negociacion` si alguna de las dos partes en disputa no tiene suscripción activa (ver función `caso_ambas_partes_suscripciones_activas` y sección *Gate de suscripciones (C-01)*)
+- `casos` — sala de mediación, estado, SLA. Gate C-01: el trigger `trg_casos_gate_suscripciones` impide pasar a `activo`/`en_negociacion` si alguna de las dos partes en disputa no tiene suscripción activa (ver función `caso_ambas_partes_suscripciones_activas` y sección *Gate de suscripciones (C-01)*). Parte 4: se eliminó `ronda_actual` (la ronda vigente pasa a `negociaciones.round`)
 - `caso_partes` — relación caso-usuario (parte_a, parte_b, mediador)
 - `invitaciones` — link/código/correo para unir contraparte
 
-### Negociación
-- `items` — posiciones privadas con rango (text) por categoría
-- `rondas` — iteraciones de negociación (unique caso_id + numero)
-- `propuestas` — puntos de encuentro generados por IA (JSONB)
+### Negociación (acuerdos modulares, P3/P4)
+- `negociaciones` — una por `(caso_id, materia)`; define la materia del acuerdo (`materia_acuerdo`), estado propio, `ronda` vigente y `round_negotiating`. UNIQUE `(caso_id, materia)`. Policy `negociaciones_all` (FOR ALL: parte del caso **o** admin). Materias reales (`bienes`, `custodia_hijos`, `alimentos`, …) y `'otro'` para casos sin materia declarada (backfill de P4)
+- `items` — posiciones privadas con rango (text) por categoría; `negociacion_id` nullable (backfilleado en P4)
+- `rondas` — iteraciones de negociación (UNIQUE `negociacion_id + numero`; derogado `rondas_caso_numero_unique`)
+- `propuestas` — puntos de encuentro generados por IA (JSONB) (UNIQUE `negociacion_id + ronda_id`; derogado `propuestas_caso_ronda_unique`)
 - `respuestas_propuesta` — acepta/rechaza de cada parte
 
 ### Mediación
 - `mediaciones` — mediador humano, habilitado desde ronda 3
 
 ### Acuerdos y post-acuerdo
-- `acuerdos` — resultado firmado con DocuSign
+- `acuerdos` — resultado firmado con DocuSign, cuelga de `negociacion_id` (derogado `acuerdos_caso_unique`; UNIQUE por negociación solo conceptual: la vigencia la define `vigente`). Parte 5: `version`, `supersedes_agreement_id` (auto-ref), `vigente`, `valid_from` — ver *Acuerdos modulares: versionado (P5)*
 - `firmas` — estado de firma por usuario
 - `tareas` — accionables y eventos de calendario
 - `incumplimientos` — avisos de incumplimiento
@@ -117,9 +122,13 @@ supabase/migrations/
 - `avisos_version_legal` — traza e idempotencia del aviso de cambio de versión (#15); UNIQUE (usuario_id, tipo, version) + `enviado_at` para separar "reclamado" de "entregado"; sin policies
 - `solicitudes_contacto` — canal de contacto público (#23); `codigo` CON-0001… por trigger; `received_at` es la fecha de ingreso que sostiene el plazo de respuesta declarado; sin policies
 
-### Enums (21)
+### Enums (23)
 
 `estado_caso` tiene 9 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado, pendiente_suscripciones`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08). `pendiente_suscripciones` (C-01) es el estado que refleja un caso transitoriamente bloqueado por no tener ambas partes al día; la activación real solo ocurre vía transición validada por el gate.
+
+`materia_acuerdo` (P3): `bienes`, `custodia_hijos`, `alimentos`, `uso_auto`, `deudas`, `otro` — materia del acuerdo/negociación. `'otro'` se usa para backfill de rondas/propuestas/acuerdos huérfanos (P4).
+
+`estado_negociacion` (P3): `negociando`, `acordada` — estados internos de `negociaciones` (no confundir con `estado_acuerdo`; la decisión §5.2 no agrega miembro a `estado_acuerdo`).
 
 `estado_arrepentimiento` tiene 4 valores: `recibida, en_proceso, resuelta, rechazada`. Usado tanto por `solicitudes_arrepentimiento` como por `solicitudes_contacto` (reutilizado por diseño).
 
@@ -138,6 +147,27 @@ supabase/migrations/
 | `solicitudes_contacto` | Sí | `CON-0001…` |
 | `rate_limit_counters` | Sí | — |
 | `user_agreements` | **No** | Tiene SELECT propio para `authenticated` (contrato FE) |
+
+### Acuerdos modulares (P3 — negociaciones)
+
+Un caso puede cerrar **varios acuerdos**, cada uno bajo una `negociaciones` distinta (`UNIQUE (caso_id, materia)`). `items.negociacion_id` quedó **nullable** (existe data previa; un item se asocia a la negociación que le corresponde). Etapas de P3/P4 en `docs/changelogs-db/2026-09-06.md`. Los nombres viejos `caso_id` en rondas/propuestas/acuerdos se conservan por compatibilidad BE, pero la columna operativa es `negociacion_id`.
+
+### Acuerdos modulares: recolocación (P4, breaking)
+
+Migración `20260906120000_acuerdos_recolocar.sql`: `rondas`, `propuestas` y `acuerdos` pasan a colgar de `negociacion_id` (NOT NULL) vía backfill con una negociación `'otro'` por caso sin materia. Se eliminaron `acuerdos_caso_unique`, `rondas_caso_numero_unique`, `propuestas_caso_ronda_unique`, `casos.ronda_actual`, `sync_ronda_actual()` y `trigger_sync_ronda_actual`. RLS reescrita para resolver el caso por negociación (`EXISTS (... negociaciones)`). Consecuencia BE/FE documentada: repos y specs deben portar a `negociacion_id` (evidencia: `npx tsc -b` de raíz en rojo pos-P4, esperado).
+
+### Acuerdos modulares: versionado (P5)
+
+Decisión §5.2 — versionado con **intención explícita** en vez de agregar miembro a `estado_acuerdo` (evita que el front renderice "reemplazado" como "borrador"). Columnas nuevas en `acuerdos`:
+
+| Columna | Tipo | Por defecto | Uso |
+|---------|------|-------------|-----|
+| `version` | INT NOT NULL | 1 | Versión del acuerdo (crece al renegociar) |
+| `supersedes_agreement_id` | UUID → `acuerdos(id)` | NULL | Auto-referencia; el nuevo apunta al reemplazado |
+| `vigente` | BOOLEAN NOT NULL | true | El reemplazado pasa a `false` y queda en historial |
+| `valid_from` | TIMESTAMPTZ NOT NULL | `now()` | Desde cuándo la versión quedó vigente |
+
+Índice `idx_acuerdos_negociacion_vigente (negociacion_id, vigente)` para el look-up "acuerdo vigente de la negociación": `SELECT … WHERE negociacion_id = $1 AND vigente = true`. Flujo "Renegociar": precarga el acuerdo vigente, crea uno nuevo con `version+1` y `supersedes_agreement_id` → viejo, y pasa `vigente=false` al viejo. Sin CASCADE (append-only de hecho; si se borra el histórico queda NULL).
 
 ### Gate de suscripciones (C-01)
 
@@ -194,6 +224,8 @@ Ninguna FK legal usa `ON DELETE CASCADE`:
 | Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
 | `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno. El GRANT a authenticated de `20260817140000` fue revertido en `20260821000000` (helper de servidor) |
 | Gate "ambos al día" (C-01) | Trigger `trg_casos_gate_suscripciones` bloquea `activo`/`en_negociacion` si alguna de las dos partes no tiene suscripción activa. Verifier SECURITY DEFINER solo revisa `parte_a`/`parte_b` (el mediador no paga); empty-set → true. Estado `pendiente_suscripciones` agregado. Decisión: `docs/decisiones-db/2026-09-02-c01-c02-cliente.md` |
+| Acuerdos modulares (P3/P4) | Un caso → varias negociaciones por materia (`UNIQUE (caso_id, materia)`); ronda viva = `negociaciones.round`; rondas/propuestas/acuerdos cuelgan de `negociacion_id` (NOT NULL tras backfill `'otro'`). Los prompts mandan materia NOT NULL + backfill `'otro'` (ver discrepancia en changelog). `items.negociacion_id` nullable por data previa |
+| Versionado de acuerdos (P5, §5.2) | `vigente` + `supersedes_agreement_id` + `version` + `valid_from`. No se toca `estado_acuerdo`: el front no renderiza "reemplazado" como "borrador". Acuerdo vigente = `WHERE negociacion_id=$1 AND vigente=true` |
 
 ## Comandos útiles
 
@@ -252,7 +284,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | `test_05_estados.sql` | Máquina de estados del caso |
 | `test_06_xor.sql` | CHECK XOR en suscripciones |
 | `test_07_audit.sql` | Triggers de auditoría + updated_at |
-| `test_08_rondas.sql` | Sync ronda_actual + unique constraint |
+| `test_08_rondas.sql` | Rondas por negociación + unique constraint + RLS parte/miembro |
 | `test_09_integridad.sql` | FK y unique constraints |
 | `test_10_rls_deep.sql` | Mediator/admin/non-member vs RLS |
 | `test_11_helper_functions.sql` | is_part_of_case, is_admin, etc. |
@@ -266,16 +298,20 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 
 ### Resultados de testing
 
-**Schema validation (smoke_migrations.py):** 85/85 PASS
-- 33 tablas, 16 funciones (incluye `consume_quota`, `caso_ambas_partes_suscripciones_activas`), 21 enums, 33 RLS, 6 planes, 7 configs, 2 legal docs, 21 updated_at triggers, 12 audit triggers + trigger gate C-01
+**Schema validation (smoke_migrations.py):** 92/92 PASS
+- 34 tablas, 16 funciones (incluye `consume_quota`, `caso_ambas_partes_suscripciones_activas`), 23 enums, 34 RLS, 6 planes, 7 configs, 2 legal docs, 22 updated_at triggers, 12 audit triggers + trigger gate C-01, 5 uniques nuevos (caso_partes, negociaciones, respuestas_propuesta, rondas_negociacion_numero, propuestas_negociacion_ronda) + chequeo columnas versionado de acuerdos
 
-**RLS validation (validate_rls.py):** 49/49 PASS
+**RLS validation (validate_rls.py):** 61/61 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
 - Helper functions: is_part_of_case, is_mediator_of_case, is_admin correctos; has_accepted_current denegado a anon Y authenticated
 - Módulo legal: anon lee legal_documents vigente; cada usuario ve solo sus user_agreements; INSERT/has_accepted_current denegados a authenticated
 - Monetización Fase 1: usage_counters owner-only (SELECT propio), lawyer_requests participantes del caso, payment_events server-only, consume_quota denegado a authenticated
 - Carrera concurrente: 2 requests con 2/3 consumidas terminan en 3/3 (no 4/3)
 - C-01 gate: UPDATE a `activo`/`en_negociacion` con contraparte sin suscripción → P0001 (2); UPDATE a `activo` con ambas al día → pasa; INSERT directo en `activo` sin partes → pasa (diseño)
+- P1: transición nuevo→pendiente_suscripciones (parte_a OK, non-member P0001) y re-apertura pendiente_suscripciones→activo
+- Negociaciones (P3): parte_a INSERT/SELECT de su negociación; non-member 0 filas
+- Rondas/Propuestas/Acuerdos (P4): parte_a ve/inserta su ronda, propuesta y acuerdo por negociación; non-member 0 filas en las tres
+- Versionado (P5): INSERT de acuerdo con defaults (version=1, vigente=true, valid_from) pasa y RLS sigue resolviendo por negociación
 
 **SQL tests (17 tests — setup + 12 standalone + 2 E2E + cuotas + gate):**
 - RLS: items, casos, configuración, auditoría, notificaciones, suscripciones, mediaciones write
@@ -306,6 +342,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 | Patrón server-only documentado | ✅ Implementado | 4 tablas con RLS sin policies + GRANTs solo service_role/postgres |
 | Deuda has_accepted_current EXECUTE | ✅ Cerrada | `20260821000000` revierte el GRANT a authenticated; helper de servidor |
 | Monetización Pactum Fase 1 | ✅ Implementado | planes/suscripciones extendidos, usage_counters, lawyer_requests, payment_events, consume_quota, seeds particular/corporativo |
+| Acuerdos modulares (P3/P4/P5) | ✅ Implementado | negociaciones por materia, rondas/propuestas/acuerdos por negociacion_id, versionado de acuerdos (vigente/supersedes) |
 
 ### Pendiente técnico
 - Usar service role para operaciones server-side (bypass RLS)
