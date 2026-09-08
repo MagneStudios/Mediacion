@@ -31,6 +31,11 @@ export type ContraparteByCaso = Contraparte & Pick<CasoParte, "caso_id">;
 
 export const rolesParte: CasoParte["rol_en_caso"][] = ["parte_a", "parte_b"];
 
+/**
+ * `ronda_actual` no longer lives on `casos` (it moved to `negociaciones.round`
+ * with the acuerdos modulares schema) — it travels here as a computed column
+ * resolved from the caso's legacy negociación, not a picked `Caso` field.
+ */
 export type CaseSummaryRow = Pick<
   Caso,
   | "id"
@@ -41,8 +46,7 @@ export type CaseSummaryRow = Pick<
   | "created_at"
   | "plazo"
   | "sla_tipo"
-  | "ronda_actual"
->;
+> & { ronda_actual: number };
 
 export type CaseDetailRow = Pick<
   Caso,
@@ -57,8 +61,7 @@ export type CaseDetailRow = Pick<
   | "updated_at"
   | "plazo"
   | "sla_tipo"
-  | "ronda_actual"
->;
+> & { ronda_actual: number };
 
 /**
  * The dashboard renders the semaforo and the counterparty label from these, so

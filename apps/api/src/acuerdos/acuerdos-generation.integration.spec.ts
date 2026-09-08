@@ -103,6 +103,12 @@ describeDb("Agreement generation against a real database", () => {
       .executeTakeFirstOrThrow();
     casoId = caso.id;
 
+    const negociacion = await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     await kysely
       .insertInto("caso_partes")
       .values([
@@ -125,7 +131,12 @@ describeDb("Agreement generation against a real database", () => {
 
     const ronda = await kysely
       .insertInto("rondas")
-      .values({ caso_id: casoId, numero: 1, estado: "completada" })
+      .values({
+        caso_id: casoId,
+        negociacion_id: negociacion.id,
+        numero: 1,
+        estado: "completada",
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
 
@@ -134,6 +145,7 @@ describeDb("Agreement generation against a real database", () => {
       .values({
         caso_id: casoId,
         ronda_id: ronda.id,
+        negociacion_id: negociacion.id,
         contenido: { split: "50/50" },
         estado: "aceptada",
       })
@@ -176,6 +188,11 @@ describeDb("Agreement generation against a real database", () => {
       () =>
         kysely
           .deleteFrom("rondas")
+          .where("caso_id", "=", casoId ?? "")
+          .execute(),
+      () =>
+        kysely
+          .deleteFrom("negociaciones")
           .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>

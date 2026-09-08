@@ -1,6 +1,7 @@
 import type { Database } from "@mediacion/db-types";
 import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
@@ -25,7 +26,6 @@ const caseDetailColumns = [
   "casos.updated_at",
   "casos.plazo",
   "casos.sla_tipo",
-  "casos.ronda_actual",
 ] as const;
 
 const caseSummaryColumns = [
@@ -37,8 +37,23 @@ const caseSummaryColumns = [
   "casos.created_at",
   "casos.plazo",
   "casos.sla_tipo",
-  "casos.ronda_actual",
 ] as const;
+
+/**
+ * `ronda_actual` moved from `casos` to `negociaciones.round`. Kysely widens
+ * any subquery-as-column selection with `| null` (it can't statically know a
+ * correlated subquery always matches), so this is built with the `sql` tag
+ * instead of `eb.selectFrom(...).as(...)` to keep the column's real,
+ * non-nullable type — every caso has exactly one legacy (materia IS NULL)
+ * negociación by construction (`CasosRepository.createCaseWithParteA`).
+ */
+function withRondaActual() {
+  return sql<number>`(
+    select "round" from "negociaciones"
+    where "negociaciones"."caso_id" = "casos"."id"
+      and "negociaciones"."materia" is null
+  )`.as("ronda_actual");
+}
 
 export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
   return db
@@ -86,6 +101,15 @@ export class CasosRepository {
           .executeTakeFirstOrThrow();
 
         await trx
+          .insertInto("negociaciones")
+          .values({
+            caso_id: caso.id,
+            materia: null,
+            method: input.metodo,
+          })
+          .execute();
+
+        await trx
           .insertInto("caso_partes")
           .values({
             caso_id: caso.id,
@@ -108,6 +132,7 @@ export class CasosRepository {
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")
       .select([...caseSummaryColumns])
+      .select(() => withRondaActual())
       .where("caso_partes.usuario_id", "=", callerId)
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
       .execute();
@@ -152,6 +177,7 @@ export class CasosRepository {
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")
       .select([...caseDetailColumns])
+      .select(() => withRondaActual())
       .where("casos.id", "=", casoId)
       .where("caso_partes.usuario_id", "=", callerId)
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)

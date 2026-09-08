@@ -9,6 +9,7 @@ describe("buildAgreementContent", () => {
         id: "propuesta-1",
         caso_id: "caso-1",
         ronda_id: "ronda-1",
+        negociacion_id: "negociacion-1",
         contenido: { split: "50/50" },
         fundamentacion: "Acuerdo justo",
         estado: "aceptada",

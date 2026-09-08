@@ -173,6 +173,11 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
     casoId = caso.id;
 
     await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .execute();
+
+    await kysely
       .insertInto("caso_partes")
       .values([
         {
@@ -237,6 +242,11 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       () =>
         kysely
           .deleteFrom("rondas")
+          .where("caso_id", "=", casoId ?? "")
+          .execute(),
+      () =>
+        kysely
+          .deleteFrom("negociaciones")
           .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>

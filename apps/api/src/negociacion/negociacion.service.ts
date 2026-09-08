@@ -151,7 +151,7 @@ export class NegociacionService {
       await this.propuestasRepository.readBothPartyPositionsForEngine(casoId);
     const [positionsA, positionsB] = assertBothPartiesSubmitted(positions);
     await this.casosRepository.activateNegotiation(casoId);
-    const rondaId = await this.ensureActiveRondaId(casoId);
+    const { rondaId, negociacionId } = await this.ensureActiveRonda(casoId);
     const alreadyExists = await this.propuestasRepository.existsForRonda(
       casoId,
       rondaId,
@@ -165,6 +165,7 @@ export class NegociacionService {
     const pending = await this.propuestasRepository.createPending(
       casoId,
       rondaId,
+      negociacionId,
       contenido,
       iaConfig.modelo,
     );
@@ -213,28 +214,37 @@ export class NegociacionService {
       callerId,
     );
     if (membership.rol_en_caso === rolMediador) {
-      const rondaActual =
-        await this.rondasRepository.currentRondaActual(casoId);
-      if (rondaActual === undefined || rondaActual < rn05MediadorDesdeRonda) {
+      const activa =
+        await this.rondasRepository.resolveActiveNegociacion(casoId);
+      if (activa === undefined || activa.round < rn05MediadorDesdeRonda) {
         throw casoNotFound();
       }
     }
     return this.propuestasRepository.findDetailForCase(casoId, callerId);
   }
 
-  private async ensureActiveRondaId(casoId: string): Promise<string> {
-    const numero = await this.rondasRepository.currentRondaActual(casoId);
-    if (numero === undefined) {
+  private async ensureActiveRonda(
+    casoId: string,
+  ): Promise<{ rondaId: string; negociacionId: string }> {
+    const activa = await this.rondasRepository.resolveActiveNegociacion(casoId);
+    if (activa === undefined) {
       throw new Error(
         `Caso ${casoId} not found while resolving ronda_actual after membership was already asserted`,
       );
     }
-    const existing = await this.rondasRepository.findByNumero(casoId, numero);
+    const existing = await this.rondasRepository.findByNumero(
+      casoId,
+      activa.round,
+    );
     if (existing) {
-      return existing.id;
+      return { rondaId: existing.id, negociacionId: activa.id };
     }
-    const created = await this.rondasRepository.insertNextRonda(casoId, numero);
-    return created.id;
+    const created = await this.rondasRepository.insertNextRonda(
+      casoId,
+      activa.id,
+      activa.round,
+    );
+    return { rondaId: created.id, negociacionId: activa.id };
   }
 
   private async completeGeneration(
