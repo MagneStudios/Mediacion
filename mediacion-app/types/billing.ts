@@ -36,6 +36,49 @@ export type MockSubscription = {
   fechaFin: string | null;
 };
 
+/**
+ * One countable of the plan, as `GET /suscripciones/uso` reports it.
+ *
+ * `limit: null` means **unlimited**, the same convention `Plan`'s two period
+ * quotas use — and the reason nothing here computes a percentage: a share of an
+ * unbounded total is not a number, so the screen has to branch instead of
+ * dividing.
+ */
+export type UsageCounter = {
+  used: number;
+  limit: number | null;
+};
+
+/**
+ * What the caller has consumed of their plan this billing period
+ * (`GET /suscripciones/uso`, ficha §11 of `docs/fichas-legal-backend.md`, the
+ * shape frozen in `docs/plan-frontend-monetizacion.md` §4.1).
+ *
+ * This is the *flow* side of the model — what was created since the period
+ * opened — as opposed to the *stock* limits on `Plan` (`limiteCasos` and
+ * friends), which count what may exist at once. Both are live and neither has
+ * been retired.
+ */
+export type SubscriptionUsage = {
+  /**
+   * The billing window. BE types these non-nullable and fills them from the
+   * `suscripciones` row, anchoring a 30-day window on `fecha_inicio` for rows
+   * that predate the feature. They are still parsed rather than trusted: this
+   * is the one field the screen turns into a date on screen, and an
+   * unparseable instant would render as "Invalid Date" instead of simply not
+   * being shown.
+   */
+  periodStart: string | null;
+  periodEnd: string | null;
+  negotiations: UsageCounter;
+  /**
+   * `null` for anyone who is not the titular of an estudio — **not a counter at
+   * zero**. "This does not apply to you" and "you have used none of your 20"
+   * are different sentences, and only one of them should be on screen.
+   */
+  clients: UsageCounter | null;
+};
+
 export type MockPayment = {
   id: string;
   suscripcionId: string;

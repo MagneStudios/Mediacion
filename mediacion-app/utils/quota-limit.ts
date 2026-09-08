@@ -16,12 +16,14 @@ export type QuotaResource = 'negociaciones' | 'clientes' | 'casos';
 /**
  * What the server told us about the wall the user just hit.
  *
- * **Every field except the resource is nullable, and that is the normal case
- * today.** The limit error that actually exists (`403 plan_limit_exceeded`)
- * carries only a code and a message — no numbers. The richer `402
- * quota_exceeded` of the spec does not exist yet on the API. So this type is
- * built to render usefully with nothing but the code, and to get better on its
- * own the day BE starts sending the detail.
+ * **Every field except the resource is nullable, and it stays that way even
+ * though BE now sends the numbers.** Since 03/09 both codes carry `usado` and
+ * `limite` (and the 402 also `period_end`), but there is one documented case
+ * where the 402 arrives bare: a member of an estudio who is not its titular
+ * consumes against the estudio's plan yet cannot read its usage, so BE has
+ * nothing to attach (`docs/changelogs/2026-09-03-uso-y-cuota.md`, "Deuda
+ * conocida"). Degrading to copy that is true without numbers is therefore a
+ * live path, not a legacy one.
  */
 export type QuotaLimit = {
   resource: QuotaResource;
@@ -78,8 +80,10 @@ export function getQuotaLimit(error: unknown): QuotaLimit | null {
     };
   }
   if (error.code === codePlanLimitExceeded) {
-    // The stock limit is about cases and carries no numbers today. If BE ever
-    // adds them to this code too, they are read the same way.
+    // The stock limit is about cases. Since 03/09 it also carries `recurso`,
+    // `usado` and `limite` — but never `period_end`, because a stock limit has
+    // no period to roll over, which is why the dialog keys the "resets on"
+    // line off the resource and not off this field being present.
     return {
       resource: readResource(error.detail.recurso, 'casos'),
       used: readCount(error.detail.usado),

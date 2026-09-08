@@ -1,3 +1,34 @@
+> ## ✅ Estado al 08/09/2026 — resuelto lo que compilaba, abierto lo demás
+>
+> **Backend cerró §1 a §6** en [`af1c6f5`](https://github.com/MagneStudios/Mediacion/pull/123) (PR #123). `dev` está verde: los 7 call sites, los 3 inserts, el `biome`, y la decisión del §6 tomada por la salida conservadora (la negociación legacy, `materia IS NULL`). `createCaseWithParteA` además crea esa negociación para los casos nuevos, que el checklist no había pedido y sin lo cual todo caso nuevo rompía al primer acceso.
+>
+> **Sumó una pieza que no estaba en el checklist y hacía falta:** `insertNextRonda` ahora bumpea `negociaciones.round` en la misma transacción (`rondas.repository.ts:31-46`). La migración se llevó `sync_ronda_actual()` y nada más lo mantenía — sin eso la ronda quedaba congelada en 1 para siempre, que es el número que dibuja nuestro dashboard.
+>
+> **Lo mejor para nosotros: `ronda_actual` sigue siendo clave del payload.** No se eliminó, se reproyectó como subquery contra `negociaciones.round` (`casos.repository.ts:42-56`, `.as("ronda_actual")`), y no hay DTO ni serializer en el camino. El contrato de wire quedó idéntico y **el front no tocó una línea**. Anotado acá porque es justo el tipo de cosa que alguien "limpia" más adelante creyendo que es código muerto.
+>
+> ### Sigue abierto — verificado a mano el 08/09, no leído de un changelog
+>
+> | # | Qué | Dónde se ve que no está |
+> |---|---|---|
+> | §7.1 | `acordado` derivado por materia | `casos.repository.ts:59-64` sigue siendo `UPDATE casos SET estado='acordado' WHERE id=?`. No hay trigger nuevo: la última migración es `20260906130000` |
+> | §7.2 | Que alguien escriba `pendiente_suscripciones` | `grep pendiente_suscripciones apps/api/src` ⇒ **cero matches** |
+> | §8.1 | `GET /acuerdos/:id` | `acuerdos.controller.ts` expone `POST/GET casos/:casoId/acuerdo`, `POST acuerdos/:id/firmar`, `GET acuerdos/:id/exportar`, `GET acuerdos/:id/firmas` y `GET firmas`. Falta ésta |
+> | §8.2 | `subject_type` y `version` en `GET /firmas` | `acuerdos.types.ts:43-52` y el select de `firmas.repository.ts:128-141` no los traen |
+> | §8.3 | `GET /casos/:id/negociaciones` | Ningún `*.controller.ts` menciona `negociaciones` |
+>
+> **Los tres del §8 son los que nos tienen frenados.** DB entregó el modelo el 06/09 y nosotros integramos por ustedes, así que el refactor de acuerdos modulares está bloqueado ahí y en ningún otro lado.
+>
+> ### Dos observaciones del fix, ninguna bloqueante
+>
+> - **`withRondaActual()` usa `sql<number>`, que *afirma* no-nulidad.** Si un caso llegara a quedar sin negociación legacy, la API manda `ronda_actual: null` contra un tipo que dice `number` (y si tuviera dos, Postgres tira *"more than one row returned by a subquery"*). Hoy lo impide la construcción, no una constraint. De nuestro lado no rompe —`CaseSummary.roundNumber` es `number | null`—, pero `ApiCaseSummary.ronda_actual: number` pasaría a ser mentira.
+> - **El predicado `caso_id = ? AND materia IS NULL` quedó duplicado en cuatro módulos** (`rondas`, `casos`, `mediaciones`, `acuerdos`), en tres dialectos distintos, en vez de un helper. Es exactamente la superficie que hay que tocar cuando aparezca la segunda materia.
+>
+> ### Y una asimetría de monetización que nos toca mostrar en pantalla
+>
+> De su propio changelog del 03/09 ("Deuda conocida"): `consume_quota` resuelve la suscripción del estudio para **cualquier** miembro, pero `/uso` sólo para el titular. Un miembro no titular consume contra el plan del estudio, recibe el `402` sin detalle, y en Mi plan lee **"no tenés plan"** — porque `/uso` le responde 404 y nosotros lo mapeamos a "sin plan", que es lo único honesto que podemos hacer con esa respuesta. No lo tapamos. Se arregla de un lado o del otro: o `consume_quota` adopta el criterio de titularidad, o `/uso` se abre a los miembros.
+
+---
+
 # `dev` está roto — la API no se actualizó a las migraciones de acuerdos modulares
 
 **Fecha:** 07/09/2026 · **Autor:** Frontend · **Para:** Backend

@@ -335,6 +335,15 @@
         "action": "Continuar de todos modos (demo)"
       }
     },
+    "usage": {
+      "title": "Tu consumo este período",
+      "negotiations": "Negociaciones",
+      "clients": "Altas de clientes",
+      "count": "{{used}} de {{limit}}",
+      "unlimited": "{{used}} · sin límite",
+      "renews": "El contador se renueva el {{date}}.",
+      "error": "No pudimos leer tu consumo."
+    },
     "myPlan": {
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
@@ -350,6 +359,8 @@
       "currentBadge": "Plan actual",
       "taxesIncluded": "Precio final, impuestos incluidos",
       "subscribeAction": "Suscribirme",
+      "negotiationsPerPeriodLabel": "Negociaciones por período",
+      "clientsPerPeriodLabel": "Altas de clientes por período",
       "error": {
         "title": "No pudimos cargar tu plan"
       },

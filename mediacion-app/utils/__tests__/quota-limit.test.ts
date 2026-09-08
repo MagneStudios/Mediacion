@@ -11,12 +11,33 @@ describe('getQuotaLimit', () => {
     expect(getQuotaLimit(null)).toBeNull();
   });
 
-  it('recognises the live 403 that carries no numbers at all', () => {
-    // This is today's real error: `PlanLimitService` sends only code and
-    // message. The dialog has to be useful with exactly this much.
+  it('recognises a 403 that carries no numbers at all', () => {
+    // What the 403 looked like before 03/09, and what it still looks like if
+    // the detail ever goes missing. The dialog has to be useful with exactly
+    // this much.
     expect(getQuotaLimit(new ApiError('plan_limit_exceeded', 'Plan case limit reached', 403))).toEqual(
       { resource: 'casos', used: null, limit: null, periodEnd: null },
     );
+  });
+
+  it('reads the numbers BE started attaching to the 403 on 03/09', () => {
+    const error = new ApiError('plan_limit_exceeded', 'x', 403, {
+      code: 'plan_limit_exceeded',
+      recurso: 'casos',
+      usado: 5,
+      limite: 5,
+    });
+
+    expect(getQuotaLimit(error)).toEqual({
+      resource: 'casos',
+      used: 5,
+      limit: 5,
+      // A stock limit has no period, so BE deliberately omits `period_end`.
+      // The dialog needs this to stay null: promising "se renueva el 14 de
+      // septiembre" to someone whose limit only frees when they close a case
+      // would be a date that never arrives.
+      periodEnd: null,
+    });
   });
 
   it('reads the full detail of the 402 the spec defines', () => {

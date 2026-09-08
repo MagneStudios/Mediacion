@@ -88,7 +88,19 @@ export function createMockPlansService(): PlansService {
       }
       // `moneda` mirrors the DB column default ('ARS'): the ABM has no
       // currency picker, so an omitted moneda gets what the schema would set.
-      const created: Plan = { id: generateMockPlanId(), ...input, moneda: input.moneda ?? 'ARS' };
+      //
+      // The two period quotas are `null` for the same reason, not as a
+      // placeholder: they are `INTEGER` with **no** default
+      // (`20260821120000_monetizacion_fase1.sql:48-49`), so an INSERT that
+      // omits them — which is every INSERT this ABM can express, since
+      // `PlanInput` has no field for them — lands `NULL` on the real table too.
+      const created: Plan = {
+        id: generateMockPlanId(),
+        ...input,
+        moneda: input.moneda ?? 'ARS',
+        maxNegotiationsPerPeriod: null,
+        maxClientsPerPeriod: null,
+      };
       const committed = await delay(created, 700);
       plans = [...plans, committed];
       return committed;

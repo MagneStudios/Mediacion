@@ -26,6 +26,25 @@ export type Plan = {
   limiteIteracionesIa: number;
   precio: number;
   moneda: string;
+  /**
+   * The two *flow* quotas of the monetización model — how many of each the plan
+   * allows **per billing period**, where the three `limite*` fields above are
+   * *stock*: how many may exist at once. The two models coexist in the product
+   * and neither has been retired (`docs/plan-frontend-monetizacion.md` §1.4).
+   *
+   * `null` means unlimited, the same convention `limiteCasos` uses — **not** the
+   * `-1` sentinel of `limiteCarpetas`/`limiteIteracionesIa`. Nothing normalizes
+   * between the two encodings, here or in the mapper, so a screen can always
+   * tell which convention the row it is holding actually uses.
+   *
+   * English names on purpose: every field of this type mirrors its column
+   * (`limiteCarpetas` ← `limite_carpetas`), and these two columns are English
+   * in the schema (`20260821120000_monetizacion_fase1.sql:48-49`). Translating
+   * them would break the one property that makes the origin of each field
+   * obvious.
+   */
+  maxNegotiationsPerPeriod: number | null;
+  maxClientsPerPeriod: number | null;
 };
 
 /**
@@ -33,6 +52,12 @@ export type Plan = {
  * column has a default (`'ARS'`) and the admin ABM has no currency picker
  * (deliberately — adding one is a product decision, see the spec's
  * "Ask First"). The mock CRUD applies the same default the DB would.
+ *
+ * **The two period quotas are deliberately absent.** `Plan` reads them because
+ * `GET /planes` returns them; this type is what the admin ABM submits, and
+ * there is nothing to submit to — `POST`/`PATCH /planes` do not exist on the
+ * API. Adding the fields would mean drawing two form inputs that can only ever
+ * write to the mock.
  */
 export type PlanInput = {
   nombre: string;

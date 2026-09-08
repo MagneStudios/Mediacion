@@ -1,4 +1,4 @@
-import type { MockInvoice, MockSubscription } from '@/types/billing';
+import type { MockInvoice, MockSubscription, SubscriptionUsage } from '@/types/billing';
 
 import { codeSuscripcionNotFound, hasCode } from './api-error';
 import type { ApiBillingService } from './billing.api-service';
@@ -12,7 +12,8 @@ const noActiveSubscription = 'no_active_subscription';
  * the Mi plan screen already consumes, and leaves the rest on the mock that is
  * passed in.
  *
- * **What is real:** `getCurrentSubscription` and `cancelSubscription`. That is
+ * **What is real:** `getCurrentSubscription`, `getUsage` and
+ * `cancelSubscription`. The first and last are
  * exactly what `docs/pedidos-frontend-a-backend.md` §2 asked for: the baja
  * online (Ley 24.240 art. 10 ter, punto #19) used to point at a mock id whose
  * value was synthetic, so `POST /suscripciones/:id/baja` would have answered
@@ -44,6 +45,28 @@ export function createBackedBillingService(
     async getCurrentSubscription(): Promise<MockSubscription | null> {
       try {
         return await api.getCurrentSubscription();
+      } catch (error) {
+        if (hasCode(error, codeSuscripcionNotFound)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    async getUsage(): Promise<SubscriptionUsage | null> {
+      // Same mapping as the read above, for the same reason: BE answers 404
+      // `suscripcion_not_found` both for "you have no plan" and for a
+      // subscription that is not yours, so an outsider cannot probe which ones
+      // exist. "No tengo plan" is a normal state of Mi plan, not a failure.
+      //
+      // One consequence worth knowing rather than hiding: a member of an
+      // estudio who is not its titular consumes quota against the estudio's
+      // plan but cannot read its usage, so this returns `null` for someone who
+      // demonstrably has one (`docs/changelogs/2026-09-03-uso-y-cuota.md`,
+      // "Deuda conocida"). That is BE's asymmetry to resolve; papering over it
+      // here would mean inventing a plan we cannot see.
+      try {
+        return await api.getUsage();
       } catch (error) {
         if (hasCode(error, codeSuscripcionNotFound)) {
           return null;

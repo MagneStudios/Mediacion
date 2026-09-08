@@ -11,7 +11,9 @@
 |---|---|
 | **DB** | Fase 1 mergeada (`20260821120000_monetizacion_fase1.sql`): columnas nuevas en `planes` y `suscripciones`, tablas `usage_counters` / `lawyer_requests` / `payment_events`, función `consume_quota`, RLS, seeds y `db-types` regenerados. |
 | **BE** | **Fase 2 entregada el 03/09** (`docs/changelogs/2026-09-03-uso-y-cuota.md`): `GET /planes` expone `max_negotiations_per_period` / `max_clients_per_period`; `GET /suscripciones/uso` (ficha §11); `POST /casos` consume `consume_quota` en la misma transacción y responde `402 quota_exceeded` con detalle dentro del envelope (ficha §12); el webhook de pago aprobado fija `current_period_start/end` (30 días). Sigue sin empezar: `lawyer_requests` (§3.5), preapproval/`back_url` (§3.4), `plans.active`/`is_self_serve` (§5). |
-| **FE** | Sin empezar. |
+| **FE** | **Fase 2 integrada el 08/09** (`docs/changelogs/2026-09-08.md`): `GET /suscripciones/uso` cableado de punta a punta con su hook y su bloque en Mi plan; las dos columnas de cuota en `Plan` y en las tarjetas del catálogo; el `402 quota_exceeded` **no necesitó código** —`ApiError.detail` y `getQuotaLimit` ya lo leían— sólo que los comentarios dijeran la verdad. Sigue sin empezar: la página de pricing (§5 abierto en DB), el checkout real (espera preapproval de BE) y los endpoints de abogado. |
+
+> ⚠️ **Desactualizado desde el 03/09.** El párrafo de abajo se escribió cuando BE no tenía nada de monetización. Hoy `GET /planes`, `GET /suscripciones/uso` y el `402` son reales y están integrados; lo que sigue sobre mocks vale para lo que queda (checkout recurrente, abogado, filtro del catálogo).
 
 **Consecuencia operativa: hoy no podemos cablear nada real.** El camino es el mismo que funcionó en el ciclo de TyC — construir contra el mock con el shape ya acordado, publicar el contrato para que BE implemente sin ida y vuelta, y activar cambiando un singleton. La §4 de este plan es ese contrato.
 

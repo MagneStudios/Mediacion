@@ -16,6 +16,9 @@ export type PlanOptionCardProps = {
   casosLabel: string;
   carpetasLabel: string;
   iteracionesLabel: string;
+  /** Flow quotas — only rendered for a plan that actually declares one; see below. */
+  negotiationsPerPeriodLabel: string;
+  clientsPerPeriodLabel: string;
   taxesIncludedLabel: string;
   netoLabel: string;
   subscribeLabel: string;
@@ -40,6 +43,8 @@ export function PlanOptionCard({
   casosLabel,
   carpetasLabel,
   iteracionesLabel,
+  negotiationsPerPeriodLabel,
+  clientsPerPeriodLabel,
   taxesIncludedLabel,
   netoLabel,
   subscribeLabel,
@@ -71,6 +76,22 @@ export function PlanOptionCard({
         <StatusPill status="neutral">{`${casosLabel}: ${formatPlanLimit(plan.limiteCasos)}`}</StatusPill>
         <StatusPill status="neutral">{`${carpetasLabel}: ${formatPlanLimit(plan.limiteCarpetas)}`}</StatusPill>
         <StatusPill status="neutral">{`${iteracionesLabel}: ${formatPlanLimit(plan.limiteIteracionesIa)}`}</StatusPill>
+        {/*
+          The two *flow* quotas, and only for a plan that declares one.
+
+          `null` here does mean unlimited — `consume_quota` says so in as many
+          words (*"v_limit IS NULL ⇒ ilimitado"*) — but announcing "negociaciones
+          por mes: ilimitado" on a plan capped at two simultaneous cases sells a
+          freedom the stock limit next to it takes away. The constraint that
+          actually binds such a plan is already on this card. Staying quiet about
+          a dimension the plan is not priced on is not hiding a limit.
+        */}
+        {plan.maxNegotiationsPerPeriod === null ? null : (
+          <StatusPill status="neutral">{`${negotiationsPerPeriodLabel}: ${plan.maxNegotiationsPerPeriod}`}</StatusPill>
+        )}
+        {plan.maxClientsPerPeriod === null ? null : (
+          <StatusPill status="neutral">{`${clientsPerPeriodLabel}: ${plan.maxClientsPerPeriod}`}</StatusPill>
+        )}
       </View>
 
       {isCurrent ? null : (

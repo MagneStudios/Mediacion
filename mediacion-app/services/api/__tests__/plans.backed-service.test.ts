@@ -15,6 +15,8 @@ const base: Plan = {
   limiteIteracionesIa: 5,
   precio: 0,
   moneda: 'ARS',
+  maxNegotiationsPerPeriod: null,
+  maxClientsPerPeriod: null,
 };
 
 const simple: Plan = {
@@ -25,6 +27,8 @@ const simple: Plan = {
   limiteIteracionesIa: 15,
   precio: 9.99,
   moneda: 'ARS',
+  maxNegotiationsPerPeriod: null,
+  maxClientsPerPeriod: null,
 };
 
 function fakeApi(overrides: Partial<ApiPlansService> = {}): ApiPlansService {

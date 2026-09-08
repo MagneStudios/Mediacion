@@ -31,6 +31,8 @@ function row(overrides: Partial<ApiPlan> = {}): ApiPlan {
     limite_iteraciones_ia: 15,
     precio: 9.99,
     moneda: 'ARS',
+    max_negotiations_per_period: null,
+    max_clients_per_period: null,
     ...overrides,
   };
 }
@@ -45,7 +47,23 @@ describe('plans.api-service', () => {
       limiteIteracionesIa: 15,
       precio: 9.99,
       moneda: 'ARS',
+      maxNegotiationsPerPeriod: null,
+      maxClientsPerPeriod: null,
     });
+  });
+
+  it('carries the two period quotas through, unlimited included', () => {
+    // `estudio`'s seeded values (`20260821120000_monetizacion_fase1.sql:293-296`).
+    const estudio = toPlan(row({ max_negotiations_per_period: 3, max_clients_per_period: 20 }));
+    expect(estudio.maxNegotiationsPerPeriod).toBe(3);
+    expect(estudio.maxClientsPerPeriod).toBe(20);
+
+    // `null` is unlimited — `consume_quota` says so in as many words. Coercing
+    // it to a number here would turn an unlimited plan into one capped at zero,
+    // which is the one mistake this mapping must not make.
+    const corporativo = toPlan(row({ max_negotiations_per_period: null, max_clients_per_period: null }));
+    expect(corporativo.maxNegotiationsPerPeriod).toBeNull();
+    expect(corporativo.maxClientsPerPeriod).toBeNull();
   });
 
   it('reads a numeric price that arrives as a string, which is what pg sends for numeric', () => {
