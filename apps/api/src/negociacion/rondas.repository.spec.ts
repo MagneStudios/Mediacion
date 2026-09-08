@@ -3,7 +3,7 @@ import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import { ConflictError } from "../common/errors/domain-errors";
 import {
-  buildCurrentRondaActualQuery,
+  buildActiveNegociacionQuery,
   buildFindByNumeroQuery,
   buildInsertNextRondaQuery,
   RondasRepository,
@@ -21,26 +21,34 @@ function createCompileOnlyKysely(): Kysely<Database> {
 }
 
 describe("buildInsertNextRondaQuery", () => {
-  it("inserts only into rondas, never touching casos.ronda_actual directly", () => {
+  it("inserts into rondas with the negociacion_id, never touching casos.ronda_actual directly", () => {
     const db = createCompileOnlyKysely();
 
-    const compiled = buildInsertNextRondaQuery(db, "caso-1", 2).compile();
+    const compiled = buildInsertNextRondaQuery(
+      db,
+      "caso-1",
+      "negociacion-1",
+      2,
+    ).compile();
 
     expect(compiled.sql).toMatch(/^insert into "rondas"/i);
-    expect(compiled.sql.toLowerCase()).not.toContain("casos");
+    expect(compiled.sql.toLowerCase()).not.toContain('"casos"');
     expect(compiled.sql).not.toContain('"ronda_actual"');
-    expect(compiled.parameters).toEqual(["caso-1", 2]);
+    expect(compiled.parameters).toEqual(["caso-1", "negociacion-1", 2]);
   });
 });
 
-describe("buildCurrentRondaActualQuery", () => {
-  it("reads casos.ronda_actual scoped by caso id, read-only", () => {
+describe("buildActiveNegociacionQuery", () => {
+  it("reads the legacy negociacion (materia is null) scoped by caso id, read-only", () => {
     const db = createCompileOnlyKysely();
 
-    const compiled = buildCurrentRondaActualQuery(db, "caso-1").compile();
+    const compiled = buildActiveNegociacionQuery(db, "caso-1").compile();
 
-    expect(compiled.sql).toMatch(/^select\s+"ronda_actual"\s+from\s+"casos"/i);
-    expect(compiled.sql).toMatch(/where\s+.*"id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(
+      /^select\s+"id",\s*"round"\s+from\s+"negociaciones"/i,
+    );
+    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/"materia"\s+is\s+null/i);
     expect(compiled.parameters).toEqual(["caso-1"]);
   });
 });
@@ -78,20 +86,69 @@ function createFakeKysely() {
   return { kysely, executeTakeFirstOrThrow, executeTakeFirst };
 }
 
+function createFakeTrxKysely() {
+  const executeTakeFirstOrThrow = jest.fn();
+  const execute = jest.fn();
+  const builder: Record<string, jest.Mock> = {
+    executeTakeFirstOrThrow,
+    execute,
+  };
+  const returnBuilder = jest.fn(() => builder);
+  builder.values = returnBuilder;
+  builder.set = returnBuilder;
+  builder.returningAll = returnBuilder;
+  builder.where = returnBuilder;
+  const trx = {
+    insertInto: jest.fn(() => builder),
+    updateTable: jest.fn(() => builder),
+  };
+  const transactionExecute = jest.fn((callback: (trx: unknown) => unknown) =>
+    callback(trx),
+  );
+  const kysely = {
+    transaction: jest.fn(() => ({ execute: transactionExecute })),
+  };
+  return {
+    kysely,
+    trx,
+    ...trx,
+    values: builder.values,
+    executeTakeFirstOrThrow,
+    execute,
+  };
+}
+
 describe("RondasRepository", () => {
-  it("insertNextRonda returns the inserted ronda", async () => {
-    const ronda = { id: "ronda-2", caso_id: "caso-1", numero: 2 };
-    const fake = createFakeKysely();
+  it("insertNextRonda inserts the ronda and bumps negociaciones.round in the same transaction", async () => {
+    const ronda = {
+      id: "ronda-2",
+      caso_id: "caso-1",
+      negociacion_id: "negociacion-1",
+      numero: 2,
+    };
+    const fake = createFakeTrxKysely();
     fake.executeTakeFirstOrThrow.mockResolvedValue(ronda);
     const repository = new RondasRepository(fake.kysely as never);
 
-    const result = await repository.insertNextRonda("caso-1", 2);
+    const result = await repository.insertNextRonda(
+      "caso-1",
+      "negociacion-1",
+      2,
+    );
 
     expect(result).toBe(ronda);
+    expect(fake.insertInto).toHaveBeenCalledWith("rondas");
+    expect(fake.values).toHaveBeenCalledWith({
+      caso_id: "caso-1",
+      negociacion_id: "negociacion-1",
+      numero: 2,
+    });
+    expect(fake.updateTable).toHaveBeenCalledWith("negociaciones");
+    expect(fake.values).toHaveBeenCalledWith({ round: 2 });
   });
 
   it("insertNextRonda maps a pg conflict into a domain ConflictError", async () => {
-    const fake = createFakeKysely();
+    const fake = createFakeTrxKysely();
     fake.executeTakeFirstOrThrow.mockRejectedValue({
       code: "23505",
       message: "duplicate ronda numero",
@@ -99,26 +156,26 @@ describe("RondasRepository", () => {
     const repository = new RondasRepository(fake.kysely as never);
 
     await expect(
-      repository.insertNextRonda("caso-1", 2),
+      repository.insertNextRonda("caso-1", "negociacion-1", 2),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("currentRondaActual returns the ronda_actual of the matched case", async () => {
+  it("resolveActiveNegociacion returns the legacy negociacion of the matched case", async () => {
     const fake = createFakeKysely();
-    fake.executeTakeFirst.mockResolvedValue({ ronda_actual: 3 });
+    fake.executeTakeFirst.mockResolvedValue({ id: "negociacion-1", round: 3 });
     const repository = new RondasRepository(fake.kysely as never);
 
-    const result = await repository.currentRondaActual("caso-1");
+    const result = await repository.resolveActiveNegociacion("caso-1");
 
-    expect(result).toBe(3);
+    expect(result).toEqual({ id: "negociacion-1", round: 3 });
   });
 
-  it("currentRondaActual returns undefined when no case matches", async () => {
+  it("resolveActiveNegociacion returns undefined when no case matches", async () => {
     const fake = createFakeKysely();
     fake.executeTakeFirst.mockResolvedValue(undefined);
     const repository = new RondasRepository(fake.kysely as never);
 
-    const result = await repository.currentRondaActual("missing");
+    const result = await repository.resolveActiveNegociacion("missing");
 
     expect(result).toBeUndefined();
   });

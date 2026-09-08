@@ -32,7 +32,7 @@ function buildService(overrides?: {
   createPending?: jest.Mock;
   patchGenerated?: jest.Mock;
   existsForRonda?: jest.Mock;
-  currentRondaActual?: jest.Mock;
+  resolveActiveNegociacion?: jest.Mock;
   findByNumero?: jest.Mock;
   insertNextRonda?: jest.Mock;
   readIaConfig?: jest.Mock;
@@ -63,8 +63,9 @@ function buildService(overrides?: {
       overrides?.findDetailForCase ?? jest.fn().mockResolvedValue([]),
   } as unknown as PropuestasRepository;
   const rondasRepository = {
-    currentRondaActual:
-      overrides?.currentRondaActual ?? jest.fn().mockResolvedValue(1),
+    resolveActiveNegociacion:
+      overrides?.resolveActiveNegociacion ??
+      jest.fn().mockResolvedValue({ id: "negociacion-1", round: 1 }),
     findByNumero:
       overrides?.findByNumero ??
       jest
@@ -174,6 +175,7 @@ describe("NegociacionService.generatePropuesta", () => {
     expect(createPending).toHaveBeenCalledWith(
       "caso-1",
       "ronda-1",
+      "negociacion-1",
       {
         meetingPoint: [
           { categoria: "economico", punto: 300, estado: "acordable" },
@@ -216,10 +218,11 @@ describe("NegociacionService.generatePropuesta", () => {
 
     await service.generatePropuesta("caso-1", "user-a");
 
-    expect(insertNextRonda).toHaveBeenCalledWith("caso-1", 1);
+    expect(insertNextRonda).toHaveBeenCalledWith("caso-1", "negociacion-1", 1);
     expect(createPending).toHaveBeenCalledWith(
       "caso-1",
       "ronda-new",
+      "negociacion-1",
       expect.anything(),
       expect.anything(),
     );
@@ -386,12 +389,12 @@ describe("NegociacionService.generatePropuesta", () => {
         valor_max: "500",
       },
     ]);
-    const currentRondaActual = jest.fn();
+    const resolveActiveNegociacion = jest.fn();
     const findByNumero = jest.fn();
     const insertNextRonda = jest.fn();
     const { service } = buildService({
       readBothPartyPositionsForEngine,
-      currentRondaActual,
+      resolveActiveNegociacion,
       findByNumero,
       insertNextRonda,
     });
@@ -408,7 +411,7 @@ describe("NegociacionService.generatePropuesta", () => {
     expect((thrown as HttpException).getResponse()).toMatchObject({
       code: "both_parties_required",
     });
-    expect(currentRondaActual).not.toHaveBeenCalled();
+    expect(resolveActiveNegociacion).not.toHaveBeenCalled();
     expect(findByNumero).not.toHaveBeenCalled();
     expect(insertNextRonda).not.toHaveBeenCalled();
   });
@@ -417,10 +420,10 @@ describe("NegociacionService.generatePropuesta", () => {
     const readBothPartyPositionsForEngine = jest
       .fn()
       .mockResolvedValue(bothPartyPositions);
-    const currentRondaActual = jest.fn().mockResolvedValue(undefined);
+    const resolveActiveNegociacion = jest.fn().mockResolvedValue(undefined);
     const { service } = buildService({
       readBothPartyPositionsForEngine,
-      currentRondaActual,
+      resolveActiveNegociacion,
     });
 
     let thrown: unknown;
@@ -582,30 +585,32 @@ describe("NegociacionService.listPropuestas", () => {
     const assertMembership = jest
       .fn()
       .mockResolvedValue({ rol_en_caso: "parte_a" });
-    const currentRondaActual = jest.fn();
+    const resolveActiveNegociacion = jest.fn();
     const propuestas: PropuestaView[] = [];
     const findDetailForCase = jest.fn().mockResolvedValue(propuestas);
     const { service } = buildService({
       assertMembership,
-      currentRondaActual,
+      resolveActiveNegociacion,
       findDetailForCase,
     });
 
     const result = await service.listPropuestas("caso-1", "user-a");
 
     expect(result).toBe(propuestas);
-    expect(currentRondaActual).not.toHaveBeenCalled();
+    expect(resolveActiveNegociacion).not.toHaveBeenCalled();
   });
 
   it("returns a uniform 404 for a mediador before round 3", async () => {
     const assertMembership = jest
       .fn()
       .mockResolvedValue({ rol_en_caso: "mediador" });
-    const currentRondaActual = jest.fn().mockResolvedValue(2);
+    const resolveActiveNegociacion = jest
+      .fn()
+      .mockResolvedValue({ id: "negociacion-1", round: 2 });
     const findDetailForCase = jest.fn();
     const { service } = buildService({
       assertMembership,
-      currentRondaActual,
+      resolveActiveNegociacion,
       findDetailForCase,
     });
 
@@ -625,12 +630,14 @@ describe("NegociacionService.listPropuestas", () => {
     const assertMembership = jest
       .fn()
       .mockResolvedValue({ rol_en_caso: "mediador" });
-    const currentRondaActual = jest.fn().mockResolvedValue(3);
+    const resolveActiveNegociacion = jest
+      .fn()
+      .mockResolvedValue({ id: "negociacion-1", round: 3 });
     const propuestas: PropuestaView[] = [];
     const findDetailForCase = jest.fn().mockResolvedValue(propuestas);
     const { service } = buildService({
       assertMembership,
-      currentRondaActual,
+      resolveActiveNegociacion,
       findDetailForCase,
     });
 
