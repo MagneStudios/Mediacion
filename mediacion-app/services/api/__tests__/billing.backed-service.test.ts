@@ -1,4 +1,4 @@
-import type { MockInvoice, MockSubscription } from '@/types/billing';
+import type { MockInvoice, MockSubscription, SubscriptionUsage } from '@/types/billing';
 
 import { ApiError, codeSuscripcionNotFound } from '../api-error';
 import type { ApiBillingService } from '../billing.api-service';
@@ -15,9 +15,17 @@ const activa: MockSubscription = {
 
 const invoice = { id: 'fac-1' } as MockInvoice;
 
+const usage: SubscriptionUsage = {
+  periodStart: '2026-08-17T12:00:00.000Z',
+  periodEnd: '2026-09-16T12:00:00.000Z',
+  negotiations: { used: 2, limit: 3 },
+  clients: null,
+};
+
 function fakeApi(overrides: Partial<ApiBillingService> = {}): ApiBillingService {
   return {
     getCurrentSubscription: jest.fn().mockResolvedValue(activa),
+    getUsage: jest.fn().mockResolvedValue(usage),
     cancelSubscription: jest.fn().mockResolvedValue({
       id: activa.id,
       estado: 'cancelada',
@@ -30,6 +38,7 @@ function fakeApi(overrides: Partial<ApiBillingService> = {}): ApiBillingService 
 function fakeMock(overrides: Partial<BillingService> = {}): BillingService {
   return {
     getCurrentSubscription: jest.fn().mockResolvedValue(null),
+    getUsage: jest.fn().mockResolvedValue(null),
     getInvoiceForSubscription: jest.fn().mockResolvedValue(invoice),
     subscribeToPlan: jest.fn().mockResolvedValue({ subscription: activa, invoice }),
     prepareInvoiceDownload: jest.fn().mockResolvedValue(undefined),
@@ -55,6 +64,36 @@ describe('billing.backed-service', () => {
     await expect(
       createBackedBillingService(api, fakeMock()).getCurrentSubscription(),
     ).resolves.toBeNull();
+  });
+
+  it('reads the usage from the server', async () => {
+    const api = fakeApi();
+
+    await expect(createBackedBillingService(api, fakeMock()).getUsage()).resolves.toEqual(usage);
+    expect(api.getUsage).toHaveBeenCalled();
+  });
+
+  it('maps suscripcion_not_found on the usage read to null, not to an error', async () => {
+    // Same 404 the vigente read gets, and for the same two reasons: no plan, or
+    // a plan that is not yours. It also covers the case BE documented as debt —
+    // a member of an estudio who consumes against its plan but cannot read it.
+    // Reporting that as a failure would put a retry button on a screen where
+    // retrying cannot change the answer.
+    const api = fakeApi({
+      getUsage: jest
+        .fn()
+        .mockRejectedValue(new ApiError(codeSuscripcionNotFound, 'Suscripcion not found', 404)),
+    });
+
+    await expect(createBackedBillingService(api, fakeMock()).getUsage()).resolves.toBeNull();
+  });
+
+  it('propagates a usage failure that is not the 404, so the screen can offer a retry', async () => {
+    const api = fakeApi({
+      getUsage: jest.fn().mockRejectedValue(new ApiError('internal_error', 'boom', 500)),
+    });
+
+    await expect(createBackedBillingService(api, fakeMock()).getUsage()).rejects.toThrow('boom');
   });
 
   it('propagates any other read failure so the screen can offer a retry', async () => {

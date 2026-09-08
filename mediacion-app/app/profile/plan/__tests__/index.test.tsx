@@ -20,6 +20,11 @@ jest.mock('@/features/billing/hooks/useCurrentSubscription', () => ({
   useCurrentSubscription: () => mockSubscriptionResult,
 }));
 
+let mockUsageResult: unknown;
+jest.mock('@/features/billing/hooks/useSubscriptionUsage', () => ({
+  useSubscriptionUsage: () => mockUsageResult,
+}));
+
 let mockPlansResult: unknown;
 jest.mock('@/features/plans/hooks/usePlans', () => ({
   usePlans: () => mockPlansResult,
@@ -28,9 +33,9 @@ jest.mock('@/features/plans/hooks/usePlans', () => ({
 // eslint-disable-next-line import/first
 import MyPlanScreen from '../index';
 
-const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
-const simplePlan: Plan = { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 5, limiteCasos: 3, limiteIteracionesIa: 10, precio: 9.99, moneda: 'ARS' };
+const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 };
+const simplePlan: Plan = { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 5, limiteCasos: 3, limiteIteracionesIa: 10, precio: 9.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
 
 async function renderScreen() {
   await render(
@@ -40,9 +45,96 @@ async function renderScreen() {
   );
 }
 
+const usageReload = jest.fn();
+
 describe('MyPlanScreen', () => {
   beforeEach(() => {
     mockPush.mockReset();
+    usageReload.mockReset();
+    // The common case for a persona with no plan, and the default every test
+    // that is not about usage inherits.
+    mockUsageResult = { status: 'success', usage: null, reload: usageReload };
+  });
+
+  describe('el bloque de consumo', () => {
+    const withPlan = () => {
+      mockSubscriptionResult = { status: 'success', subscription: null, reload: jest.fn() };
+      mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+    };
+
+    it('renders the counters when there is usage to report', async () => {
+      withPlan();
+      mockUsageResult = {
+        status: 'success',
+        usage: {
+          periodStart: '2026-08-17T12:00:00.000Z',
+          periodEnd: '2026-09-16T12:00:00.000Z',
+          negotiations: { used: 2, limit: 3 },
+          clients: null,
+        },
+        reload: usageReload,
+      };
+
+      await renderScreen();
+
+      expect(screen.getByText(i18n.t('billing.usage.count', { used: 2, limit: 3 }))).toBeTruthy();
+    });
+
+    it('says nothing when there is no plan to measure against', async () => {
+      // `usage: null` in `success` means "no plan", which the copy above the
+      // plan list already says. An empty card would say it twice.
+      withPlan();
+
+      await renderScreen();
+
+      expect(screen.queryByText(i18n.t('billing.usage.title'))).toBeNull();
+    });
+
+    it('reports its own failure in place, with its own retry, instead of taking the screen down', async () => {
+      // Usage is supplementary — the person came to see their plan. A failing
+      // `/uso` must not replace the whole screen with an error state.
+      withPlan();
+      mockUsageResult = { status: 'error', usage: null, reload: usageReload };
+
+      await renderScreen();
+
+      expect(screen.getByText(i18n.t('billing.myPlan.noSubscription'))).toBeTruthy();
+      expect(screen.getByText(i18n.t('billing.usage.error'))).toBeTruthy();
+
+      fireEvent.press(screen.getByText(i18n.t('common.retry')));
+      expect(usageReload).toHaveBeenCalled();
+    });
+
+    it('does not hold the screen in loading while usage is still in flight', async () => {
+      withPlan();
+      mockUsageResult = { status: 'loading', usage: null, reload: usageReload };
+
+      await renderScreen();
+
+      expect(screen.getByText(i18n.t('billing.myPlan.noSubscription'))).toBeTruthy();
+    });
+  });
+
+  it('shows a period quota only on a plan that declares one', async () => {
+    // `null` does mean unlimited here — `consume_quota` says so — but announcing
+    // "negociaciones por período: ilimitado" on `base`, which is capped at two
+    // simultaneous cases, sells a freedom the stock limit beside it takes away.
+    // The limit that actually binds `base` is already on its card.
+    mockSubscriptionResult = { status: 'success', subscription: null, reload: jest.fn() };
+    mockPlansResult = { status: 'success', plans: [basePlan, estudioPlan], refresh: jest.fn() };
+
+    await renderScreen();
+
+    expect(
+      screen.getByText(`${i18n.t('billing.myPlan.negotiationsPerPeriodLabel')}: 3`),
+    ).toBeTruthy();
+    expect(screen.getByText(`${i18n.t('billing.myPlan.clientsPerPeriodLabel')}: 20`)).toBeTruthy();
+    // One pill, not two: only `estudioPlan` carries the quota.
+    expect(
+      screen.queryAllByText(
+        new RegExp(`^${i18n.t('billing.myPlan.negotiationsPerPeriodLabel')}:`),
+      ),
+    ).toHaveLength(1);
   });
 
   it('shows the no-subscription copy and every plan as subscribable when there is no current subscription', async () => {

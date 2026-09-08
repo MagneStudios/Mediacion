@@ -91,11 +91,13 @@ export const codeSuscripcionNotFound = 'suscripcion_not_found';
  * The plan's period quota is spent (`consume_quota`, `P0002`) — the flow limit
  * of the Pactum spec §5.1: N negociaciones created per billing period.
  *
- * **Does not exist on the API yet.** `20260821120000_monetizacion_fase1.sql`
- * ships the function, but nothing in `apps/api` calls it
- * (`docs/plan-frontend-monetizacion.md` §0). The code is declared here so the
- * screen that has to react is written once and keeps working the day BE wires
- * it, instead of being retrofitted then.
+ * **Live since 03/09/2026** (`docs/changelogs/2026-09-03-uso-y-cuota.md`):
+ * `POST /casos` consumes the quota inside the same transaction that inserts the
+ * caso, so a spent period means the caso is not created and the counter is not
+ * inflated. It arrives as `402` carrying `recurso`, `usado`, `limite` and
+ * `period_end` alongside `code`/`message` — read by `utils/quota-limit.ts`
+ * through `ApiError.detail`, which needed no change: the envelope reader
+ * already forwarded whatever extra fields BE sent.
  */
 export const codeQuotaExceeded = 'quota_exceeded';
 /**
@@ -105,9 +107,13 @@ export const codeQuotaExceeded = 'quota_exceeded';
  * button that could only fail again.
  *
  * It is a *stock* limit (simultaneous cases) where `quota_exceeded` is a *flow*
- * limit (created per period). The two coexist and nobody has decided which
- * governs case creation (`docs/plan-frontend-monetizacion.md` §1.4) — for the
- * user they are the same wall, so they get the same screen.
+ * limit (created per period). **BE confirmed on 03/09 that the two coexist**:
+ * this one runs first, and `consume_quota` decides the other
+ * (`docs/pedidos-frontend-monetizacion.md` §3.2). Retiring the older model is a
+ * Producto decision nobody has taken. For the user they are the same wall, so
+ * they get the same screen — and since 03/09 this code carries
+ * `recurso: "casos"`, `usado` and `limite` too, so that screen can be specific
+ * for both.
  */
 export const codePlanLimitExceeded = 'plan_limit_exceeded';
 

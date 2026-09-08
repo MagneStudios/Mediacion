@@ -335,6 +335,15 @@
         "action": "Continue anyway (demo)"
       }
     },
+    "usage": {
+      "title": "Your usage this period",
+      "negotiations": "Negotiations",
+      "clients": "Client sign-ups",
+      "count": "{{used}} of {{limit}}",
+      "unlimited": "{{used}} · no limit",
+      "renews": "The counter resets on {{date}}.",
+      "error": "We couldn't read your usage."
+    },
     "myPlan": {
       "title": "My plan",
       "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
@@ -350,6 +359,8 @@
       "currentBadge": "Current plan",
       "taxesIncluded": "Final price, taxes included",
       "subscribeAction": "Subscribe",
+      "negotiationsPerPeriodLabel": "Negotiations per period",
+      "clientsPerPeriodLabel": "Client sign-ups per period",
       "error": {
         "title": "We couldn't load your plan"
       },

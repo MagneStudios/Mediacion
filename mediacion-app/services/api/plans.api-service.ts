@@ -26,6 +26,15 @@ export type ApiPlan = {
    */
   precio: number | string;
   moneda: string;
+  /**
+   * Added to `planColumns` on 03/09 for §3.3 of
+   * `docs/pedidos-frontend-monetizacion.md`. `integer` on the table with no
+   * default, so `null` is both "unlimited" and "nobody set it" — the seed
+   * leaves the four legacy plans at `null` and only fills `estudio` and
+   * `particular` (`20260821120000_monetizacion_fase1.sql:283-296`).
+   */
+  max_negotiations_per_period: number | null;
+  max_clients_per_period: number | null;
 };
 
 /** Thrown when a row cannot be read as a plan — see `toPrice`. */
@@ -59,7 +68,8 @@ function toPrice(value: number | string): number {
 
 /**
  * Wire row to domain plan. The two coexisting "unlimited" encodings
- * (`null` for `limite_casos`, `-1` for the other two — see `types/plan.ts`)
+ * (`null` for `limite_casos` and both period quotas, `-1` for the other two
+ * — see `types/plan.ts`)
  * travel through untouched: normalizing them here would hide from the app
  * which convention the row actually uses.
  */
@@ -72,6 +82,11 @@ export function toPlan(row: ApiPlan): Plan {
     limiteIteracionesIa: row.limite_iteraciones_ia,
     precio: toPrice(row.precio),
     moneda: row.moneda,
+    // Straight through, `null` included: it is the "unlimited" encoding of
+    // these two columns, and coercing it to a number here would turn an
+    // unlimited plan into a plan capped at zero.
+    maxNegotiationsPerPeriod: row.max_negotiations_per_period,
+    maxClientsPerPeriod: row.max_clients_per_period,
   };
 }
 
