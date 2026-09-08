@@ -1,7 +1,8 @@
-import { ConflictError } from "../errors/domain-errors";
+import { ConflictError, QuotaExceededError } from "../errors/domain-errors";
 
 const uniqueViolationCode = "23505";
 const triggerExceptionCode = "P0001";
+const quotaExceededCode = "P0002";
 const conflictCodes = new Set([uniqueViolationCode, triggerExceptionCode]);
 
 /**
@@ -45,6 +46,9 @@ function triggerSlug(message: string): string | null {
 }
 
 export function toDomainError(error: unknown): Error {
+  if (isPgError(error) && error.code === quotaExceededCode) {
+    return new QuotaExceededError(null, error.message);
+  }
   if (isPgError(error) && conflictCodes.has(error.code)) {
     const slug =
       error.code === triggerExceptionCode ? triggerSlug(error.message) : null;

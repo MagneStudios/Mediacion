@@ -1,5 +1,8 @@
-import { HttpException } from "@nestjs/common";
+import { HttpException, HttpStatus } from "@nestjs/common";
+import { QuotaExceededError } from "../common/errors/domain-errors";
 import type { PlanLimitService } from "../pagos/plan-limit.service";
+import type { SuscripcionesService } from "../pagos/suscripciones.service";
+import type { UsageRepository } from "../pagos/usage.repository";
 import type { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
 import type { CreateCasoDto } from "./casos.types";
@@ -16,6 +19,9 @@ describe("CasosService", () => {
     findContrapartes?: jest.Mock;
     assertMembership?: jest.Mock;
     assertCanCreateCase?: jest.Mock;
+    consumeNegotiation?: jest.Mock;
+    ensureBillingPeriod?: jest.Mock;
+    getUso?: jest.Mock;
   }) {
     const casosRepository = {
       createCaseWithParteA: overrides?.createCaseWithParteA ?? jest.fn(),
@@ -34,15 +40,29 @@ describe("CasosService", () => {
         overrides?.assertCanCreateCase ??
         jest.fn().mockResolvedValue(undefined),
     } as unknown as PlanLimitService;
+    const usageRepository = {
+      consumeNegotiation:
+        overrides?.consumeNegotiation ?? jest.fn().mockResolvedValue(undefined),
+    } as unknown as UsageRepository;
+    const suscripcionesService = {
+      ensureBillingPeriod:
+        overrides?.ensureBillingPeriod ??
+        jest.fn().mockResolvedValue(undefined),
+      getUso: overrides?.getUso ?? jest.fn(),
+    } as unknown as SuscripcionesService;
     return {
       service: new CasosService(
         casosRepository,
         membershipService,
         planLimitService,
+        usageRepository,
+        suscripcionesService,
       ),
       casosRepository,
       membershipService,
       planLimitService,
+      usageRepository,
+      suscripcionesService,
     };
   }
 
@@ -63,8 +83,185 @@ describe("CasosService", () => {
 
       const result = await service.createCase("user-1", dto);
 
-      expect(createCaseWithParteA).toHaveBeenCalledWith(dto, "user-1");
+      expect(createCaseWithParteA).toHaveBeenCalledWith(
+        dto,
+        "user-1",
+        expect.any(Function),
+      );
       expect(result).toEqual({ id: "caso-1", estado: "nuevo" });
+    });
+
+    it("hands the repository a hook that consumes the negotiation quota on the transaction", async () => {
+      const createCaseWithParteA = jest
+        .fn()
+        .mockResolvedValue({ id: "caso-1", estado: "nuevo" });
+      const consumeNegotiation = jest.fn().mockResolvedValue(undefined);
+      const { service } = buildService({
+        createCaseWithParteA,
+        consumeNegotiation,
+      });
+      const dto: CreateCasoDto = { nombre: "Divorcio", metodo: "mediacion" };
+
+      await service.createCase("user-1", dto);
+
+      const hook = createCaseWithParteA.mock.calls[0][2] as (
+        trx: unknown,
+      ) => Promise<void>;
+      const trx = { tag: "trx" };
+      await hook(trx);
+      expect(consumeNegotiation).toHaveBeenCalledWith(trx, "user-1");
+    });
+
+    it("gives the subscription a billing period before consuming, after the stock limit passed", async () => {
+      const order: string[] = [];
+      const assertCanCreateCase = jest.fn(async () => {
+        order.push("stock");
+      });
+      const ensureBillingPeriod = jest.fn(async () => {
+        order.push("period");
+      });
+      const createCaseWithParteA = jest.fn(async () => {
+        order.push("create");
+        return { id: "caso-1", estado: "nuevo" };
+      });
+      const { service } = buildService({
+        assertCanCreateCase,
+        ensureBillingPeriod,
+        createCaseWithParteA,
+      });
+
+      await service.createCase("user-1", {
+        nombre: "Divorcio",
+        metodo: "mediacion",
+      });
+
+      expect(ensureBillingPeriod).toHaveBeenCalledWith("user-1");
+      expect(order).toEqual(["stock", "period", "create"]);
+    });
+
+    it("enriches a bare 402 from the transaction with the current usage and rethrows it", async () => {
+      const createCaseWithParteA = jest
+        .fn()
+        .mockRejectedValue(new QuotaExceededError(null, "QUOTA_EXCEEDED"));
+      const getUso = jest.fn().mockResolvedValue({
+        period_start: "2026-09-03T12:00:00.000Z",
+        period_end: "2026-10-03T12:00:00.000Z",
+        negociaciones: { usado: 3, limite: 3 },
+        clientes: null,
+      });
+      const { service } = buildService({ createCaseWithParteA, getUso });
+
+      let thrown: unknown;
+      try {
+        await service.createCase("user-1", {
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(QuotaExceededError);
+      expect((thrown as QuotaExceededError).getStatus()).toBe(
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+      expect((thrown as QuotaExceededError).getResponse()).toEqual({
+        code: "quota_exceeded",
+        message: "Quota exceeded for this period",
+        recurso: "negociaciones",
+        usado: 3,
+        limite: 3,
+        period_end: "2026-10-03T12:00:00.000Z",
+      });
+      expect(getUso).toHaveBeenCalledWith("user-1");
+    });
+
+    it("rethrows the bare 402 unenriched when the resolved plan has no limit (unlimited)", async () => {
+      const bare = new QuotaExceededError(null, "QUOTA_EXCEEDED");
+      const createCaseWithParteA = jest.fn().mockRejectedValue(bare);
+      const getUso = jest.fn().mockResolvedValue({
+        period_start: "2026-09-03T12:00:00.000Z",
+        period_end: "2026-10-03T12:00:00.000Z",
+        negociaciones: { usado: 7, limite: null },
+        clientes: null,
+      });
+      const { service } = buildService({ createCaseWithParteA, getUso });
+
+      let thrown: unknown;
+      try {
+        await service.createCase("user-1", {
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBe(bare);
+      expect((thrown as QuotaExceededError).getResponse()).toEqual({
+        code: "quota_exceeded",
+        message: "Quota exceeded for this period",
+      });
+    });
+
+    it("rethrows the bare 402 when the usage read answers 404 (estudio member who is not the titular)", async () => {
+      const bare = new QuotaExceededError(null, "QUOTA_EXCEEDED");
+      const createCaseWithParteA = jest.fn().mockRejectedValue(bare);
+      const getUso = jest
+        .fn()
+        .mockRejectedValue(
+          new HttpException(
+            { code: "suscripcion_not_found", message: "Suscripcion not found" },
+            HttpStatus.NOT_FOUND,
+          ),
+        );
+      const { service } = buildService({ createCaseWithParteA, getUso });
+
+      let thrown: unknown;
+      try {
+        await service.createCase("user-1", {
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBe(bare);
+      expect((thrown as QuotaExceededError).getResponse()).toEqual({
+        code: "quota_exceeded",
+        message: "Quota exceeded for this period",
+      });
+    });
+
+    it("does not swallow a non-404 failure of the usage read behind the 402", async () => {
+      const createCaseWithParteA = jest
+        .fn()
+        .mockRejectedValue(new QuotaExceededError(null, "QUOTA_EXCEEDED"));
+      const getUso = jest.fn().mockRejectedValue(new Error("connection lost"));
+      const { service } = buildService({ createCaseWithParteA, getUso });
+
+      await expect(
+        service.createCase("user-1", {
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        }),
+      ).rejects.toThrow("connection lost");
+    });
+
+    it("propagates any other transaction failure untouched, without reading usage", async () => {
+      const connectionError = new Error("connection lost");
+      const createCaseWithParteA = jest.fn().mockRejectedValue(connectionError);
+      const getUso = jest.fn();
+      const { service } = buildService({ createCaseWithParteA, getUso });
+
+      await expect(
+        service.createCase("user-1", {
+          nombre: "Divorcio",
+          metodo: "mediacion",
+        }),
+      ).rejects.toBe(connectionError);
+      expect(getUso).not.toHaveBeenCalled();
     });
 
     it("rejects an invalid metodo before touching the repository", async () => {
@@ -146,7 +343,11 @@ describe("CasosService", () => {
       await service.createCase("user-1", dto);
 
       expect(assertCanCreateCase).toHaveBeenCalledWith("user-1");
-      expect(createCaseWithParteA).toHaveBeenCalledWith(dto, "user-1");
+      expect(createCaseWithParteA).toHaveBeenCalledWith(
+        dto,
+        "user-1",
+        expect.any(Function),
+      );
     });
   });
 

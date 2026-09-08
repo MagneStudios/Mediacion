@@ -3,6 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
+import { billingPeriodStartingAt } from "./billing-period";
 import {
   type ApplyPagoInput,
   type ApplyPagoResult,
@@ -73,11 +74,14 @@ export class PagosRepository {
           return { applied: false };
         }
         if (upsertedRows[0].estado === estadoPagoAprobado) {
+          const period = billingPeriodStartingAt(new Date());
           await trx
             .updateTable("suscripciones")
             .set({
               estado: estadoSuscripcionActiva,
-              fecha_inicio: new Date().toISOString(),
+              fecha_inicio: period.period_start,
+              current_period_start: period.period_start,
+              current_period_end: period.period_end,
             })
             .where("id", "=", input.suscripcionId)
             .execute();

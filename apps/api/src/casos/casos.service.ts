@@ -1,6 +1,10 @@
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { QuotaExceededError } from "../common/errors/domain-errors";
 import type { CategoriaItem } from "../items/items.types";
+import type { UsoView } from "../pagos/pagos.types";
 import { PlanLimitService } from "../pagos/plan-limit.service";
+import { SuscripcionesService } from "../pagos/suscripciones.service";
+import { UsageRepository } from "../pagos/usage.repository";
 import { CasosRepository } from "./casos.repository";
 import type {
   CaseCreated,
@@ -23,6 +27,14 @@ import { MembershipService } from "./membership.service";
 import { computeSemaforo } from "./semaforo";
 
 const validMetodos: MetodoCaso[] = ["negociacion", "conciliacion", "mediacion"];
+
+const recursoNegociaciones = "negociaciones";
+
+function isNotFound(error: unknown): boolean {
+  return (
+    error instanceof HttpException && error.getStatus() === HttpStatus.NOT_FOUND
+  );
+}
 
 function assertValidEstadoTransition(input: EstadoCasoDto): void {
   if (input?.estado !== estadoCasoTerminado) {
@@ -109,6 +121,10 @@ export class CasosService {
     private readonly membershipService: MembershipService,
     @Inject(PlanLimitService)
     private readonly planLimitService: PlanLimitService,
+    @Inject(UsageRepository)
+    private readonly usageRepository: UsageRepository,
+    @Inject(SuscripcionesService)
+    private readonly suscripcionesService: SuscripcionesService,
   ) {}
 
   async createCase(
@@ -117,11 +133,47 @@ export class CasosService {
   ): Promise<CaseCreated> {
     assertValidCreateInput(input);
     await this.planLimitService.assertCanCreateCase(callerId);
-    const caso = await this.casosRepository.createCaseWithParteA(
-      input,
-      callerId,
+    await this.suscripcionesService.ensureBillingPeriod(callerId);
+    try {
+      const caso = await this.casosRepository.createCaseWithParteA(
+        input,
+        callerId,
+        (trx) => this.usageRepository.consumeNegotiation(trx, callerId),
+      );
+      return { id: caso.id, estado: caso.estado };
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        throw await this.describeQuotaExceeded(callerId, error);
+      }
+      throw error;
+    }
+  }
+
+  private async describeQuotaExceeded(
+    callerId: string,
+    bare: QuotaExceededError,
+  ): Promise<QuotaExceededError> {
+    let uso: UsoView;
+    try {
+      uso = await this.suscripcionesService.getUso(callerId);
+    } catch (error) {
+      if (isNotFound(error)) {
+        return bare;
+      }
+      throw error;
+    }
+    if (uso.negociaciones.limite === null) {
+      return bare;
+    }
+    return new QuotaExceededError(
+      {
+        recurso: recursoNegociaciones,
+        usado: uso.negociaciones.usado,
+        limite: uso.negociaciones.limite,
+        period_end: uso.period_end,
+      },
+      bare.cause instanceof Error ? bare.cause.message : "quota exceeded",
     );
-    return { id: caso.id, estado: caso.estado };
   }
 
   async listOwnCases(callerId: string): Promise<CaseSummary[]> {

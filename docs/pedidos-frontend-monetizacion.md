@@ -64,6 +64,8 @@ Hoy no hay forma de saber cuánto consumió alguien: `usage_counters` existe y n
 
 Timestamps por `normalizeTimestamp`, como el resto.
 
+> **Implementado — 03/09/2026, Backend.** `GET /suscripciones/uso` con el shape de arriba tal cual, ficha §11 de `docs/fichas-legal-backend.md`. Titularidad idéntica a `/vigente`; "con plan" = `estado IN ('activa','vencida')` (el mismo conjunto que acepta `consume_quota`), así que `pendiente_pago`/`cancelada` responden `404 suscripcion_not_found`. `usado: 0` sin fila de contador; `clientes: null` salvo titular de estudio; `limite: null` = ilimitado. Las suscripciones anteriores a hoy tienen `current_period_*` en NULL: la primera lectura persiste la ventana de 30 días anclada en `fecha_inicio`. Detalle en `docs/changelogs/2026-09-03-uso-y-cuota.md`.
+
 ### 3.2 · El error de cuota — y un choque con el envelope
 
 El spec §8 define el 402 así:
@@ -100,6 +102,10 @@ Para el usuario son la misma pared y les damos la misma pantalla, así que **no 
 
 Lo único que necesitamos saber es **qué código nos va a llegar** cuando el usuario no pueda crear. Si conviven, los dos deberían traer el mismo cuerpo de arriba.
 
+> **Implementado — 03/09/2026, Backend.** Status **402** con el envelope propuesto acá, ficha §12 de `docs/fichas-legal-backend.md`: `{ error: { code: "quota_exceeded", message, recurso: "negociaciones", usado, limite, period_end } }`, sin `upgrade_url`. `AllExceptionsFilter` pasa los campos extra del body dentro de `error` (nunca `statusCode`); las respuestas existentes no cambian. El consumo corre dentro de la misma transacción que crea el caso: cupo agotado ⇒ no se crea el caso y el contador no se infla. El detalle puede faltar (402 con sólo `code`/`message`) cuando el caller es un miembro de estudio no titular, ver la deuda en §12.
+>
+> **Respuesta a la pregunta: conviven.** `403 plan_limit_exceeded` (stock sobre `limite_casos`) corre antes y se mantiene; `402 quota_exceeded` (flujo sobre `max_negotiations_per_period`) lo decide `consume_quota`. Los dos traen el mismo cuerpo de detalle: el 403 con `recurso: "casos"`, `usado` y `limite` (sin `period_end`, un stock no tiene período). Retirar el modelo viejo es una decisión de Producto que este ciclo no toma.
+
 ### 3.3 · `GET /planes` — dos columnas que faltan
 
 `planColumns` (`pagos/pagos.types.ts`) sigue con las seis viejas. Para la página de pricing necesitamos las dos que agregó DB:
@@ -108,6 +114,8 @@ Lo único que necesitamos saber es **qué código nos va a llegar** cuando el us
 - `max_clients_per_period`
 
 Es agregarlas al allowlist; el compile-guard que ya tienen se encarga del resto.
+
+> **Implementado — 03/09/2026, Backend.** `planColumns` incluye `max_negotiations_per_period` y `max_clients_per_period` (`number | null`, NULL = ilimitado); el compile-guard de `pagos.types.spec.ts` ahora exige las dos. §5 sigue abierto del lado de DB + Producto.
 
 **Ojo con dos cosas que no son de ustedes pero salen por esta ruta** — están en §5, y las dos bloquean la página de pricing.
 

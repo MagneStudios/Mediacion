@@ -41,6 +41,31 @@ function messageFromException(exception: HttpException): string {
   return exception.message;
 }
 
+const envelopeReservedFields = new Set([
+  "code",
+  "message",
+  "statusCode",
+  "error",
+]);
+
+function detailFromException(
+  exception: HttpException,
+): Record<string, unknown> {
+  const response = exception.getResponse();
+  if (
+    typeof response !== "object" ||
+    response === null ||
+    Array.isArray(response)
+  ) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(response).filter(
+      ([field]) => !envelopeReservedFields.has(field),
+    ),
+  );
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -54,6 +79,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         error: {
           code: codeFromException(exception),
           message: messageFromException(exception),
+          ...detailFromException(exception),
         },
       });
       return;

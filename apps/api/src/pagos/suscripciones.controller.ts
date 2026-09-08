@@ -6,6 +6,7 @@ import type {
   SuscripcionCancelada,
   SuscripcionCreated,
   SuscripcionVigente,
+  UsoView,
 } from "./pagos.types";
 import { SuscripcionesService } from "./suscripciones.service";
 
@@ -21,6 +22,11 @@ export class SuscripcionesController {
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<SuscripcionVigente> {
     return this.suscripcionesService.getVigente(caller.id);
+  }
+
+  @Get("uso")
+  getUso(@CurrentUser() caller: AuthenticatedUser): Promise<UsoView> {
+    return this.suscripcionesService.getUso(caller.id);
   }
 
   @Post()

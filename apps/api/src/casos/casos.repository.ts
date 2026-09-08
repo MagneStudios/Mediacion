@@ -85,10 +85,17 @@ function casoNotAcordable(casoId: string): ConflictError {
 export class CasosRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
 
-  createCaseWithParteA(input: CreateCasoDto, creadorId: string): Promise<Caso> {
+  createCaseWithParteA(
+    input: CreateCasoDto,
+    creadorId: string,
+    beforeInsert?: (trx: Kysely<Database>) => Promise<void>,
+  ): Promise<Caso> {
     return this.kysely
       .transaction()
       .execute(async (trx) => {
+        if (beforeInsert) {
+          await beforeInsert(trx);
+        }
         const caso = await trx
           .insertInto("casos")
           .values({

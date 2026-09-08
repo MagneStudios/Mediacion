@@ -11,20 +11,41 @@ import { normalizeTimestamp } from "../common/db/timestamp";
 import { ConflictError } from "../common/errors/domain-errors";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import { EMAIL_PROVIDER } from "../notificaciones/providers/notificaciones.tokens";
+import { anchoredBillingPeriod } from "./billing-period";
 import type {
   GatewayCancellation,
   MercadoPagoClient,
 } from "./mercadopago/mercado-pago-client";
 import { MERCADO_PAGO_CLIENT } from "./mercadopago/mercado-pago-client";
 import type {
+  BillingPeriod,
   CreateSuscripcionDto,
   CreateSuscripcionInput,
   SuscripcionCancelada,
   SuscripcionCreated,
+  SuscripcionForUso,
   SuscripcionOwnership,
+  SuscripcionPeriodRow,
   SuscripcionVigente,
+  UsoView,
 } from "./pagos.types";
 import { SuscripcionesRepository } from "./suscripciones.repository";
+import { UsageRepository } from "./usage.repository";
+
+type UsoContext = {
+  suscripcion: SuscripcionForUso;
+  period: BillingPeriod;
+  titularEstudioId: string | null;
+};
+
+function persistedPeriod(row: SuscripcionPeriodRow): BillingPeriod | null {
+  const periodStart = normalizeTimestamp(row.current_period_start);
+  const periodEnd = normalizeTimestamp(row.current_period_end);
+  if (periodStart === null || periodEnd === null) {
+    return null;
+  }
+  return { period_start: periodStart, period_end: periodEnd };
+}
 
 type SuscripcionOwner = Pick<
   CreateSuscripcionInput,
@@ -76,6 +97,8 @@ export class SuscripcionesService {
     @Inject(MERCADO_PAGO_CLIENT)
     private readonly mercadoPagoClient: MercadoPagoClient,
     @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
+    @Inject(UsageRepository)
+    private readonly usageRepository: UsageRepository,
   ) {}
 
   async createSuscripcion(
@@ -107,6 +130,74 @@ export class SuscripcionesService {
       fecha_inicio: normalizeTimestamp(suscripcion.fecha_inicio),
       fecha_fin: normalizeTimestamp(suscripcion.fecha_fin),
     };
+  }
+
+  async getUso(callerId: string): Promise<UsoView> {
+    const context = await this.resolveUsoContext(callerId, new Date());
+    if (!context) {
+      throw suscripcionNotFound();
+    }
+    const counter = await this.usageRepository.findCounter(
+      callerId,
+      context.period.period_start,
+    );
+    return {
+      period_start: context.period.period_start,
+      period_end: context.period.period_end,
+      negociaciones: {
+        usado: counter?.negotiations_created ?? 0,
+        limite: context.suscripcion.max_negotiations_per_period,
+      },
+      clientes:
+        context.titularEstudioId === null
+          ? null
+          : {
+              usado: counter?.clients_created ?? 0,
+              limite: context.suscripcion.max_clients_per_period,
+            },
+    };
+  }
+
+  async ensureBillingPeriod(callerId: string): Promise<void> {
+    await this.resolveUsoContext(callerId, new Date());
+  }
+
+  private async resolveUsoContext(
+    callerId: string,
+    now: Date,
+  ): Promise<UsoContext | undefined> {
+    const profile = await this.usersRepository.findProfileById(callerId);
+    const titularEstudioId = resolveTitularEstudioId(profile);
+    const suscripcion = await this.suscripcionesRepository.findForUsoByOwner({
+      usuarioId: callerId,
+      estudioId: titularEstudioId,
+    });
+    if (!suscripcion) {
+      return undefined;
+    }
+    const period = await this.resolvePeriod(suscripcion, now);
+    return { suscripcion, period, titularEstudioId };
+  }
+
+  private async resolvePeriod(
+    suscripcion: SuscripcionForUso,
+    now: Date,
+  ): Promise<BillingPeriod> {
+    const current = persistedPeriod(suscripcion);
+    if (current) {
+      return current;
+    }
+    const fechaInicio = normalizeTimestamp(suscripcion.fecha_inicio);
+    const anchor = fechaInicio === null ? now : new Date(fechaInicio);
+    const written = await this.suscripcionesRepository.setPeriodIfMissing(
+      suscripcion.id,
+      anchoredBillingPeriod(anchor, now),
+    );
+    const period = written ? persistedPeriod(written) : null;
+    if (!period) {
+      throw suscripcionNotFound();
+    }
+    return period;
   }
 
   async cancelSuscripcion(

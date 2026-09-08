@@ -189,6 +189,29 @@ describe("PagosRepository", () => {
       expect(fake.updateWhere).toHaveBeenCalledWith("id", "=", "sus-1");
     });
 
+    it("opens a 30-day billing period anchored on the activation instant, in the same UPDATE as estado", async () => {
+      jest.useFakeTimers().setSystemTime(new Date("2026-09-03T12:00:00.000Z"));
+      const fake = buildFakeTrxKysely([{ id: "pago-1", estado: "aprobado" }]);
+      const repository = new PagosRepository(fake.kysely as never);
+
+      await repository.applyPayment({
+        suscripcionId: "sus-1",
+        mpPaymentId: "mp-1",
+        estadoPago: "aprobado",
+        monto: 19.99,
+        rawWebhook: { id: "mp-1" },
+      });
+
+      expect(fake.updateSet).toHaveBeenCalledTimes(1);
+      expect(fake.updateSet).toHaveBeenCalledWith({
+        estado: "activa",
+        fecha_inicio: "2026-09-03T12:00:00.000Z",
+        current_period_start: "2026-09-03T12:00:00.000Z",
+        current_period_end: "2026-10-03T12:00:00.000Z",
+      });
+      jest.useRealTimers();
+    });
+
     it("upserts on mp_payment_id conflict instead of doing nothing, guarding against downgrading an approved row", async () => {
       const fake = buildFakeTrxKysely([{ id: "pago-1", estado: "aprobado" }]);
       const repository = new PagosRepository(fake.kysely as never);

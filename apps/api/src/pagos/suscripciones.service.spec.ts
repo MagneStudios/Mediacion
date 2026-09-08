@@ -5,6 +5,7 @@ import type { MercadoPagoClient } from "./mercadopago/mercado-pago-client";
 import type { CreateSuscripcionDto } from "./pagos.types";
 import type { SuscripcionesRepository } from "./suscripciones.repository";
 import { SuscripcionesService } from "./suscripciones.service";
+import type { UsageRepository } from "./usage.repository";
 
 describe("SuscripcionesService", () => {
   function buildService(options?: {
@@ -12,6 +13,9 @@ describe("SuscripcionesService", () => {
     findProfileById?: jest.Mock;
     findOwnershipById?: jest.Mock;
     findVigenteByOwner?: jest.Mock;
+    findForUsoByOwner?: jest.Mock;
+    setPeriodIfMissing?: jest.Mock;
+    findCounter?: jest.Mock;
     cancelActiva?: jest.Mock;
     restoreActiva?: jest.Mock;
     cancelSubscription?: jest.Mock;
@@ -21,9 +25,15 @@ describe("SuscripcionesService", () => {
       createSuscripcion: options?.createSuscripcion ?? jest.fn(),
       findOwnershipById: options?.findOwnershipById ?? jest.fn(),
       findVigenteByOwner: options?.findVigenteByOwner ?? jest.fn(),
+      findForUsoByOwner: options?.findForUsoByOwner ?? jest.fn(),
+      setPeriodIfMissing: options?.setPeriodIfMissing ?? jest.fn(),
       cancelActiva: options?.cancelActiva ?? jest.fn(),
       restoreActiva: options?.restoreActiva ?? jest.fn(),
     } as unknown as SuscripcionesRepository;
+    const usageRepository = {
+      findCounter:
+        options?.findCounter ?? jest.fn().mockResolvedValue(undefined),
+    } as unknown as UsageRepository;
     const usersRepository = {
       findProfileById: options?.findProfileById ?? jest.fn(),
     } as unknown as UsersRepository;
@@ -41,13 +51,305 @@ describe("SuscripcionesService", () => {
         usersRepository,
         mercadoPagoClient,
         emailProvider,
+        usageRepository,
       ),
       suscripcionesRepository,
       usersRepository,
       mercadoPagoClient,
       emailProvider,
+      usageRepository,
     };
   }
+
+  describe("getUso", () => {
+    const now = new Date("2026-09-03T12:00:00.000Z");
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const particularConPeriodo = {
+      id: "sus-1",
+      fecha_inicio: new Date("2026-08-14T00:00:00.000Z"),
+      current_period_start: new Date("2026-08-14T00:00:00.000Z"),
+      current_period_end: new Date("2026-09-13T00:00:00.000Z"),
+      max_negotiations_per_period: 3,
+      max_clients_per_period: null,
+    };
+
+    it("reports the particular's negotiations against the plan limit, with clientes null", async () => {
+      const findForUsoByOwner = jest
+        .fn()
+        .mockResolvedValue(particularConPeriodo);
+      const findCounter = jest
+        .fn()
+        .mockResolvedValue({ negotiations_created: 2, clients_created: 0 });
+      const { service } = buildService({
+        findForUsoByOwner,
+        findCounter,
+        findProfileById: jest.fn().mockResolvedValue({ estudio_id: null }),
+      });
+
+      await expect(service.getUso("user-1")).resolves.toEqual({
+        period_start: "2026-08-14T00:00:00.000Z",
+        period_end: "2026-09-13T00:00:00.000Z",
+        negociaciones: { usado: 2, limite: 3 },
+        clientes: null,
+      });
+      expect(findForUsoByOwner).toHaveBeenCalledWith({
+        usuarioId: "user-1",
+        estudioId: null,
+      });
+      expect(findCounter).toHaveBeenCalledWith(
+        "user-1",
+        "2026-08-14T00:00:00.000Z",
+      );
+    });
+
+    it("answers usado 0, never 404, when no counter row exists for the period", async () => {
+      const setPeriodIfMissing = jest.fn();
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue(particularConPeriodo),
+        findCounter: jest.fn().mockResolvedValue(undefined),
+        setPeriodIfMissing,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getUso("user-1")).resolves.toMatchObject({
+        negociaciones: { usado: 0, limite: 3 },
+      });
+      expect(setPeriodIfMissing).not.toHaveBeenCalled();
+    });
+
+    it("exposes clientes for the titular of an estudio, reading the counter by the caller's own id", async () => {
+      const findForUsoByOwner = jest.fn().mockResolvedValue({
+        ...particularConPeriodo,
+        id: "sus-estudio",
+        max_negotiations_per_period: 3,
+        max_clients_per_period: 20,
+      });
+      const findCounter = jest
+        .fn()
+        .mockResolvedValue({ negotiations_created: 1, clients_created: 7 });
+      const { service } = buildService({
+        findForUsoByOwner,
+        findCounter,
+        findProfileById: jest.fn().mockResolvedValue({
+          estudio_id: "estudio-1",
+          rol: "estudio",
+          activo: true,
+        }),
+      });
+
+      await expect(service.getUso("titular-1")).resolves.toMatchObject({
+        negociaciones: { usado: 1, limite: 3 },
+        clientes: { usado: 7, limite: 20 },
+      });
+      expect(findForUsoByOwner).toHaveBeenCalledWith({
+        usuarioId: "titular-1",
+        estudioId: "estudio-1",
+      });
+      expect(findCounter).toHaveBeenCalledWith(
+        "titular-1",
+        "2026-08-14T00:00:00.000Z",
+      );
+    });
+
+    it("reports null limits for a corporativo plan (unlimited)", async () => {
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue({
+          ...particularConPeriodo,
+          max_negotiations_per_period: null,
+          max_clients_per_period: null,
+        }),
+        findCounter: jest
+          .fn()
+          .mockResolvedValue({ negotiations_created: 12, clients_created: 40 }),
+        findProfileById: jest.fn().mockResolvedValue({
+          estudio_id: "estudio-1",
+          rol: "estudio",
+          activo: true,
+        }),
+      });
+
+      await expect(service.getUso("titular-1")).resolves.toMatchObject({
+        negociaciones: { usado: 12, limite: null },
+        clientes: { usado: 40, limite: null },
+      });
+    });
+
+    it.each([
+      [
+        "a parte who merely carries the estudio_id",
+        { rol: "parte", activo: true },
+      ],
+      ["a deactivated titular", { rol: "estudio", activo: false }],
+    ])(
+      "answers 404 suscripcion_not_found for %s even though the estudio has a plan",
+      async (_case, profile) => {
+        const findForUsoByOwner = jest.fn().mockResolvedValue(undefined);
+        const { service } = buildService({
+          findForUsoByOwner,
+          findProfileById: jest
+            .fn()
+            .mockResolvedValue({ estudio_id: "estudio-1", ...profile }),
+        });
+
+        await expect(service.getUso("user-1")).rejects.toMatchObject({
+          status: 404,
+          response: { code: "suscripcion_not_found" },
+        });
+        expect(findForUsoByOwner).toHaveBeenCalledWith({
+          usuarioId: "user-1",
+          estudioId: null,
+        });
+      },
+    );
+
+    it("answers 404 suscripcion_not_found when the caller has no activa/vencida subscription", async () => {
+      const findCounter = jest.fn();
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue(undefined),
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+        findCounter,
+      });
+
+      await expect(service.getUso("user-1")).rejects.toMatchObject({
+        status: 404,
+        response: { code: "suscripcion_not_found" },
+      });
+      expect(findCounter).not.toHaveBeenCalled();
+    });
+
+    it("persists the 30-day window anchored on fecha_inicio when the period is NULL, then reads with it", async () => {
+      const fechaInicio = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000);
+      const setPeriodIfMissing = jest.fn().mockResolvedValue({
+        current_period_start: new Date("2026-08-19T12:00:00.000Z"),
+        current_period_end: new Date("2026-09-18T12:00:00.000Z"),
+      });
+      const findCounter = jest.fn().mockResolvedValue(undefined);
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue({
+          ...particularConPeriodo,
+          fecha_inicio: fechaInicio,
+          current_period_start: null,
+          current_period_end: null,
+        }),
+        setPeriodIfMissing,
+        findCounter,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getUso("user-1")).resolves.toMatchObject({
+        period_start: "2026-08-19T12:00:00.000Z",
+        period_end: "2026-09-18T12:00:00.000Z",
+      });
+      expect(setPeriodIfMissing).toHaveBeenCalledWith("sus-1", {
+        period_start: "2026-08-19T12:00:00.000Z",
+        period_end: "2026-09-18T12:00:00.000Z",
+      });
+      expect(findCounter).toHaveBeenCalledWith(
+        "user-1",
+        "2026-08-19T12:00:00.000Z",
+      );
+    });
+
+    it("uses the period a concurrent writer persisted first instead of its own computation", async () => {
+      const setPeriodIfMissing = jest.fn().mockResolvedValue({
+        current_period_start: new Date("2026-08-20T00:00:00.000Z"),
+        current_period_end: new Date("2026-09-19T00:00:00.000Z"),
+      });
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue({
+          ...particularConPeriodo,
+          current_period_start: null,
+          current_period_end: null,
+        }),
+        setPeriodIfMissing,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getUso("user-1")).resolves.toMatchObject({
+        period_start: "2026-08-20T00:00:00.000Z",
+        period_end: "2026-09-19T00:00:00.000Z",
+      });
+    });
+
+    it("anchors on now when the row has neither a period nor a fecha_inicio", async () => {
+      const setPeriodIfMissing = jest.fn().mockResolvedValue({
+        current_period_start: now,
+        current_period_end: new Date("2026-10-03T12:00:00.000Z"),
+      });
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue({
+          ...particularConPeriodo,
+          fecha_inicio: null,
+          current_period_start: null,
+          current_period_end: null,
+        }),
+        setPeriodIfMissing,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await service.getUso("user-1");
+
+      expect(setPeriodIfMissing).toHaveBeenCalledWith("sus-1", {
+        period_start: "2026-09-03T12:00:00.000Z",
+        period_end: "2026-10-03T12:00:00.000Z",
+      });
+    });
+  });
+
+  describe("ensureBillingPeriod", () => {
+    it("persists the anchored window for a subscription without one and reads no counter", async () => {
+      const setPeriodIfMissing = jest.fn().mockResolvedValue({
+        current_period_start: new Date("2026-08-14T00:00:00.000Z"),
+        current_period_end: new Date("2026-09-13T00:00:00.000Z"),
+      });
+      const findCounter = jest.fn();
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue({
+          id: "sus-1",
+          fecha_inicio: new Date("2026-08-14T00:00:00.000Z"),
+          current_period_start: null,
+          current_period_end: null,
+          max_negotiations_per_period: 3,
+          max_clients_per_period: null,
+        }),
+        setPeriodIfMissing,
+        findCounter,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        service.ensureBillingPeriod("user-1"),
+      ).resolves.toBeUndefined();
+
+      expect(setPeriodIfMissing).toHaveBeenCalledWith(
+        "sus-1",
+        expect.objectContaining({ period_start: expect.any(String) }),
+      );
+      expect(findCounter).not.toHaveBeenCalled();
+    });
+
+    it("is a no-op when the caller has no subscription with a plan, leaving consume_quota to decide", async () => {
+      const setPeriodIfMissing = jest.fn();
+      const { service } = buildService({
+        findForUsoByOwner: jest.fn().mockResolvedValue(undefined),
+        setPeriodIfMissing,
+        findProfileById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        service.ensureBillingPeriod("user-1"),
+      ).resolves.toBeUndefined();
+      expect(setPeriodIfMissing).not.toHaveBeenCalled();
+    });
+  });
 
   describe("getVigente", () => {
     it("resolves the caller's own suscripcion with normalized timestamps", async () => {
