@@ -272,13 +272,17 @@ describe("CasosRepository", () => {
       const where3 = jest.fn().mockReturnValue({ executeTakeFirst });
       const where2 = jest.fn().mockReturnValue({ where: where3 });
       const where1 = jest.fn().mockReturnValue({ where: where2 });
-      const select = jest.fn().mockReturnValue({ where: where1 });
+      const selectRondaActual = jest.fn().mockReturnValue({ where: where1 });
+      const select = jest
+        .fn()
+        .mockReturnValue({ select: selectRondaActual, where: where1 });
       const innerJoin = jest.fn().mockReturnValue({ select });
       const selectFrom = jest.fn().mockReturnValue({ innerJoin });
       return {
         selectFrom,
         innerJoin,
         select,
+        selectRondaActual,
         where1,
         where2,
         where3,

@@ -19,7 +19,8 @@ import {
   buildInsertRespuestaQuery,
 } from "./respuestas.repository";
 import {
-  buildCurrentRondaActualQuery,
+  buildActiveNegociacionQuery,
+  buildBumpNegociacionRoundQuery,
   buildInsertNextRondaQuery,
 } from "./rondas.repository";
 
@@ -60,6 +61,7 @@ export function buildCreatePendingQuery(
   db: Kysely<Database>,
   casoId: string,
   rondaId: string,
+  negociacionId: string,
   contenido: Propuesta["contenido"],
   modeloIa: string,
 ) {
@@ -68,6 +70,7 @@ export function buildCreatePendingQuery(
     .values({
       caso_id: casoId,
       ronda_id: rondaId,
+      negociacion_id: negociacionId,
       contenido,
       modelo_ia: modeloIa,
     })
@@ -189,6 +192,7 @@ export class PropuestasRepository {
   createPending(
     casoId: string,
     rondaId: string,
+    negociacionId: string,
     contenido: Propuesta["contenido"],
     modeloIa: string,
   ): Promise<PropuestaView> {
@@ -196,6 +200,7 @@ export class PropuestasRepository {
       this.kysely,
       casoId,
       rondaId,
+      negociacionId,
       contenido,
       modeloIa,
     )
@@ -318,16 +323,22 @@ export class PropuestasRepository {
             propuestaId,
             estadoRechazada,
           ).executeTakeFirstOrThrow();
-          const { ronda_actual: numeroActual } =
-            await buildCurrentRondaActualQuery(
+          const { id: negociacionId, round: numeroActual } =
+            await buildActiveNegociacionQuery(
               trx,
               casoId,
             ).executeTakeFirstOrThrow();
           await buildInsertNextRondaQuery(
             trx,
             casoId,
+            negociacionId,
             numeroActual + 1,
           ).executeTakeFirstOrThrow();
+          await buildBumpNegociacionRoundQuery(
+            trx,
+            negociacionId,
+            numeroActual + 1,
+          ).execute();
           return rechazada;
         }
 

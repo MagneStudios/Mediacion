@@ -41,7 +41,11 @@ export function buildCurrentRondaActualQuery(
   db: Kysely<Database>,
   casoId: string,
 ) {
-  return db.selectFrom("casos").select("ronda_actual").where("id", "=", casoId);
+  return db
+    .selectFrom("negociaciones")
+    .select("round as ronda_actual")
+    .where("caso_id", "=", casoId)
+    .where("materia", "is", null);
 }
 
 export function buildFindByCasoIdQuery(db: Kysely<Database>, casoId: string) {

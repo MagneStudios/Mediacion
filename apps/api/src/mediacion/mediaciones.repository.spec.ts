@@ -46,17 +46,19 @@ describe("mediaciones.repository query builders", () => {
     expect(result).toBe("filtered");
   });
 
-  it("buildCurrentRondaActualQuery reads ronda_actual off the caso", () => {
-    const where = jest.fn().mockReturnValue("filtered");
-    const select = jest.fn().mockReturnValue({ where });
+  it("buildCurrentRondaActualQuery reads ronda_actual off the caso's legacy negociacion", () => {
+    const where2 = jest.fn().mockReturnValue("filtered");
+    const where1 = jest.fn().mockReturnValue({ where: where2 });
+    const select = jest.fn().mockReturnValue({ where: where1 });
     const selectFrom = jest.fn().mockReturnValue({ select });
     const db = { selectFrom } as never;
 
     const result = buildCurrentRondaActualQuery(db, "caso-1");
 
-    expect(selectFrom).toHaveBeenCalledWith("casos");
-    expect(select).toHaveBeenCalledWith("ronda_actual");
-    expect(where).toHaveBeenCalledWith("id", "=", "caso-1");
+    expect(selectFrom).toHaveBeenCalledWith("negociaciones");
+    expect(select).toHaveBeenCalledWith("round as ronda_actual");
+    expect(where1).toHaveBeenCalledWith("caso_id", "=", "caso-1");
+    expect(where2).toHaveBeenCalledWith("materia", "is", null);
     expect(result).toBe("filtered");
   });
 

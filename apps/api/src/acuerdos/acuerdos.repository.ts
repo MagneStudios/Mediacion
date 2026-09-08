@@ -142,10 +142,17 @@ export class AcuerdosRepository {
         if (existing) {
           throw acuerdoAlreadyExists();
         }
+        const negociacion = await trx
+          .selectFrom("negociaciones")
+          .select("id")
+          .where("caso_id", "=", casoId)
+          .where("materia", "is", null)
+          .executeTakeFirstOrThrow();
         return trx
           .insertInto("acuerdos")
           .values({
             caso_id: casoId,
+            negociacion_id: negociacion.id,
             contenido,
             estado: estadoAcuerdoBorrador,
           })
