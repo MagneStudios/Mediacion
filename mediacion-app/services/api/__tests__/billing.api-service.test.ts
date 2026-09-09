@@ -119,6 +119,36 @@ describe('billing.api-service', () => {
     expect(usage.negotiations.limit).toBeNull();
   });
 
+  it('creates a subscription without letting the client name the owner', async () => {
+    // Sin `estudio_id`: el servidor resuelve titularidad desde el token. Un
+    // owner elegido por el cliente sería una forma de cargarle un plan al
+    // estudio de otro.
+    const { http, calls } = fakeHttp({
+      '/suscripciones': { id: 'sus-1', estado: 'pendiente_pago' },
+    });
+
+    const created = await createApiBillingService(http).createSubscription('plan-1');
+
+    expect(calls).toEqual([
+      { path: '/suscripciones', options: { method: 'POST', body: { plan_id: 'plan-1' } } },
+    ]);
+    // Arranca sin pagar: sólo el webhook la pone en `activa`.
+    expect(created.estado).toBe('pendiente_pago');
+  });
+
+  it('asks for the checkout of a subscription, with no body', async () => {
+    // La preferencia se arma entera con la fila de la suscripción, así que no
+    // hay nada acá que el cliente pueda inflar ni descontar.
+    const { http, calls } = fakeHttp({
+      '/suscripciones/sus-1/pago': { init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=1' },
+    });
+
+    const preference = await createApiBillingService(http).startPayment('sus-1');
+
+    expect(calls).toEqual([{ path: '/suscripciones/sus-1/pago', options: { method: 'POST' } }]);
+    expect(preference.init_point).toContain('mercadopago');
+  });
+
   it('posts the baja to the id it was given, with no body', async () => {
     const { http, calls } = fakeHttp({
       '/suscripciones/sus-1/baja': {

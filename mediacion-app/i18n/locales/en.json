@@ -376,6 +376,11 @@
       }
     },
     "checkout": {
+      "checkoutPending": {
+        "title": "We couldn't open the payment",
+        "description": "Your subscription was created and is still unpaid. Try again to open the Mercado Pago checkout; it will not subscribe you a second time.",
+        "action": "Open the payment"
+      },
       "screenTitle": "Subscription",
       "title": "Subscribe to the {{nombre}} plan",
       "description": "Review the amount before confirming. The total already includes the applicable taxes.",

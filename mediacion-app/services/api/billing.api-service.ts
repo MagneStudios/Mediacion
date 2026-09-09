@@ -98,9 +98,25 @@ export type ApiSuscripcionCancelada = {
   fecha_fin: string | null;
 };
 
+/** BE's `SuscripcionCreated` — a subscription starts at `pendiente_pago`. */
+export type ApiSuscripcionCreated = {
+  id: string;
+  estado: EstadoSuscripcion;
+};
+
+/**
+ * BE's `PreferenceResult`. The `init_point` is Mercado Pago's hosted checkout;
+ * it is validated by `utils/checkout-url.ts` before anything opens it.
+ */
+export type ApiPreference = {
+  init_point: string;
+};
+
 export type ApiBillingService = {
   getCurrentSubscription(): Promise<MockSubscription>;
   getUsage(): Promise<SubscriptionUsage>;
+  createSubscription(planId: string): Promise<ApiSuscripcionCreated>;
+  startPayment(subscriptionId: string): Promise<ApiPreference>;
   cancelSubscription(id: string): Promise<ApiSuscripcionCancelada>;
 };
 
@@ -121,6 +137,25 @@ export function createApiBillingService(http: HttpClient): ApiBillingService {
       // read someone else's consumption.
       const row = await http.request<ApiUso>('/suscripciones/uso');
       return toSubscriptionUsage(row);
+    },
+
+    async createSubscription(planId) {
+      // No `estudio_id`: the server resolves titularidad from the token, the
+      // same criterion every other route in this file uses. A client-supplied
+      // owner would be a way to charge a plan to somebody else's estudio.
+      return http.request<ApiSuscripcionCreated>('/suscripciones', {
+        method: 'POST',
+        body: { plan_id: planId },
+      });
+    },
+
+    async startPayment(subscriptionId) {
+      // No body: the preference is built entirely from the subscription row
+      // (plan, precio, moneda), so there is nothing here for the client to
+      // decide — and nothing it could inflate or discount.
+      return http.request<ApiPreference>(`/suscripciones/${subscriptionId}/pago`, {
+        method: 'POST',
+      });
     },
 
     async cancelSubscription(id) {

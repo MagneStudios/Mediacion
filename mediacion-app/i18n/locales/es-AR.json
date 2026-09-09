@@ -376,6 +376,11 @@
       }
     },
     "checkout": {
+      "checkoutPending": {
+        "title": "No pudimos abrir el pago",
+        "description": "Tu suscripción quedó creada y todavía sin pagar. Volvé a intentar para abrir el checkout de Mercado Pago; no se contrata de nuevo.",
+        "action": "Abrir el pago"
+      },
       "screenTitle": "Suscripción",
       "title": "Suscribirte al plan {{nombre}}",
       "description": "Revisá el importe antes de confirmar. El total ya incluye los impuestos correspondientes.",

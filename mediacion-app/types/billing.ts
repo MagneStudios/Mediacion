@@ -79,6 +79,25 @@ export type SubscriptionUsage = {
   clients: UsageCounter | null;
 };
 
+/**
+ * Cómo termina un checkout, que **no es lo mismo contra el mock que contra la
+ * API real**, y por eso es una unión y no un objeto con campos opcionales.
+ *
+ * - `simulated`: el mock fabrica la suscripción y su factura en un paso y la
+ *   pantalla va al comprobante. Es lo único que se puede hacer sin un cobro.
+ * - `redirect`: la API creó una suscripción en `pendiente_pago` y devolvió el
+ *   checkout de Mercado Pago. **La app no confirma nada**: el pago lo aplica el
+ *   webhook (`POST /webhooks/mercadopago` → `applyPayment`), y la pantalla de
+ *   `/billing/callback` espera a que la suscripción pase a `activa`.
+ *
+ * Colapsar las dos en un shape solo obligaría a inventar una factura para el
+ * camino real —plata que nadie cobró todavía— que es exactamente lo que este
+ * repo se prohíbe.
+ */
+export type CheckoutStart =
+  | { kind: 'simulated'; subscription: MockSubscription; invoice: MockInvoice }
+  | { kind: 'redirect'; subscriptionId: string; checkoutUrl: string };
+
 export type MockPayment = {
   id: string;
   suscripcionId: string;

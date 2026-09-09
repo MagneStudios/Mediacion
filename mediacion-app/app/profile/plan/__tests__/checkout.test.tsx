@@ -1,4 +1,5 @@
 import { I18nextProvider } from 'react-i18next';
+import { Linking } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
@@ -39,9 +40,9 @@ jest.mock('@/services/plans.service', () => ({
   plansService: { getPlan: (...args: unknown[]) => mockGetPlan(...args) },
 }));
 
-const mockSubscribeToPlan = jest.fn();
+const mockStartCheckout = jest.fn();
 jest.mock('@/services/billing.service', () => ({
-  billingService: { subscribeToPlan: (...args: unknown[]) => mockSubscribeToPlan(...args) },
+  billingService: { startCheckout: (...args: unknown[]) => mockStartCheckout(...args) },
 }));
 
 const mockRegisterAcceptance = jest.fn();
@@ -62,12 +63,23 @@ async function renderScreen() {
   );
 }
 
+/**
+ * Mismo tratamiento que en `LawyerHandoffCard.test.tsx`: el spy se crea una vez
+ * y se resetea por test. `jest.restoreAllMocks()` no lo suelta bajo jest-expo, y
+ * un spy compartido que acumula llamadas hace que un test lea la URL del
+ * anterior.
+ */
+let openURL: jest.SpyInstance;
+
 describe('PlanCheckoutScreen', () => {
   beforeEach(() => {
+    openURL = jest.spyOn(Linking, 'openURL');
+    openURL.mockReset();
+    openURL.mockResolvedValue(undefined as never);
     mockReplace.mockReset();
     mockBack.mockReset();
     mockGetPlan.mockReset();
-    mockSubscribeToPlan.mockReset();
+    mockStartCheckout.mockReset();
     mockRegisterAcceptance.mockReset();
     mockRegisterAcceptance.mockResolvedValue(undefined);
     mockCapturedTitles.length = 0;
@@ -149,7 +161,8 @@ describe('PlanCheckoutScreen', () => {
 
   it('pays, then replaces the route with the receipt screen for the new subscription', async () => {
     mockGetPlan.mockResolvedValue(estudioPlan);
-    mockSubscribeToPlan.mockResolvedValue({
+    mockStartCheckout.mockResolvedValue({
+      kind: 'simulated',
       subscription: { id: 'sub-1', planId: 'plan-estudio', estado: 'activa', fechaInicio: '2026-08-10', fechaFin: null },
       invoice: { id: 'inv-1' },
     });
@@ -159,7 +172,7 @@ describe('PlanCheckoutScreen', () => {
     await acceptTerms();
     fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
 
-    await waitFor(() => expect(mockSubscribeToPlan).toHaveBeenCalledWith('plan-estudio'));
+    await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('plan-estudio'));
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith({ pathname: '/profile/plan/receipt', params: { subscriptionId: 'sub-1' } }),
     );
@@ -167,8 +180,78 @@ describe('PlanCheckoutScreen', () => {
     // carries the marketing opt-in — never IP/UA/version (instructivo error #3).
     expect(mockRegisterAcceptance).toHaveBeenCalledWith({ marketing: false });
     expect(mockRegisterAcceptance.mock.invocationCallOrder[0]).toBeLessThan(
-      mockSubscribeToPlan.mock.invocationCallOrder[0],
+      mockStartCheckout.mock.invocationCallOrder[0],
     );
+  });
+
+  describe('contra backend real, donde el checkout es de Mercado Pago', () => {
+    const redirect = {
+      kind: 'redirect' as const,
+      subscriptionId: 'sus-9',
+      checkoutUrl: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=9',
+    };
+
+    it('abre el checkout y deja la app esperando en el callback', async () => {
+      // La app no confirma nada: el pago lo aplica el webhook, y
+      // `/billing/callback` pregunta por la suscripción hasta verla `activa`.
+      mockGetPlan.mockResolvedValue(estudioPlan);
+      mockStartCheckout.mockResolvedValue(redirect);
+      await renderScreen();
+      await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
+
+      await acceptTerms();
+      fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
+
+      await waitFor(() => expect(openURL).toHaveBeenCalledWith(redirect.checkoutUrl));
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/billing/callback'));
+      // Nunca al comprobante: contra backend real no hay factura que mostrar
+      // todavía, porque el cobro no ocurrió.
+      expect(mockReplace).not.toHaveBeenCalledWith(
+        expect.objectContaining({ pathname: '/profile/plan/receipt' }),
+      );
+    });
+
+    it('no navega al callback si el checkout no se pudo abrir', async () => {
+      // Dejarla esperando sería pedirle que aguarde para siempre un pago que
+      // no tiene forma de hacer.
+      mockGetPlan.mockResolvedValue(estudioPlan);
+      mockStartCheckout.mockResolvedValue(redirect);
+      openURL.mockRejectedValue(new Error('no browser'));
+      await renderScreen();
+      await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
+
+      await acceptTerms();
+      fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
+
+      await waitFor(() =>
+        expect(screen.getByText(i18n.t('billing.checkout.checkoutPending.title'))).toBeTruthy(),
+      );
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('reintentar vuelve a abrir la misma URL y NO contrata de nuevo', async () => {
+      // `POST /suscripciones` no es idempotente: cada llamada inserta una fila.
+      // Un reintento ciego dejaría al usuario con varias suscripciones en
+      // `pendiente_pago`.
+      mockGetPlan.mockResolvedValue(estudioPlan);
+      mockStartCheckout.mockResolvedValue(redirect);
+      openURL.mockRejectedValueOnce(new Error('no browser'));
+      await renderScreen();
+      await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
+
+      await acceptTerms();
+      fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
+      await waitFor(() =>
+        expect(screen.getByText(i18n.t('billing.checkout.checkoutPending.title'))).toBeTruthy(),
+      );
+
+      fireEvent.press(screen.getByText(i18n.t('billing.checkout.checkoutPending.action')));
+
+      await waitFor(() => expect(openURL).toHaveBeenCalledTimes(2));
+      expect(mockStartCheckout).toHaveBeenCalledTimes(1);
+      // Y la segunda vez sí llega al callback.
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/billing/callback'));
+    });
   });
 
   it('keeps the pay button disabled until the mandatory checkbox is ticked — marketing alone never enables it', async () => {
@@ -182,19 +265,19 @@ describe('PlanCheckoutScreen', () => {
     fireEvent.press(screen.getByLabelText(i18n.t('legal.acceptance.marketingA11yLabel')));
     await waitFor(() => expect(screen.getByLabelText(i18n.t('legal.acceptance.marketingA11yLabel'))).toBeChecked());
     fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
-    expect(mockSubscribeToPlan).not.toHaveBeenCalled();
+    expect(mockStartCheckout).not.toHaveBeenCalled();
     expect(mockRegisterAcceptance).not.toHaveBeenCalled();
 
     await acceptTerms();
     fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
-    await waitFor(() => expect(mockSubscribeToPlan).toHaveBeenCalledWith('plan-estudio'));
+    await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('plan-estudio'));
     // The marketing "yes" ticked above travels with the acceptance.
     expect(mockRegisterAcceptance).toHaveBeenCalledWith({ marketing: true });
   });
 
   it('shows a recoverable error when the payment fails, without navigating', async () => {
     mockGetPlan.mockResolvedValue(estudioPlan);
-    mockSubscribeToPlan.mockRejectedValue(new Error('mock_subscribe_failed'));
+    mockStartCheckout.mockRejectedValue(new Error('mock_subscribe_failed'));
     await renderScreen();
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 

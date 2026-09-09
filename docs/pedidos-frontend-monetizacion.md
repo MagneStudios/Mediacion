@@ -119,7 +119,25 @@ Es agregarlas al allowlist; el compile-guard que ya tienen se encarga del resto.
 
 **Ojo con dos cosas que no son de ustedes pero salen por esta ruta** — están en §5, y las dos bloquean la página de pricing.
 
-### 3.4 · El `back_url` del preapproval — ya está construido
+### 3.4 · El `back_url` — **pasó a bloquear** (actualizado 09/09)
+
+> 🔴 **Cambió de "cuando puedan" a "lo necesitamos".** El 09/09 cableamos el checkout real: la app crea la suscripción, pide `POST /suscripciones/:id/pago`, y abre el `init_point`. Eso ya funciona y es lo que destraba el gate C-01, que era lo que le rompía las demos al cliente.
+>
+> Pero **la preferencia que arman hoy no lleva `back_urls` ni `auto_return`** — verificado: `grep back_url apps/api/src` da cero, y `postPreference` (`http-mercado-pago-client.ts:55-72`) manda sólo `external_reference` e `items`. Sin eso, MercadoPago no tiene a dónde devolver a la persona cuando termina de pagar.
+>
+> **Cómo lo resolvimos mientras tanto, y qué queda cojo.** En nativo abrimos el checkout en el navegador del sistema y navegamos nosotros a `/billing/callback`, así que la app queda esperando y el usuario la encuentra en el estado correcto al volver. **En web no alcanza**: el checkout se abre en otra pestaña y la persona termina en la página de MercadoPago sin un camino de vuelta.
+>
+> Con `back_urls` apuntando a `<APP_URL>/billing/callback` los dos casos quedan bien.
+
+### 3.4.1 · Y un pedido chico que salió de cablearlo: `POST /suscripciones` no es idempotente
+
+`createSuscripcion` (`suscripciones.service.ts:104-115`) inserta una fila en cada llamada, sin mirar si el usuario ya tiene una `pendiente_pago` del mismo plan. Un doble toque, o un reintento, deja varias suscripciones sin pagar colgando del mismo usuario — y `findVigenteByOwner` y `findForUsoByOwner` después tienen que elegir una.
+
+**De nuestro lado ya lo contuvimos**: la pantalla guarda el `checkoutUrl` que devolvieron y reintentar vuelve a abrir esa URL en vez de contratar de nuevo. Pero eso protege contra *nuestro* reintento, no contra dos pestañas ni contra un `POST` repetido.
+
+Es el mismo criterio que ustedes ya aplican en el §7.6 del spec para las solicitudes de abogado (*"reusar la solicitud `pendiente_pago` existente"*), sólo que acá no está. **No bloquea** — nada se cobra dos veces, porque cada preferencia es de una fila distinta y sólo se paga la que el usuario abra.
+
+### 3.4.2 · La pantalla de callback, sin cambios
 
 La pantalla de confirmación de pago existe y vive en **`/billing/callback`**, la ruta que nombra el spec §6.3. Cuando armen el `preapproval`:
 
