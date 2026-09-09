@@ -14,6 +14,7 @@ import type {
   NegociacionView,
   PropuestaDetail,
   PropuestaView,
+  RenegociacionView,
   RespuestaDto,
 } from "./negociacion.types";
 
@@ -47,6 +48,14 @@ export class NegociacionController {
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PropuestaDetail[]> {
     return this.negociacionService.listPropuestas(casoId, caller.id);
+  }
+
+  @Post("negociaciones/:id/renegociar")
+  renegociar(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<RenegociacionView> {
+    return this.negociacionService.renegociar(id, caller.id);
   }
 
   @Get("casos/:casoId/negociaciones")

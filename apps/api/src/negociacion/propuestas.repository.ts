@@ -1,7 +1,6 @@
 import type { Database } from "@mediacion/db-types";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
-import { CasosRepository } from "../casos/casos.repository";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
 import type {
@@ -13,6 +12,7 @@ import type {
   PropuestaView,
 } from "./negociacion.types";
 import { propuestaViewColumns } from "./negociacion.types";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import { buildPropuestaLockQuery } from "./propuesta-lock-query";
 import {
   buildFindByPropuestaQuery,
@@ -186,7 +186,8 @@ export function buildFindByIdQuery(
 export class PropuestasRepository {
   constructor(
     @Inject(KYSELY) private readonly kysely: Kysely<Database>,
-    @Inject(CasosRepository) private readonly casosRepository: CasosRepository,
+    @Inject(NegociacionesRepository)
+    private readonly negociacionesRepository: NegociacionesRepository,
   ) {}
 
   createPending(
@@ -358,7 +359,10 @@ export class PropuestasRepository {
           propuestaId,
           estadoAceptada,
         ).executeTakeFirstOrThrow();
-        await this.casosRepository.markAcordado(casoId, trx);
+        await this.negociacionesRepository.markAcordadaByPropuesta(
+          propuestaId,
+          trx,
+        );
         return aceptada;
       })
       .catch((error: unknown) => {

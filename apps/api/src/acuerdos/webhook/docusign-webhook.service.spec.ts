@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import type { CasosRepository } from "../../casos/casos.repository";
 import type { TareasService } from "../../tareas/tareas.service";
 import type { AcuerdosRepository } from "../acuerdos.repository";
 import type { FirmasRepository } from "../firmas.repository";
@@ -18,6 +19,7 @@ describe("DocusignWebhookService", () => {
     markFirmado?: jest.Mock;
     findById?: jest.Mock;
     generateForAcuerdo?: jest.Mock;
+    recomputeAcordado?: jest.Mock;
   }) {
     const firmasRepository = {
       findByEnvelopeAndEmail:
@@ -35,15 +37,21 @@ describe("DocusignWebhookService", () => {
       generateForAcuerdo:
         overrides?.generateForAcuerdo ?? jest.fn().mockResolvedValue([]),
     } as unknown as TareasService;
+    const casosRepository = {
+      recomputeAcordado:
+        overrides?.recomputeAcordado ?? jest.fn().mockResolvedValue(undefined),
+    } as unknown as CasosRepository;
     return {
       service: new DocusignWebhookService(
         firmasRepository,
         acuerdosRepository,
         tareasService,
+        casosRepository,
       ),
       firmasRepository,
       acuerdosRepository,
       tareasService,
+      casosRepository,
     };
   }
 
@@ -362,6 +370,105 @@ describe("DocusignWebhookService", () => {
       event: "recipient-sent",
     });
 
+    expect(generateForAcuerdo).not.toHaveBeenCalled();
+  });
+
+  it("recomputes the caso's acordado once the acuerdo is fully signed", async () => {
+    const recomputeAcordado = jest.fn().mockResolvedValue(undefined);
+    const { service } = buildService({
+      findByEnvelopeAndEmail: jest.fn().mockResolvedValue({
+        id: "firma-1",
+        acuerdo_id: "acuerdo-1",
+        docusign_status: "pending",
+      }),
+      updateStatus: jest.fn().mockResolvedValue(undefined),
+      allSignedForAcuerdo: jest.fn().mockResolvedValue(true),
+      markFirmado: jest.fn().mockResolvedValue(undefined),
+      recomputeAcordado,
+    });
+
+    await service.applyEvent({
+      envelopeId: "envelope-1",
+      recipientEmail: "a@example.com",
+      status: "signed",
+      event: "recipient-completed",
+    });
+
+    expect(recomputeAcordado).toHaveBeenCalledWith("caso-1");
+  });
+
+  it("does not recompute the caso while a firma is still pending", async () => {
+    const recomputeAcordado = jest.fn();
+    const { service } = buildService({
+      findByEnvelopeAndEmail: jest.fn().mockResolvedValue({
+        id: "firma-1",
+        acuerdo_id: "acuerdo-1",
+        docusign_status: "pending",
+      }),
+      updateStatus: jest.fn().mockResolvedValue(undefined),
+      allSignedForAcuerdo: jest.fn().mockResolvedValue(false),
+      recomputeAcordado,
+    });
+
+    await service.applyEvent({
+      envelopeId: "envelope-1",
+      recipientEmail: "a@example.com",
+      status: "signed",
+      event: "recipient-completed",
+    });
+
+    expect(recomputeAcordado).not.toHaveBeenCalled();
+  });
+
+  it("recomputes the caso again on a redelivered signed event, so a replay cannot leave it behind", async () => {
+    const recomputeAcordado = jest.fn().mockResolvedValue(undefined);
+    const markFirmado = jest.fn();
+    const { service } = buildService({
+      findByEnvelopeAndEmail: jest.fn().mockResolvedValue({
+        id: "firma-1",
+        acuerdo_id: "acuerdo-1",
+        docusign_status: "signed",
+      }),
+      allSignedForAcuerdo: jest.fn().mockResolvedValue(true),
+      markFirmado,
+      recomputeAcordado,
+    });
+
+    await service.applyEvent({
+      envelopeId: "envelope-1",
+      recipientEmail: "a@example.com",
+      status: "signed",
+      event: "recipient-completed",
+    });
+
+    expect(recomputeAcordado).toHaveBeenCalledWith("caso-1");
+    expect(markFirmado).not.toHaveBeenCalled();
+  });
+
+  it("lets a recompute failure surface so the provider retries, instead of swallowing it like accionable generation", async () => {
+    const boom = new Error("connection reset");
+    const generateForAcuerdo = jest.fn();
+    const { service } = buildService({
+      findByEnvelopeAndEmail: jest.fn().mockResolvedValue({
+        id: "firma-1",
+        acuerdo_id: "acuerdo-1",
+        docusign_status: "pending",
+      }),
+      updateStatus: jest.fn().mockResolvedValue(undefined),
+      allSignedForAcuerdo: jest.fn().mockResolvedValue(true),
+      markFirmado: jest.fn().mockResolvedValue(undefined),
+      recomputeAcordado: jest.fn().mockRejectedValue(boom),
+      generateForAcuerdo,
+    });
+
+    await expect(
+      service.applyEvent({
+        envelopeId: "envelope-1",
+        recipientEmail: "a@example.com",
+        status: "signed",
+        event: "recipient-completed",
+      }),
+    ).rejects.toBe(boom);
     expect(generateForAcuerdo).not.toHaveBeenCalled();
   });
 

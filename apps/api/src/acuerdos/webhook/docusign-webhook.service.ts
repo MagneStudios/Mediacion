@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { CasosRepository } from "../../casos/casos.repository";
 import { TareasService } from "../../tareas/tareas.service";
 import { AcuerdosRepository } from "../acuerdos.repository";
+import type { Acuerdo } from "../acuerdos.types";
 import { docusignStatusSigned } from "../acuerdos.types";
 import { FirmasRepository } from "../firmas.repository";
 import { isRegressiveStatusTransition } from "./docusign-status-precedence";
@@ -23,6 +25,8 @@ export class DocusignWebhookService {
     private readonly acuerdosRepository: AcuerdosRepository,
     @Inject(TareasService)
     private readonly tareasService: TareasService,
+    @Inject(CasosRepository)
+    private readonly casosRepository: CasosRepository,
   ) {}
 
   async applyEvent(event: DocusignWebhookEvent): Promise<void> {
@@ -54,7 +58,7 @@ export class DocusignWebhookService {
     );
     if (allSigned) {
       await this.acuerdosRepository.markFirmado(firma.acuerdo_id);
-      await this.generateAccionables(firma.acuerdo_id);
+      await this.settleSignedAcuerdo(firma.acuerdo_id);
     }
   }
 
@@ -62,16 +66,29 @@ export class DocusignWebhookService {
     const allSigned =
       await this.firmasRepository.allSignedForAcuerdo(acuerdoId);
     if (allSigned) {
-      await this.generateAccionables(acuerdoId);
+      await this.settleSignedAcuerdo(acuerdoId);
     }
   }
 
-  private async generateAccionables(acuerdoId: string): Promise<void> {
+  /**
+   * Everything a fully signed acuerdo triggers, in the order that survives a
+   * partial failure. `recomputeAcordado` runs first and is allowed to throw:
+   * the caso's state is the legally meaningful one, so a failure here should
+   * fail the callback and let the provider retry — both steps are idempotent.
+   * It also runs on the reconcile path, or a replayed callback would leave a
+   * caso whose materias are all signed still reading `en_negociacion`.
+   */
+  private async settleSignedAcuerdo(acuerdoId: string): Promise<void> {
+    const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+    if (!acuerdo) {
+      return;
+    }
+    await this.casosRepository.recomputeAcordado(acuerdo.caso_id);
+    await this.generateAccionables(acuerdo);
+  }
+
+  private async generateAccionables(acuerdo: Acuerdo): Promise<void> {
     try {
-      const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
-      if (!acuerdo) {
-        return;
-      }
       await this.tareasService.generateForAcuerdo(
         acuerdo.id,
         acuerdo.caso_id,
@@ -79,7 +96,7 @@ export class DocusignWebhookService {
       );
     } catch (error) {
       this.logger.error(
-        `RN-14 accionable generation failed for acuerdo ${acuerdoId}`,
+        `RN-14 accionable generation failed for acuerdo ${acuerdo.id}`,
         error,
       );
     }

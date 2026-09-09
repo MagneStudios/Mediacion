@@ -44,6 +44,8 @@ function buildService(overrides?: {
   findForCase?: jest.Mock;
   findDetailForCase?: jest.Mock;
   listByCaso?: jest.Mock;
+  findCasoIdByNegociacion?: jest.Mock;
+  renegociar?: jest.Mock;
 }) {
   const membershipService = {
     assertMembership:
@@ -90,6 +92,15 @@ function buildService(overrides?: {
   } as unknown as CasosRepository;
   const negociacionesRepository = {
     listByCaso: overrides?.listByCaso ?? jest.fn().mockResolvedValue([]),
+    findCasoId:
+      overrides?.findCasoIdByNegociacion ??
+      jest.fn().mockResolvedValue("caso-1"),
+    renegociar:
+      overrides?.renegociar ??
+      jest.fn().mockResolvedValue({
+        negotiation_id: "negociacion-1",
+        agreement_id: "acuerdo-2",
+      }),
   } as unknown as NegociacionesRepository;
   return {
     service: new NegociacionService(
@@ -709,5 +720,89 @@ describe("NegociacionService.listPropuestas", () => {
       });
       expect(listByCaso).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("NegociacionService.renegociar", () => {
+  it("delegates to the repository once the caller is a party of the negociacion's caso", async () => {
+    const renegociar = jest.fn().mockResolvedValue({
+      negotiation_id: "negociacion-1",
+      agreement_id: "acuerdo-2",
+    });
+    const assertMembership = jest
+      .fn()
+      .mockResolvedValue({ rol_en_caso: "parte_a" });
+    const { service } = buildService({ renegociar, assertMembership });
+
+    const result = await service.renegociar("negociacion-1", "user-a");
+
+    expect(assertMembership).toHaveBeenCalledWith("caso-1", "user-a");
+    expect(renegociar).toHaveBeenCalledWith("negociacion-1");
+    expect(result).toEqual({
+      negotiation_id: "negociacion-1",
+      agreement_id: "acuerdo-2",
+    });
+  });
+
+  it("rejects with 404 negociacion_not_found for an id that does not exist, without asserting membership", async () => {
+    const assertMembership = jest.fn();
+    const renegociar = jest.fn();
+    const { service } = buildService({
+      findCasoIdByNegociacion: jest.fn().mockResolvedValue(undefined),
+      assertMembership,
+      renegociar,
+    });
+
+    let thrown: unknown;
+    try {
+      await service.renegociar("negociacion-9", "user-a");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+    expect((thrown as HttpException).getResponse()).toEqual(
+      expect.objectContaining({ code: "negociacion_not_found" }),
+    );
+    expect(assertMembership).not.toHaveBeenCalled();
+    expect(renegociar).not.toHaveBeenCalled();
+  });
+
+  it("propagates the membership 404 for a caller who is not a party", async () => {
+    const notFound = new HttpException(
+      { code: "caso_not_found", message: "Case not found" },
+      HttpStatus.NOT_FOUND,
+    );
+    const renegociar = jest.fn();
+    const { service } = buildService({
+      assertMembership: jest.fn().mockRejectedValue(notFound),
+      renegociar,
+    });
+
+    await expect(service.renegociar("negociacion-1", "stranger")).rejects.toBe(
+      notFound,
+    );
+    expect(renegociar).not.toHaveBeenCalled();
+  });
+
+  it("rejects the mediador with 404 rather than leaking that the negociacion exists", async () => {
+    const renegociar = jest.fn();
+    const { service } = buildService({
+      assertMembership: jest
+        .fn()
+        .mockResolvedValue({ rol_en_caso: "mediador" }),
+      renegociar,
+    });
+
+    let thrown: unknown;
+    try {
+      await service.renegociar("negociacion-1", "mediador-1");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+    expect(renegociar).not.toHaveBeenCalled();
   });
 });

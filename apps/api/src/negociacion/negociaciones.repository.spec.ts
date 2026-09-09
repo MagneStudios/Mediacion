@@ -2,7 +2,13 @@ import type { Database } from "@mediacion/db-types";
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import {
+  buildFindRenegociableQuery,
+  buildInsertAcuerdoSiguienteQuery,
   buildListNegociacionesByCasoQuery,
+  buildMarkNegociacionAcordadaQuery,
+  buildReactivarNegociacionQuery,
+  buildResolveNegociacionByPropuestaQuery,
+  buildSupersedeAcuerdoQuery,
   NegociacionesRepository,
 } from "./negociaciones.repository";
 
@@ -89,6 +95,7 @@ describe("NegociacionesRepository.listByCaso", () => {
           acuerdo_version: 2,
         },
       ]) as never,
+      {} as never,
     );
 
     const [negociacion] = await repository.listByCaso("caso-1");
@@ -106,6 +113,7 @@ describe("NegociacionesRepository.listByCaso", () => {
   it("reports a negociacion with no acuerdo as null, never as an empty object", async () => {
     const repository = new NegociacionesRepository(
       createFakeKysely([legacyRow]) as never,
+      {} as never,
     );
 
     const [negociacion] = await repository.listByCaso("caso-1");
@@ -116,6 +124,7 @@ describe("NegociacionesRepository.listByCaso", () => {
   it("keeps a legacy negociacion's subject_type null instead of filling it with 'otro'", async () => {
     const repository = new NegociacionesRepository(
       createFakeKysely([legacyRow]) as never,
+      {} as never,
     );
 
     const [negociacion] = await repository.listByCaso("caso-1");
@@ -126,8 +135,192 @@ describe("NegociacionesRepository.listByCaso", () => {
   it("returns an empty list for a caso with no negociaciones", async () => {
     const repository = new NegociacionesRepository(
       createFakeKysely([]) as never,
+      {} as never,
     );
 
     await expect(repository.listByCaso("caso-1")).resolves.toEqual([]);
+  });
+});
+
+describe("buildResolveNegociacionByPropuestaQuery", () => {
+  it("reads the negociacion straight off the propuesta, with no walk through rondas", () => {
+    const compiled = buildResolveNegociacionByPropuestaQuery(
+      createCompileOnlyKysely(),
+      "prop-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^select "negociacion_id" from "propuestas" where "id" = \$\d/i,
+    );
+    expect(compiled.sql).not.toMatch(/join|rondas/i);
+    expect(compiled.parameters).toContain("prop-1");
+  });
+});
+
+describe("buildMarkNegociacionAcordadaQuery", () => {
+  it("marks one negociacion acordada, scoped to its id so sibling materias are untouched", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^update "negociaciones" set "estado" = \$\d/i,
+    );
+    expect(compiled.sql).toMatch(/"id" = \$\d/i);
+    expect(compiled.parameters).toContain("acordada");
+    expect(compiled.parameters).toContain("negociacion-1");
+    expect(compiled.sql).not.toContain("caso_id");
+  });
+
+  it("guards on the state it is leaving, so a replayed acceptance is a no-op", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(/"estado" != \$\d/i);
+  });
+
+  it("never touches casos: the caso's acordado is derived from the signatures, not from this", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).not.toContain('"casos"');
+  });
+});
+
+describe("NegociacionesRepository.markAcordadaByPropuesta", () => {
+  it("resolves the propuesta's negociacion and marks it, both on the caller's trx", async () => {
+    const markExecute = jest.fn().mockResolvedValue(undefined);
+    const executeTakeFirstOrThrow = jest
+      .fn()
+      .mockResolvedValue({ negociacion_id: "negociacion-7" });
+    const selectWhere = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+    const select = jest.fn().mockReturnValue({ where: selectWhere });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    const updateWhere2 = jest.fn().mockReturnValue({ execute: markExecute });
+    const updateWhere1 = jest.fn().mockReturnValue({ where: updateWhere2 });
+    const set = jest.fn().mockReturnValue({ where: updateWhere1 });
+    const updateTable = jest.fn().mockReturnValue({ set });
+    const trx = { selectFrom, updateTable };
+    const repository = new NegociacionesRepository({} as never, {} as never);
+
+    await repository.markAcordadaByPropuesta("prop-1", trx as never);
+
+    expect(selectFrom).toHaveBeenCalledWith("propuestas");
+    expect(selectWhere).toHaveBeenCalledWith("id", "=", "prop-1");
+    expect(updateTable).toHaveBeenCalledWith("negociaciones");
+    expect(set).toHaveBeenCalledWith({ estado: "acordada" });
+    expect(updateWhere1).toHaveBeenCalledWith("id", "=", "negociacion-7");
+    expect(markExecute).toHaveBeenCalled();
+  });
+});
+
+describe("buildFindRenegociableQuery", () => {
+  function compile() {
+    return buildFindRenegociableQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+  }
+
+  it("joins the acuerdo in force inner, so a negociacion without one yields no row", () => {
+    const compiled = compile();
+
+    expect(compiled.sql).toMatch(/inner join\s+"acuerdos"/i);
+    expect(compiled.sql).not.toMatch(/left join/i);
+    expect(compiled.sql).toMatch(/"acuerdos"\."vigente"\s*=\s*\$\d/i);
+    expect(compiled.parameters).toContain(true);
+  });
+
+  it("locks the rows it reads, so two concurrent renegotiations cannot both branch off v1", () => {
+    expect(compile().sql).toMatch(/for update/i);
+  });
+
+  it("reads everything the next version needs in one round trip", () => {
+    const sql = compile().sql;
+
+    for (const column of [
+      "caso_id",
+      "round",
+      "estado",
+      "version",
+      "contenido",
+    ]) {
+      expect(sql).toContain(column);
+    }
+  });
+});
+
+describe("buildSupersedeAcuerdoQuery", () => {
+  it("retires the agreement instead of deleting it, and only if it is still in force", () => {
+    const compiled = buildSupersedeAcuerdoQuery(
+      createCompileOnlyKysely(),
+      "acuerdo-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(/^update "acuerdos" set "vigente" = \$\d/i);
+    expect(compiled.sql).not.toMatch(/delete/i);
+    expect(compiled.sql).toMatch(/"vigente" = \$\d/i);
+    expect(compiled.parameters).toContain(false);
+    expect(compiled.parameters).toContain("acuerdo-1");
+  });
+});
+
+describe("buildInsertAcuerdoSiguienteQuery", () => {
+  it("writes the versioning columns the schema has had without a writer since migration 42", () => {
+    const compiled = buildInsertAcuerdoSiguienteQuery(
+      createCompileOnlyKysely(),
+      {
+        caso_id: "caso-1",
+        negociacion_id: "negociacion-1",
+        version: 1,
+        acuerdo_id: "acuerdo-1",
+        contenido: { narrative: "previo" },
+      },
+    ).compile();
+
+    expect(compiled.sql).toContain('"version"');
+    expect(compiled.sql).toContain('"supersedes_agreement_id"');
+    expect(compiled.sql).toContain('"vigente"');
+    expect(compiled.parameters).toContain(2);
+    expect(compiled.parameters).toContain("acuerdo-1");
+    expect(compiled.parameters).toContain(true);
+    expect(compiled.parameters).toContain("borrador");
+  });
+
+  it("copies the retired agreement's contenido instead of rendering a new one", () => {
+    const contenido = { narrative: "el acuerdo vigente" };
+    const compiled = buildInsertAcuerdoSiguienteQuery(
+      createCompileOnlyKysely(),
+      {
+        caso_id: "caso-1",
+        negociacion_id: "negociacion-1",
+        version: 3,
+        acuerdo_id: "acuerdo-3",
+        contenido,
+      },
+    ).compile();
+
+    expect(compiled.parameters).toContainEqual(contenido);
+    expect(compiled.parameters).toContain(4);
+  });
+});
+
+describe("buildReactivarNegociacionQuery", () => {
+  it("puts the materia back to activa, scoped to its own id", () => {
+    const compiled = buildReactivarNegociacionQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^update "negociaciones" set "estado" = \$\d/i,
+    );
+    expect(compiled.parameters).toContain("activa");
+    expect(compiled.parameters).toContain("negociacion-1");
   });
 });

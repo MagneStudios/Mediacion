@@ -1,11 +1,30 @@
+import type { Database } from "@mediacion/db-types";
 import { HttpStatus } from "@nestjs/common";
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
 import {
   ConflictError,
   QuotaExceededError,
 } from "../common/errors/domain-errors";
-import { CasosRepository } from "./casos.repository";
+import {
+  buildRecomputeAcordadoQuery,
+  buildReopenFromAcordadoQuery,
+  CasosRepository,
+} from "./casos.repository";
 import type { CreateCasoDto } from "./casos.types";
 import { estadoInvitacionAceptada } from "./casos.types";
+
+/** Never connects: `.compile()` renders SQL without touching the pool. */
+function createCompileOnlyKysely(): Kysely<Database> {
+  return new Kysely<Database>({
+    dialect: new PostgresDialect({
+      pool: new Pool({
+        connectionString:
+          "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+      }),
+    }),
+  });
+}
 
 describe("CasosRepository", () => {
   describe("createCaseWithParteA", () => {
@@ -379,85 +398,140 @@ describe("CasosRepository", () => {
     });
   });
 
-  describe("markAcordado", () => {
-    function createFakeTrx(executeTakeFirstOrThrow: jest.Mock) {
-      const returning = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+  describe("buildRecomputeAcordadoQuery", () => {
+    function compile(casoId: string) {
+      return buildRecomputeAcordadoQuery(
+        createCompileOnlyKysely(),
+        casoId,
+      ).compile();
+    }
+
+    it("only ever moves a caso out of en_negociacion, and only into acordado", () => {
+      const compiled = compile("caso-1");
+
+      expect(compiled.sql).toMatch(/^update "casos" set "estado" = \$\d/i);
+      expect(compiled.sql).toMatch(/"id"\s*=\s*\$\d/i);
+      expect(compiled.sql).toMatch(/"estado"\s*=\s*\$\d/i);
+      expect(compiled.parameters).toContain("acordado");
+      expect(compiled.parameters).toContain("en_negociacion");
+      expect(compiled.parameters).toContain("caso-1");
+    });
+
+    it("requires the caso to have at least one negociacion, so an empty caso never reads as fully signed", () => {
+      const compiled = compile("caso-1");
+
+      expect(compiled.sql).toMatch(
+        /exists\s*\(\s*select\s+"negociaciones"\."id"\s+from\s+"negociaciones"/i,
+      );
+    });
+
+    it("requires every negociacion to have an acuerdo both in force and firmado", () => {
+      const compiled = compile("caso-1");
+
+      // "no negociacion lacks a signed agreement in force" — the double
+      // negation is what makes it "all of them" instead of "any of them".
+      expect(compiled.sql).toMatch(/not exists/i);
+      expect(compiled.sql).toMatch(/"acuerdos"\."vigente"\s*=\s*\$\d/i);
+      expect(compiled.sql).toMatch(/"acuerdos"\."estado"\s*=\s*\$\d/i);
+      expect(compiled.parameters).toContain(true);
+      expect(compiled.parameters).toContain("firmado");
+      expect(compiled.sql.match(/not exists/gi)).toHaveLength(2);
+    });
+
+    it("never writes ronda_actual, which no longer lives on casos", () => {
+      expect(compile("caso-1").sql).not.toContain("ronda_actual");
+    });
+  });
+
+  describe("buildReopenFromAcordadoQuery", () => {
+    it("is the exact inverse of the recompute, guarded on acordado", () => {
+      const compiled = buildReopenFromAcordadoQuery(
+        createCompileOnlyKysely(),
+        "caso-1",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/^update "casos" set "estado" = \$\d/i);
+      expect(compiled.parameters).toContain("en_negociacion");
+      expect(compiled.parameters).toContain("acordado");
+      expect(compiled.parameters).toContain("caso-1");
+    });
+
+    it("resolves without throwing when the caso was never acordado", async () => {
+      const execute = jest.fn().mockResolvedValue([]);
+      const returning = jest.fn().mockReturnValue({ execute });
       const where2 = jest.fn().mockReturnValue({ returning });
       const where1 = jest.fn().mockReturnValue({ where: where2 });
       const set = jest.fn().mockReturnValue({ where: where1 });
       const updateTable = jest.fn().mockReturnValue({ set });
-      return {
-        updateTable,
-        set,
-        where1,
-        where2,
-        returning,
-        executeTakeFirstOrThrow,
-      };
-    }
-
-    it("moves a case from en_negociacion to acordado using the provided trx, never touching ronda_actual", async () => {
-      const executeTakeFirstOrThrow = jest
-        .fn()
-        .mockResolvedValue({ id: "caso-1" });
-      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
       const repository = new CasosRepository({} as never);
 
-      await repository.markAcordado("caso-1", fakeTrx as never);
+      await expect(
+        repository.reopenFromAcordado("caso-1", { updateTable } as never),
+      ).resolves.toBeUndefined();
+    });
+  });
 
-      expect(fakeTrx.updateTable).toHaveBeenCalledWith("casos");
-      expect(fakeTrx.set).toHaveBeenCalledWith({ estado: "acordado" });
-      expect(fakeTrx.where1).toHaveBeenCalledWith("id", "=", "caso-1");
-      expect(fakeTrx.where2).toHaveBeenCalledWith(
+  describe("recomputeAcordado", () => {
+    function createFakeDb(execute: jest.Mock) {
+      const returning = jest.fn().mockReturnValue({ execute });
+      const where3 = jest.fn().mockReturnValue({ returning });
+      const where2 = jest.fn().mockReturnValue({ where: where3 });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const set = jest.fn().mockReturnValue({ where: where1 });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      return { updateTable, set, where1, where2, where3, returning, execute };
+    }
+
+    it("guards the update on the caso and on en_negociacion, and defers the all-materias test to a predicate", async () => {
+      const execute = jest.fn().mockResolvedValue([{ id: "caso-1" }]);
+      const fakeDb = createFakeDb(execute);
+      const repository = new CasosRepository({} as never);
+
+      await repository.recomputeAcordado("caso-1", fakeDb as never);
+
+      expect(fakeDb.updateTable).toHaveBeenCalledWith("casos");
+      expect(fakeDb.set).toHaveBeenCalledWith({ estado: "acordado" });
+      expect(fakeDb.where1).toHaveBeenCalledWith("id", "=", "caso-1");
+      expect(fakeDb.where2).toHaveBeenCalledWith(
         "estado",
         "=",
         "en_negociacion",
       );
-      expect(fakeTrx.returning).toHaveBeenCalledWith(["id"]);
-      const updatedValues = fakeTrx.set.mock.calls[0][0];
+      // The two NOT EXISTS live inside this callback; a fake chain never runs
+      // it, so what it actually filters is proven in the DB-gated integration
+      // spec, not here.
+      expect(fakeDb.where3).toHaveBeenCalledWith(expect.any(Function));
+      const updatedValues = fakeDb.set.mock.calls[0][0];
       expect(updatedValues).not.toHaveProperty("ronda_actual");
     });
 
-    it("maps a trigger-raised invalid-transition exception to a uniform 409 via the shared pg-error guard", async () => {
-      const triggerError = {
-        code: "P0001",
-        message: "invalid caso estado transition",
-      };
-      const executeTakeFirstOrThrow = jest.fn().mockRejectedValue(triggerError);
-      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
+    it("resolves without throwing when no row matches: most signatures leave other materias open", async () => {
+      const execute = jest.fn().mockResolvedValue([]);
+      const fakeDb = createFakeDb(execute);
       const repository = new CasosRepository({} as never);
 
-      let thrown: unknown;
-      try {
-        await repository.markAcordado("caso-1", fakeTrx as never);
-      } catch (error) {
-        thrown = error;
-      }
-
-      expect(thrown).toBeInstanceOf(ConflictError);
-      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
+      await expect(
+        repository.recomputeAcordado("caso-1", fakeDb as never),
+      ).resolves.toBeUndefined();
     });
 
-    it("throws a 409 inside the trx when zero rows match en_negociacion, rolling back instead of silently no-opping", async () => {
-      const executeTakeFirstOrThrow = jest.fn(
-        (errorConstructor: (node: unknown) => Error) =>
-          Promise.reject(errorConstructor(undefined)),
-      );
-      const fakeTrx = createFakeTrx(executeTakeFirstOrThrow);
+    it("maps a trigger-raised exception to a uniform 409 via the shared pg-error guard", async () => {
+      const execute = jest.fn().mockRejectedValue({
+        code: "P0001",
+        message: "invalid caso estado transition",
+      });
+      const fakeDb = createFakeDb(execute);
       const repository = new CasosRepository({} as never);
 
       let thrown: unknown;
       try {
-        await repository.markAcordado("caso-1", fakeTrx as never);
+        await repository.recomputeAcordado("caso-1", fakeDb as never);
       } catch (error) {
         thrown = error;
       }
 
       expect(thrown).toBeInstanceOf(ConflictError);
       expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
-      expect(executeTakeFirstOrThrow).toHaveBeenCalledWith(
-        expect.any(Function),
-      );
     });
   });
 
