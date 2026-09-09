@@ -117,6 +117,10 @@
       "empty": {
         "title": "Todavía no hay un acuerdo",
         "description": "Cuando ambas partes alcancen una propuesta común, el acuerdo aparecerá en esta sección."
+      },
+      "mismatch": {
+        "title": "No pudimos abrir ese acuerdo",
+        "description": "El acuerdo que abriste no es el que esperábamos para este caso. Volvé a la bandeja de firmas y entrá de nuevo, para no revisar un documento que no corresponde."
       }
     },
     "sharedMarker": {
@@ -151,15 +155,17 @@
       }
     },
     "export": {
-      "action": "Exportar acuerdo (texto plano)",
-      "exportingTitle": "Preparando el archivo exportado",
-      "exportingBody": "El archivo de texto plano estará listo en un instante.",
+      "action": "Ver el acuerdo en texto plano",
+      "exportingTitle": "Trayendo el texto del acuerdo",
+      "exportingBody": "Va a estar listo en un instante.",
       "success": {
-        "title": "Acuerdo exportado",
-        "body": "Se generó un resumen en texto plano dentro de este entorno de prueba. No es un documento firmado ni con validez legal."
+        "title": "Acuerdo en texto plano",
+        "body": "Este es un resumen en texto plano del acuerdo. Podés copiarlo y pegarlo donde lo necesites. No es un documento firmado ni con validez legal."
       },
+      "copyAction": "Copiar el texto",
+      "copied": "Texto copiado",
       "error": {
-        "title": "No pudimos exportar el acuerdo"
+        "title": "No pudimos traer el acuerdo"
       }
     },
     "sign": {
@@ -239,6 +245,10 @@
         "error": {
           "title": "No pudimos registrar el aviso"
         }
+      },
+      "list": {
+        "title": "Avisos registrados",
+        "empty": "Todavía no hay avisos registrados en este acuerdo."
       }
     }
   },
@@ -325,6 +335,15 @@
         "action": "Continuar de todos modos (demo)"
       }
     },
+    "usage": {
+      "title": "Tu consumo este período",
+      "negotiations": "Negociaciones",
+      "clients": "Altas de clientes",
+      "count": "{{used}} de {{limit}}",
+      "unlimited": "{{used}} · sin límite",
+      "renews": "El contador se renueva el {{date}}.",
+      "error": "No pudimos leer tu consumo."
+    },
     "myPlan": {
       "title": "Mi plan",
       "hasSubscription": "Este es tu plan actual. Podés cambiarte a otro cuando quieras.",
@@ -340,6 +359,8 @@
       "currentBadge": "Plan actual",
       "taxesIncluded": "Precio final, impuestos incluidos",
       "subscribeAction": "Suscribirme",
+      "negotiationsPerPeriodLabel": "Negociaciones por período",
+      "clientsPerPeriodLabel": "Altas de clientes por período",
       "error": {
         "title": "No pudimos cargar tu plan"
       },
@@ -414,7 +435,7 @@
       "subtitle": "Podés cambiarlo más adelante si el caso lo necesita.",
       "descriptions": {
         "negociacion": "Las partes intercambian propuestas y buscan un punto de acuerdo.",
-        "conciliacion": "El proceso incorpora orientación para acercar las posiciones.",
+        "conciliacion": "El proceso incorpora orientación y propone opciones para acercar las posiciones.",
         "mediacion": "Un tercero neutral acompaña el diálogo y facilita el acuerdo."
       },
       "selected": "Seleccionado",
@@ -501,6 +522,7 @@
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",
+        "liveBackendNotice": "El caso se va a activar cuando la otra parte acepte la invitación con su propio enlace o código. Acordate de que las dos partes necesitan una suscripción activa para que el caso se abra.",
         "dialog": {
           "title": "¿Simular aceptación?",
           "body": "Esta acción actualizará únicamente la demostración. No se enviará ni aceptará una invitación real.",
@@ -541,6 +563,11 @@
     "expired": {
       "title": "Esta invitación venció",
       "description": "Pasaron más de 72 horas desde que se envió. Pedile a la otra parte que te envíe una invitación nueva."
+    },
+    "subscriptionRequired": {
+      "title": "Falta activar una suscripción",
+      "description": "El código es correcto. Para abrir el caso, las dos partes necesitan una suscripción activa: revisá la tuya y, si ya está, avisale a la otra parte.",
+      "action": "Ver planes"
     }
   },
   "cases": {
@@ -563,6 +590,7 @@
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
       "awaitingCounterparty": "Esperando a la contraparte",
+      "awaitingSubscriptions": "Falta activar suscripciones",
       "expired": "Invitación vencida",
       "sla": "SLA {{hours}} h"
     },
@@ -1193,7 +1221,7 @@
       "accessibilityLargerText": "Texto más grande (preferencia)",
       "accessibilityLargerTextDescription": "Esta preferencia se guarda solo en esta demostración. Todavía no cambia el tamaño de texto de la aplicación.",
       "matriculaSection": "Matrícula profesional",
-      "matriculaHint": "Opcional. La matrícula no se verifica: lo que da validez al acuerdo es la firma digital, no este dato.",
+      "matriculaHint": "Opcional. La matrícula no se verifica: este dato no cambia el valor de lo que firmes.",
       "matriculaNumberLabel": "Número de matrícula",
       "matriculaNumberPlaceholder": "Por ejemplo: CPACF 12345",
       "matriculaAttach": "Adjuntar matrícula (simulado)",
@@ -1394,6 +1422,9 @@
       "empty": {
         "title": "Todavía no hay tareas",
         "description": "Las tareas van a aparecer acá una vez que el acuerdo las genere."
+      },
+      "error": {
+        "title": "No pudimos cargar las tareas"
       }
     },
     "calendar": {
@@ -1407,6 +1438,11 @@
       "error": {
         "title": "No pudimos preparar el evento de calendario"
       }
+    },
+    "card": {
+      "completeAction": "Marcar como completada",
+      "completingAction": "Marcando…",
+      "completeAccessibility": "Marcar como completada: {{descripcion}}"
     }
   },
   "lawyer": {
@@ -1422,6 +1458,22 @@
       "error": {
         "title": "No pudimos registrar tu solicitud"
       }
+    },
+    "handoff": {
+      "title": "Coordiná la consulta por WhatsApp",
+      "body": "Tu pago está confirmado. Escribile al estudio para coordinar: el mensaje ya viene con tu número de solicitud ({{code}}).",
+      "action": "Abrir WhatsApp",
+      "message": "Hola: pagué la asistencia legal en Pactum. Mi número de solicitud es {{code}}. Quisiera coordinar la consulta.",
+      "numberPending": "Tu pago está confirmado y tu número de solicitud es {{code}}. Todavía no tenemos el número de WhatsApp del estudio para coordinar: lo estamos gestionando y te vamos a avisar. Guardá ese número de solicitud.",
+      "unavailable": "No pudimos abrir WhatsApp desde acá. Copiá el número y escribiles por donde te quede más cómodo.",
+      "numberLabel": "WhatsApp del estudio",
+      "copy": "Copiar número",
+      "copied": "Copiado"
+    },
+    "simulatePayment": {
+      "action": "Simular pago confirmado (demo)",
+      "hint": "Atajo de demostración: en producción el pago lo confirma Mercado Pago.",
+      "error": "No pudimos simular la confirmación del pago."
     }
   },
   "legal": {

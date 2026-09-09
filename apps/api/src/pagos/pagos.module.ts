@@ -1,8 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
-import { HttpMercadoPagoClient } from "./mercadopago/http-mercado-pago-client";
-import { MERCADO_PAGO_CLIENT } from "./mercadopago/mercado-pago-client";
+import { MercadopagoModule } from "./mercadopago/mercadopago.module";
 import { PagosController } from "./pagos.controller";
 import { PagosRepository } from "./pagos.repository";
 import { PagosService } from "./pagos.service";
@@ -13,16 +12,11 @@ import { PlanesService } from "./planes.service";
 import { SuscripcionesController } from "./suscripciones.controller";
 import { SuscripcionesRepository } from "./suscripciones.repository";
 import { SuscripcionesService } from "./suscripciones.service";
-import { MercadoPagoWebhookController } from "./webhooks/mercadopago.controller";
+import { UsageRepository } from "./usage.repository";
 
 @Module({
-  imports: [AuthModule, DatabaseModule],
-  controllers: [
-    PlanesController,
-    SuscripcionesController,
-    PagosController,
-    MercadoPagoWebhookController,
-  ],
+  imports: [AuthModule, DatabaseModule, MercadopagoModule],
+  controllers: [PlanesController, SuscripcionesController, PagosController],
   providers: [
     PlanesService,
     PlanesRepository,
@@ -31,8 +25,13 @@ import { MercadoPagoWebhookController } from "./webhooks/mercadopago.controller"
     PagosService,
     PagosRepository,
     PlanLimitService,
-    { provide: MERCADO_PAGO_CLIENT, useClass: HttpMercadoPagoClient },
+    UsageRepository,
   ],
-  exports: [PlanLimitService],
+  exports: [
+    PlanLimitService,
+    UsageRepository,
+    SuscripcionesService,
+    PagosService,
+  ],
 })
 export class PagosModule {}

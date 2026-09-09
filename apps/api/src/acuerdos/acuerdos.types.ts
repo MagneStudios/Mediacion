@@ -3,6 +3,8 @@ import type { Selectable } from "kysely";
 
 export type Acuerdo = Selectable<Database["acuerdos"]>;
 export type Firma = Selectable<Database["firmas"]>;
+export type Negociacion = Selectable<Database["negociaciones"]>;
+export type MateriaAcuerdo = NonNullable<Negociacion["materia"]>;
 export type EstadoAcuerdo = Acuerdo["estado"];
 
 export const estadoAcuerdoBorrador: EstadoAcuerdo = "borrador";
@@ -45,6 +47,9 @@ export type SignatureInboxEntry = {
   caso_id: string;
   caso_nombre: string;
   caso_codigo: string | null;
+  /** The materia of the acuerdo's negociacion; null for the legacy model. */
+  subject_type: MateriaAcuerdo | null;
+  version: number;
   acuerdo_estado: string;
   own_status: string;
   own_fecha_firma: string | null;

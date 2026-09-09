@@ -31,11 +31,19 @@ export function usePlans(): UsePlansResult {
 
   const fetchSilently = useCallback(() => {
     let cancelled = false;
-    plansService.listPlanes().then((result) => {
-      if (cancelled) return;
-      setPlans(result);
-      setStatus(result.length === 0 ? 'empty' : 'success');
-    });
+    plansService
+      .listPlanes()
+      .then((result) => {
+        if (cancelled) return;
+        setPlans(result);
+        setStatus(result.length === 0 ? 'empty' : 'success');
+      })
+      // A silent refresh that fails keeps the list already on screen: the user
+      // did not ask for this read, so it must not replace a good catalog with
+      // an error state. Only the visible load path (below) reports failure,
+      // and it is the one with a retry. Mattered less while this was a mock
+      // that never rejected; against `GET /planes` it is a dropped connection.
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

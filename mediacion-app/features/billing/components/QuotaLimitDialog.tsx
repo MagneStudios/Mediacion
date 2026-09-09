@@ -26,19 +26,22 @@ function isPeriodBased(resource: QuotaResource): boolean {
  * What the user sees when the plan says no.
  *
  * Reached from two different server errors that mean the same thing to the
- * person in front of the screen: the `403 plan_limit_exceeded` that is live
- * today and the `402 quota_exceeded` of the Pactum spec, which does not exist
- * on the API yet (`docs/plan-frontend-monetizacion.md` §1.4, §1.5).
+ * person in front of the screen: `403 plan_limit_exceeded` (stock — how many
+ * cases can exist at once) and `402 quota_exceeded` (flow — how many were
+ * created this billing period). **Both are live since 03/09** and BE confirmed
+ * they coexist, with the 403 running first
+ * (`docs/pedidos-frontend-monetizacion.md` §3.2).
  *
  * **There is no retry.** That is the point of having this instead of the
  * generic error state: a limit does not clear by pressing the button again,
  * and offering it reads as a broken system rather than a full plan — the same
  * reasoning the public legal forms already applied to `429`.
  *
- * It degrades on purpose. Today's live error carries no numbers, so the copy
- * falls back to a sentence that is true without them; the day BE sends
- * `usado`/`limite`/`period_end`, the same dialog gets specific with no change
- * here. It never invents a number it was not given.
+ * It degrades on purpose, and that path is still reachable: BE normally sends
+ * `usado`/`limite`/`period_end` and this gets specific on its own, but a member
+ * of an estudio who is not its titular receives the 402 bare, because BE cannot
+ * read the usage it would have to attach. The fallback copy is true without the
+ * numbers. It never invents one it was not given.
  */
 export function QuotaLimitDialog({ limit, onDismiss, onUpgrade }: QuotaLimitDialogProps) {
   const { t } = useTranslation();

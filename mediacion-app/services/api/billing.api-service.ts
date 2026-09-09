@@ -1,10 +1,16 @@
-import type { EstadoSuscripcion, MockSubscription } from '@/types/billing';
+import type {
+  EstadoSuscripcion,
+  MockSubscription,
+  SubscriptionUsage,
+  UsageCounter,
+} from '@/types/billing';
 
 import type { HttpClient } from './http-client';
 
 /**
- * The two billing reads/writes that exist on the real API today:
- * `GET /suscripciones/vigente` (`docs/fichas-legal-backend.md` §10) and
+ * The billing reads/writes that exist on the real API today:
+ * `GET /suscripciones/vigente` (`docs/fichas-legal-backend.md` §10),
+ * `GET /suscripciones/uso` (§11, added 03/09) and
  * `POST /suscripciones/:id/baja` (§7, the baja online of Ley 24.240 art. 10
  * ter). Wire shapes are snake_case, matching the `suscripciones` columns.
  *
@@ -33,6 +39,58 @@ export function toSubscription(row: ApiSuscripcion): MockSubscription {
   };
 }
 
+/** BE's `UsoMedidor`. `limite: null` is unlimited, never "zero allowed". */
+export type ApiUsoMedidor = {
+  usado: number;
+  limite: number | null;
+};
+
+/**
+ * BE's `UsoView` (`apps/api/src/pagos/pagos.types.ts`). `clientes` is `null`
+ * for anyone who is not the titular of an estudio.
+ */
+export type ApiUso = {
+  period_start: string;
+  period_end: string;
+  negociaciones: ApiUsoMedidor;
+  clientes: ApiUsoMedidor | null;
+};
+
+/**
+ * A count only means something if it is a non-negative whole number; a limit
+ * additionally accepts `null` for unlimited. Anything else came from a bug on
+ * the wire, and "usaste 2.5 de 3" reads as a broken product — so an unusable
+ * count degrades to 0 and an unusable limit to `null` (unlimited), which is the
+ * direction that never invents a wall the server did not report.
+ *
+ * Same rule as `utils/quota-limit.ts`'s `readCount`, applied at the other end
+ * of the same feature.
+ */
+function toCounter(row: ApiUsoMedidor): UsageCounter {
+  const usable = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isInteger(value) && value >= 0;
+  return {
+    used: usable(row?.usado) ? row.usado : 0,
+    limit: usable(row?.limite) ? row.limite : null,
+  };
+}
+
+/** Mirrors `readInstant` in `utils/quota-limit.ts`: an unparseable date is no date. */
+function toInstant(value: unknown): string | null {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
+}
+
+export function toSubscriptionUsage(row: ApiUso): SubscriptionUsage {
+  return {
+    periodStart: toInstant(row.period_start),
+    periodEnd: toInstant(row.period_end),
+    negotiations: toCounter(row.negociaciones),
+    // `null` travels: it is "you are not an estudio titular", which is not the
+    // same as a counter sitting at zero.
+    clients: row.clientes === null || row.clientes === undefined ? null : toCounter(row.clientes),
+  };
+}
+
 /** BE's `SuscripcionCancelada` — the baja answers with less than the read does. */
 export type ApiSuscripcionCancelada = {
   id: string;
@@ -42,6 +100,7 @@ export type ApiSuscripcionCancelada = {
 
 export type ApiBillingService = {
   getCurrentSubscription(): Promise<MockSubscription>;
+  getUsage(): Promise<SubscriptionUsage>;
   cancelSubscription(id: string): Promise<ApiSuscripcionCancelada>;
 };
 
@@ -53,6 +112,15 @@ export function createApiBillingService(http: HttpClient): ApiBillingService {
       // A client-supplied owner would be a way to read someone else's plan.
       const row = await http.request<ApiSuscripcion>('/suscripciones/vigente');
       return toSubscription(row);
+    },
+
+    async getUsage() {
+      // No id and no query, for the same reason as the read above: the server
+      // resolves titularidad from the token — personal first, estudio after,
+      // and only for its titular. A client-supplied owner would be a way to
+      // read someone else's consumption.
+      const row = await http.request<ApiUso>('/suscripciones/uso');
+      return toSubscriptionUsage(row);
     },
 
     async cancelSubscription(id) {

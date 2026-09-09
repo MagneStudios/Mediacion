@@ -16,9 +16,17 @@ type ActiveCaseLimit = {
   scope: CaseLimitScope;
 };
 
-function planLimitExceeded(): HttpException {
+const recursoCasos = "casos";
+
+function planLimitExceeded(usado: number, limite: number): HttpException {
   return new HttpException(
-    { code: "plan_limit_exceeded", message: "Plan case limit reached" },
+    {
+      code: "plan_limit_exceeded",
+      message: "Plan case limit reached",
+      recurso: recursoCasos,
+      usado,
+      limite,
+    },
     HttpStatus.FORBIDDEN,
   );
 }
@@ -41,7 +49,7 @@ export class PlanLimitService {
     }
     const count = await this.countCases(activeLimit.scope);
     if (count >= activeLimit.limiteCasos) {
-      throw planLimitExceeded();
+      throw planLimitExceeded(count, activeLimit.limiteCasos);
     }
   }
 

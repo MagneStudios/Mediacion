@@ -20,6 +20,7 @@ jest.mock('@/services/agreements.service', () => ({
 import { useSignatureInbox } from '../useSignatureInbox';
 
 const item: SignatureInboxItem = {
+  agreementId: 'agr-1',
   caseId: 'case-1',
   caseTitle: 'Caso 1',
   agreementTitle: 'Acuerdo 1',

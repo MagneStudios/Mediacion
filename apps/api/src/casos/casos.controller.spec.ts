@@ -10,6 +10,8 @@ import { UsersRepository } from "../auth/users.repository";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
 import { KYSELY } from "../database/database.tokens";
 import { PlanLimitService } from "../pagos/plan-limit.service";
+import { SuscripcionesService } from "../pagos/suscripciones.service";
+import { UsageRepository } from "../pagos/usage.repository";
 import { CasosController } from "./casos.controller";
 import { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
@@ -18,6 +20,17 @@ import { computeSemaforo } from "./semaforo";
 
 function allowAllPlanLimit() {
   return { assertCanCreateCase: () => Promise.resolve(undefined) };
+}
+
+function unlimitedUsage() {
+  return { consumeNegotiation: () => Promise.resolve(undefined) };
+}
+
+function suscripcionesWithPeriod() {
+  return {
+    ensureBillingPeriod: () => Promise.resolve(undefined),
+    getUso: () => Promise.reject(new Error("not expected")),
+  };
 }
 
 const parteA: AuthenticatedUser = {
@@ -107,6 +120,8 @@ describe("POST/GET /casos end-to-end isolation", () => {
         },
         { provide: UsersRepository, useValue: usersRepository },
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
+        { provide: UsageRepository, useValue: unlimitedUsage() },
+        { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
         {
           provide: TOKEN_VERIFIER,
           useValue: {
@@ -285,6 +300,8 @@ describe("POST /casos pg-error mapping end-to-end", () => {
         { provide: KYSELY, useValue: fakeKysely },
         { provide: UsersRepository, useValue: usersRepository },
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
+        { provide: UsageRepository, useValue: unlimitedUsage() },
+        { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
         {
           provide: TOKEN_VERIFIER,
           useValue: {

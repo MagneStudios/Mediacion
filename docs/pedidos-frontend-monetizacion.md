@@ -1,6 +1,6 @@
 # Pedidos de Frontend — Monetización Pactum
 
-**Fecha:** 23/08/2026 · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
+**Fecha:** 23/08/2026, ampliado el 03/09 (§3.5, §3.6) y el 04/09 (§3.7 — **abono recurrente**, que retira el primer punto del §4) · **Autor:** Frontend · **Para:** Backend (§3), y **DB + Producto** (§5)
 **Origen:** `docs/PACTUM-monetizacion-spec.md` v1.0 · `docs/contrato-spec-repo-monetizacion.md` · `docs/changelogs-db/2026-08-21.md`
 **Rama de FE:** `feat/frontend-monetizacion-pactum` · **Plan completo:** `docs/plan-frontend-monetizacion.md`
 
@@ -64,6 +64,8 @@ Hoy no hay forma de saber cuánto consumió alguien: `usage_counters` existe y n
 
 Timestamps por `normalizeTimestamp`, como el resto.
 
+> **Implementado — 03/09/2026, Backend.** `GET /suscripciones/uso` con el shape de arriba tal cual, ficha §11 de `docs/fichas-legal-backend.md`. Titularidad idéntica a `/vigente`; "con plan" = `estado IN ('activa','vencida')` (el mismo conjunto que acepta `consume_quota`), así que `pendiente_pago`/`cancelada` responden `404 suscripcion_not_found`. `usado: 0` sin fila de contador; `clientes: null` salvo titular de estudio; `limite: null` = ilimitado. Las suscripciones anteriores a hoy tienen `current_period_*` en NULL: la primera lectura persiste la ventana de 30 días anclada en `fecha_inicio`. Detalle en `docs/changelogs/2026-09-03-uso-y-cuota.md`.
+
 ### 3.2 · El error de cuota — y un choque con el envelope
 
 El spec §8 define el 402 así:
@@ -100,6 +102,10 @@ Para el usuario son la misma pared y les damos la misma pantalla, así que **no 
 
 Lo único que necesitamos saber es **qué código nos va a llegar** cuando el usuario no pueda crear. Si conviven, los dos deberían traer el mismo cuerpo de arriba.
 
+> **Implementado — 03/09/2026, Backend.** Status **402** con el envelope propuesto acá, ficha §12 de `docs/fichas-legal-backend.md`: `{ error: { code: "quota_exceeded", message, recurso: "negociaciones", usado, limite, period_end } }`, sin `upgrade_url`. `AllExceptionsFilter` pasa los campos extra del body dentro de `error` (nunca `statusCode`); las respuestas existentes no cambian. El consumo corre dentro de la misma transacción que crea el caso: cupo agotado ⇒ no se crea el caso y el contador no se infla. El detalle puede faltar (402 con sólo `code`/`message`) cuando el caller es un miembro de estudio no titular, ver la deuda en §12.
+>
+> **Respuesta a la pregunta: conviven.** `403 plan_limit_exceeded` (stock sobre `limite_casos`) corre antes y se mantiene; `402 quota_exceeded` (flujo sobre `max_negotiations_per_period`) lo decide `consume_quota`. Los dos traen el mismo cuerpo de detalle: el 403 con `recurso: "casos"`, `usado` y `limite` (sin `period_end`, un stock no tiene período). Retirar el modelo viejo es una decisión de Producto que este ciclo no toma.
+
 ### 3.3 · `GET /planes` — dos columnas que faltan
 
 `planColumns` (`pagos/pagos.types.ts`) sigue con las seis viejas. Para la página de pricing necesitamos las dos que agregó DB:
@@ -108,6 +114,8 @@ Lo único que necesitamos saber es **qué código nos va a llegar** cuando el us
 - `max_clients_per_period`
 
 Es agregarlas al allowlist; el compile-guard que ya tienen se encarga del resto.
+
+> **Implementado — 03/09/2026, Backend.** `planColumns` incluye `max_negotiations_per_period` y `max_clients_per_period` (`number | null`, NULL = ilimitado); el compile-guard de `pagos.types.spec.ts` ahora exige las dos. §5 sigue abierto del lado de DB + Producto.
 
 **Ojo con dos cosas que no son de ustedes pero salen por esta ruta** — están en §5, y las dos bloquean la página de pricing.
 
@@ -123,19 +131,66 @@ back_url: <APP_URL>/billing/callback
 - La pantalla consulta `GET /suscripciones/vigente` cada 3 s hasta 60 s esperando que `estado` pase a `activa`. **No necesitamos ningún endpoint nuevo para esto.**
 - **Si mueven la ruta, avisen.** Es de las pocas cosas nuestras que quedan congeladas en una configuración de MercadoPago y no se puede cambiar de un solo lado.
 
-### 3.5 · Abogado — todavía no congelamos el shape, y es a propósito
+### 3.5 · Abogado — todavía no congelamos el shape entero, pero el handoff ya sí (actualizado 03/09)
 
 `POST /casos/:id/solicitud-abogado` → `{ init_point }` y `GET /casos/:id/solicitud-abogado` → estado actual.
 
-**No los especificamos en detalle todavía** porque el alcance del servicio (decisión #1 del spec, de Solmi & Asociados) cambia qué campos necesita la pantalla, y congelar un shape antes de saberlo es cómo se arma un contrato que hay que renegociar. El spec lo marca como *bloqueante para publicar*: "no se puede cobrar sin decir qué se entrega".
+**No especificamos el shape completo todavía** porque el alcance del servicio (decisión #1 del spec, de Solmi & Asociados) cambia qué campos necesita la pantalla, y congelar un contrato antes de saberlo es cómo se arma uno que hay que renegociar. El spec lo marca como *bloqueante para publicar*: "no se puede cobrar sin decir qué se entrega".
 
 Lo que sí les sirve saber ahora:
 
+- **El precio subió: ARS 40.000 → 50.000** (respuesta del cliente del 01/09, punto 2 — `docs/respuestas-cliente-01-09-2026.md`). `LAWYER_FEE_ARS_MINOR` en su config sigue en `4000000`; hay que moverlo a `5000000` para no quedar desalineados con el mock, que ya lo tiene. El USD sigue en 30 porque el cliente no lo tocó — es una pregunta abierta aparte (¿sube también, o se mantiene?), no algo para resolver de este lado.
 - El precio se **congela** en `lawyer_requests.monto_minor` al crear la solicitud, no se re-cotiza en el webhook (spec §7.3). Nuestro modal ya muestra el precio que trae la oferta.
 - Ante un segundo intento sobre el mismo caso, **reusar la solicitud `pendiente_pago` existente** en vez de crear otra (spec §7.6). Nuestro mock ya lo hace de este lado; la garantía es de ustedes más el índice único.
 - Montos en **unidades mínimas enteras**, nunca float.
 
-Cuando Solmi entregue el alcance, mandamos la ficha completa.
+**Lo nuevo: el handoff por WhatsApp (spec §7.5) sí se puede congelar hoy, aunque el alcance no esté.** El cliente eligió el fallback v1 el 01/09 — un `wa.me` que el usuario mismo dispara, sin WhatsApp Business API — y ya lo construimos contra el mock (`docs/changelogs/2026-09-03-whatsapp-handoff.md`). Lo que necesitamos que `GET /casos/:id/solicitud-abogado` devuelva, una vez que el estado sea `pagada`, no depende del alcance:
+
+```json
+{
+  "estado": "pagada",
+  "handoff": {
+    "estudio_whatsapp": "+5491155554444",
+    "codigo": "lawreq-0007"
+  }
+}
+```
+
+- `estudio_whatsapp`: el número del estudio, **en formato internacional** (con o sin `+`; nosotros normalizamos a dígitos antes de armar el `wa.me`). Puede ser `null` — es el estado real ahora mismo, el número todavía no lo pasó Administración. Mientras tanto usamos `EXPO_PUBLIC_ESTUDIO_WHATSAPP` como fallback de nuestro lado, pero el payload de ustedes gana en cuanto exista.
+- `codigo`: un identificador corto (alcanza con el id de la solicitud, `lawreq-0007`). **Es el único dato de la negociación que va a viajar en la URL de `wa.me`** — nunca el nombre de la contraparte ni el objeto del caso, por la restricción explícita del spec §7.5. Nuestro `buildHandoffUrl` lo valida y rechaza cualquier otra cosa.
+
+Cuando Solmi entregue el alcance, mandamos la ficha completa del resto del endpoint.
+
+---
+
+### 3.6 · Código tipado para el gate de suscripciones — C-01
+
+> **Implementado — 03/09/2026, Backend.** `common/db/pg-error.ts` reconoce el slug `caso_bloqueado_suscripciones` del trigger y lo expone como `{ code: "caso_bloqueado_suscripciones", message: "Both parties in the case need an active subscription" }`, en vez del `{code: "conflict", message: "Conflict"}` genérico de antes. El mecanismo es un allowlist (`knownTriggerConflicts`), así que sumar otro trigger tipado más adelante es una línea, no una reescritura. Detalle en `docs/changelogs/2026-09-03-pg-error-c01-fix.md`.
+>
+> De paso se encontró y arregló la razón real por la que `ci-node` venía en rojo en `dev` desde el merge del gate (PR #115): el fixture de `invitaciones-hardening.integration.spec.ts` no le daba suscripción activa a ninguna de las dos partes, así que el propio gate bloqueaba el join que el test esperaba que funcionara. No era un bug del código de negocio — era el mismo "el gate cambió una regla real y el fixture no se enteró" que ya les tocó del lado de DB con `tmp/test_05_estados.sql` y compañía.
+
+**Qué desbloqueaba:** que la pantalla de un caso distinga "te falta suscribirte a vos" (o a la contraparte) de cualquier otro 409, sin matchear un mensaje de Postgres.
+
+DB entregó el gate el 02/09 (`20260902120000_c01_gate_suscripciones.sql`, ver `docs/changelogs-db/2026-09-02.md`): el trigger `trg_casos_gate_suscripciones` bloquea la transición de un caso a `activo`/`en_negociacion` mientras alguna de las dos partes no tenga suscripción activa, y levanta:
+
+```
+RAISE EXCEPTION 'caso_bloqueado_suscripciones' ... (errcode P0001)
+```
+
+`apps/api/src/common/db/pg-error.ts` ya mapea `P0001` a un `ConflictError` de dominio — pero **genérico**: cualquier trigger que dispare `P0001` cae en el mismo tipo, con el mensaje crudo de Postgres como único dato. Hoy eso sale como un `409` sin forma de distinguirlo de otro conflicto (por ejemplo el de `acuerdos.repository.ts` o el de `negociacion-rondas`) salvo comparando el string del mensaje contra la base — que es exactamente el acoplamiento que no queremos escribir.
+
+**Lo que pedimos:** un código de error propio para este caso puntual, algo como
+
+```json
+{
+  "statusCode": 409,
+  "error": "caso_bloqueado_suscripciones"
+}
+```
+
+que `ConflictError` (o una subclase) pueda cargar además del mensaje, para que el front matchee contra `error`, no contra texto libre. El front ya modela el estado `pendiente_suscripciones` de este lado (`docs/changelogs/2026-09-03.md`); lo único que falta es no tener que adivinar el error.
+
+No es urgente para nada que esté en producción hoy —el gate no lo dispara ninguna pantalla real todavía, sólo lo ejercita el test nuevo de FE—, pero conviene resolverlo antes de que el checkout de suscripciones esté conectado y un caso se quede en este estado con un usuario real mirando la pantalla.
 
 ---
 
@@ -143,9 +198,31 @@ Cuando Solmi entregue el alcance, mandamos la ficha completa.
 
 Para que no construyan de más:
 
-- **Nada de checkout de suscripción todavía.** Seguimos sin cablearlo mientras `POST /suscripciones/:id/pago` devuelva un `init_point` de preferencia one-off en vez de confirmar un pago, y no haya endpoint de factura. Ya está asentado en `docs/tyc-contrato-frontend.md` §10.5.
+- ~~**Nada de checkout de suscripción todavía.**~~ ⚠️ **Retirado el 04/09 — ver §3.7.** Esto quedó viejo y era peligroso dejarlo: decía "no nos armen el checkout" y el cliente, en la reunión del 01/09, puso el **abono recurrente en el centro del modelo de negocio**. Si leen sólo esta línea, la pieza más importante del cambio se queda sin dueño.
 - **Ningún endpoint de `usage_counters` por cliente para el estudio.** El desglose por cliente del spec §5.1.1 es útil pero no lo consume ninguna pantalla nuestra hoy.
 - **`upgrade_url`** (ver §3.2).
+
+---
+
+## 3.7 · El abono recurrente — nuevo, 04/09, y hoy no lo tiene nadie
+
+> Agregado después de la reunión del 01/09 (`docs/CAMBIOS-PACTUM-v2-2026-09-01.md` punto 3). **Retira el primer punto del §4**, que pedía explícitamente no construir el checkout.
+
+**Qué cambió.** El cliente definió que el producto es la **renegociación continua a lo largo del tiempo**, y que por eso el cobro es *"un abono recurrente, no un pago por caso"*, con *"Mercado Pago con suscripción / pago recurrente (preapproval), no pago único"*. No es un detalle de implementación: es el fundamento del modelo de negocio que nos explicó.
+
+**Qué hay hoy.** El camino vivo es **one-off**: `POST /suscripciones/:id/pago` crea una *preference* (`checkout/preferences`, con `items[]` y `unit_price`), el webhook sólo entiende eventos de `payment`, y `applyPayment` hace `UPDATE suscripciones SET estado='activa', fecha_inicio=now()`. **Nunca se escribe `current_period_start/end` ni `mp_preapproval_id`.**
+
+Las columnas ya existen desde la fase 1 de monetización — y hay una consecuencia que conviene mirar: **`consume_quota` exige `current_period_start/end` no nulos** y lanza `NO_BILLING_PERIOD` si faltan. Como el checkout one-off nunca los llena, esa función fallaría siempre el día que alguien la invoque.
+
+**Lo que necesita el front, y que no lo tenemos que inventar:**
+
+1. **Un checkout que devuelva algo que podamos abrir** para dar de alta el preapproval. Hoy nuestro botón dice *"Pagar (simulado)"* y nunca abre el `init_point`.
+2. **`GET /suscripciones/vigente` con el período**: `current_period_end` y `cancel_at_period_end`. Sin eso la pantalla "Mi plan" no puede decir hasta cuándo está paga la suscripción — hoy `fecha_fin` es *el instante en que se registró la baja*, que es otra cosa (`docs/fichas-legal-backend.md:246`).
+3. **El webhook entendiendo eventos de preapproval**, no sólo de `payment`.
+
+**Lo que ya está construido de este lado**, para que se vea que no arranca de cero: `app/billing/callback.tsx` y `features/billing/hooks/usePaymentConfirmation.ts` están escritos **asumiendo preapproval** —con polling a `GET /suscripciones/vigente` esperando que el webhook active la suscripción—, y hoy no hay nada del checkout que navegue ahí. Es una pantalla esperando un flujo que todavía no existe.
+
+**Una consecuencia que hay que definir con Producto** (el cliente la dejó explícitamente abierta): qué pasa **al vencer** la suscripción. Su texto es *"los acuerdos firmados no se pierden; lo que se bloquea es abrir o continuar negociaciones"*. Del lado del front eso significa que un acuerdo firmado tiene que seguir siendo legible con la suscripción vencida — hoy nuestra elegibilidad no distingue ese caso.
 
 ---
 
@@ -189,7 +266,7 @@ No es un reproche: es que cuando DB agrega un valor de enum, la punta que lo con
 
 Igual que en TyC: cada servicio de FE tiene su mock y su singleton, y activar es cambiar una línea sin tocar ninguna pantalla. No integramos hasta que exista la ficha de cada endpoint (§06 del anexo de reparto).
 
-**El orden que más nos sirve:** §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.4 (`back_url`, cuando armen el preapproval) → §3.5 (abogado, cuando Solmi defina).
+**El orden que más nos sirve, actualizado el 04/09:** **§3.7 (el abono recurrente) primero** — es el fundamento del modelo de negocio y hoy no lo tiene nadie → §3.4 (`back_url`, que va con el preapproval del 3.7) → §3.3 (dos columnas, es chico) → §3.1 (`/uso`, desbloquea el medidor) → §3.2 (el 402) → §3.6 (código tipado del gate C-01) → §3.5 (abogado, el handoff ya se puede implementar; el resto cuando Solmi defina).
 
 ---
 

@@ -8,7 +8,10 @@ export type FetchStatus = 'loading' | 'error' | 'success';
 export type MutationStatus = 'idle' | 'pending' | 'error';
 
 /**
- * Agreement state for one case, plus the two mutations available on it.
+ * Agreement state for one case, plus the three mutations that replace it:
+ * preparing the document, signing, and registering a breach notice — the last
+ * one because the server moves the acuerdo to `con_aviso` in the same
+ * transaction, so it returns a new state just like the other two.
  * Mirrors useNegotiation()'s fetch/focus-refresh shape. `state` is `null`
  * when the case has no accepted proposal yet — a calm, expected read, not
  * an error.
@@ -22,11 +25,13 @@ export function useAgreement(caseId: string) {
   const mountedRef = useRef(true);
   const prepareInFlightRef = useRef<object | null>(null);
   const signInFlightRef = useRef<object | null>(null);
+  const breachInFlightRef = useRef<object | null>(null);
   const mutationRevisionRef = useRef(0);
   const [resultCaseId, setResultCaseId] = useState<string | null>(null);
 
   const [prepareStatus, setPrepareStatus] = useState<MutationStatus>('idle');
   const [signStatus, setSignStatus] = useState<MutationStatus>('idle');
+  const [breachStatus, setBreachStatus] = useState<MutationStatus>('idle');
 
   if (activeCaseIdRef.current !== caseId) {
     activeCaseIdRef.current = caseId;
@@ -43,8 +48,10 @@ export function useAgreement(caseId: string) {
   useEffect(() => {
     prepareInFlightRef.current = null;
     signInFlightRef.current = null;
+    breachInFlightRef.current = null;
     setPrepareStatus('idle');
     setSignStatus('idle');
+    setBreachStatus('idle');
   }, [caseId]);
 
   const reload = useCallback(() => {
@@ -55,7 +62,7 @@ export function useAgreement(caseId: string) {
   const fetchSilently = useCallback(() => {
     let cancelled = false;
     const revision = mutationRevisionRef.current;
-    if (prepareInFlightRef.current || signInFlightRef.current) return;
+    if (prepareInFlightRef.current || signInFlightRef.current || breachInFlightRef.current) return;
     agreementsService
       .getAgreementState(caseId)
       .then((result) => {
@@ -143,6 +150,40 @@ export function useAgreement(caseId: string) {
     [caseId],
   );
 
+  /**
+   * Registering a breach also moves the agreement to `con_aviso` server-side,
+   * so the service answers with the state afterwards and it replaces the one
+   * on screen — exactly like a signature. Same in-flight guard: a double
+   * confirm must not register the same notice twice.
+   */
+  const reportBreach = useCallback(
+    async (agreementId: string, description: string) => {
+      if (breachInFlightRef.current) return false;
+      const operation = {};
+      breachInFlightRef.current = operation;
+      mutationRevisionRef.current += 1;
+      setBreachStatus('pending');
+      try {
+        const result = await agreementsService.reportBreach(caseId, agreementId, description);
+        if (!mountedRef.current || activeCaseIdRef.current !== caseId) return false;
+        setResultCaseId(caseId);
+        setState(result);
+        setBreachStatus('idle');
+        return true;
+      } catch {
+        if (mountedRef.current && activeCaseIdRef.current === caseId) setBreachStatus('error');
+        return false;
+      } finally {
+        if (breachInFlightRef.current === operation) breachInFlightRef.current = null;
+      }
+    },
+    [caseId],
+  );
+
+  const resetBreachStatus = useCallback(() => {
+    setBreachStatus('idle');
+  }, []);
+
   const resetSignStatus = useCallback(() => {
     setSignStatus('idle');
   }, []);
@@ -156,5 +197,8 @@ export function useAgreement(caseId: string) {
     signStatus,
     submitSignature,
     resetSignStatus,
+    breachStatus,
+    reportBreach,
+    resetBreachStatus,
   };
 }

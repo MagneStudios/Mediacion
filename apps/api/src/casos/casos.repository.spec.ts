@@ -1,5 +1,8 @@
 import { HttpStatus } from "@nestjs/common";
-import { ConflictError } from "../common/errors/domain-errors";
+import {
+  ConflictError,
+  QuotaExceededError,
+} from "../common/errors/domain-errors";
 import { CasosRepository } from "./casos.repository";
 import type { CreateCasoDto } from "./casos.types";
 import { estadoInvitacionAceptada } from "./casos.types";
@@ -159,6 +162,56 @@ describe("CasosRepository", () => {
       expect(result).toBe(insertedCaso);
     });
 
+    it("runs the beforeInsert hook on the transaction before inserting the caso", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+      const seenTrx: unknown[] = [];
+      const beforeInsert = jest.fn(async (trx: unknown) => {
+        expect(fakeKysely.casoValues).not.toHaveBeenCalled();
+        seenTrx.push(trx);
+      });
+
+      await repository.createCaseWithParteA(
+        { nombre: "Divorcio", metodo: "mediacion" },
+        "user-1",
+        beforeInsert,
+      );
+
+      expect(beforeInsert).toHaveBeenCalledTimes(1);
+      expect(fakeKysely.casoValues).toHaveBeenCalledTimes(1);
+      expect(seenTrx[0]).toHaveProperty("insertInto", fakeKysely.insertInto);
+    });
+
+    it("aborts the whole transaction, inserting nothing, when the hook rejects (quota exceeded)", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+      const beforeInsert = jest
+        .fn()
+        .mockRejectedValue(new QuotaExceededError(null, "QUOTA_EXCEEDED"));
+
+      await expect(
+        repository.createCaseWithParteA(
+          { nombre: "Divorcio", metodo: "mediacion" },
+          "user-1",
+          beforeInsert,
+        ),
+      ).rejects.toBeInstanceOf(QuotaExceededError);
+      expect(fakeKysely.casoValues).not.toHaveBeenCalled();
+      expect(fakeKysely.parteValues).not.toHaveBeenCalled();
+    });
+
+    it("keeps working without a hook", async () => {
+      const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
+      const repository = new CasosRepository(fakeKysely as never);
+
+      await expect(
+        repository.createCaseWithParteA(
+          { nombre: "Divorcio", metodo: "mediacion" },
+          "user-1",
+        ),
+      ).resolves.toEqual({ id: "caso-1" });
+    });
+
     it("never sets estado or ronda_actual explicitly on insert", async () => {
       const fakeKysely = createFakeTrxKysely({ id: "caso-1" });
       const repository = new CasosRepository(fakeKysely as never);
@@ -272,13 +325,17 @@ describe("CasosRepository", () => {
       const where3 = jest.fn().mockReturnValue({ executeTakeFirst });
       const where2 = jest.fn().mockReturnValue({ where: where3 });
       const where1 = jest.fn().mockReturnValue({ where: where2 });
-      const select = jest.fn().mockReturnValue({ where: where1 });
+      const selectRondaActual = jest.fn().mockReturnValue({ where: where1 });
+      const select = jest
+        .fn()
+        .mockReturnValue({ select: selectRondaActual, where: where1 });
       const innerJoin = jest.fn().mockReturnValue({ select });
       const selectFrom = jest.fn().mockReturnValue({ innerJoin });
       return {
         selectFrom,
         innerJoin,
         select,
+        selectRondaActual,
         where1,
         where2,
         where3,
@@ -319,49 +376,6 @@ describe("CasosRepository", () => {
       const result = await repository.findDetailForMember("caso-1", "stranger");
 
       expect(result).toBeUndefined();
-    });
-  });
-
-  describe("activateIfNuevo", () => {
-    function createFakeTrx(execute: jest.Mock) {
-      const where2 = jest.fn().mockReturnValue({ execute });
-      const where1 = jest.fn().mockReturnValue({ where: where2 });
-      const set = jest.fn().mockReturnValue({ where: where1 });
-      const updateTable = jest.fn().mockReturnValue({ set });
-      return { updateTable, set, where1, where2, execute };
-    }
-
-    it("activates a case from nuevo to activo using the provided trx, never touching ronda_actual", async () => {
-      const fakeTrx = createFakeTrx(jest.fn().mockResolvedValue(undefined));
-      const repository = new CasosRepository({} as never);
-
-      await repository.activateIfNuevo("caso-1", fakeTrx as never);
-
-      expect(fakeTrx.updateTable).toHaveBeenCalledWith("casos");
-      expect(fakeTrx.set).toHaveBeenCalledWith({ estado: "activo" });
-      expect(fakeTrx.where1).toHaveBeenCalledWith("id", "=", "caso-1");
-      expect(fakeTrx.where2).toHaveBeenCalledWith("estado", "=", "nuevo");
-      const updatedValues = fakeTrx.set.mock.calls[0][0];
-      expect(updatedValues).not.toHaveProperty("ronda_actual");
-    });
-
-    it("maps a trigger-raised invalid-transition exception to a uniform 409 via the shared pg-error guard", async () => {
-      const triggerError = {
-        code: "P0001",
-        message: "invalid caso estado transition",
-      };
-      const fakeTrx = createFakeTrx(jest.fn().mockRejectedValue(triggerError));
-      const repository = new CasosRepository({} as never);
-
-      let thrown: unknown;
-      try {
-        await repository.activateIfNuevo("caso-1", fakeTrx as never);
-      } catch (error) {
-        thrown = error;
-      }
-
-      expect(thrown).toBeInstanceOf(ConflictError);
-      expect((thrown as ConflictError).getStatus()).toBe(HttpStatus.CONFLICT);
     });
   });
 

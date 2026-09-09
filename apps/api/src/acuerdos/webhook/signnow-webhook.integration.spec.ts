@@ -140,10 +140,17 @@ describeDb("signNow webhook against a real app and database", () => {
       ])
       .execute();
 
+    const negociacion = await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     const acuerdo = await kysely
       .insertInto("acuerdos")
       .values({
         caso_id: casoId,
+        negociacion_id: negociacion.id,
         contenido: { split: "50/50" },
         estado: "enviado_a_firma",
         docusign_envelope_id: documentId,

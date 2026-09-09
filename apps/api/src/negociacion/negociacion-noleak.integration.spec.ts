@@ -9,6 +9,7 @@ import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
 import type { PropuestaContenido } from "./negociacion.types";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RondasRepository } from "./rondas.repository";
 
@@ -142,6 +143,7 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       rondasRepository,
       configuracionRepository,
       aiProposalGenerator,
+      new NegociacionesRepository(kysely),
     );
 
     await insertAuthUser(
@@ -171,6 +173,11 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       .returningAll()
       .executeTakeFirstOrThrow();
     casoId = caso.id;
+
+    await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .execute();
 
     await kysely
       .insertInto("caso_partes")
@@ -237,6 +244,11 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       () =>
         kysely
           .deleteFrom("rondas")
+          .where("caso_id", "=", casoId ?? "")
+          .execute(),
+      () =>
+        kysely
+          .deleteFrom("negociaciones")
           .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>

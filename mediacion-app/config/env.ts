@@ -64,6 +64,24 @@ export function readAppEnv(source: EnvSource): AppEnv {
 }
 
 /**
+ * Número de WhatsApp del estudio para el handoff post-pago (spec §7.5).
+ *
+ * **Opcional a propósito, y fuera de `readAppEnv`.** `readAppEnv` tira cuando
+ * falta un valor, y con razón: sin Supabase no hay app. Acá es al revés — el
+ * número es un dato de Administración que todavía no llegó, y hacer que la app
+ * no arranque por eso sería castigar a todo el producto por una pantalla.
+ * Ausente significa "el handoff no se puede ofrecer todavía", y la pantalla lo
+ * dice en vez de disimularlo.
+ */
+export function readEstudioWhatsapp(source: EnvSource): string | null {
+  const value = source.EXPO_PUBLIC_ESTUDIO_WHATSAPP;
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return null;
+  }
+  return value.trim();
+}
+
+/**
  * The app still runs entirely on mocks when the backend is not configured, so a
  * developer can work offline without a Supabase project.
  */

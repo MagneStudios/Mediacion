@@ -4,6 +4,60 @@ Audit of `mediacion-app` (React Native / Expo, built against mocks) vs the real 
 
 ---
 
+## 0.2 Status re-check — inventario completo de la superficie de la API (2026-08-25)
+
+**Autor:** Frontend · **Para:** Backend y DB · **Rama:** `feat/frontend-integracion-planes` (PR #111) + `feat/frontend-integracion-tareas`
+
+Re-verificado **ruta por ruta** contra los controllers de `apps/api/src`, no contra este documento. Las capas 0 y 0.1 y las secciones 1–4 quedan como están, para trazabilidad; **esta las reemplaza como estado actual**.
+
+**Por qué existe esta capa.** Backend avisó que "faltan algunos endpoints por integrar". Al revisar la superficie entera aparecieron **siete rutas construidas, sin consumir y sin ninguna razón para no hacerlo** — algunas desde hacía casi un mes. **Las siete están integradas** (25/08). El resto de lo no consumido sí tiene razón, pero hasta hoy esa razón no estaba escrita en ningún lugar común: por eso la tabla de abajo, para que nadie la vuelva a descubrir desde cero.
+
+### Consumido por `mediacion-app`
+
+`GET/POST /casos` · `GET /casos/:id` · `POST /casos/:id/invitaciones` · **`GET /casos/:id/invitaciones`** · `POST /casos/unirse` · `GET /casos/:casoId/actividad` · los cinco de `items` · los tres de `negociacion` · `GET/POST /casos/:casoId/acuerdo` · `POST /acuerdos/:id/firmar` · `GET /firmas` · **`POST/GET /acuerdos/:id/incumplimiento(s)`** · **`GET /acuerdos/:id/exportar`** · `GET /casos/:casoId/mediacion` · `GET /casos/:casoId/mediadores` · `POST /casos/:casoId/mediacion` · los cuatro de `notificaciones` · los cinco de `/me` · los seis públicos/bearer de `legal` · **`GET /planes`** · `GET /suscripciones/vigente` · `POST /suscripciones/:id/baja` · **`GET /casos/:casoId/tareas`** · **`PATCH /tareas/:id`**
+
+En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md`.
+
+### Existe, no se consume — y por qué
+
+| Ruta | Razón | ¿Bloquea? |
+|---|---|---|
+| `POST /tareas/:id/calendario` | **Ininvocable**: exige un `fecha_evento` que ninguna tarea generada tiene y que sólo ese endpoint escribe | **Sí** — §11 de `pedidos-frontend-a-backend.md` |
+| `POST /suscripciones` · `POST /suscripciones/:id/pago` | `pago` devuelve un `init_point` de MP, no confirma un cobro, y no hay endpoint de factura. Cablearlo haría que la app reporte un pago aprobado y emita una factura por plata que nadie cobró | No — decisión escrita |
+| `GET /acuerdos/:id/historial` | Devuelve filas crudas de `auditoria` (`accion`/`entidad`), sin correspondencia con el vocabulario de la pantalla | No — se derivan del acuerdo los dos eventos que la fila prueba |
+| `GET /acuerdos/:id/firmas` | Redundante: `GET /casos/:casoId/acuerdo` ya trae el bundle con `firmas` | No |
+| `GET /casos/:id/categorias` | Redundante: devuelve una lista **estática** (`categoriasBase`) idéntica al union de `types/position.ts`. Verificado valor por valor | No — pero es una ruta que quizá les convenga retirar |
+| `GET /casos/:id/plazo` | Redundante: `plazo`, `sla_tipo`, `ronda_actual` y `semaforo` ya viajan en `CaseSummary`/`CaseDetail` | No |
+| `PATCH /casos/:id/plazo` · `PATCH /casos/:id/estado` | No hay UI que los use ni pedido de Producto para que la haya | No — **avisen si esperaban que existiera** |
+| `POST /auth/biometria` | El proveedor biométrico es *"a definir"* (doc técnica §Calendario y biometría) y la app no tiene SDK. Lo único construible hoy sería auto-certificar la identidad del propio usuario. **Además: cualquier usuario autenticado puede marcarse `aprobada`** — la misma regla que `profile-allowlist.ts` enforcea en `PATCH /me` la saltea esta ruta | **Sí** — §12 |
+| `POST /auth/consentimiento` | Es la firma de identidad por DocuSign (inerte) + la aceptación de T&C, que ya resuelve `POST /legal/aceptaciones`. Grabarlo sería un segundo registro de lo mismo | **Sí** — §12.3 |
+| `PATCH /mediacion/:id` | `@Roles("mediador","admin")` — no es de la app de partes | No |
+| `GET /legal/aceptaciones/export(/pdf)` · `GET /metricas` · `GET /auditoria` · `PATCH /config/ia` · los cuatro de `/estudios` | `@Roles("admin"\|"estudio")` — son del panel, y `apps/panel` hoy tiene sólo un `package.json` | No |
+| `POST /inversores` | Público, para una landing que no es esta app | No |
+| `internal/*/sweep` · `webhooks/*` | Server-only | No |
+
+### Lo que necesitamos de Backend, por orden
+
+1. **§10 — los datos para conectarnos a la API real.** Es lo único que nos frena para dejar de verificar contra mocks. Hasta el fix de auth del 25/08 no se podía ni hacer login, así que **las cuatro integraciones nuevas están verificadas sólo contra mocks y contra la lectura de su código**.
+2. **§12.2 — el resultado biométrico lo escribe el cliente.** No nos bloquea a nosotros (no vamos a construir esa pantalla), pero es su propia regla contradiciéndose entre dos rutas y conviene que lo miren antes de que algo dependa de esa columna.
+3. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
+4. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
+5. **§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`** (`max_negotiations_per_period`, `max_clients_per_period`). Sigue abierto: `planColumns` tiene siete columnas, verificado hoy.
+6. **§9 — `Content-Disposition` en `exposedHeaders`.** Sólo el día que guardemos archivos de verdad.
+
+### Dos cosas que no son pedidos, pero les ahorran una sorpresa
+
+- **`GET /planes` manda `precio` como string, casi seguro.** `numeric(10,2)` y `pg` devuelve `numeric` como string salvo que se registre un type parser; `database/kysely.provider.ts` no registra ninguno, y **ninguna spec de ustedes fija el shape de lectura**. Nuestro mapper acepta los dos. Si se confirma, cualquier consumidor que haga aritmética sobre ese campo se lleva una sorpresa — el nuestro es hoy el único lugar donde está contemplado.
+- **Las tareas dependen enteramente de DocuSign.** `generateForAcuerdo` se llama desde **un solo lugar**, el webhook, cuando todas las firmas completan. Con las ocho `DOCUSIGN_*` sin configurar, `GET /casos/:casoId/tareas` devuelve `[]` siempre. No es un bug, pero significa que **tareas no se puede probar punta a punta sin DocuSign**, y eso no depende de nosotros.
+
+### Una lección de proceso, sin reproche
+
+`GET /casos/:id/invitaciones` estuvo **casi un mes construido y sin consumir**. El header de `cases.backed-service.ts` afirmaba que la API no tenía endpoint de lectura — cierto cuando se escribió, falso desde el commit `32515a3` del 30/07. El costo mientras tanto: recargar la app volvía irrecuperable el código de invitación.
+
+El changelog del 30/07 lo listaba; el que no lo leyó fuimos nosotros. Lo que proponemos para que no se repita: **cuando una ruta nueva quede lista, una línea en el doc de pedidos o en el changelog diciendo "esto ya se puede consumir"**. Nosotros hacemos lo simétrico: esta capa se actualiza cada vez que integramos algo.
+
+---
+
 ## 0.1 Status re-check — `origin/main` @ `172ce22` (2026-07-30)
 
 Re-verified against the live route table and the deployed stack. Sections 0 and 1–4 are kept as written; this layer corrects them.
@@ -82,7 +136,7 @@ No global route prefix (`apps/api/src/main.ts:5-9`). Global `AuthGuard` + `Roles
 
 ### Error envelope (verified)
 
-Every error, without exception, is `{ "error": { "code": string, "message": string } }` via `AllExceptionsFilter` (`apps/api/src/common/filters/all-exceptions.filter.ts:52-58` for HttpException, `:66-71` for unknown → 500 `internal_error`). Known codes: `unauthorized`, `user_not_provisioned`, `forbidden`, `forbidden_role`, `forbidden_estudio`, `not_found`, `caso_not_found`, `item_not_found`, `profile_not_found`, `propuesta_not_found`, `propuesta_already_exists`, `propuesta_not_pendiente`, `propuesta_not_ready`, `accepted_propuesta_not_found`, `acuerdo_already_exists`, `caso_not_acordado`, `both_parties_required`, `invalid_input`, `invalid_token`, `no_updatable_fields`, `conflict`, `internal_error`.
+Every error, without exception, is `{ "error": { "code": string, "message": string } }` via `AllExceptionsFilter` (`apps/api/src/common/filters/all-exceptions.filter.ts` for HttpException, unknown → 500 `internal_error`). Since 03/09 the filter also passes any **extra fields** of an object `HttpException` body inside `error` (never `statusCode`), so `402 quota_exceeded` and `403 plan_limit_exceeded` carry `recurso`, `usado`, `limite` (and `period_end` for the 402) next to `code`/`message`; every other error is unchanged. Known codes: `unauthorized`, `user_not_provisioned`, `forbidden`, `forbidden_role`, `forbidden_estudio`, `not_found`, `caso_not_found`, `item_not_found`, `profile_not_found`, `propuesta_not_found`, `propuesta_already_exists`, `propuesta_not_pendiente`, `propuesta_not_ready`, `accepted_propuesta_not_found`, `acuerdo_already_exists`, `caso_not_acordado`, `both_parties_required`, `invalid_input`, `invalid_token`, `no_updatable_fields`, `conflict`, `caso_bloqueado_suscripciones`, `plan_limit_exceeded`, `quota_exceeded`, `suscripcion_not_found`, `internal_error`.
 
 ### Route table
 
@@ -90,7 +144,7 @@ Every error, without exception, is `{ "error": { "code": string, "message": stri
 |---|---|---|---|
 | `GET /health` | Public | — | `{status:"ok"}` (`health.controller.ts:7-10`) |
 | `GET /me` | Bearer | — | `MeProfile`: `id, rol, nombre, apellido, email, telefono, idioma, verif_biometrica, estudio_id, activo` (`auth/authenticated-user.ts:12-24`; 404 `profile_not_found` `me.controller.ts:21-26`) |
-| `POST /casos` | Bearer | `{nombre, descripcion?, metodo}` (`casos.types.ts:8-12`) | `CaseCreated`: `{id, estado}` (`casos.types.ts:14`) |
+| `POST /casos` | Bearer | `{nombre, descripcion?, metodo}` (`casos.types.ts:8-12`) | `CaseCreated`: `{id, estado}` (`casos.types.ts:14`). Since 03/09 it consumes one negotiation via `consume_quota` in the same transaction: `402 quota_exceeded` `{recurso:"negociaciones", usado, limite, period_end}` when the period quota is spent (ficha §12 of `fichas-legal-backend.md`); `403 plan_limit_exceeded` `{recurso:"casos", usado, limite}` (stock on `limite_casos`) still runs first — both coexist |
 | `GET /casos` | Bearer | — | `CaseSummary[]`: `id, nombre, estado, metodo, created_at` (`casos.types.ts:24-27`) |
 | `GET /casos/:id` | Bearer (member) | — | `CaseDetail`: `id, nombre, descripcion, metodo, estado, creador_id, created_at, updated_at` (`casos.types.ts:29-39`) |
 | `POST /casos/:id/invitaciones` | Bearer (creator) | `{tipo: "link"\|"codigo"\|"email", email_destino?}` (`invitaciones.types.ts:8-11`) | `{id, tipo, token, estado}` (`invitaciones.types.ts:13-16`) |
@@ -103,8 +157,9 @@ Every error, without exception, is `{ "error": { "code": string, "message": stri
 | `GET /casos/:casoId/propuestas` | Bearer (parte; mediador only from ronda ≥ 3) | — | `PropuestaView[]` (`negociacion.controller.ts:31-38`; mediator gate `negociacion.service.ts:196-200`) |
 | `POST /propuestas/:id/responder` | Bearer (parte, not mediador) | `{decision: "acepta"\|"rechaza"}` (`negociacion.types.ts:39-41`) | `PropuestaView`. Rejects with `propuesta_not_ready` until narrative is generated (`propuestas.repository.ts:258-260`). `rechaza` → propuesta `rechazada` + next ronda auto-opened (`propuestas.repository.ts:268-285`); both `acepta` → `aceptada` |
 | `POST /casos/:casoId/acuerdo` | Bearer (member) | — | Full `acuerdos` row: `{id, caso_id, contenido, documento_url, docusign_envelope_id, estado, fecha, created_at, updated_at}` (`acuerdos.types.ts:4`, table `20260721191651_tables.sql:231-241`). Requires accepted propuesta; one per caso (`acuerdo_already_exists`) |
-| `GET /planes` | Bearer | — | `Plan[]`: `{id, nombre, limite_carpetas, limite_casos, limite_iteraciones_ia, precio, moneda}` (`pagos.types.ts:4-18`). `moneda` (punto #24, 23/08): la moneda del cobro real — hoy siempre `"ARS"`, es lo que viaja a `currency_id` de la preference de MP; el CHECK de `planes.moneda` solo admite `'ARS'` hasta que Producto decida otra cosa |
+| `GET /planes` | Bearer | — | `Plan[]`: `{id, nombre, limite_carpetas, limite_casos, limite_iteraciones_ia, precio, moneda, max_negotiations_per_period, max_clients_per_period}` (`pagos.types.ts` `planColumns`; the two `max_*` columns are `number \| null`, NULL = unlimited, added 03/09 for §3.3 of `pedidos-frontend-monetizacion.md`). `moneda` (punto #24, 23/08): la moneda del cobro real — hoy siempre `"ARS"`, es lo que viaja a `currency_id` de la preference de MP; el CHECK de `planes.moneda` solo admite `'ARS'` hasta que Producto decida otra cosa |
 | `POST /suscripciones` | Bearer | `{plan_id, estudio_id?}` (`pagos.types.ts:20-23`) | `{id, estado}` (`pagos.types.ts:31`) |
+| `GET /suscripciones/uso` | Bearer | — | `UsoView`: `{period_start, period_end, negociaciones: {usado, limite}, clientes: {usado, limite} \| null}` (`pagos.types.ts`, ficha §11 of `fichas-legal-backend.md`). Same titularidad as `/vigente`; `limite: null` = unlimited; `clientes` only for an estudio titular; `404 suscripcion_not_found` without an `activa`/`vencida` subscription. Added 03/09 |
 | `GET /estudios/:id` | Bearer, rol `estudio`/`admin` | — | `{marca_config}` (`estudios.controller.ts:46-52`) |
 | `GET /estudios/:id/casos` | Bearer, rol `estudio`/`admin` | — | `CasosByCarpeta[]` |
 | `POST /estudios/:id/carpetas` | Bearer, rol `estudio`/`admin` | `CreateCarpetaDto` | `CarpetaCreated` |

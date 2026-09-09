@@ -19,7 +19,7 @@ jest.mock('@/services/plans.service', () => ({
 // eslint-disable-next-line import/first
 import { usePlans } from '../usePlans';
 
-const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS' };
+const plan: Plan = { id: 'plan-1', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
 
 describe('usePlans', () => {
   beforeEach(() => {
@@ -66,6 +66,23 @@ describe('usePlans', () => {
       expect(result.current.status).toBe('success');
       expect(result.current.status === 'success' && result.current.plans).toHaveLength(2);
     });
+  });
+
+  it('keeps the loaded catalog when a silent refresh fails', async () => {
+    // Against `GET /planes` this is a dropped connection on focus, not a
+    // hypothetical: the user did not ask for the read, so it must not swap a
+    // good catalog for an error state — nor reject unhandled.
+    mockListPlanes.mockResolvedValueOnce([plan]).mockRejectedValueOnce(new Error('offline'));
+    const { result } = await renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+
+    await act(async () => {
+      if (result.current.status === 'success') result.current.refresh();
+    });
+
+    await waitFor(() => expect(mockListPlanes).toHaveBeenCalledTimes(2));
+    expect(result.current.status).toBe('success');
+    expect(result.current.plans).toEqual([plan]);
   });
 
   it('silently refreshes on focus once the first load has completed', async () => {

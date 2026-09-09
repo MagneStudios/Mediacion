@@ -117,6 +117,10 @@
       "empty": {
         "title": "There is no agreement yet",
         "description": "When both parties reach a shared proposal, the agreement will appear here."
+      },
+      "mismatch": {
+        "title": "We couldn't open that agreement",
+        "description": "The agreement you opened isn't the one we expected for this case. Go back to the signatures inbox and try again, so you don't review the wrong document."
       }
     },
     "sharedMarker": {
@@ -151,15 +155,17 @@
       }
     },
     "export": {
-      "action": "Export agreement (plain text)",
-      "exportingTitle": "Preparing the exported file",
-      "exportingBody": "The plain-text file will be ready in a moment.",
+      "action": "View the agreement as plain text",
+      "exportingTitle": "Fetching the agreement text",
+      "exportingBody": "It will be ready in a moment.",
       "success": {
-        "title": "Agreement exported",
-        "body": "A plain-text summary was generated in this test environment. It is not a signed or legally binding document."
+        "title": "Agreement as plain text",
+        "body": "This is a plain-text summary of the agreement. You can copy it and paste it wherever you need. It is not a signed or legally binding document."
       },
+      "copyAction": "Copy the text",
+      "copied": "Text copied",
       "error": {
-        "title": "We couldn't export the agreement"
+        "title": "We couldn't fetch the agreement"
       }
     },
     "sign": {
@@ -239,6 +245,10 @@
         "error": {
           "title": "We couldn't register the notice"
         }
+      },
+      "list": {
+        "title": "Registered notices",
+        "empty": "No notices have been registered on this agreement yet."
       }
     }
   },
@@ -325,6 +335,15 @@
         "action": "Continue anyway (demo)"
       }
     },
+    "usage": {
+      "title": "Your usage this period",
+      "negotiations": "Negotiations",
+      "clients": "Client sign-ups",
+      "count": "{{used}} of {{limit}}",
+      "unlimited": "{{used}} · no limit",
+      "renews": "The counter resets on {{date}}.",
+      "error": "We couldn't read your usage."
+    },
     "myPlan": {
       "title": "My plan",
       "hasSubscription": "This is your current plan. You can switch to another one whenever you want.",
@@ -340,6 +359,8 @@
       "currentBadge": "Current plan",
       "taxesIncluded": "Final price, taxes included",
       "subscribeAction": "Subscribe",
+      "negotiationsPerPeriodLabel": "Negotiations per period",
+      "clientsPerPeriodLabel": "Client sign-ups per period",
       "error": {
         "title": "We couldn't load your plan"
       },
@@ -414,7 +435,7 @@
       "subtitle": "You can change this later if the case needs it.",
       "descriptions": {
         "negociacion": "The parties exchange proposals and look for a point of agreement.",
-        "conciliacion": "The process includes guidance to bring the positions closer together.",
+        "conciliacion": "The process includes guidance and suggests options to bring the positions closer together.",
         "mediacion": "A neutral third party supports the dialogue and helps reach an agreement."
       },
       "selected": "Selected",
@@ -501,6 +522,7 @@
       "simulateAcceptance": {
         "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
         "action": "Simulate invitation acceptance",
+        "liveBackendNotice": "The case will activate once the other party accepts the invitation with their own link or code. Remember that both parties need an active subscription for the case to open.",
         "dialog": {
           "title": "Simulate acceptance?",
           "body": "This action only updates the demonstration. No real invitation will be sent or accepted.",
@@ -541,6 +563,11 @@
     "expired": {
       "title": "This invitation expired",
       "description": "More than 72 hours passed since it was sent. Ask the other party to send you a new invitation."
+    },
+    "subscriptionRequired": {
+      "title": "A subscription needs activating",
+      "description": "The code is correct. To open the case, both parties need an active subscription: check yours and, if it's already active, let the other party know.",
+      "action": "See plans"
     }
   },
   "cases": {
@@ -563,6 +590,7 @@
       "proposalReady": "Proposal ready",
       "signed": "Signed",
       "awaitingCounterparty": "Waiting for the other party",
+      "awaitingSubscriptions": "Subscriptions not active yet",
       "expired": "Invitation expired",
       "sla": "SLA {{hours}} h"
     },
@@ -1193,7 +1221,7 @@
       "accessibilityLargerText": "Larger text (preference)",
       "accessibilityLargerTextDescription": "This preference is saved only in this demonstration. It doesn't change the app's text size yet.",
       "matriculaSection": "Professional license",
-      "matriculaHint": "Optional. The license isn't verified: the digital signature is what makes the agreement valid, not this field.",
+      "matriculaHint": "Optional. The license isn't verified: this field doesn't change the value of what you sign.",
       "matriculaNumberLabel": "License number",
       "matriculaNumberPlaceholder": "e.g. CPACF 12345",
       "matriculaAttach": "Attach license (simulated)",
@@ -1394,6 +1422,9 @@
       "empty": {
         "title": "No tasks yet",
         "description": "Tasks will appear here once the agreement generates them."
+      },
+      "error": {
+        "title": "We couldn't load the tasks"
       }
     },
     "calendar": {
@@ -1407,6 +1438,11 @@
       "error": {
         "title": "We couldn't prepare the calendar event"
       }
+    },
+    "card": {
+      "completeAction": "Mark as completed",
+      "completingAction": "Marking…",
+      "completeAccessibility": "Mark as completed: {{descripcion}}"
     }
   },
   "lawyer": {
@@ -1422,6 +1458,22 @@
       "error": {
         "title": "We couldn't register your request"
       }
+    },
+    "handoff": {
+      "title": "Arrange the consultation on WhatsApp",
+      "body": "Your payment is confirmed. Message the firm to arrange it — the message already carries your request number ({{code}}).",
+      "action": "Open WhatsApp",
+      "message": "Hi: I paid for legal assistance on Pactum. My request number is {{code}}. I'd like to arrange the consultation.",
+      "numberPending": "Your payment is confirmed and your request number is {{code}}. We don't have the firm's WhatsApp number yet: we're sorting it out and will let you know. Keep that request number.",
+      "unavailable": "We couldn't open WhatsApp from here. Copy the number and message them however works best for you.",
+      "numberLabel": "Firm's WhatsApp",
+      "copy": "Copy number",
+      "copied": "Copied"
+    },
+    "simulatePayment": {
+      "action": "Simulate confirmed payment (demo)",
+      "hint": "Demo shortcut: in production Mercado Pago confirms the payment.",
+      "error": "We couldn't simulate the payment confirmation."
     }
   },
   "legal": {

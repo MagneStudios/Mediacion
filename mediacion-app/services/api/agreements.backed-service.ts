@@ -1,6 +1,8 @@
 import type {
+  AgreementExport,
   AgreementHistoryItem,
   AgreementState,
+  BreachNotice,
   SharedAgreement,
   SignatureInboxItem,
 } from '@/types/agreement';
@@ -139,6 +141,34 @@ export function createBackedAgreementsService(
         });
       }
       return items;
+    },
+
+    /**
+     * The POST also moves the acuerdo to `con_aviso` inside the server's own
+     * transaction, so the state is **re-read** rather than patched locally:
+     * what the screen renders afterwards is the server's estado, not this
+     * app's guess at what the write must have done.
+     *
+     * The registered notice itself is discarded here on purpose — the caller
+     * gets the new state, and anything that wants the notices asks for them.
+     * Returning both would let a screen render a list assembled from a write
+     * response and a read that disagree.
+     */
+    async reportBreach(
+      caseId: string,
+      agreementId: string,
+      description: string,
+    ): Promise<AgreementState> {
+      await api.registerBreach(agreementId, description);
+      return reload(caseId);
+    },
+
+    getBreachNotices(agreementId: string): Promise<BreachNotice[]> {
+      return api.listBreachNotices(agreementId);
+    },
+
+    async exportAgreement(agreementId: string): Promise<AgreementExport> {
+      return { document: await api.exportAgreement(agreementId) };
     },
 
     getSignatureInbox(): Promise<SignatureInboxItem[]> {

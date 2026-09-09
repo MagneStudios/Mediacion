@@ -1,4 +1,9 @@
-import { __mockForceBillingFailure, __resetMockBilling, createMockBillingService } from '../billing.service';
+import {
+  __mockForceBillingFailure,
+  __mockSetNegotiationsUsed,
+  __resetMockBilling,
+  createMockBillingService,
+} from '../billing.service';
 import { __resetMockPlans, plansService } from '../plans.service';
 
 describe('billing.service — R-09 checkout', () => {
@@ -68,5 +73,64 @@ describe('billing.service — R-09 checkout', () => {
   it('prepareInvoiceDownload rejects for an unknown invoice id', async () => {
     const service = createMockBillingService();
     await expect(service.prepareInvoiceDownload('does-not-exist')).rejects.toThrow('invoice_not_found');
+  });
+
+  describe('getUsage', () => {
+    it('reports no usage while there is no subscription to measure against', async () => {
+      // Mirrors BE's 404, which the backed service maps to null. It is a normal
+      // state, not a failure.
+      const service = createMockBillingService();
+      await expect(service.getUsage()).resolves.toBeNull();
+    });
+
+    it("reads the limits off the subscribed plan, and starts the counter at zero", async () => {
+      // Zero because nothing in this app consumes the quota: it is spent by
+      // `POST /casos` on the server, and the mock case service knows nothing
+      // about billing. BE returns 0 for the same reason when `usage_counters`
+      // has no row yet.
+      const service = createMockBillingService();
+      await service.subscribeToPlan('plan-estudio');
+
+      const usage = await service.getUsage();
+
+      // 'plan-estudio' is seeded at 3 negotiations / 20 clients — see mocks/plans.ts.
+      expect(usage?.negotiations).toEqual({ used: 0, limit: 3 });
+      expect(usage?.clients).toEqual({ used: 0, limit: 20 });
+    });
+
+    it('reports a plan with no period quota as unlimited rather than as capped at zero', async () => {
+      // 'plan-base' has both columns at NULL, which `consume_quota` reads as
+      // unlimited in as many words.
+      const service = createMockBillingService();
+      await service.subscribeToPlan('plan-base');
+
+      const usage = await service.getUsage();
+
+      expect(usage?.negotiations).toEqual({ used: 0, limit: null });
+      // No client quota on the plan means the mock has nothing to resolve a
+      // clients counter from, so it reports none — the same shape BE sends to
+      // anyone who is not the titular of an estudio.
+      expect(usage?.clients).toBeNull();
+    });
+
+    it('stops reporting usage once the subscription is cancelled', async () => {
+      // BE reports usage for `activa`/`vencida` only — the same set
+      // `consume_quota` accepts — and 404s for everything else.
+      const service = createMockBillingService();
+      await service.subscribeToPlan('plan-estudio');
+      await service.cancelSubscription();
+
+      await expect(service.getUsage()).resolves.toBeNull();
+    });
+
+    it('reflects a spent counter, including one sitting exactly at the limit', async () => {
+      const service = createMockBillingService();
+      await service.subscribeToPlan('plan-estudio');
+      __mockSetNegotiationsUsed(3);
+
+      const usage = await service.getUsage();
+
+      expect(usage?.negotiations).toEqual({ used: 3, limit: 3 });
+    });
   });
 });

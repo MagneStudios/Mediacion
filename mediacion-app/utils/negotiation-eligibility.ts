@@ -14,6 +14,11 @@ export function getNegotiationEligibility(
   currentProposal: SharedProposal | null,
 ): NegotiationEligibility {
   if (estado === 'nuevo') return 'waiting_counterparty';
+  // C-01: hay contraparte, pero el caso no puede abrirse hasta que las dos
+  // suscripciones estén al día. No es "esperando a la contraparte" —eso
+  // confundiría un problema de pago con uno de participación— y tampoco es
+  // negociable, así que read-only.
+  if (estado === 'pendiente_suscripciones') return 'read_only';
 
   if (estado === 'activo' || estado === 'en_negociacion') {
     if (ownPositionCount === 0) return 'positions_incomplete';

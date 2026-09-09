@@ -26,6 +26,7 @@ Enum metodo_caso {
 
 Enum estado_caso {
   nuevo
+  pendiente_suscripciones [note: 'C-01: caso bloqueado hasta que ambas partes tengan suscripción activa']
   activo
   en_negociacion
   acordado
@@ -144,6 +145,21 @@ Enum estado_arrepentimiento {
   en_proceso
   resuelta
   rechazada
+}
+
+Enum materia_acuerdo {
+  tenencia
+  alimentos
+  bienes
+  otro [note: 'Materia no clasificada entre las anteriores']
+}
+
+Enum estado_negociacion {
+  borrador
+  activa
+  acordada
+  cerrada
+  terminada
 }
 
 // ============================================================
@@ -334,13 +350,31 @@ Table casos {
   descripcion text
   metodo metodo_caso [not null]
   estado estado_caso [not null, default: 'nuevo']
-  ronda_actual int [not null, default: 1, note: 'Sincronizado vía trigger con tabla rondas']
   sla_tipo text [note: 'Tipo de plazo SLA']
   plazo timestamptz [note: 'Vencimiento para el semáforo']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: 'Casos/salas. RN-07: requiere al menos 2 partes. Máquina de estados §5. R-04: nuevo/activo → expirado cuando vence la invitación.'
+  Note: 'Casos/salas. RN-07: requiere al menos 2 partes. Máquina de estados §5. R-04: nuevo/activo → expirado cuando vence la invitación. La ronda actual ya no vive acá: se lee de negociaciones.round (Parte 4).'
+}
+
+Table negociaciones {
+  id uuid [pk, default: `gen_random_uuid()`]
+  caso_id uuid [not null]
+  materia materia_acuerdo
+  method metodo_caso [not null, note: 'Reusa el enum metodo_caso (negociacion/conciliacion/mediacion)']
+  estado estado_negociacion [not null, default: 'borrador']
+  round int [not null, default: 1, note: 'Ronda actual de la negociación (reemplaza casos.ronda_actual a nivel negociación)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (caso_id) [name: 'idx_negociaciones_caso']
+    (materia) [name: 'idx_negociaciones_materia']
+    (caso_id, materia) [name: 'negociaciones_caso_materia_unique', unique]
+  }
+
+  Note: 'Acuerdos modulares: 1 caso = N negociaciones por materia, cada una con su acuerdo y firma. RLS resuelve el caso vía caso_id (is_part_of_case). Parte 3 aditivo; Parte 4 mueve rondas/propuestas/acuerdos/items bajo negociacion_id.'
 }
 
 Table caso_partes {
@@ -382,6 +416,7 @@ Table invitaciones {
 Table items {
   id uuid [pk, default: `gen_random_uuid()`]
   caso_id uuid [not null]
+  negociacion_id uuid [note: 'Backfilleado en Parte 4 hacia la negociación del caso; queda nullable (decisión)']
   parte_id uuid [not null]
   categoria categoria_item [not null]
   nombre text [not null]
@@ -398,7 +433,7 @@ Table items {
     (caso_id, parte_id) [name: 'idx_items_caso_parte', note: 'RN-01: aislamiento de posiciones']
   }
 
-  Note: 'Posiciones privadas. RN-01: aislamiento absoluto. RN-02: rango de acuerdo. RF-NEG.'
+  Note: 'Posiciones privadas. RN-01: aislamiento absoluto. RN-02: rango de acuerdo. RF-NEG. Parte 4: pueden apuntar a una negociación determinada.'
 }
 
 // ============================================================
@@ -408,6 +443,7 @@ Table items {
 Table rondas {
   id uuid [pk, default: `gen_random_uuid()`]
   caso_id uuid [not null]
+  negociacion_id uuid [not null]
   numero int [not null, note: 'Número de ronda (1, 2, 3, ...)']
   estado estado_ronda [not null, default: 'activa']
   fecha_inicio timestamptz [not null, default: `now()`]
@@ -416,15 +452,16 @@ Table rondas {
   updated_at timestamptz [not null, default: `now()`]
 
   indexes {
-    (caso_id, numero) [unique]
+    (negociacion_id, numero) [name: 'rondas_negociacion_numero_unique', unique, note: 'Unívocas dentro de la negociación (Parte 4)']
   }
 
-  Note: 'Rondas de negociación. RN-04: cada rechazo abre una nueva. RN-05: mediador desde ronda 3.'
+  Note: 'Rondas de negociación. RN-04: cada rechazo abre una nueva. RN-05: mediador desde ronda 3. Parte 4: cuelgan de la negociación; al menos una por negociación.'
 }
 
 Table propuestas {
   id uuid [pk, default: `gen_random_uuid()`]
   caso_id uuid [not null]
+  negociacion_id uuid [not null]
   ronda_id uuid [not null]
   contenido jsonb [not null, note: 'Punto de encuentro propuesto por la IA (sin datos crudos de cada parte)']
   fundamentacion text [note: 'Fundamento (interés superior del niño); nullable. RN-06.']
@@ -434,7 +471,11 @@ Table propuestas {
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: 'Propuestas de IA. RN-03: une posiciones sin exponer datos privados. RF-IA.'
+  indexes {
+    (negociacion_id, ronda_id) [name: 'propuestas_negociacion_ronda_unique', unique, note: 'Unívocas dentro de la negociación (Parte 4)']
+  }
+
+  Note: 'Propuestas de IA. RN-03: une posiciones sin exponer datos privados. RF-IA. Parte 4: cuelgan de la negociación.'
 }
 
 Table respuestas_propuesta {
@@ -477,15 +518,24 @@ Table mediaciones {
 Table acuerdos {
   id uuid [pk, default: `gen_random_uuid()`]
   caso_id uuid [not null]
+  negociacion_id uuid [not null]
   contenido jsonb [not null, note: 'Contenido del acuerdo']
   documento_url text [note: 'URL del documento generado en Storage']
   docusign_envelope_id text [note: 'ID del envelope en DocuSign']
   estado estado_acuerdo [not null, default: 'borrador']
+  version int [not null, default: 1, note: 'Versión del acuerdo (crece al renegociar)']
+  supersedes_agreement_id uuid [note: 'Acuerdo que este reemplaza (auto-referencia; NULL si es v1)']
+  vigente bool [not null, default: true, note: 'Acuerdo vigente por negociación = vigente=true; el reemplazado pasa a false y queda en historial']
+  valid_from timestamptz [not null, default: `now()`, note: 'Desde cuándo la versión quedó vigente']
   fecha timestamptz
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: 'Acuerdos. RN-09: firma vía DocuSign; estado lo define el webhook. RF-ACU.'
+  indexes {
+    (negociacion_id, vigente) [name: 'idx_acuerdos_negociacion_vigente', note: 'Fast lookup del acuerdo vigente de la negociación']
+  }
+
+  Note: 'Acuerdos. RN-09: firma vía DocuSign; estado lo define el webhook. RF-ACU. Parte 4: cuelgan de la negociación (derogado acuerdos_caso_unique). Parte 5: versionado por renegociación — el viejo queda vigente=false, el nuevo apunta a supersedes_agreement_id.'
 }
 
 Table firmas {

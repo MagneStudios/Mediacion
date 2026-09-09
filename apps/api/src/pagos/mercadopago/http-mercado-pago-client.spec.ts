@@ -147,6 +147,62 @@ describe("HttpMercadoPagoClient", () => {
     });
   });
 
+  describe("createOneOffPreference", () => {
+    it("posts the caller's own external reference, not a suscripcion id", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: "preference-2",
+            init_point: "https://mp.example.com/checkout/preference-2",
+          }),
+      });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      const result = await client.createOneOffPreference({
+        externalReference: "lawreq_solicitud-1",
+        title: "Pactum — Asistencia legal profesional",
+        precio: 50000,
+        moneda: "ARS",
+      });
+
+      expect(result).toEqual({
+        id: "preference-2",
+        initPoint: "https://mp.example.com/checkout/preference-2",
+      });
+      const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(requestBody).toEqual(
+        expect.objectContaining({
+          external_reference: "lawreq_solicitud-1",
+          items: [
+            expect.objectContaining({
+              title: "Pactum — Asistencia legal profesional",
+              quantity: 1,
+              unit_price: 50000,
+              currency_id: "ARS",
+            }),
+          ],
+        }),
+      );
+    });
+
+    it("throws explicitly when Mercado Pago responds with a non-ok status", async () => {
+      const fetchMock = jest.fn().mockResolvedValue({ ok: false, status: 400 });
+      jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+      const client = buildClient();
+
+      await expect(
+        client.createOneOffPreference({
+          externalReference: "lawreq_solicitud-1",
+          title: "Pactum",
+          precio: 50000,
+          moneda: "ARS",
+        }),
+      ).rejects.toThrow("status 400");
+    });
+  });
+
   describe("getPayment", () => {
     it("fetches a payment by id with a Bearer token and maps the response", async () => {
       const fetchMock = jest.fn().mockResolvedValue({

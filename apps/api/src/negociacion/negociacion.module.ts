@@ -7,6 +7,7 @@ import { OpenrouterProposalGenerator } from "./ai/openrouter-proposal-generator"
 import { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionController } from "./negociacion.controller";
 import { NegociacionService } from "./negociacion.service";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RespuestasRepository } from "./respuestas.repository";
 import { RondasRepository } from "./rondas.repository";
@@ -15,6 +16,7 @@ import { RondasRepository } from "./rondas.repository";
   imports: [AuthModule, DatabaseModule, CasosModule],
   controllers: [NegociacionController],
   providers: [
+    NegociacionesRepository,
     PropuestasRepository,
     RondasRepository,
     RespuestasRepository,
@@ -23,6 +25,7 @@ import { RondasRepository } from "./rondas.repository";
     { provide: AI_PROPOSAL_GENERATOR, useClass: OpenrouterProposalGenerator },
   ],
   exports: [
+    NegociacionesRepository,
     PropuestasRepository,
     RondasRepository,
     RespuestasRepository,

@@ -32,6 +32,7 @@ export type AppConfig = {
   legalAvisoDiasAnticipacion: number;
   legalPublicRequestsPerWindow: number;
   legalPublicWindowMs: number;
+  lawyerFeeArsMinor: number;
 };
 
 const defaultPort = 3000;
@@ -70,6 +71,7 @@ const placeholderOperacionesEmail = "operaciones@dev-placeholder.test";
 const defaultLegalAvisoDiasAnticipacion = 10;
 const defaultLegalPublicRequestsPerWindow = 5;
 const defaultLegalPublicWindowMs = 3_600_000;
+const defaultLawyerFeeArsMinor = 5_000_000;
 const postgresUrlPattern = /^postgres(ql)?:\/\/.+/;
 
 function parsePortNumber(envVarName: string, rawPort: string): number {
@@ -333,6 +335,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     environment.LEGAL_PUBLIC_WINDOW_MS,
     defaultLegalPublicWindowMs,
   );
+  const lawyerFeeArsMinor = parsePositiveInteger(
+    "LAWYER_FEE_ARS_MINOR",
+    environment.LAWYER_FEE_ARS_MINOR,
+    defaultLawyerFeeArsMinor,
+  );
   return {
     port,
     supabaseJwtSecret,
@@ -367,5 +374,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     legalAvisoDiasAnticipacion,
     legalPublicRequestsPerWindow,
     legalPublicWindowMs,
+    lawyerFeeArsMinor,
   };
 }

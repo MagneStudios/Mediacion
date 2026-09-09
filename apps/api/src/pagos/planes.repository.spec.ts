@@ -19,6 +19,8 @@ describe("PlanesRepository", () => {
           limite_iteraciones_ia: 5,
           precio: 0,
           moneda: "ARS",
+          max_negotiations_per_period: 3,
+          max_clients_per_period: null,
         },
         {
           id: "plan-plus",
@@ -28,6 +30,8 @@ describe("PlanesRepository", () => {
           limite_iteraciones_ia: -1,
           precio: 19.99,
           moneda: "ARS",
+          max_negotiations_per_period: null,
+          max_clients_per_period: null,
         },
       ];
       const fakeKysely = createFakeKysely(plans);
@@ -37,10 +41,17 @@ describe("PlanesRepository", () => {
 
       expect(fakeKysely.selectFrom).toHaveBeenCalledWith("planes");
       expect(fakeKysely.select).toHaveBeenCalledWith(
-        expect.arrayContaining(["moneda", "precio"]),
+        expect.arrayContaining([
+          "moneda",
+          "precio",
+          "max_negotiations_per_period",
+          "max_clients_per_period",
+        ]),
       );
       expect(result).toBe(plans);
       expect(result[1]?.limite_casos).toBe(-1);
+      expect(result[0]?.max_negotiations_per_period).toBe(3);
+      expect(result[1]?.max_negotiations_per_period).toBeNull();
     });
   });
 });

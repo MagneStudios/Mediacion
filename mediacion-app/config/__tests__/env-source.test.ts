@@ -29,6 +29,9 @@ const names = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'EXPO_PUBLIC_API_URL',
+  // Número del estudio para el handoff por WhatsApp (spec §7.5). Publicable:
+  // es el teléfono comercial que el estudio quiere que la gente use.
+  'EXPO_PUBLIC_ESTUDIO_WHATSAPP',
 ] as const;
 
 describe('expoPublicEnv', () => {
@@ -62,7 +65,7 @@ describe('expoPublicEnv', () => {
     });
   });
 
-  it('carries exactly the three published names and nothing else', () => {
+  it('carries exactly the published names and nothing else', () => {
     expect(Object.keys(loadSource().expoPublicEnv).sort()).toEqual([...names].sort());
   });
 

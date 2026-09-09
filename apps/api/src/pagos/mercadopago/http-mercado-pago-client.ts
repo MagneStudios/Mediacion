@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { AppConfig } from "../../config/config";
 import { APP_CONFIG } from "../../config/config.tokens";
 import type {
+  CreateOneOffPreferenceInput,
   CreatePreferenceInput,
   CreatePreferenceOutput,
   GatewayCancellation,
@@ -34,17 +35,34 @@ type MercadoPagoPaymentResponse = {
 export class HttpMercadoPagoClient implements MercadoPagoClient {
   constructor(@Inject(APP_CONFIG) private readonly appConfig: AppConfig) {}
 
-  async createPreference(
+  createPreference(
     input: CreatePreferenceInput,
+  ): Promise<CreatePreferenceOutput> {
+    return this.postPreference({
+      externalReference: input.suscripcionId,
+      title: input.planNombre,
+      precio: input.precio,
+      moneda: input.moneda,
+    });
+  }
+
+  createOneOffPreference(
+    input: CreateOneOffPreferenceInput,
+  ): Promise<CreatePreferenceOutput> {
+    return this.postPreference(input);
+  }
+
+  private async postPreference(
+    input: CreateOneOffPreferenceInput,
   ): Promise<CreatePreferenceOutput> {
     const response = await fetch(`${mercadoPagoBaseUrl}/checkout/preferences`, {
       method: "POST",
       headers: this.authHeaders(),
       body: JSON.stringify({
-        external_reference: input.suscripcionId,
+        external_reference: input.externalReference,
         items: [
           {
-            title: input.planNombre,
+            title: input.title,
             quantity: singleItemQuantity,
             unit_price: input.precio,
             currency_id: input.moneda,
