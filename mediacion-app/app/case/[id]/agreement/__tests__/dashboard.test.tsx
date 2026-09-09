@@ -532,6 +532,45 @@ describe('AgreementDashboardScreen — guard de acuerdo equivocado', () => {
     expect(screen.queryByText(i18n.t('agreement.dashboard.mismatch.title'))).toBeNull();
   });
 
+  it('dice "no encontrado" —no "todavia no hay acuerdo"— cuando el id pedido no esta', async () => {
+    // Una recarga en web con el id de otra sesion del mock, o un acuerdo que
+    // ya no es legible. "No hay acuerdo" seria falso sobre uno firmado.
+    mockSearchParams = { id: 'case-1', agreementId: 'agr-viejo' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = null;
+
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('agreement.dashboard.notFound.title'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('agreement.dashboard.empty.title'))).toBeNull();
+  });
+
+  it('sigue diciendo "todavia no hay acuerdo" cuando se entra por el caso y no hay ninguno', async () => {
+    mockSearchParams = { id: 'case-1' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = null;
+
+    await renderScreen();
+
+    expect(screen.getByText(i18n.t('agreement.dashboard.empty.title'))).toBeTruthy();
+  });
+
+  it('manda a firmar con el id del acuerdo que muestra', async () => {
+    // La pantalla de firma lee por ese id. Sin el, el riesgo de abrir otro
+    // documento se cierra aca y se reabre un tap despues.
+    mockSearchParams = { id: 'case-1', agreementId: 'agr-1' };
+    mockAgreementHook.status = 'success';
+    mockAgreementHook.state = buildState('enviado_a_firma');
+
+    await renderScreen();
+    await fireEvent.press(screen.getByText(i18n.t('agreement.sign.goToAction')));
+
+    expect(mockRoutePush).toHaveBeenCalledWith({
+      pathname: '/case/[id]/agreement/sign',
+      params: { id: 'case-1', agreementId: 'agr-1' },
+    });
+  });
+
   it('no exige el id cuando se entra desde el caso', async () => {
     // Entrando por el detalle del caso no hay un acuerdo prometido de
     // antemano, asi que no hay nada que verificar.

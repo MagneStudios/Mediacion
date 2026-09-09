@@ -121,6 +121,10 @@
       "mismatch": {
         "title": "No pudimos abrir ese acuerdo",
         "description": "El acuerdo que abriste no es el que esperábamos para este caso. Volvé a la bandeja de firmas y entrá de nuevo, para no revisar un documento que no corresponde."
+      },
+      "notFound": {
+        "title": "No encontramos ese acuerdo",
+        "description": "El acuerdo que intentaste abrir no existe o ya no está disponible para vos. Volvé a la bandeja de firmas y entrá de nuevo."
       }
     },
     "sharedMarker": {
@@ -225,7 +229,8 @@
         "waitingOther": "Esperando a la otra parte",
         "completed": "Completadas",
         "withNotice": "Con aviso"
-      }
+      },
+      "subjectVersion": "{{subject}} · v{{version}}"
     },
     "breachNotice": {
       "form": {
@@ -773,6 +778,12 @@
     "negociacion": "Negociación",
     "conciliacion": "Conciliación",
     "mediacion": "Mediación"
+  },
+  "subjectTypes": {
+    "tenencia": "Tenencia",
+    "alimentos": "Alimentos",
+    "bienes": "Bienes",
+    "otro": "Otro"
   },
   "negotiation": {
     "sectionTitle": "Negociación",

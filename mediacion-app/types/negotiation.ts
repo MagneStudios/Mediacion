@@ -21,6 +21,13 @@ export type EstadoPropuesta = 'pendiente' | 'aceptada' | 'rechazada';
 export type DecisionPropuesta = 'acepta' | 'rechaza';
 
 /**
+ * Matches `negociaciones.materia` (enum `materia_acuerdo`). The column is
+ * nullable and `null` means "a negociación from before materias existed" —
+ * never `'otro'`: the API does not fill it in and neither does this app.
+ */
+export type MateriaAcuerdo = 'tenencia' | 'alimentos' | 'bienes' | 'otro';
+
+/**
  * Product-level "what can this party do right now" state — not a backend
  * column, a derived read used to gate UI and, independently, service writes.
  */
