@@ -1,37 +1,6 @@
 import type { AppConfig } from "../../config/config";
+import { buildTestAppConfig } from "../../config/config.test-fixture";
 import { OpenrouterProposalGenerator } from "./openrouter-proposal-generator";
-
-function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
-  return {
-    port: 3000,
-    supabaseJwtSecret: "secret",
-    databaseUrl: "postgresql://placeholder",
-    openrouterApiKey: "sk-or-test-key",
-    docusignIntegrationKey: "ik-test",
-    docusignClientSecret: "secret-test",
-    docusignAccountId: "account-test",
-    docusignBasePath: "https://demo.docusign.net/restapi",
-    docusignWebhookSecret: "whsec-test",
-    docusignUserId: "user-test",
-    docusignOauthBase: "account-d.docusign.com",
-    docusignPrivateKey: "test-private-key-pem",
-    mpAccessToken: "mp-access-token",
-    mpWebhookSecret: "mp-webhook-secret",
-    smtpHost: "smtp.example.com",
-    smtpPort: 587,
-    smtpUser: "smtp-user",
-    smtpPass: "smtp-pass",
-    fcmKey: "fcm-key",
-    apnsKey: "apns-key",
-    operacionesEmail: "operaciones@test",
-    legalAvisoDiasAnticipacion: 10,
-    legalPublicRequestsPerWindow: 5,
-    legalPublicWindowMs: 3_600_000,
-    cronSecret: "cron-secret",
-    corsOrigins: [],
-    ...overrides,
-  };
-}
 
 describe("OpenrouterProposalGenerator", () => {
   afterEach(() => {
@@ -47,7 +16,7 @@ describe("OpenrouterProposalGenerator", () => {
         }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     const result = await generator.generateProposal({
       prompt: "puntos de encuentro",
@@ -82,7 +51,7 @@ describe("OpenrouterProposalGenerator", () => {
       json: () => Promise.resolve({}),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await expect(
       generator.generateProposal({
@@ -100,7 +69,7 @@ describe("OpenrouterProposalGenerator", () => {
       json: () => Promise.resolve({ choices: [] }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await expect(
       generator.generateProposal({
@@ -122,7 +91,7 @@ describe("OpenrouterProposalGenerator", () => {
         }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await generator.generateProposal({
       prompt: "puntos de encuentro",
@@ -145,7 +114,7 @@ describe("OpenrouterProposalGenerator", () => {
     );
     const fetchMock = jest.fn().mockRejectedValue(abortError);
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await expect(
       generator.generateProposal({
@@ -162,7 +131,7 @@ describe("OpenrouterProposalGenerator", () => {
       .fn()
       .mockRejectedValue(new TypeError("fetch failed"));
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await expect(
       generator.generateProposal({
@@ -180,7 +149,7 @@ describe("OpenrouterProposalGenerator", () => {
       json: () => Promise.reject(new SyntaxError("Unexpected token")),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const generator = new OpenrouterProposalGenerator(buildAppConfig());
+    const generator = new OpenrouterProposalGenerator(buildTestAppConfig());
 
     await expect(
       generator.generateProposal({

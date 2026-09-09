@@ -5,9 +5,44 @@ import type { MeetingPointEntry } from "./meeting-point";
 export type Ronda = Selectable<Database["rondas"]>;
 export type Propuesta = Selectable<Database["propuestas"]>;
 export type RespuestaPropuesta = Selectable<Database["respuestas_propuesta"]>;
+export type Negociacion = Selectable<Database["negociaciones"]>;
+export type Acuerdo = Selectable<Database["acuerdos"]>;
 
 export type EstadoPropuesta = Propuesta["estado"];
 export type DecisionPropuesta = RespuestaPropuesta["decision"];
+export type EstadoNegociacion = Negociacion["estado"];
+export type MateriaAcuerdo = NonNullable<Negociacion["materia"]>;
+
+/**
+ * The acuerdo currently in force for a negociacion. Null — never an object with
+ * empty fields — when the negociacion has not produced one yet: "no agreement"
+ * and "a draft agreement" drive different buttons on the case screen.
+ */
+export type AcuerdoVigenteView = {
+  id: Acuerdo["id"];
+  estado: Acuerdo["estado"];
+  version: Acuerdo["version"];
+};
+
+/**
+ * One negociacion of a caso. Three field names differ from their columns on
+ * purpose: the wire already speaks `subject_type` (the signature inbox),
+ * `metodo` and `ronda_actual` (GET /casos), and one name per concept across the
+ * API is what lets the client reuse a single mapper.
+ *
+ * `subject_type` is null for a negociacion carried over from the one-agreement
+ * model — never `'otro'`, which is a real materia a user can choose.
+ */
+export type NegociacionView = {
+  id: Negociacion["id"];
+  caso_id: Negociacion["caso_id"];
+  subject_type: MateriaAcuerdo | null;
+  metodo: Negociacion["method"];
+  estado: EstadoNegociacion;
+  ronda_actual: Negociacion["round"];
+  acuerdo_vigente: AcuerdoVigenteView | null;
+  created_at: Negociacion["created_at"];
+};
 
 export const propuestaViewColumns = [
   "id",

@@ -11,6 +11,7 @@ import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { NegociacionService } from "./negociacion.service";
 import type {
+  NegociacionView,
   PropuestaDetail,
   PropuestaView,
   RespuestaDto,
@@ -46,5 +47,13 @@ export class NegociacionController {
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<PropuestaDetail[]> {
     return this.negociacionService.listPropuestas(casoId, caller.id);
+  }
+
+  @Get("casos/:casoId/negociaciones")
+  listNegociaciones(
+    @Param("casoId", ParseUUIDPipe) casoId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<NegociacionView[]> {
+    return this.negociacionService.listNegociaciones(casoId, caller.id);
   }
 }

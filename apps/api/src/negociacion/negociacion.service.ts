@@ -15,10 +15,12 @@ import { computeMeetingPoints } from "./meeting-point";
 import type {
   DecisionPropuesta,
   IaConfig,
+  NegociacionView,
   PropuestaContenido,
   PropuestaDetail,
   PropuestaView,
 } from "./negociacion.types";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import type { EnginePosition } from "./propuestas.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RondasRepository } from "./rondas.repository";
@@ -137,6 +139,8 @@ export class NegociacionService {
     private readonly configuracionRepository: ConfiguracionRepository,
     @Inject(AI_PROPOSAL_GENERATOR)
     private readonly aiProposalGenerator: AiProposalGenerator,
+    @Inject(NegociacionesRepository)
+    private readonly negociacionesRepository: NegociacionesRepository,
   ) {}
 
   async generatePropuesta(
@@ -221,6 +225,20 @@ export class NegociacionService {
       }
     }
     return this.propuestasRepository.findDetailForCase(casoId, callerId);
+  }
+
+  /**
+   * The negociaciones of a caso. A caso with none returns an empty list, not a
+   * 404: a caso that has not been split by materia yet is a normal state, and
+   * making the client read "none" as an error costs it a branch it should not
+   * need.
+   */
+  async listNegociaciones(
+    casoId: string,
+    callerId: string,
+  ): Promise<NegociacionView[]> {
+    await this.membershipService.assertMembership(casoId, callerId);
+    return this.negociacionesRepository.listByCaso(casoId);
   }
 
   private async ensureActiveRonda(

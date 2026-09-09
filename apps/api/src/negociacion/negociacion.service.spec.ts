@@ -4,6 +4,7 @@ import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import type { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
 import type { PropuestaView } from "./negociacion.types";
+import type { NegociacionesRepository } from "./negociaciones.repository";
 import type { PropuestasRepository } from "./propuestas.repository";
 import type { RondasRepository } from "./rondas.repository";
 
@@ -42,6 +43,7 @@ function buildService(overrides?: {
   resolveRespuesta?: jest.Mock;
   findForCase?: jest.Mock;
   findDetailForCase?: jest.Mock;
+  listByCaso?: jest.Mock;
 }) {
   const membershipService = {
     assertMembership:
@@ -86,6 +88,9 @@ function buildService(overrides?: {
   const casosRepository = {
     activateNegotiation: jest.fn().mockResolvedValue(undefined),
   } as unknown as CasosRepository;
+  const negociacionesRepository = {
+    listByCaso: overrides?.listByCaso ?? jest.fn().mockResolvedValue([]),
+  } as unknown as NegociacionesRepository;
   return {
     service: new NegociacionService(
       membershipService as never,
@@ -94,7 +99,9 @@ function buildService(overrides?: {
       rondasRepository,
       configuracionRepository,
       aiProposalGenerator,
+      negociacionesRepository,
     ),
+    negociacionesRepository,
     membershipService,
     propuestasRepository,
     rondasRepository,
@@ -656,5 +663,51 @@ describe("NegociacionService.listPropuestas", () => {
     await service.listPropuestas("caso-1", "user-b");
 
     expect(findDetailForCase).toHaveBeenCalledWith("caso-1", "user-b");
+  });
+
+  describe("listNegociaciones", () => {
+    it("returns the negociaciones of the caso to a member", async () => {
+      const negociaciones = [{ id: "negociacion-1", subject_type: "tenencia" }];
+      const listByCaso = jest.fn().mockResolvedValue(negociaciones);
+      const { service } = buildService({ listByCaso });
+
+      const result = await service.listNegociaciones("caso-1", "user-a");
+
+      expect(listByCaso).toHaveBeenCalledWith("caso-1");
+      expect(result).toBe(negociaciones);
+    });
+
+    it("returns an empty list, not a 404, for a caso with no negociaciones", async () => {
+      const { service } = buildService({
+        listByCaso: jest.fn().mockResolvedValue([]),
+      });
+
+      await expect(
+        service.listNegociaciones("caso-1", "user-a"),
+      ).resolves.toEqual([]);
+    });
+
+    it("blocks non-members before reading any negociacion", async () => {
+      const listByCaso = jest.fn();
+      const { service } = buildService({
+        listByCaso,
+        assertMembership: jest
+          .fn()
+          .mockRejectedValue(
+            new HttpException(
+              { code: "caso_not_found", message: "Case not found" },
+              404,
+            ),
+          ),
+      });
+
+      await expect(
+        service.listNegociaciones("caso-1", "outsider"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "caso_not_found" },
+      });
+      expect(listByCaso).not.toHaveBeenCalled();
+    });
   });
 });

@@ -9,6 +9,7 @@ import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
 import type { PropuestaContenido } from "./negociacion.types";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RondasRepository } from "./rondas.repository";
 
@@ -237,6 +238,7 @@ describeDb(
         rondasRepository,
         configuracionRepository,
         aiProposalGenerator,
+        new NegociacionesRepository(kysely),
       );
     });
 
