@@ -517,6 +517,26 @@
     }
   },
   "caseDetail": {
+    "deadline": {
+      "title": "Plazo de respuesta",
+      "none": "Todavía no hay un plazo de respuesta fijado.",
+      "remaining": "Quedan {{hours}} h de plazo.",
+      "description": "Fijá hasta cuándo esperás una respuesta. La contraparte lo ve en el caso, y el semáforo del panel refleja el tiempo que queda.",
+      "preset": {
+        "24": "24 horas",
+        "72": "3 días",
+        "168": "1 semana"
+      },
+      "error": "No pudimos fijar el plazo. Probá de nuevo."
+    },
+    "terminate": {
+      "action": "Terminar la negociación",
+      "dialogTitle": "¿Terminar esta negociación?",
+      "dialogBody": "Se registra que diste por terminada la negociación, con la fecha y la hora. El caso queda en el historial y la contraparte lo ve terminado. No se puede reabrir: si más adelante quieren volver a negociar, hay que crear un caso nuevo.",
+      "confirm": "Sí, terminar",
+      "cancel": "No, seguir negociando",
+      "error": "No pudimos terminar la negociación."
+    },
     "caseCode": "Caso {{code}}",
     "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
     "awaitingCounterparty": {
@@ -594,6 +614,7 @@
       "inReview": "En revisión",
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
+      "terminated": "Negociación terminada",
       "awaitingCounterparty": "Esperando a la contraparte",
       "awaitingSubscriptions": "Falta activar suscripciones",
       "expired": "Invitación vencida",
@@ -615,6 +636,8 @@
       "proposalReady": "Hay una propuesta esperando tu respuesta.",
       "signed": "El acuerdo fue firmado por ambas partes.",
       "awaitingCounterparty": "Esperando a que la contraparte se una al caso.",
+      "awaitingSubscriptions": "El caso no puede abrirse hasta que las dos partes tengan una suscripción activa.",
+      "terminated": "Una de las partes dio por terminada la negociación.",
       "expired": "Nadie se unió a tiempo. Creá un caso nuevo para continuar."
     },
     "cta": {

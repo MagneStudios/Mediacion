@@ -517,6 +517,26 @@
     }
   },
   "caseDetail": {
+    "deadline": {
+      "title": "Response deadline",
+      "none": "No response deadline has been set yet.",
+      "remaining": "{{hours}} h left on the deadline.",
+      "description": "Set how long you are willing to wait for a reply. The other party sees it on the case, and the dashboard traffic light reflects the time left.",
+      "preset": {
+        "24": "24 hours",
+        "72": "3 days",
+        "168": "1 week"
+      },
+      "error": "We couldn't set the deadline. Try again."
+    },
+    "terminate": {
+      "action": "End the negotiation",
+      "dialogTitle": "End this negotiation?",
+      "dialogBody": "We record that you ended the negotiation, with the date and time. The case stays in your history and the other party sees it as ended. It cannot be reopened: if you both want to negotiate again later, you will need to create a new case.",
+      "confirm": "Yes, end it",
+      "cancel": "No, keep negotiating",
+      "error": "We couldn't end the negotiation."
+    },
     "caseCode": "Case {{code}}",
     "privacyNotice": "Your private positions are never shared with the other party. They will only see what you choose to propose.",
     "awaitingCounterparty": {
@@ -594,6 +614,7 @@
       "inReview": "In review",
       "proposalReady": "Proposal ready",
       "signed": "Signed",
+      "terminated": "Negotiation ended",
       "awaitingCounterparty": "Waiting for the other party",
       "awaitingSubscriptions": "Subscriptions not active yet",
       "expired": "Invitation expired",
@@ -615,6 +636,8 @@
       "proposalReady": "There's a proposal waiting for your response.",
       "signed": "The agreement was signed by both parties.",
       "awaitingCounterparty": "Waiting for the other party to join the case.",
+      "awaitingSubscriptions": "The case cannot open until both parties have an active subscription.",
+      "terminated": "One of the parties ended the negotiation.",
       "expired": "Nobody joined in time. Start a new case to continue."
     },
     "cta": {

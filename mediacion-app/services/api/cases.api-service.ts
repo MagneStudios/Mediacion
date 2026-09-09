@@ -59,6 +59,8 @@ export type ApiCasesService = {
   listInvitations(caseId: string): Promise<CaseInvitation[]>;
   getCaseTitle(caseId: string): Promise<string | null>;
   joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }>;
+  setCaseDeadline(caseId: string, plazo: string): Promise<void>;
+  terminateCase(caseId: string): Promise<void>;
 };
 
 /** A caso the caller cannot see and a caso that does not exist are the same 404. */
@@ -163,6 +165,35 @@ export function createApiCasesService(
     async getCaseTitle(caseId: string): Promise<string | null> {
       const detail = await fetchDetail(caseId);
       return detail?.title ?? null;
+    },
+
+    /**
+     * RN-10, `PATCH /casos/:id/plazo`. El servidor exige un ISO **estrictamente
+     * futuro** (`casos.service.ts:69-84`); los presets de
+     * `utils/case-actions.ts` siempre lo son.
+     *
+     * Devuelve `{ id, plazo, semaforo }`, que no es un `CaseDetail`. No se mapea
+     * a dominio a propósito: `slaHours` y `visualStatus` los deriva
+     * `case-mapper` a partir del caso completo, y tener una segunda derivación
+     * acá sería tener dos fuentes para el mismo número. Quien lo llama recarga.
+     */
+    async setCaseDeadline(caseId: string, plazo: string): Promise<void> {
+      await http.request(`/casos/${caseId}/plazo`, {
+        method: 'PATCH',
+        body: { plazo },
+      });
+    },
+
+    /**
+     * RN-08, `PATCH /casos/:id/estado`. El único valor que el servidor acepta es
+     * `terminado` (`casos.service.ts:39-49`), así que no viaja como parámetro:
+     * un argumento sugeriría que esta ruta puede escribir otros estados.
+     */
+    async terminateCase(caseId: string): Promise<void> {
+      await http.request(`/casos/${caseId}/estado`, {
+        method: 'PATCH',
+        body: { estado: 'terminado' },
+      });
     },
 
     joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }> {

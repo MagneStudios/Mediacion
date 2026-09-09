@@ -61,6 +61,23 @@ describe('toSlaHours', () => {
 });
 
 describe('toStatusLabelKey', () => {
+  it('never calls a terminated case "signed" — it was ended, not agreed', () => {
+    // Hasta el 09/09 `terminado` compartía la etiqueta de `acordado`, y nadie lo
+    // vio porque el estado era inalcanzable: ninguna pantalla podía escribirlo.
+    // Con el fin autónomo de RN-08 construido, un caso abandonado sin acuerdo
+    // habría dicho "Firmado" en el dashboard — que en un producto legal no es
+    // un matiz de copy.
+    expect(toStatusLabelKey('terminado', true)).toBe('terminated');
+    expect(toStatusLabelKey('terminado', true)).not.toBe('signed');
+  });
+
+  it('keeps acordado and cerrado on signed — cerrado is the close that follows an agreement', () => {
+    // `acordado → cerrado` es la única salida de `acordado` en el trigger, así
+    // que los dos hablan de un acuerdo que existió.
+    expect(toStatusLabelKey('acordado', true)).toBe('signed');
+    expect(toStatusLabelKey('cerrado', true)).toBe('signed');
+  });
+
   it('reports awaitingCounterparty while nobody has joined, whatever the estado', () => {
     expect(toStatusLabelKey('en_negociacion', false)).toBe('awaitingCounterparty');
   });
@@ -69,12 +86,11 @@ describe('toStatusLabelKey', () => {
     expect(toStatusLabelKey('en_negociacion', true)).toBe('proposalReady');
   });
 
-  it.each(['acordado', 'cerrado', 'terminado'] as const)(
-    'reports signed for %s',
-    (estado) => {
-      expect(toStatusLabelKey(estado, true)).toBe('signed');
-    },
-  );
+  // `terminado` salió de esta lista el 09/09: ver "never calls a terminated
+  // case signed" arriba.
+  it.each(['acordado', 'cerrado'] as const)('reports signed for %s', (estado) => {
+    expect(toStatusLabelKey(estado, true)).toBe('signed');
+  });
 
   it('falls back to inReview for an active case', () => {
     expect(toStatusLabelKey('activo', true)).toBe('inReview');
