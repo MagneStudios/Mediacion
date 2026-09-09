@@ -12,17 +12,29 @@ Re-verificado **ruta por ruta** contra los controllers de `apps/api/src`, no con
 
 **Por qué existe esta capa.** Backend avisó que "faltan algunos endpoints por integrar". Al revisar la superficie entera aparecieron **siete rutas construidas, sin consumir y sin ninguna razón para no hacerlo** — algunas desde hacía casi un mes. **Las siete están integradas** (25/08). El resto de lo no consumido sí tiene razón, pero hasta hoy esa razón no estaba escrita en ningún lugar común: por eso la tabla de abajo, para que nadie la vuelva a descubrir desde cero.
 
+> ### 🔁 Re-verificado el 09/09/2026 — Backend volvió a preguntar
+>
+> Vuelto a correr **ruta por ruta** contra los controllers de hoy: **70 rutas**, cruzadas contra cada `http.request` de `mediacion-app/services`. Resultado: **no apareció ninguna ruta construida y sin consumir que no tenga razón.** El caso del 25/08 —siete rutas ignoradas por olvido— no se repitió.
+>
+> Lo que sí cambió desde el 25/08:
+>
+> - **`GET /suscripciones/uso` no estaba en ninguna de las dos listas** porque no existía. Se creó el 03/09 y lo integramos el 08/09. Movido a "consumido".
+> - **El pendiente 5 de abajo está cerrado**: las dos columnas de cuota de `GET /planes` llegaron el 03/09 y las consumimos el 08/09.
+> - **`POST /tareas/:id/calendario` decía "ininvocable" y era una exageración.** Corregido en la tabla: el endpoint **sí** acepta `fecha_evento` en el body. Lo que falta no es de Backend, es una decisión de Producto.
+>
+> Nota aparte: Backend mencionó un `docs/pedidos-backend-a-frontend-acuerdos-modulares.md`. **Ese archivo no existe** — ni en `dev`, ni en ninguna rama remota, ni en la historia del repo. Si lo escribió, falta pushearlo.
+
 ### Consumido por `mediacion-app`
 
-`GET/POST /casos` · `GET /casos/:id` · `POST /casos/:id/invitaciones` · **`GET /casos/:id/invitaciones`** · `POST /casos/unirse` · `GET /casos/:casoId/actividad` · los cinco de `items` · los tres de `negociacion` · `GET/POST /casos/:casoId/acuerdo` · `POST /acuerdos/:id/firmar` · `GET /firmas` · **`POST/GET /acuerdos/:id/incumplimiento(s)`** · **`GET /acuerdos/:id/exportar`** · `GET /casos/:casoId/mediacion` · `GET /casos/:casoId/mediadores` · `POST /casos/:casoId/mediacion` · los cuatro de `notificaciones` · los cinco de `/me` · los seis públicos/bearer de `legal` · **`GET /planes`** · `GET /suscripciones/vigente` · `POST /suscripciones/:id/baja` · **`GET /casos/:casoId/tareas`** · **`PATCH /tareas/:id`**
+`GET/POST /casos` · `GET /casos/:id` · `POST /casos/:id/invitaciones` · **`GET /casos/:id/invitaciones`** · `POST /casos/unirse` · `GET /casos/:casoId/actividad` · los cinco de `items` · los tres de `negociacion` · `GET/POST /casos/:casoId/acuerdo` · `POST /acuerdos/:id/firmar` · `GET /firmas` · **`POST/GET /acuerdos/:id/incumplimiento(s)`** · **`GET /acuerdos/:id/exportar`** · `GET /casos/:casoId/mediacion` · `GET /casos/:casoId/mediadores` · `POST /casos/:casoId/mediacion` · los cuatro de `notificaciones` · los cinco de `/me` · los seis públicos/bearer de `legal` · **`GET /planes`** · `GET /suscripciones/vigente` · **`GET /suscripciones/uso`** · `POST /suscripciones/:id/baja` · **`GET /casos/:casoId/tareas`** · **`PATCH /tareas/:id`**
 
-En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md`.
+En **negrita**, lo integrado el 25/08 — salvo `GET /suscripciones/uso`, que se integró el 08/09 (`docs/changelogs/2026-09-08.md`). Detalle del resto en `docs/changelogs/2026-08-25.md`.
 
 ### Existe, no se consume — y por qué
 
 | Ruta | Razón | ¿Bloquea? |
 |---|---|---|
-| `POST /tareas/:id/calendario` | **Ininvocable**: exige un `fecha_evento` que ninguna tarea generada tiene y que sólo ese endpoint escribe | **Sí** — §11 de `pedidos-frontend-a-backend.md` |
+| `POST /tareas/:id/calendario` | ~~Ininvocable~~ **Corregido el 09/09: es invocable.** El endpoint acepta `fecha_evento` en el body (`tareas.service.ts:31`, `input?.fecha_evento ?? tarea.fecha_evento`), así que la ruta funciona. Lo que falta es **qué fecha mandarle**: las tareas las genera el webhook de DocuSign sin `fecha_evento`, y la app no tiene de dónde sacar una sin un date picker nuevo — que además obliga a definir qué significa "la fecha" de una tarea. **No es un bug de Backend: es una decisión de Producto** | **Sí**, pero de Producto — §11 de `pedidos-frontend-a-backend.md` |
 | `POST /suscripciones` · `POST /suscripciones/:id/pago` | `pago` devuelve un `init_point` de MP, no confirma un cobro, y no hay endpoint de factura. Cablearlo haría que la app reporte un pago aprobado y emita una factura por plata que nadie cobró | No — decisión escrita |
 | `GET /acuerdos/:id/historial` | Devuelve filas crudas de `auditoria` (`accion`/`entidad`), sin correspondencia con el vocabulario de la pantalla | No — se derivan del acuerdo los dos eventos que la fila prueba |
 | `GET /acuerdos/:id/firmas` | Redundante: `GET /casos/:casoId/acuerdo` ya trae el bundle con `firmas` | No |
@@ -42,7 +54,9 @@ En **negrita**, lo integrado el 25/08. Detalle en `docs/changelogs/2026-08-25.md
 2. **§12.2 — el resultado biométrico lo escribe el cliente.** No nos bloquea a nosotros (no vamos a construir esa pantalla), pero es su propia regla contradiciéndose entre dos rutas y conviene que lo miren antes de que algo dependa de esa columna.
 3. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
 4. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
-5. **§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`** (`max_negotiations_per_period`, `max_clients_per_period`). Sigue abierto: `planColumns` tiene siete columnas, verificado hoy.
+5. ~~**§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`**~~ ✅ **Cerrado.** Backend las agregó el 03/09 y las consumimos el 08/09; `Plan` las expone como `maxNegotiationsPerPeriod`/`maxClientsPerPeriod` y las tarjetas del catálogo las muestran.
+
+> **Y lo que pasó a ser lo primero que necesitamos, al 09/09:** los tres endpoints de `docs/pedidos-frontend-acuerdos-modulares.md` (`GET /acuerdos/:id`, `subject_type`+`version` en `GET /firmas`, `GET /casos/:id/negociaciones`) más los §7.1 y §7.2 de `docs/pedidos-frontend-a-backend-recolocar-negociaciones.md`. **Son lo único que frena el refactor de acuerdos modulares**: DB entregó el modelo el 06/09.
 6. **§9 — `Content-Disposition` en `exposedHeaders`.** Sólo el día que guardemos archivos de verdad.
 
 ### Dos cosas que no son pedidos, pero les ahorran una sorpresa
