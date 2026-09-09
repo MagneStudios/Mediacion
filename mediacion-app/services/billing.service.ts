@@ -3,6 +3,7 @@ import { backend } from './backend-instance';
 import { computeTaxBreakdown } from '../utils/compute-tax-breakdown';
 import { generateMockInvoiceId, generateMockPaymentId, generateMockSubscriptionId } from '../utils/mock-id';
 import type {
+  CheckoutStart,
   MockInvoice,
   MockPayment,
   MockSubscription,
@@ -49,6 +50,16 @@ export type BillingService = {
    * `precio`, exactly what a real checkout would send to ARCA.
    */
   subscribeToPlan(planId: string): Promise<{ subscription: MockSubscription; invoice: MockInvoice }>;
+  /**
+   * Arranca el checkout, que termina distinto según haya backend o no — ver
+   * `CheckoutStart`.
+   *
+   * **Existe aparte de `subscribeToPlan` y no lo reemplaza.** El mock sigue
+   * necesitando el camino de un paso para que el flujo de demo funcione sin
+   * red, y el camino real no puede devolver una factura porque todavía no hubo
+   * cobro. Un solo método obligaría a que uno de los dos mienta.
+   */
+  startCheckout(planId: string): Promise<CheckoutStart>;
   /**
    * Mock-only "download" — there is no real PDF anywhere in this phase
    * (`invoice.urlPdf` stays null), so this never touches the filesystem or
@@ -118,7 +129,10 @@ export function __resetMockBilling(): void {
 }
 
 export function createMockBillingService(): BillingService {
-  return {
+  // Nombrado en vez de devuelto directo para que `startCheckout` pueda reusar
+  // `subscribeToPlan` sin depender de `this`, que se pierde en cuanto alguien
+  // desestructura el servicio.
+  const service: BillingService = {
     async getCurrentSubscription() {
       return delay(currentSubscription, 300);
     },
@@ -216,6 +230,15 @@ export function createMockBillingService(): BillingService {
       return committed;
     },
 
+    async startCheckout(planId) {
+      // Contra el mock no hay a dónde redirigir: no existe una preferencia de
+      // Mercado Pago sin API. El checkout simulado es el que ya estaba, y se
+      // reusa entero para que el flujo de demo no tenga una segunda ruta que
+      // mantener.
+      const { subscription, invoice } = await service.subscribeToPlan(planId);
+      return { kind: 'simulated' as const, subscription, invoice };
+    },
+
     async cancelSubscription() {
       if (failures.consume('cancelSubscription')) {
         return rejectAfter('mock_cancel_subscription_failed', 600);
@@ -244,6 +267,7 @@ export function createMockBillingService(): BillingService {
       await delay(undefined, 700);
     },
   };
+  return service;
 }
 
 /**

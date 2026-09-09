@@ -1,4 +1,10 @@
-import type { MockInvoice, MockSubscription, SubscriptionUsage } from '@/types/billing';
+import type {
+  CheckoutStart,
+  MockInvoice,
+  MockSubscription,
+  SubscriptionUsage,
+} from '@/types/billing';
+import { toCheckoutUrl } from '@/utils/checkout-url';
 
 import { codeSuscripcionNotFound, hasCode } from './api-error';
 import type { ApiBillingService } from './billing.api-service';
@@ -6,6 +12,13 @@ import type { BillingService } from '../billing.service';
 
 /** Same rejection reason the mock uses, so the screen branches identically. */
 const noActiveSubscription = 'no_active_subscription';
+
+/**
+ * El `init_point` no pasó `toCheckoutUrl`. Se distingue de un fallo de red
+ * porque reintentar no lo arregla: la URL que devolvió el servidor no es una
+ * que estemos dispuestos a abrir.
+ */
+export const errorCheckoutUrlUnusable = 'checkout_url_unusable';
 
 /**
  * Presents the real subscription endpoints under the `BillingService` contract
@@ -19,18 +32,28 @@ const noActiveSubscription = 'no_active_subscription';
  * value was synthetic, so `POST /suscripciones/:id/baja` would have answered
  * `404 suscripcion_not_found`. Now the id comes from the server that owns it.
  *
- * **What stays mocked, and why:** `subscribeToPlan`, `getInvoiceForSubscription`
- * and `prepareInvoiceDownload`. There is no factura endpoint on the API, and
- * `POST /suscripciones/:id/pago` returns a Mercado Pago `init_point` the user
- * must be redirected to — it does not confirm a payment. Wiring the checkout
- * through it would make this app report an approved payment and emit an invoice
- * for money nobody charged, which is worse than a checkout that says it is a
- * demo.
+ * **`startCheckout` is real too, since 09/09.** The reason this file used to
+ * give for not wiring it —*"`pago` does not confirm a payment, so the app would
+ * report an approved payment for money nobody charged"*— stopped being true:
+ * `POST /webhooks/mercadopago` verifies the HMAC signature and `applyPayment`
+ * sets `estado: activa` plus the billing period server-side. **This app reports
+ * nothing.** It creates a subscription (which starts at `pendiente_pago`),
+ * hands back Mercado Pago's checkout, and then reads the same
+ * `GET /suscripciones/vigente` it already consumed.
  *
- * **The visible consequence, stated out loud:** with a backend configured, Mi
- * plan reflects the real `suscripciones` row, so subscribing through the demo
- * checkout no longer shows up there. That is the truth of the current state —
- * there is no real checkout — rather than a mock pretending otherwise.
+ * That mattered more than a missing feature. `suscripciones.estado` defaults to
+ * `pendiente_pago`, and only the webhook and `reactivate` ever write `activa`
+ * — so with a simulated checkout **nobody could reach `activa` through the
+ * app at all**, and the C-01 gate needs an active subscription on *both*
+ * parties before a caso leaves `nuevo`. That is the "la simulación de
+ * aceptación no funciona" the client reported
+ * (`docs/auditoria-desbloqueos-09-09-2026.md` §2).
+ *
+ * **What stays mocked, and why:** `subscribeToPlan`, `getInvoiceForSubscription`
+ * and `prepareInvoiceDownload`. There is still no factura endpoint on the API,
+ * so an invoice can only be a mock one — which is exactly why `startCheckout`
+ * exists as a separate method that returns no invoice at all rather than
+ * fabricating one.
  *
  * `getCurrentSubscription` maps `404 suscripcion_not_found` to `null`: "no
  * tengo plan" is a normal answer, and it is also what BE returns for a
@@ -73,6 +96,23 @@ export function createBackedBillingService(
         }
         throw error;
       }
+    },
+
+    async startCheckout(planId: string): Promise<CheckoutStart> {
+      // Dos llamadas y en este orden, porque la preferencia de Mercado Pago se
+      // arma a partir de la fila de la suscripción: sin suscripción no hay
+      // `external_reference`, y sin `external_reference` el webhook no sabría
+      // a qué fila aplicarle el pago.
+      const created = await api.createSubscription(planId);
+      const preference = await api.startPayment(created.id);
+      const checkoutUrl = toCheckoutUrl(preference.init_point);
+      if (checkoutUrl === null) {
+        // La suscripción quedó creada en `pendiente_pago`, que es un estado
+        // legítimo y no cobra nada. Fallar acá es lo correcto: abrir una URL
+        // que no pasó la validación sería peor que no abrir ninguna.
+        throw new Error(errorCheckoutUrlUnusable);
+      }
+      return { kind: 'redirect', subscriptionId: created.id, checkoutUrl };
     },
 
     async cancelSubscription(): Promise<MockSubscription> {

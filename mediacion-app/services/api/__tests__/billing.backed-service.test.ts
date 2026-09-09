@@ -2,7 +2,10 @@ import type { MockInvoice, MockSubscription, SubscriptionUsage } from '@/types/b
 
 import { ApiError, codeSuscripcionNotFound } from '../api-error';
 import type { ApiBillingService } from '../billing.api-service';
-import { createBackedBillingService } from '../billing.backed-service';
+import {
+  createBackedBillingService,
+  errorCheckoutUrlUnusable,
+} from '../billing.backed-service';
 import type { BillingService } from '../../billing.service';
 
 const activa: MockSubscription = {
@@ -26,6 +29,10 @@ function fakeApi(overrides: Partial<ApiBillingService> = {}): ApiBillingService 
   return {
     getCurrentSubscription: jest.fn().mockResolvedValue(activa),
     getUsage: jest.fn().mockResolvedValue(usage),
+    createSubscription: jest.fn().mockResolvedValue({ id: 'sus-new', estado: 'pendiente_pago' }),
+    startPayment: jest
+      .fn()
+      .mockResolvedValue({ init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=1' }),
     cancelSubscription: jest.fn().mockResolvedValue({
       id: activa.id,
       estado: 'cancelada',
@@ -39,6 +46,7 @@ function fakeMock(overrides: Partial<BillingService> = {}): BillingService {
   return {
     getCurrentSubscription: jest.fn().mockResolvedValue(null),
     getUsage: jest.fn().mockResolvedValue(null),
+    startCheckout: jest.fn().mockResolvedValue({ kind: 'simulated', subscription: activa, invoice }),
     getInvoiceForSubscription: jest.fn().mockResolvedValue(invoice),
     subscribeToPlan: jest.fn().mockResolvedValue({ subscription: activa, invoice }),
     prepareInvoiceDownload: jest.fn().mockResolvedValue(undefined),
@@ -94,6 +102,59 @@ describe('billing.backed-service', () => {
     });
 
     await expect(createBackedBillingService(api, fakeMock()).getUsage()).rejects.toThrow('boom');
+  });
+
+  describe('startCheckout', () => {
+    it('creates the subscription first, then asks for its checkout', async () => {
+      // El orden no es estético: la preferencia de Mercado Pago se arma con la
+      // fila de la suscripción, y su id viaja como `external_reference` — que
+      // es lo único que después le dice al webhook a qué fila aplicar el pago.
+      const api = fakeApi();
+
+      const start = await createBackedBillingService(api, fakeMock()).startCheckout('plan-1');
+
+      expect(api.createSubscription).toHaveBeenCalledWith('plan-1');
+      expect(api.startPayment).toHaveBeenCalledWith('sus-new');
+      expect((api.createSubscription as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+        (api.startPayment as jest.Mock).mock.invocationCallOrder[0],
+      );
+      expect(start).toEqual({
+        kind: 'redirect',
+        subscriptionId: 'sus-new',
+        checkoutUrl: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=1',
+      });
+    });
+
+    it('never returns an invoice — nothing has been charged yet', async () => {
+      // Es la razón por la que `startCheckout` existe aparte de
+      // `subscribeToPlan`: el camino real no tiene factura que devolver, y
+      // fabricar una sería reportar plata que nadie cobró.
+      const start = await createBackedBillingService(fakeApi(), fakeMock()).startCheckout('plan-1');
+
+      expect(start).not.toHaveProperty('invoice');
+    });
+
+    it('refuses an init_point that did not pass validation, rather than opening it', async () => {
+      const api = fakeApi({
+        startPayment: jest.fn().mockResolvedValue({ init_point: 'http://evil.example/checkout' }),
+      });
+
+      await expect(
+        createBackedBillingService(api, fakeMock()).startCheckout('plan-1'),
+      ).rejects.toThrow(errorCheckoutUrlUnusable);
+    });
+
+    it('does not fall back to the mock checkout when the server fails', async () => {
+      // Un checkout simulado contra backend real le diría a alguien que
+      // contrató cuando no contrató, y el gate C-01 lo dejaría afuera igual.
+      const mock = fakeMock();
+      const api = fakeApi({
+        createSubscription: jest.fn().mockRejectedValue(new ApiError('internal_error', 'boom', 500)),
+      });
+
+      await expect(createBackedBillingService(api, mock).startCheckout('plan-1')).rejects.toThrow('boom');
+      expect(mock.startCheckout).not.toHaveBeenCalled();
+    });
   });
 
   it('propagates any other read failure so the screen can offer a retry', async () => {
