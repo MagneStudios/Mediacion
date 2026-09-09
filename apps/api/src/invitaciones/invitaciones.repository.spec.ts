@@ -235,7 +235,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -261,7 +261,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -286,7 +286,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -310,9 +310,11 @@ describe("InvitacionesRepository", () => {
         miembros: [{ usuario_id: "user-a" }],
         caso: { id: "caso-1", estado: "activo" },
       });
-      const activateIfNuevo = jest.fn().mockResolvedValue(undefined);
+      const activateOrHoldForSuscripciones = jest
+        .fn()
+        .mockResolvedValue(undefined);
       const casosRepository = {
-        activateIfNuevo,
+        activateOrHoldForSuscripciones,
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -343,7 +345,10 @@ describe("InvitacionesRepository", () => {
         "=",
         "inv-1",
       );
-      expect(activateIfNuevo).toHaveBeenCalledWith("caso-1", expect.anything());
+      expect(activateOrHoldForSuscripciones).toHaveBeenCalledWith(
+        "caso-1",
+        expect.anything(),
+      );
       expect(fakeKysely.transaction).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ id: "caso-1", estado: "activo" });
     });
@@ -354,9 +359,11 @@ describe("InvitacionesRepository", () => {
         miembros: [{ usuario_id: "user-a" }],
         caso: { id: "caso-1", estado: "activo" },
       });
-      const activateIfNuevo = jest.fn().mockResolvedValue(undefined);
+      const activateOrHoldForSuscripciones = jest
+        .fn()
+        .mockResolvedValue(undefined);
       const casosRepository = {
-        activateIfNuevo,
+        activateOrHoldForSuscripciones,
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -386,7 +393,7 @@ describe("InvitacionesRepository", () => {
         caso: undefined,
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -418,7 +425,7 @@ describe("InvitacionesRepository", () => {
         parteInsertRejection: pgError,
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -450,7 +457,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -488,7 +495,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+        activateOrHoldForSuscripciones: jest.fn().mockResolvedValue(undefined),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -517,7 +524,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn(),
+        activateOrHoldForSuscripciones: jest.fn(),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -548,7 +555,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+        activateOrHoldForSuscripciones: jest.fn().mockResolvedValue(undefined),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,
@@ -572,7 +579,7 @@ describe("InvitacionesRepository", () => {
         caso: { id: "caso-1", estado: "activo" },
       });
       const casosRepository = {
-        activateIfNuevo: jest.fn().mockResolvedValue(undefined),
+        activateOrHoldForSuscripciones: jest.fn().mockResolvedValue(undefined),
       } as unknown as CasosRepository;
       const repository = new InvitacionesRepository(
         fakeKysely as never,

@@ -75,6 +75,24 @@ const estadosNotificacionTerminales = ["enviada", "fallida"] as const;
 
 const sweepBatchSize = 25;
 
+const activacionSavepoint = "gate_activacion_suscripciones";
+
+const casoBloqueadoSuscripcionesCode = "caso_bloqueado_suscripciones";
+
+/** True only for the C-01 gate's own conflict, never for conflicts at large. */
+function isGateBlocked(error: unknown): boolean {
+  if (!(error instanceof ConflictError)) {
+    return false;
+  }
+  const body = error.getResponse();
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "code" in body &&
+    (body as { code: unknown }).code === casoBloqueadoSuscripcionesCode
+  );
+}
+
 function casoNotAcordable(casoId: string): ConflictError {
   return new ConflictError(
     `Caso ${casoId} was not en_negociacion when marking acordado`,
@@ -191,17 +209,57 @@ export class CasosRepository {
       .executeTakeFirst();
   }
 
-  activateIfNuevo(casoId: string, trx: Kysely<Database>): Promise<void> {
-    return trx
-      .updateTable("casos")
-      .set({ estado: "activo" })
-      .where("id", "=", casoId)
-      .where("estado", "=", "nuevo")
-      .execute()
-      .then(() => undefined)
-      .catch((error: unknown) => {
-        throw toDomainError(error);
-      });
+  /**
+   * Moves a caso out of `nuevo` when the second party joins: to `activo` when
+   * the C-01 gate lets it through, and to `pendiente_suscripciones` when it
+   * does not.
+   *
+   * The gate (`trg_casos_gate_suscripciones`) is the authority on "are both
+   * parties paid up", so this asks by attempting the real transition rather
+   * than re-deriving the rule here — there is no preview RPC, and a copy of the
+   * rule in application code is a copy that can drift from the trigger.
+   *
+   * The attempt runs inside a savepoint because a `RAISE EXCEPTION` poisons the
+   * whole transaction: without it, the gate firing would roll back the join
+   * that this activation is the last step of, and the party who just accepted
+   * their invitation would not be a member of anything. Rolling back to the
+   * savepoint discards only the failed UPDATE and leaves the join intact.
+   *
+   * Any conflict other than the gate propagates untouched — an invalid
+   * transition is still a real error, not something to hold.
+   */
+  async activateOrHoldForSuscripciones(
+    casoId: string,
+    trx: Kysely<Database>,
+  ): Promise<void> {
+    await sql`savepoint ${sql.raw(activacionSavepoint)}`.execute(trx);
+    try {
+      await trx
+        .updateTable("casos")
+        .set({ estado: "activo" })
+        .where("id", "=", casoId)
+        .where("estado", "=", "nuevo")
+        .execute();
+    } catch (error: unknown) {
+      const domainError = toDomainError(error);
+      if (!isGateBlocked(domainError)) {
+        throw domainError;
+      }
+      await sql`rollback to savepoint ${sql.raw(activacionSavepoint)}`.execute(
+        trx,
+      );
+      await trx
+        .updateTable("casos")
+        .set({ estado: "pendiente_suscripciones" })
+        .where("id", "=", casoId)
+        .where("estado", "=", "nuevo")
+        .execute()
+        .catch((holdError: unknown) => {
+          throw toDomainError(holdError);
+        });
+      return;
+    }
+    await sql`release savepoint ${sql.raw(activacionSavepoint)}`.execute(trx);
   }
 
   activateNegotiation(casoId: string): Promise<void> {
