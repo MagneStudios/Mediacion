@@ -14,7 +14,7 @@
 ## Pedido a Backend
 
 1. **Flag `tsc -b` en `apps/api` (P4):** portar `acuerdos`/`rondas`/`propuestas`/`mediaciones` a `negociacion_id`; reemplazar toda lectura de `casos.ronda_actual` por `negociaciones.round`. Detalle y líneas en `docs/pedidos-db-a-backend-acuerdos-modulares.md` §3.
-2. **`invitacion_ttl_horas`:** leerlo desde `configuracion` (72 h sembradas) en lugar de hardcodear 7 d en `invitation-ttl.ts`.
+2. **`invitacion_ttl_horas`:** ✅ **Resuelto 09-09** — el backend ahora lee `configuracion.invitacion_ttl_horas` (fallback 72 h) en `invitations.repository.ts` / `invitation-ttl.ts`. Documentado en `docs/integration-contract.md` y `docs/frontend-redesign/state-machines.md`.
 3. **`pago_a_cargo`:** son dos cambios, no uno — la columna existe en `invociaciones` pero **nunca se persiste ni se expone** en `GET /casos/:id/invitaciones`.
 4. **`negociaciones.estado`:** escribirlo tras la creación (el motor sigue leyendo por caso).
 5. **Versionado P5:** consumir `vigente`/`supersedes_agreement_id` en el flujo Renegociar.
