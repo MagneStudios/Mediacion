@@ -102,6 +102,19 @@ export function createBackedCasesService(api: ApiCasesService): CasesService {
       return detail;
     },
 
+    /**
+     * RN-10 y RN-08 pasan derecho a la API: no hay nada que adaptar entre lo
+     * que la pantalla pide y lo que el servidor acepta, y ninguna de las dos
+     * devuelve un caso que haya que mapear.
+     */
+    setCaseDeadline(caseId: string, plazo: string): Promise<void> {
+      return api.setCaseDeadline(caseId, plazo);
+    },
+
+    terminateCase(caseId: string): Promise<void> {
+      return api.terminateCase(caseId);
+    },
+
     joinCase(token: string): Promise<JoinedCase> {
       return api.joinCase(token);
     },

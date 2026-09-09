@@ -26,6 +26,8 @@ function stubApi(overrides: Partial<ApiCasesService> = {}): ApiCasesService {
     listInvitations: async () => [],
     getCaseTitle: async () => 'Custodia',
     joinCase: async () => ({ id: 'caso-1', estado: 'activo', requiresPayment: false }),
+    setCaseDeadline: async () => undefined,
+    terminateCase: async () => undefined,
     ...overrides,
   };
 }

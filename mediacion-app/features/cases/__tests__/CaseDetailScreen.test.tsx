@@ -1,5 +1,5 @@
 import { I18nextProvider } from 'react-i18next';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 
@@ -45,10 +45,14 @@ jest.mock('@/features/agreements/hooks/useAgreement', () => ({
   useAgreement: () => mockAgreement,
 }));
 
+const mockReload = jest.fn();
+const mockTerminateCase = jest.fn();
 jest.mock('@/services/cases.service', () => ({
   casesService: {
     getInvitation: jest.fn(),
     simulateInvitationAcceptance: jest.fn(),
+    setCaseDeadline: jest.fn(),
+    terminateCase: (...args: unknown[]) => mockTerminateCase(...args),
   },
 }));
 
@@ -81,7 +85,7 @@ let mockDetail: unknown = null;
 let mockStatus: 'loading' | 'error' | 'success' = 'loading';
 
 jest.mock('@/features/cases/hooks/useCaseDetail', () => ({
-  useCaseDetail: () => ({ status: mockStatus, detail: mockDetail, reload: jest.fn() }),
+  useCaseDetail: () => ({ status: mockStatus, detail: mockDetail, reload: mockReload }),
 }));
 
 import { CaseDetailScreen } from '../CaseDetailScreen';
@@ -623,5 +627,79 @@ describe('CaseDetailScreen — con_aviso visual priority', () => {
     };
     await renderScreen();
     expect(screen.getByText(t('agreement.status.con_aviso'))).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RN-08 / RN-10 — fin autónomo y plazo de respuesta
+// ---------------------------------------------------------------------------
+describe('CaseDetailScreen — terminar y plazo', () => {
+  beforeEach(() => {
+    mockTerminateCase.mockReset();
+    mockTerminateCase.mockResolvedValue(undefined);
+    mockStatus = 'success';
+  });
+
+  it('ofrece terminar la negociación en un caso en curso', async () => {
+    mockDetail = buildDetail({ estado: 'en_negociacion' });
+    await renderScreen();
+
+    expect(screen.getByText(t('caseDetail.terminate.action'))).toBeTruthy();
+  });
+
+  it('no la ofrece sobre un caso acordado, porque la transición no existe', async () => {
+    // El trigger sólo admite `acordado → cerrado`. Ofrecer el botón devolvería
+    // un 409 genérico que no le explica nada a la persona.
+    mockDetail = buildDetail({ estado: 'acordado', statusLabelKey: 'signed', visualStatus: 'success' });
+    await renderScreen();
+
+    expect(screen.queryByText(t('caseDetail.terminate.action'))).toBeNull();
+  });
+
+  it('pide confirmación antes de terminar, y avisa que no se puede reabrir', async () => {
+    mockDetail = buildDetail({ estado: 'en_negociacion' });
+    await renderScreen();
+
+    fireEvent.press(screen.getByText(t('caseDetail.terminate.action')));
+
+    await waitFor(() => expect(screen.getByText(t('caseDetail.terminate.dialogTitle'))).toBeTruthy());
+    expect(screen.getByText(t('caseDetail.terminate.dialogBody'))).toBeTruthy();
+    // Nada se llamó todavía: abrir el diálogo no termina nada.
+    expect(mockTerminateCase).not.toHaveBeenCalled();
+  });
+
+  it('termina el caso al confirmar y recarga', async () => {
+    mockDetail = buildDetail({ estado: 'en_negociacion' });
+    await renderScreen();
+
+    fireEvent.press(screen.getByText(t('caseDetail.terminate.action')));
+    await waitFor(() => expect(screen.getByText(t('caseDetail.terminate.confirm'))).toBeTruthy());
+    fireEvent.press(screen.getByText(t('caseDetail.terminate.confirm')));
+
+    await waitFor(() => expect(mockTerminateCase).toHaveBeenCalledWith('case-1'));
+    await waitFor(() => expect(mockReload).toHaveBeenCalled());
+  });
+
+  it('muestra la tarjeta de plazo en un caso activo', async () => {
+    mockDetail = buildDetail({ estado: 'activo', statusLabelKey: 'inReview' });
+    await renderScreen();
+
+    expect(screen.getByText(t('caseDetail.deadline.title'))).toBeTruthy();
+  });
+
+  it('no muestra la tarjeta de plazo con el gate C-01 activo', async () => {
+    // La contraparte está impedida de actuar hasta que haya suscripción.
+    // Ponerle un reloj es presión sobre algo que no está en sus manos.
+    mockDetail = buildDetail({
+      estado: 'pendiente_suscripciones',
+      statusLabelKey: 'awaitingSubscriptions',
+      visualStatus: 'neutral',
+    });
+    await renderScreen();
+
+    expect(screen.queryByText(t('caseDetail.deadline.title'))).toBeNull();
+    // Pero terminar sí se puede: el trigger lo admite, y es la salida de
+    // alguien que no quiere esperar a que la otra parte pague.
+    expect(screen.getByText(t('caseDetail.terminate.action'))).toBeTruthy();
   });
 });

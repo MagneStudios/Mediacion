@@ -37,6 +37,9 @@ const CTA_KEY: Record<CaseStatusLabelKey, 'continue' | 'respond' | 'view'> = {
   inReview: 'continue',
   proposalReady: 'respond',
   signed: 'view',
+  // RN-08: terminado es de sólo lectura, igual que un caso firmado — no hay
+  // nada que continuar ni a qué responder.
+  terminated: 'view',
   awaitingCounterparty: 'view',
   // C-01: 'view' y no 'continue'. Desde la tarjeta no se puede resolver el
   // bloqueo —la suscripción que falta puede ser la de la contraparte— así que
@@ -66,7 +69,11 @@ export function CaseCard({ caseSummary, onPress, isWide = false }: CaseCardProps
 
   const contextualTone = CONTEXTUAL_TONE[caseSummary.visualStatus];
   const ctaKey = CTA_KEY[caseSummary.statusLabelKey];
-  const isFinished = caseSummary.statusLabelKey === 'signed';
+  // `terminated` también es un desenlace, no un próximo paso: el encabezado
+  // dice "Resultado" y el icono es de cierre. Lo que cambia respecto de
+  // `signed` es sólo el texto — uno terminó en acuerdo y el otro no.
+  const isFinished =
+    caseSummary.statusLabelKey === 'signed' || caseSummary.statusLabelKey === 'terminated';
   const contextualLabel = isFinished ? t('cases.resultLabel') : t('cases.nextActionLabel');
   const contextualIcon: 'check' | 'info' = isFinished ? 'check' : 'info';
 

@@ -87,6 +87,17 @@ export type CaseStatusLabelKey =
    * es un dato que le corresponda a esta parte.
    */
   | 'awaitingSubscriptions'
+  /**
+   * RN-08: una parte declaró el fin de la negociación. **Distinto de
+   * `signed`**, que es donde caen `acordado` y `cerrado`.
+   *
+   * Hasta el 09/09 `terminado` compartía la etiqueta de `signed` y nadie lo
+   * notó porque el estado era inalcanzable: ninguna pantalla podía escribirlo.
+   * En cuanto se pudo terminar un caso, un caso abandonado **sin acuerdo**
+   * habría dicho "Firmado" en el dashboard — que en un producto legal no es un
+   * matiz de copy.
+   */
+  | 'terminated'
   | 'expired';
 
 export type CaseSummary = {
