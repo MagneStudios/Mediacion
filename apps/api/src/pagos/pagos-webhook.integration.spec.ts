@@ -13,9 +13,14 @@ import { PagosRepository } from "./pagos.repository";
 import { PagosService } from "./pagos.service";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
 const instanceId = "00000000-0000-0000-0000-000000000000";
 
 class FixedMercadoPagoClient implements MercadoPagoClient {
+  createOneOffPreference(): Promise<{ id: string; initPoint: string }> {
+    throw new Error("not used by the subscription webhook spec");
+  }
+
   constructor(private readonly payment: MercadoPagoPayment) {}
 
   createPreference(): Promise<CreatePreferenceOutput> {

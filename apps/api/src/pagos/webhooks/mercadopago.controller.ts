@@ -11,7 +11,7 @@ import {
 import { Public } from "../../auth/public.decorator";
 import type { AppConfig } from "../../config/config";
 import { APP_CONFIG } from "../../config/config.tokens";
-import { PagosService } from "../pagos.service";
+import { PaymentRouterService } from "./payment-router.service";
 import { verifyMercadoPagoSignature } from "./signature";
 
 const signatureHeader = "x-signature";
@@ -66,7 +66,8 @@ function extractDataId(
 @Controller()
 export class MercadoPagoWebhookController {
   constructor(
-    @Inject(PagosService) private readonly pagosService: PagosService,
+    @Inject(PaymentRouterService)
+    private readonly paymentRouter: PaymentRouterService,
     @Inject(APP_CONFIG) private readonly appConfig: AppConfig,
   ) {}
 
@@ -91,7 +92,7 @@ export class MercadoPagoWebhookController {
     if (!isValid || !dataId) {
       throw invalidSignature();
     }
-    await this.pagosService.processWebhookPayment(dataId);
+    await this.paymentRouter.processWebhookPayment(dataId);
     return { received: true };
   }
 }
