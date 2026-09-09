@@ -66,8 +66,10 @@ supabase/migrations/
 └── 20260902120000_c01_gate_suscripciones.sql  # C-01: gate "ambos al día" — ADD VALUE pendiente_suscripciones, caso_ambas_partes_suscripciones_activas(), trg_casos_gate_suscripciones
 ├── 20260906100000_pendiente_suscripciones_writable.sql  # P1: validate_caso_estado_transition() admite nuevo→pendiente_suscripciones y pendiente_suscripciones→{activo,en_negociacion,terminado,vencido,expirado}
 ├── 20260906110000_negociaciones.sql  # Parte 3: tabla negociaciones (UNIQUE caso_id+materia), enums materia_acuerdo/estado_negociacion, items.negociacion_id nullable, policy negociaciones_all
-├── 20260906120000_acuerdos_recolocar.sql  # Parte 4 (breaking): rondas/propuestas/acuerdos cuelgan de negociacion_id (backfill 'otro'), se caen ronda_actual, sync_ronda_actual() y 3 uniques
-└── 20260906130000_acuerdos_versionado.sql  # Parte 5: version/vigente/valid_from/supersedes_agreement_id en acuerdos + idx_acuerdos_negociacion_vigente
+├── 20260906120000_acuerdos_recolocar.sql  # Parte 4 (breaking): rondas/propuestas/acuerdos cuelgan de negociacion_id (backfill NULL para casos sin materia), se caen ronda_actual, sync_ronda_actual() y 3 uniques
+├── 20260906130000_acuerdos_versionado.sql  # Parte 5: version/vigente/valid_from/supersedes_agreement_id en acuerdos + idx_acuerdos_negociacion_vigente
+├── 20260909120000_renegociacion_reabre_caso.sql  # Renegociación reabre el caso: acordado → en_negociacion
+└── 20260909130000_casos_estado_insert_guard.sql  # Máquina de estados de casos también corre en INSERT (no solo UPDATE)
 ```
 
 ## Modelo de datos (34 tablas)
@@ -83,7 +85,7 @@ supabase/migrations/
 - `invitaciones` — link/código/correo para unir contraparte
 
 ### Negociación (acuerdos modulares, P3/P4)
-- `negociaciones` — una por `(caso_id, materia)`; define la materia del acuerdo (`materia_acuerdo`), estado propio, `ronda` vigente y `round_negotiating`. UNIQUE `(caso_id, materia)`. Policy `negociaciones_all` (FOR ALL: parte del caso **o** admin). Materias reales (`bienes`, `custodia_hijos`, `alimentos`, …) y `'otro'` para casos sin materia declarada (backfill de P4)
+- `negociaciones` — una por `(caso_id, materia)`; define la materia del acuerdo (`materia_acuerdo`), estado propio, `ronda` vigente y `round_negotiating`. UNIQUE `(caso_id, materia)`. Policy `negociaciones_all` (FOR ALL: parte del caso **o** admin). Materias: `tenencia`, `alimentos`, `bienes`, `otro` (valor explícito no clasificado); el modelo viejo se representa con `materia = NULL` (backfill de P4), nunca con `'otro'`.
 - `items` — posiciones privadas con rango (text) por categoría; `negociacion_id` nullable (backfilleado en P4)
 - `rondas` — iteraciones de negociación (UNIQUE `negociacion_id + numero`; derogado `rondas_caso_numero_unique`)
 - `propuestas` — puntos de encuentro generados por IA (JSONB) (UNIQUE `negociacion_id + ronda_id`; derogado `propuestas_caso_ronda_unique`)
@@ -126,9 +128,9 @@ supabase/migrations/
 
 `estado_caso` tiene 9 valores: `nuevo, activo, en_negociacion, acordado, cerrado, terminado, vencido, expirado, pendiente_suscripciones`. **No existe tabla `estados_caso`** — el endpoint de onboarding devuelve el catálogo de este enum (falso positivo N-3 de la auditoría, respuesta 7 del 18/08). `pendiente_suscripciones` (C-01) es el estado que refleja un caso transitoriamente bloqueado por no tener ambas partes al día; la activación real solo ocurre vía transición validada por el gate.
 
-`materia_acuerdo` (P3): `bienes`, `custodia_hijos`, `alimentos`, `uso_auto`, `deudas`, `otro` — materia del acuerdo/negociación. `'otro'` se usa para backfill de rondas/propuestas/acuerdos huérfanos (P4).
+`materia_acuerdo` (P3): `tenencia`, `alimentos`, `bienes`, `otro` — materia del acuerdo/negociación. El modelo viejo (sin materia) se backfillea con `materia = NULL`, no con `'otro'`; `'otro'` queda reservado como materia explícita no clasificada.
 
-`estado_negociacion` (P3): `negociando`, `acordada` — estados internos de `negociaciones` (no confundir con `estado_acuerdo`; la decisión §5.2 no agrega miembro a `estado_acuerdo`).
+`estado_negociacion` (P3): `borrador`, `activa`, `acordada`, `cerrada`, `terminada` — estados internos de `negociaciones` (no confundir con `estado_acuerdo`; la decisión §5.2 no agrega miembro a `estado_acuerdo`).
 
 `estado_arrepentimiento` tiene 4 valores: `recibida, en_proceso, resuelta, rechazada`. Usado tanto por `solicitudes_arrepentimiento` como por `solicitudes_contacto` (reutilizado por diseño).
 
@@ -154,7 +156,7 @@ Un caso puede cerrar **varios acuerdos**, cada uno bajo una `negociaciones` dist
 
 ### Acuerdos modulares: recolocación (P4, breaking)
 
-Migración `20260906120000_acuerdos_recolocar.sql`: `rondas`, `propuestas` y `acuerdos` pasan a colgar de `negociacion_id` (NOT NULL) vía backfill con una negociación `'otro'` por caso sin materia. Se eliminaron `acuerdos_caso_unique`, `rondas_caso_numero_unique`, `propuestas_caso_ronda_unique`, `casos.ronda_actual`, `sync_ronda_actual()` y `trigger_sync_ronda_actual`. RLS reescrita para resolver el caso por negociación (`EXISTS (... negociaciones)`). Consecuencia BE/FE documentada: repos y specs deben portar a `negociacion_id` (evidencia: `npx tsc -b` de raíz en rojo pos-P4, esperado).
+Migración `20260906120000_acuerdos_recolocar.sql`: `rondas`, `propuestas` y `acuerdos` pasan a colgar de `negociacion_id` (NOT NULL) vía backfill con una negociación con `materia = NULL` por caso sin materia (modelo viejo). Se eliminaron `acuerdos_caso_unique`, `rondas_caso_numero_unique`, `propuestas_caso_ronda_unique`, `casos.ronda_actual`, `sync_ronda_actual()` y `trigger_sync_ronda_actual`. RLS reescrita para resolver el caso por negociación (`EXISTS (... negociaciones)`). Consecuencia BE/FE documentada: repos y specs deben portar a `negociacion_id` (evidencia: `npx tsc -b` de raíz en rojo pos-P4, esperado).
 
 ### Acuerdos modulares: versionado (P5)
 
@@ -224,7 +226,7 @@ Ninguna FK legal usa `ON DELETE CASCADE`:
 | Texto legal en la base | `legal_documents` versionado con `valid_to IS NULL` = vigente; partial unique por tipo evita dos vigentes |
 | `has_accepted_current` SECURITY DEFINER | `search_path=''`, EXECUTE solo service_role/postgres (no expuesta al cliente); el trigger la invoca como InitPlan interno. El GRANT a authenticated de `20260817140000` fue revertido en `20260821000000` (helper de servidor) |
 | Gate "ambos al día" (C-01) | Trigger `trg_casos_gate_suscripciones` bloquea `activo`/`en_negociacion` si alguna de las dos partes no tiene suscripción activa. Verifier SECURITY DEFINER solo revisa `parte_a`/`parte_b` (el mediador no paga); empty-set → true. Estado `pendiente_suscripciones` agregado. Decisión: `docs/decisiones-db/2026-09-02-c01-c02-cliente.md` |
-| Acuerdos modulares (P3/P4) | Un caso → varias negociaciones por materia (`UNIQUE (caso_id, materia)`); ronda viva = `negociaciones.round`; rondas/propuestas/acuerdos cuelgan de `negociacion_id` (NOT NULL tras backfill `'otro'`). Los prompts mandan materia NOT NULL + backfill `'otro'` (ver discrepancia en changelog). `items.negociacion_id` nullable por data previa |
+| Acuerdos modulares (P3/P4) | Un caso → varias negociaciones por materia (`UNIQUE (caso_id, materia)`); ronda viva = `negociaciones.round`; rondas/propuestas/acuerdos cuelgan de `negociacion_id` (NOT NULL). `materia` es nullable (modelo viejo = NULL, nunca `'otro'`; ver discrepancia en changelog). `items.negociacion_id` nullable por data previa |
 | Versionado de acuerdos (P5, §5.2) | `vigente` + `supersedes_agreement_id` + `version` + `valid_from`. No se toca `estado_acuerdo`: el front no renderiza "reemplazado" como "borrador". Acuerdo vigente = `WHERE negociacion_id=$1 AND vigente=true` |
 
 ## Comandos útiles

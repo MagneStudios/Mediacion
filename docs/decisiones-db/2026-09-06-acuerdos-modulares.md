@@ -8,7 +8,7 @@
 
 1. **Materia** → nuevo enum `materia_acuerdo = (tenencia, alimentos, bienes, otro)`. **No** reusar `categoria_item` (es categoría de posición privada; confundirlos renderiza "Cuidado de niñas" donde el cliente pidió "Tenencia"). `items` gana `negociacion_id` (nullable + backfill) para acotar "listo para proponer" por materia.
 2. **Versionado** → `vigente BOOLEAN` + `supersedes_agreement_id` + `version INT` + `valid_from TIMESTAMPTZ`. **No** se agrega miembro a `estado_acuerdo` (evita el bug de render como "borrador" en los ternarios del front).
-3. **`estado_caso='acordado'`** → solo cuando **todas** las materias tienen acuerdo vigente+firmado. Es estado derivado (trigger/BE lo calcula). El estado por materia vive en `acuerdos`.
+3. **`estado_caso='acordado'`** → solo cuando **todas** las materias tienen acuerdo vigente+firmado. **Delegado a Backend**: BE lo calcula (p.ej. `CasosRepository.markAcordado`); DB **no** implementa trigger para esto. El estado por materia vive en `acuerdos`.
 4. **`casos.ronda_actual` + `sync_ronda_actual`** → se retiran. La ronda se lee por negociación (`negociaciones.round`); FE ya consume `CaseSummary.roundNumber` por tarjeta.
 
 ## Principio de ejecución (por partes, commit individual)
@@ -21,7 +21,7 @@
 
 ## Frontera congelada (DB→BE/FE)
 
-`negociacion_id` estable · `materia` nullable con meaning "viejo modelo" (nunca relleno `otra`) · `vigente`/`supersedes` para historial · `roundNumber` por negociación · `acordado` derivado de caso.
+`negociacion_id` estable · `materia` nullable con meaning "viejo modelo" (nunca relleno `otra`) · `vigente`/`supersedes` para historial · `roundNumber` por negociación · estado `acordado` derivado de caso (lo calcula BE, no DB).
 
 ## Referencias
 
