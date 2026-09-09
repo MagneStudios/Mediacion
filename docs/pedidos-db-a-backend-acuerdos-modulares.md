@@ -50,7 +50,7 @@ UNIQUE (caso_id, materia)             -- NULLs no colisionan: 1 negociación leg
 - Renegociar: precargar vigente → crear nuevo con `version = vigente.version + 1`, `supersedes_agreement_id = vigente.id` → UPDATE viejo `vigente = false`.
 
 ### 2.3 `estado_caso = 'acordado'` es derivado
-- Solo cuando **todas** las materias del caso tienen acuerdo vigente+firmado. Lo calcula un trigger/BE; el estado por materia vive en `acuerdos`.
+- Solo cuando **todas** las materias del caso tienen acuerdo vigente+firmado. **Delegado a Backend** (DB no implementa trigger): BE lo calcula; el estado por materia vive en `acuerdos`.
 
 ---
 

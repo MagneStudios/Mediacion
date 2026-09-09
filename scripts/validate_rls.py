@@ -744,17 +744,22 @@ def main():
                         "expected": True, "actual": result_ok})
         print(f"  [{status}] Gate: UPDATE a activo con ambas al día PASA | err={err}")
 
-        # G3 (INSERT directo en activo): un caso con 0 partes se puede insertar
-        # en activo (conjunto vacío → true, por diseño); la garantía real es la
-        # transición (G1/G2). Se documenta aquí el borde.
+        # G3 (borde empty-set → true): un caso sin partes llega a activo. Con la
+        # máquina de estados corriendo también en INSERT (mig 44) el estado inicial
+        # solo puede ser 'nuevo'/'pendiente_suscripciones'; el paso a 'activo' se
+        # hace vía UPDATE, donde el gate C-01 aplica la regla "ambos al día"
+        # (conjunto vacío → true, por diseño).
         cur.execute(
             "INSERT INTO casos (creador_id, nombre, descripcion, metodo, estado) VALUES "
             "('aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Caso Gate INSERT activo (sin partes)', "
-            "'insert directo', 'negociacion', 'activo') ON CONFLICT DO NOTHING",
+            "'insert directo', 'negociacion', 'nuevo') ON CONFLICT DO NOTHING",
         )
-        RESULTS.append({"name": "Gate: INSERT directo en activo sin partes PASA (por diseño)",
+        cur.execute(
+            "UPDATE casos SET estado = 'activo' WHERE nombre = 'Caso Gate INSERT activo (sin partes)'",
+        )
+        RESULTS.append({"name": "Gate: INSERT nuevo → UPDATE activo sin partes PASA (por diseño)",
                         "status": "PASS", "expected": True, "actual": True})
-        print("  [PASS] Gate: INSERT directo en activo sin partes PASA (por diseño, empty->true)")
+        print("  [PASS] Gate: INSERT nuevo -> UPDATE activo sin partes PASA (por diseno, empty->true)")
 
         print()
         print("=== P1: pendiente_suscripciones writable (máquina de estados) ===")
