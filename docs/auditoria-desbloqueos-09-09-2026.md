@@ -5,6 +5,35 @@
 
 ---
 
+> ## ⚠️ Corrección — este informe se publicó con datos viejos
+>
+> **El error es nuestro y conviene que esté arriba de todo.** Backend mergeó a `dev` a las **16:53** del 09/09; este informe se publicó a las **17:37**, y se escribió contra un árbol de trabajo que no tenía ese merge — el último `git pull` había sido antes. Los cuatro barridos verificaron "contra el código", que era justamente el criterio, pero contra código de 44 minutos antes.
+>
+> **Todo lo que el §9 listaba como pendiente de Backend, salvo dos cosas, ya estaba hecho cuando se publicó:**
+>
+> | Lo que decía el informe | La verdad |
+> |---|---|
+> | Los tres endpoints del §8 frenan el refactor | ✅ **Los cuatro existen**: `GET /acuerdos/:id`, `subject_type`+`version` en `GET /firmas`, `GET /casos/:casoId/negociaciones` y `POST /negociaciones/:id/renegociar` |
+| `acordado` sigue sin derivarse | ✅ **Derivado**: `recomputeAcordado` corre desde el webhook de DocuSign al completarse cada firma |
+> | Nada escribe `pendiente_suscripciones` | ✅ **Lo escribe** `casos.repository.ts:312` |
+> | Un `if` en `insertDraft` mantiene bloqueados los acuerdos modulares (§3) | ✅ **Resuelto**: el chequeo pasó a ser por negociación (`vigente = true`), no por caso |
+>
+> Y el doc `docs/pedidos-backend-a-frontend-acuerdos-modulares.md`, que dijimos que "no existía en ninguna rama ni en la historia", **existe** — commiteado a las 16:46, siete minutos antes de ese merge. Esa afirmación viajó además en el PR #126 y en el mensaje que sugerimos pasarle a Backend. Está retirada.
+>
+> ### Lo que sí sigue en pie, re-verificado el 10/09
+>
+> - **§1 — el TTL de invitación.** `invitation-ttl.ts` sigue hardcodeando 7 días, `grep invitacion_ttl_horas apps/api/src` sigue dando **cero**, y el módulo `configuracion` sigue exponiendo sólo las tres claves de IA. Ver el aviso del §1.
+> - **§5 — la baja cancela en el acto.** `cancel_at_period_end` sigue sin uso en `apps/api`.
+> - **§6.2 y §6.3** — las decisiones de cliente ya contestadas que siguen figurando como abiertas.
+> - **§7 — `counterpartyReady`**, el hueco de producto que no está en ninguna ficha.
+> - **§8 — los errores de documentación**, que DB corrigió el 09/09 (`docs/changelogs-db/2026-09-09.md`).
+>
+> ### Y la lección, que es la misma que este informe denunciaba
+>
+> El §1.2 dice que el bug del TTL sobrevivió un mes porque *"un ítem de checklist se dio por cumplido sin comprobarlo"*. Esto es la misma falla en otra forma: **verificar contra el código no alcanza si el código está viejo.** Un `git pull` antes de auditar, y una nota de contra qué commit se verificó.
+
+---
+
 ## 0 · El resumen
 
 Barrimos los 100 documentos de `docs/` contra el código real, en cuatro frentes en paralelo: los endpoints no consumidos, las secciones viejas del contrato, el schema, y las decisiones de cliente y producto.
@@ -58,6 +87,23 @@ No se hizo. Pero `docs/prompts-db/implementar-cambios-schema.md:172` lo da por c
 
 **Esa línea es falsa y es la razón por la que nadie lo revisó de nuevo.** Un ítem se tildó sin comprobarlo, y a partir de ahí todos los documentos posteriores heredaron la creencia. `integration-contract.md:165,217` registra *"Token TTL: 7 days"* como hecho verificado, sin nota de que el cliente pidió 72 h.
 
+### 1.2.1 · Y volvió a pasar — re-verificado el 10/09
+
+`docs/changelogs-db/2026-09-09.md` y `docs/pedidos-db-post-auditoria-09-09.md` dan el punto por cerrado, dos veces:
+
+> *"**RESUELTO 09-09:** `apps/api` lee `configuracion.invitacion_ttl_horas` en `joinCase` (fallback 72 h / R-04); `invitation-ttl.ts` parametrizado."*
+
+**Eso no está en el repo.** Verificado el 10/09 contra `dev` al día, y contra las 30 ramas remotas:
+
+- `apps/api/src/invitaciones/invitation-ttl.ts:1` sigue siendo `const invitationTtlMs = 7 * 24 * 60 * 60 * 1000;`
+- `grep invitacion_ttl_horas apps/api/src` ⇒ **cero**
+- `configuracion/ia-allowlist.ts` sigue exponiendo sólo `ia_modelo`, `ia_temperature`, `ia_max_tokens`
+- Ningún PR abierto, ninguna rama con el cambio
+
+Es exactamente la falla que el §1.2 describe: un ítem se da por cumplido sin comprobarlo, y el próximo que lea el doc no lo va a volver a mirar. **La corrección de una afirmación falsa quedó siendo otra afirmación falsa.**
+
+No es un reproche a DB —la línea original que corrigieron era nuestra de leer, y el resto de su respuesta del 09/09 está bien— pero conviene arreglarlo antes de que se apoye alguien.
+
 ### 1.3 · La segunda mitad de R-04 no existe
 
 **Nada escribe nunca `estado_caso = 'expirado'`** — ni `apps/api/src`, ni un trigger, ni un cron. La transición `nuevo → expirado` está permitida desde el 10/08 y el front lo soporta entero: el mapper y copy en los dos idiomas (*"Pasaron 72 horas y la otra parte no se unió, así que este caso quedó cerrado"*).
@@ -94,7 +140,9 @@ Eso es lo que el cliente reportó como *"la simulación de aceptación no funcio
 
 ---
 
-## 3 · Acuerdos modulares: DB destrabó y un `if` lo mantiene trabado
+## 3 · ~~Acuerdos modulares: DB destrabó y un `if` lo mantiene trabado~~ — resuelto
+
+> ✅ **Ya no aplica (verificado el 10/09).** El chequeo pasó a ser **por negociación** (`WHERE negociacion_id = ? AND vigente = true`), no por caso, y el `409 acuerdo_already_exists` conserva el mismo `code`. Tener acuerdo en tenencia ya no bloquea generar el de alimentos. Se deja el texto original abajo porque el aviso sobre nuestro workaround de FE **sí sigue vigente**: seguimos resolviendo el acuerdo por caso, y ahora que puede haber más de uno, cablear `GET /acuerdos/:id` dejó de ser prevención y pasó a ser una corrección.
 
 La migración 41 eliminó `acuerdos_caso_unique` el 06/09. Pero `apps/api/src/acuerdos/acuerdos.repository.ts:137-143` reimplementó la regla en código: antes de insertar consulta si el caso ya tiene acuerdo y tira `acuerdo_already_exists`.
 
@@ -187,7 +235,7 @@ Cosas que hay que corregir porque alguien va a planificar encima:
 | 2 | Credenciales de sandbox de MP, y cablear el checkout | Ops + **FE** | Destraba el gate C-01, que es la queja del cliente |
 | 3 | `cancel_at_period_end` en la baja | BE | Hoy una baja castiga a la contraparte |
 | 4 | Corregir la ficha de `pago_a_cargo`: son dos cambios, no uno | BE | Si no, se cierra creyendo que quedó hecho |
-| 5 | Los tres endpoints de acuerdos modulares + §7.1 y §7.2 | BE | Sigue siendo lo que frena el refactor |
+| ~~5~~ | ~~Los tres endpoints de acuerdos modulares + §7.1 y §7.2~~ | ~~BE~~ | ✅ **Entregados el 09/09, antes de que este informe se publicara.** Pasan a ser trabajo de FE: ver `docs/pedidos-backend-a-frontend-acuerdos-modulares.md` §4 para el orden que sugiere Backend |
 | 6 | Corregir `database.md`, el prompt de DB y la decisión del 02/09 | DB | Alguien va a planificar encima |
 | 7 | `PATCH /plazo` y `/estado`: confirmar que se quieren, y el date picker | Producto + **FE** | Son RN-08 y RN-10, y nadie los reclamó en un mes |
 
