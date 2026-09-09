@@ -22,11 +22,41 @@ type ApiInvitation = {
   estado: CaseInvitation['estado'];
 };
 
+/**
+ * `InvitacionView` of `GET /casos/:id/invitaciones` — richer than what the
+ * POST answers with, and the reason this app can finally re-show a code after
+ * a reload instead of only within the session that created it.
+ *
+ * `pago_a_cargo` is **not** in it (see `CaseInvitation.pagoACargo`), and
+ * `fecha_envio` is deliberately not mapped: nothing renders it, and a field
+ * carried into the domain with no consumer only invites someone to trust it.
+ */
+type ApiInvitationView = ApiInvitation & {
+  caso_id: string;
+  email_destino: string | null;
+  fecha_envio: string | null;
+  created_at: string;
+};
+
+function toInvitation(row: ApiInvitationView): CaseInvitation {
+  return {
+    id: row.id,
+    caseId: row.caso_id,
+    tipo: row.tipo,
+    token: row.token,
+    emailDestino: row.email_destino,
+    estado: row.estado,
+    pagoACargo: null,
+    createdAt: row.created_at,
+  };
+}
+
 export type ApiCasesService = {
   listCases(): Promise<CaseSummary[]>;
   getCaseDetail(caseId: string): Promise<CaseDetail | undefined>;
   createCase(input: CreateCaseInput): Promise<CaseSummary>;
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
+  listInvitations(caseId: string): Promise<CaseInvitation[]>;
   getCaseTitle(caseId: string): Promise<string | null>;
   joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }>;
 };
@@ -97,9 +127,10 @@ export function createApiCasesService(
           },
         },
       );
-      // The API returns no caseId/createdAt, and there is no read endpoint for
-      // invitations, so those are completed locally from what we already know
-      // — pagoACargo included, since it's exactly what we just sent.
+      // The POST answers with only `{id, tipo, token, estado}`, so caseId and
+      // createdAt are completed locally from what we already know — pagoACargo
+      // included, since it is exactly what we just sent, and it is the one
+      // field the read endpoint cannot give back.
       return {
         id: created.id,
         caseId: input.casoId,
@@ -110,6 +141,23 @@ export function createApiCasesService(
         pagoACargo: input.pagoACargo,
         createdAt: clock().toISOString(),
       };
+    },
+
+    /**
+     * Every invitation of the caso, newest first. Ordering is applied here
+     * rather than trusted from the server: the repository does sort by
+     * `created_at desc` today, but no ficha promises it, and the field that
+     * decides which code a user is shown should not depend on an undocumented
+     * implementation detail. `created_at` travels in the payload, so sorting
+     * costs nothing.
+     */
+    async listInvitations(caseId: string): Promise<CaseInvitation[]> {
+      const rows = await http.request<ApiInvitationView[]>(
+        `/casos/${caseId}/invitaciones`,
+      );
+      return rows
+        .map(toInvitation)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
 
     async getCaseTitle(caseId: string): Promise<string | null> {

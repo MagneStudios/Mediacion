@@ -9,6 +9,7 @@ import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
 import { NegociacionService } from "./negociacion.service";
 import type { PropuestaContenido } from "./negociacion.types";
+import { NegociacionesRepository } from "./negociaciones.repository";
 import { PropuestasRepository } from "./propuestas.repository";
 import { RondasRepository } from "./rondas.repository";
 
@@ -103,6 +104,10 @@ async function insertCaso(
     })
     .returningAll()
     .executeTakeFirstOrThrow();
+  await kysely
+    .insertInto("negociaciones")
+    .values({ caso_id: caso.id, materia: null, method: "mediacion" })
+    .execute();
   return caso.id;
 }
 
@@ -191,6 +196,11 @@ function cleanupCasoSteps(
     () =>
       kysely.deleteFrom("propuestas").where("caso_id", "=", casoId).execute(),
     () => kysely.deleteFrom("rondas").where("caso_id", "=", casoId).execute(),
+    () =>
+      kysely
+        .deleteFrom("negociaciones")
+        .where("caso_id", "=", casoId)
+        .execute(),
     () => kysely.deleteFrom("items").where("caso_id", "=", casoId).execute(),
     () =>
       kysely.deleteFrom("caso_partes").where("caso_id", "=", casoId).execute(),
@@ -228,6 +238,7 @@ describeDb(
         rondasRepository,
         configuracionRepository,
         aiProposalGenerator,
+        new NegociacionesRepository(kysely),
       );
     });
 
@@ -308,6 +319,7 @@ describeDb(
           await propuestasRepository.createPending(
             casoId,
             ronda.id,
+            ronda.negociacion_id,
             { meetingPoint: [], narrative: null },
             "test-model",
           );
@@ -410,7 +422,7 @@ describeDb(
         ]);
       });
 
-      it("rejecting the ronda 1 propuesta opens ronda 2, with casos.ronda_actual synced only by the sync_ronda_actual trigger", async () => {
+      it("rejecting the ronda 1 propuesta opens ronda 2, tracked on negociaciones.round", async () => {
         const pending = await service.generatePropuesta(casoId, parteAId);
         await waitForNarrative(kysely, pending.id);
 
@@ -433,12 +445,13 @@ describeDb(
         const rondaDos = await rondasRepository.findByNumero(casoId, 2);
         expect(rondaDos).toBeDefined();
 
-        const casoRow = await kysely
-          .selectFrom("casos")
-          .select("ronda_actual")
-          .where("id", "=", casoId)
+        const negociacionRow = await kysely
+          .selectFrom("negociaciones")
+          .select("round")
+          .where("caso_id", "=", casoId)
+          .where("materia", "is", null)
           .executeTakeFirstOrThrow();
-        expect(casoRow.ronda_actual).toBe(2);
+        expect(negociacionRow.round).toBe(2);
       });
 
       it("rejecting the ronda 2 propuesta opens ronda 3, unlocking the mediador access gate", async () => {
@@ -464,12 +477,13 @@ describeDb(
         const rondaTres = await rondasRepository.findByNumero(casoId, 3);
         expect(rondaTres).toBeDefined();
 
-        const casoRow = await kysely
-          .selectFrom("casos")
-          .select("ronda_actual")
-          .where("id", "=", casoId)
+        const negociacionRow = await kysely
+          .selectFrom("negociaciones")
+          .select("round")
+          .where("caso_id", "=", casoId)
+          .where("materia", "is", null)
           .executeTakeFirstOrThrow();
-        expect(casoRow.ronda_actual).toBe(3);
+        expect(negociacionRow.round).toBe(3);
 
         const propuestas = await service.listPropuestas(casoId, mediadorId);
         expect(propuestas.length).toBe(2);

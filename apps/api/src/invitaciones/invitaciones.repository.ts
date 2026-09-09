@@ -152,7 +152,10 @@ export class InvitacionesRepository {
           .where("id", "=", invitacion.id)
           .execute();
 
-        await this.casosRepository.activateIfNuevo(invitacion.caso_id, trx);
+        await this.casosRepository.activateOrHoldForSuscripciones(
+          invitacion.caso_id,
+          trx,
+        );
 
         return trx
           .selectFrom("casos")

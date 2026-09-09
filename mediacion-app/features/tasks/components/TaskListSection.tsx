@@ -18,6 +18,8 @@ export type TaskListItem = {
   eventDateLabel?: string;
   actionLabel?: string;
   actionLoading?: boolean;
+  /** Shown in place of `actionLabel` while `actionLoading` — `TaskCard` has always taken one; this list simply never forwarded it. */
+  actionLoadingLabel?: string;
   actionDisabled?: boolean;
   actionAccessibilityLabel?: string;
 };
@@ -83,6 +85,7 @@ export function TaskListSection({
                 actionLabel={task.actionLabel}
                 onAction={task.actionLabel ? () => onTaskAction(task.id) : undefined}
                 actionLoading={task.actionLoading}
+                actionLoadingLabel={task.actionLoadingLabel}
                 actionDisabled={task.actionDisabled}
                 actionAccessibilityLabel={task.actionAccessibilityLabel}
               />

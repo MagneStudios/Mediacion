@@ -22,10 +22,54 @@ describe('plans.service — R-10 admin ABM', () => {
   });
 
   it('lists the seeded plans, mirroring the real migrations', async () => {
+    // Six since 21/08. The monetización seed added `particular` and
+    // `corporativo` and left the four legacy rows untouched — DB called it
+    // "aditivo puro". There is no `activo` column and `GET /planes` takes no
+    // filter, so this really is what Mi plan lists today
+    // (`docs/plan-frontend-monetizacion.md` §1.2).
     const service = createMockPlansService();
     const plans = await service.listPlanes();
     const nombres = plans.map((p) => p.nombre).sort();
-    expect(nombres).toEqual(['base', 'estudio', 'plus', 'simple']);
+    expect(nombres).toEqual([
+      'base',
+      'corporativo',
+      'estudio',
+      'particular',
+      'plus',
+      'simple',
+    ]);
+  });
+
+  it('seeds the two period quotas exactly where the migration set them', async () => {
+    const service = createMockPlansService();
+    const plans = await service.listPlanes();
+    const by = (nombre: string) => plans.find((p) => p.nombre === nombre);
+
+    // `20260821120000_monetizacion_fase1.sql:283-296` fills only these two.
+    expect(by('estudio')).toEqual(
+      expect.objectContaining({ maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 }),
+    );
+    expect(by('particular')).toEqual(
+      expect.objectContaining({ maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: null }),
+    );
+    // The legacy rows were never given one, and `consume_quota` reads that
+    // NULL as unlimited.
+    expect(by('base')).toEqual(
+      expect.objectContaining({ maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null }),
+    );
+  });
+
+  it('reproduces the two pricing ambiguities the catalog still has, rather than tidying them away', async () => {
+    // Both are open decisions on the DB/Producto side (§1.2 and §1.3), and the
+    // mock is where they have to stay visible: `corporativo` is meant to read
+    // "a consultar" but its precio is 0.00, which is indistinguishable from the
+    // genuinely free `base`. A mock that quietly fixed this would hide the bug
+    // from every screen that renders a price.
+    const service = createMockPlansService();
+    const plans = await service.listPlanes();
+
+    expect(plans.find((p) => p.nombre === 'corporativo')?.precio).toBe(0);
+    expect(plans.find((p) => p.nombre === 'base')?.precio).toBe(0);
   });
 
   it('seeds the estudio plan with limiteCasos null (R-10) and the other limits at 0, per the real migration', async () => {
@@ -56,7 +100,7 @@ describe('plans.service — R-10 admin ABM', () => {
   it("seeds every plan with moneda 'ARS', mirroring the real migration", async () => {
     const service = createMockPlansService();
     const plans = await service.listPlanes();
-    expect(plans).toHaveLength(4);
+    expect(plans).toHaveLength(6);
     for (const plan of plans) {
       expect(plan.moneda).toBe('ARS');
     }

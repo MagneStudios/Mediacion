@@ -12,6 +12,8 @@ function createDeps() {
       assertMembership: jest.fn().mockResolvedValue({}),
     },
     planLimitService: { assertCanCreateCase: jest.fn() },
+    usageRepository: { consumeNegotiation: jest.fn() },
+    suscripcionesService: { ensureBillingPeriod: jest.fn(), getUso: jest.fn() },
   };
 }
 
@@ -22,6 +24,8 @@ function createService(deps = createDeps()) {
       deps.casosRepository as never,
       deps.membershipService as never,
       deps.planLimitService as never,
+      deps.usageRepository as never,
+      deps.suscripcionesService as never,
     ),
   };
 }

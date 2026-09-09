@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
+import { AbogadoModule } from "./abogado/abogado.module";
 import { ActividadModule } from "./actividad/actividad.module";
 import { AcuerdosModule } from "./acuerdos/acuerdos.module";
 import { AuditoriaModule } from "./auditoria/auditoria.module";
@@ -26,6 +27,7 @@ import { NegociacionModule } from "./negociacion/negociacion.module";
 import { NotificacionesModule } from "./notificaciones/notificaciones.module";
 import { OnboardingModule } from "./onboarding/onboarding.module";
 import { PagosModule } from "./pagos/pagos.module";
+import { WebhooksModule } from "./pagos/webhooks/webhooks.module";
 import { TareasModule } from "./tareas/tareas.module";
 
 @Module({
@@ -37,6 +39,7 @@ import { TareasModule } from "./tareas/tareas.module";
     HealthModule,
     MeModule,
     CasosModule,
+    AbogadoModule,
     InvitacionesModule,
     ItemsModule,
     AcuerdosModule,
@@ -49,6 +52,7 @@ import { TareasModule } from "./tareas/tareas.module";
     NegociacionModule,
     NotificacionesModule,
     PagosModule,
+    WebhooksModule,
     MetricasModule,
     AuditoriaModule,
     TareasModule,

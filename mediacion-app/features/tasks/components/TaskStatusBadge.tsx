@@ -1,7 +1,13 @@
 import { StatusPill, type StatusPillStatus } from '../../../design-system';
+import type { EstadoTarea } from '../../../types/task';
 
-/** Matches `tareas.estado` exactly — see docs/integration-contract.md. */
-export type TaskStatus = 'pendiente' | 'en_progreso' | 'completada';
+/**
+ * The domain's `estado_tarea`, re-exported under the name the task components
+ * already use. It was a second hand-written copy of the same three values
+ * until `types/task.ts` existed; an alias keeps the component's vocabulary and
+ * removes the copy that could drift.
+ */
+export type TaskStatus = EstadoTarea;
 
 export type TaskStatusBadgeProps = {
   status: TaskStatus;

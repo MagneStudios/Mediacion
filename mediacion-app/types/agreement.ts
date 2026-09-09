@@ -93,8 +93,53 @@ export type AgreementHistoryItem = {
   status: EstadoAcuerdo;
 };
 
+/**
+ * One registered breach notice (`incumplimientos`). Free text only: there is
+ * no fault, severity or evidence field here or on the backend, and adding one
+ * on this side would invite the screen to imply a determination the product
+ * explicitly does not make.
+ *
+ * `reporterId` is the raw `reportante_id`. It is here so a screen can tell
+ * "mine" from "theirs" — never to be rendered: this app has no user directory
+ * to turn an id into a name, and a bare uuid next to an accusation reads worse
+ * than no attribution at all.
+ *
+ * `incumplimientos.created_at` is deliberately not mapped: `fecha` is what the
+ * backend orders by and the only date worth showing, and a second nearly
+ * identical timestamp in the domain only invites someone to pick the wrong one.
+ */
+export type BreachNotice = {
+  id: string;
+  agreementId: string;
+  reporterId: string;
+  description: string;
+  fecha: string;
+};
+
+/**
+ * The plain-text export of an agreement (`GET /acuerdos/:id/exportar`).
+ *
+ * Never a PDF, never a signed or legally binding document — the backend builds
+ * a text summary out of `acuerdos.contenido` and nothing else. Any copy shown
+ * around this must say so.
+ */
+export type AgreementExport = {
+  document: string;
+};
+
 /** For the Firmas tab inbox — no provider IDs, no case internals beyond what's needed to open the case. */
 export type SignatureInboxItem = {
+  /**
+   * El acuerdo que abre esta fila. **No es redundante con `caseId`**: hoy hay
+   * un acuerdo por caso (`UNIQUE (caso_id)`), pero el cliente pidió N por
+   * caso, uno por materia. Sin este id la bandeja no puede direccionar cuál
+   * de ellos abrir, y el que se abre —y potencialmente se firma— es el que
+   * la API devuelva primero.
+   *
+   * El backend ya lo mandaba en `GET /firmas` como `acuerdo_id`; sólo faltaba
+   * de este lado.
+   */
+  agreementId: string;
   caseId: string;
   caseTitle: string;
   agreementTitle: string;

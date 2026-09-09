@@ -1,4 +1,5 @@
 import type { AppConfig } from "../config/config";
+import { buildTestAppConfig } from "../config/config.test-fixture";
 import { APP_CONFIG } from "../config/config.tokens";
 import { kyselyProvider } from "./kysely.provider";
 
@@ -9,41 +10,9 @@ jest.mock("pg", () => ({
 describe("kyselyProvider", () => {
   it("constructs the Pool with the connection string from APP_CONFIG", async () => {
     const { Pool } = await import("pg");
-    const appConfig: AppConfig = {
-      port: 3000,
-      supabaseJwtSecret: "secret",
+    const appConfig = buildTestAppConfig({
       databaseUrl: "postgresql://user:pass@localhost:5432/db",
-      openrouterApiKey: "sk-or-test-key",
-      docusignIntegrationKey: "ik-test",
-      docusignClientSecret: "secret-test",
-      docusignAccountId: "account-test",
-      docusignBasePath: "https://demo.docusign.net/restapi",
-      docusignWebhookSecret: "whsec-test",
-      docusignUserId: "user-test",
-      docusignOauthBase: "account-d.docusign.com",
-      docusignPrivateKey: "test-private-key-pem",
-      signnowBasePath: "https://api-eval.signnow.com",
-      signnowClientId: "signnow-client-id",
-      signnowClientSecret: "signnow-client-secret",
-      signnowUserEmail: "signnow@test",
-      signnowUserPassword: "signnow-password",
-      signnowWebhookSecret: "signnow-whsec-test",
-      signnowWebhookCallbackUrl: "https://api.test/api/webhooks/signnow",
-      mpAccessToken: "mp-access-token",
-      mpWebhookSecret: "mp-webhook-secret",
-      smtpHost: "smtp.example.com",
-      smtpPort: 587,
-      smtpUser: "smtp-user",
-      smtpPass: "smtp-pass",
-      fcmKey: "fcm-key",
-      apnsKey: "apns-key",
-      operacionesEmail: "operaciones@test",
-      legalAvisoDiasAnticipacion: 10,
-      legalPublicRequestsPerWindow: 5,
-      legalPublicWindowMs: 3_600_000,
-      cronSecret: "cron-secret",
-      corsOrigins: [],
-    };
+    });
 
     const factory = kyselyProvider.useFactory as (config: AppConfig) => unknown;
     factory(appConfig);

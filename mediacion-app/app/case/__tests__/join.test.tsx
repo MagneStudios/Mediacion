@@ -4,9 +4,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import i18n from '@/i18n';
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
-  router: { replace: (...args: unknown[]) => mockReplace(...args) },
+  router: {
+    replace: (...args: unknown[]) => mockReplace(...args),
+    push: (...args: unknown[]) => mockPush(...args),
+  },
 }));
 
 jest.mock('@/hooks/use-responsive-layout', () => ({
@@ -40,6 +44,7 @@ function submit() {
 describe('CaseJoinScreen', () => {
   beforeEach(() => {
     mockReplace.mockReset();
+    mockPush.mockReset();
     mockJoinCase.mockReset();
   });
 
@@ -101,6 +106,57 @@ describe('CaseJoinScreen', () => {
     await waitFor(() => expect(screen.getByText(i18n.t('caseJoin.expired.title'))).toBeTruthy());
     expect(screen.queryByText(i18n.t('caseJoin.error.title'))).toBeNull();
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  describe('C-01: el gate de suscripciones', () => {
+    it('se muestra como lo que es, no como un codigo invalido', async () => {
+      // El 409 del gate caia en el error generico, que dice "revisa el enlace
+      // o codigo" — sobre un codigo que esta perfecto. Es la causa de que al
+      // cliente "no le funcione la aceptacion".
+      mockJoinCase.mockRejectedValue(new Error('caso_bloqueado_suscripciones'));
+      await renderScreen();
+
+      await fireEvent.changeText(input(), 'TOKEN-OK');
+      await fireEvent.press(submit());
+
+      await waitFor(() =>
+        expect(screen.getByText(i18n.t('caseJoin.subscriptionRequired.title'))).toBeTruthy(),
+      );
+      expect(screen.queryByText(i18n.t('caseJoin.error.title'))).toBeNull();
+      expect(screen.queryByText(i18n.t('caseJoin.expired.title'))).toBeNull();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('ofrece ir a planes en vez de reintentar', async () => {
+      // Reenviar el mismo codigo valido vuelve a chocar contra el mismo gate:
+      // la accion util es suscribirse, no reintentar.
+      mockJoinCase.mockRejectedValue(new Error('caso_bloqueado_suscripciones'));
+      await renderScreen();
+
+      await fireEvent.changeText(input(), 'TOKEN-OK');
+      await fireEvent.press(submit());
+
+      const action = await screen.findByText(i18n.t('caseJoin.subscriptionRequired.action'));
+      await fireEvent.press(action);
+
+      expect(mockPush).toHaveBeenCalledWith('/profile/plan');
+      expect(mockJoinCase).toHaveBeenCalledTimes(1);
+    });
+
+    it('no borra el aviso cuando se edita el codigo', async () => {
+      // A diferencia del error generico y del vencido: el codigo no es el
+      // problema, asi que limpiar el aviso mientras se lo edita esconde la
+      // unica explicacion de por que no pudo entrar.
+      mockJoinCase.mockRejectedValue(new Error('caso_bloqueado_suscripciones'));
+      await renderScreen();
+
+      await fireEvent.changeText(input(), 'TOKEN-OK');
+      await fireEvent.press(submit());
+      await screen.findByText(i18n.t('caseJoin.subscriptionRequired.title'));
+
+      await fireEvent.changeText(input(), 'TOKEN-OK-EDITADO');
+      expect(screen.getByText(i18n.t('caseJoin.subscriptionRequired.title'))).toBeTruthy();
+    });
   });
 
   it('clears a previous error as soon as the code is edited', async () => {

@@ -44,6 +44,7 @@ describe("PropuestasRepository query builders", () => {
       db,
       "caso-1",
       "ronda-1",
+      "negociacion-1",
       { meetingPoint: [], narrative: null },
       "openai/gpt-4",
     ).compile();
@@ -250,6 +251,7 @@ describe("PropuestasRepository", () => {
     const result = await repository.createPending(
       "caso-1",
       "ronda-1",
+      "negociacion-1",
       { meetingPoint: [], narrative: null },
       "openai/gpt-4",
     );
@@ -269,6 +271,7 @@ describe("PropuestasRepository", () => {
       repository.createPending(
         "caso-1",
         "ronda-1",
+        "negociacion-1",
         { meetingPoint: [], narrative: null },
         "openai/gpt-4",
       ),
@@ -493,7 +496,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       .mockResolvedValueOnce(pendienteView)
       .mockResolvedValueOnce({ id: "resp-1" })
       .mockResolvedValueOnce(rechazadaView)
-      .mockResolvedValueOnce({ ronda_actual: 2 })
+      .mockResolvedValueOnce({ id: "negociacion-1", round: 2 })
       .mockResolvedValueOnce({ id: "ronda-2", caso_id: "caso-1", numero: 3 });
     const markAcordado = jest.fn();
     const casosRepository = { markAcordado } as unknown as CasosRepository;
@@ -510,8 +513,11 @@ describe("PropuestasRepository.resolveRespuesta", () => {
     expect(fake.insertInto).toHaveBeenCalledWith("rondas");
     expect(fake.values).toHaveBeenCalledWith({
       caso_id: "caso-1",
+      negociacion_id: "negociacion-1",
       numero: 3,
     });
+    expect(fake.updateTable).toHaveBeenCalledWith("negociaciones");
+    expect(fake.values).toHaveBeenCalledWith({ round: 3 });
     expect(markAcordado).not.toHaveBeenCalled();
   });
 

@@ -256,6 +256,213 @@ describe("SuscripcionesRepository cancellation queries", () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
+  function createFakeUsoSelect(row: unknown) {
+    const conditions: unknown[] = [];
+    const eb = Object.assign(
+      (column: string, operator: string, value: unknown) => ({
+        column,
+        operator,
+        value,
+      }),
+      {
+        or: (built: unknown[]) => {
+          conditions.push(...built);
+          return "or-clause";
+        },
+      },
+    );
+    const executeTakeFirst = jest.fn().mockResolvedValue(row);
+    const limit = jest.fn().mockReturnValue({ executeTakeFirst });
+    const orderByCreatedAt = jest.fn().mockReturnValue({ limit });
+    const orderByEstado = jest
+      .fn()
+      .mockReturnValue({ orderBy: orderByCreatedAt });
+    const orderByOwner = jest.fn().mockReturnValue({ orderBy: orderByEstado });
+    const whereEstado = jest.fn().mockReturnValue({ orderBy: orderByOwner });
+    const whereOwner = jest.fn((build: (builder: unknown) => unknown) => {
+      build(eb);
+      return { where: whereEstado };
+    });
+    const select = jest.fn().mockReturnValue({ where: whereOwner });
+    const innerJoin = jest.fn().mockReturnValue({ select });
+    const selectFrom = jest.fn().mockReturnValue({ innerJoin });
+    return {
+      repository: new SuscripcionesRepository({ selectFrom } as never),
+      conditions,
+      selectFrom,
+      innerJoin,
+      select,
+      whereEstado,
+      orderByCreatedAt,
+      limit,
+    };
+  }
+
+  it("reads the effective subscription for uso: owner rows, activa|vencida only, joined with the plan limits", async () => {
+    const row = {
+      id: "sus-1",
+      fecha_inicio: new Date("2026-08-14T00:00:00.000Z"),
+      current_period_start: null,
+      current_period_end: null,
+      max_negotiations_per_period: 3,
+      max_clients_per_period: null,
+    };
+    const fake = createFakeUsoSelect(row);
+
+    const result = await fake.repository.findForUsoByOwner({
+      usuarioId: "user-1",
+      estudioId: "estudio-1",
+    });
+
+    expect(fake.selectFrom).toHaveBeenCalledWith("suscripciones");
+    expect(fake.innerJoin).toHaveBeenCalledWith(
+      "planes",
+      "planes.id",
+      "suscripciones.plan_id",
+    );
+    expect(fake.select).toHaveBeenCalledWith([
+      "suscripciones.id",
+      "suscripciones.fecha_inicio",
+      "suscripciones.current_period_start",
+      "suscripciones.current_period_end",
+      "planes.max_negotiations_per_period",
+      "planes.max_clients_per_period",
+    ]);
+    expect(fake.conditions).toEqual([
+      { column: "suscripciones.usuario_id", operator: "=", value: "user-1" },
+      { column: "suscripciones.estudio_id", operator: "=", value: "estudio-1" },
+    ]);
+    expect(fake.whereEstado).toHaveBeenCalledWith(
+      "suscripciones.estado",
+      "in",
+      ["activa", "vencida"],
+    );
+    expect(fake.orderByCreatedAt).toHaveBeenCalledWith(
+      "suscripciones.created_at",
+      "desc",
+    );
+    expect(fake.limit).toHaveBeenCalledWith(1);
+    expect(result).toBe(row);
+  });
+
+  it("does not widen the uso read to every estudio row when the caller is not a titular", async () => {
+    const fake = createFakeUsoSelect(undefined);
+
+    await fake.repository.findForUsoByOwner({
+      usuarioId: "user-1",
+      estudioId: null,
+    });
+
+    expect(fake.conditions).toEqual([
+      { column: "suscripciones.usuario_id", operator: "=", value: "user-1" },
+    ]);
+  });
+
+  function createFakePeriodKysely(
+    updated: unknown,
+    selected: unknown,
+    rejection?: unknown,
+  ) {
+    const updateExecuteTakeFirst = rejection
+      ? jest.fn().mockRejectedValue(rejection)
+      : jest.fn().mockResolvedValue(updated);
+    const returning = jest
+      .fn()
+      .mockReturnValue({ executeTakeFirst: updateExecuteTakeFirst });
+    const whereEnd = jest.fn().mockReturnValue({ returning });
+    const whereStart = jest.fn().mockReturnValue({ where: whereEnd });
+    const whereId = jest.fn().mockReturnValue({ where: whereStart });
+    const set = jest.fn().mockReturnValue({ where: whereId });
+    const updateTable = jest.fn().mockReturnValue({ set });
+
+    const selectExecuteTakeFirst = jest.fn().mockResolvedValue(selected);
+    const selectWhere = jest
+      .fn()
+      .mockReturnValue({ executeTakeFirst: selectExecuteTakeFirst });
+    const select = jest.fn().mockReturnValue({ where: selectWhere });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    return {
+      repository: new SuscripcionesRepository({
+        updateTable,
+        selectFrom,
+      } as never),
+      set,
+      whereId,
+      whereStart,
+      whereEnd,
+      returning,
+      selectFrom,
+      selectWhere,
+    };
+  }
+
+  it("writes the period only where both columns are still NULL and returns what it wrote", async () => {
+    const period = {
+      period_start: "2026-08-14T00:00:00.000Z",
+      period_end: "2026-09-13T00:00:00.000Z",
+    };
+    const written = {
+      current_period_start: new Date(period.period_start),
+      current_period_end: new Date(period.period_end),
+    };
+    const fake = createFakePeriodKysely(written, undefined);
+
+    const result = await fake.repository.setPeriodIfMissing("sus-1", period);
+
+    expect(fake.set).toHaveBeenCalledWith({
+      current_period_start: period.period_start,
+      current_period_end: period.period_end,
+    });
+    expect(fake.whereId).toHaveBeenCalledWith("id", "=", "sus-1");
+    expect(fake.whereStart).toHaveBeenCalledWith(
+      "current_period_start",
+      "is",
+      null,
+    );
+    expect(fake.whereEnd).toHaveBeenCalledWith(
+      "current_period_end",
+      "is",
+      null,
+    );
+    expect(fake.returning).toHaveBeenCalledWith([
+      "current_period_start",
+      "current_period_end",
+    ]);
+    expect(fake.selectFrom).not.toHaveBeenCalled();
+    expect(result).toBe(written);
+  });
+
+  it("falls back to reading the period a concurrent writer persisted when the conditional UPDATE matched nothing", async () => {
+    const persisted = {
+      current_period_start: new Date("2026-08-20T00:00:00.000Z"),
+      current_period_end: new Date("2026-09-19T00:00:00.000Z"),
+    };
+    const fake = createFakePeriodKysely(undefined, persisted);
+
+    const result = await fake.repository.setPeriodIfMissing("sus-1", {
+      period_start: "2026-08-14T00:00:00.000Z",
+      period_end: "2026-09-13T00:00:00.000Z",
+    });
+
+    expect(fake.selectFrom).toHaveBeenCalledWith("suscripciones");
+    expect(fake.selectWhere).toHaveBeenCalledWith("id", "=", "sus-1");
+    expect(result).toBe(persisted);
+  });
+
+  it("maps driver errors of the period write through toDomainError", async () => {
+    const fake = createFakePeriodKysely(undefined, undefined, {
+      code: "P0001",
+      message: "boom",
+    });
+
+    await expect(
+      fake.repository.setPeriodIfMissing("sus-1", {
+        period_start: "2026-08-14T00:00:00.000Z",
+        period_end: "2026-09-13T00:00:00.000Z",
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("restores the suscripcion only if it is still the cancelada row we wrote", async () => {
     const fakeKysely = createFakeUpdate({});
     const repository = new SuscripcionesRepository(fakeKysely as never);

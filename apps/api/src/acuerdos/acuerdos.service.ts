@@ -87,19 +87,35 @@ export class AcuerdosService {
     return { acuerdo, firmas };
   }
 
-  async exportAgreement(
+  /**
+   * The same bundle as getForCaso, addressed by the acuerdo instead of the
+   * caso. A caso can hold one acuerdo per negociacion, so the caso id no
+   * longer identifies a single acuerdo — this is the route that does.
+   */
+  async getById(
     acuerdoId: string,
     callerId: string,
-  ): Promise<AcuerdoExport> {
+  ): Promise<{ acuerdo: Acuerdo; firmas: FirmaStatus[] }> {
     const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
     if (!acuerdo) {
       throw acuerdoNotFound();
     }
+    await this.assertAcuerdoReadAccess(acuerdo.caso_id, callerId);
+    const firmas = await this.firmasRepository.listByAcuerdo(acuerdo.id);
+    return { acuerdo, firmas };
+  }
+
+  /**
+   * Read access to the acuerdo's own caso, reported as acuerdo_not_found: the
+   * caller addressed an acuerdo, so a caso they cannot see must not leak as a
+   * different error than one that does not exist.
+   */
+  private async assertAcuerdoReadAccess(
+    casoId: string,
+    callerId: string,
+  ): Promise<void> {
     try {
-      await this.acuerdoAccessService.assertReadAccess(
-        acuerdo.caso_id,
-        callerId,
-      );
+      await this.acuerdoAccessService.assertReadAccess(casoId, callerId);
     } catch (error: unknown) {
       if (
         error instanceof HttpException &&
@@ -109,6 +125,17 @@ export class AcuerdosService {
       }
       throw error;
     }
+  }
+
+  async exportAgreement(
+    acuerdoId: string,
+    callerId: string,
+  ): Promise<AcuerdoExport> {
+    const acuerdo = await this.acuerdosRepository.findById(acuerdoId);
+    if (!acuerdo) {
+      throw acuerdoNotFound();
+    }
+    await this.assertAcuerdoReadAccess(acuerdo.caso_id, callerId);
     return {
       filename: agreementDocumentFilename(acuerdo.id),
       document: buildAgreementDocument(acuerdo),

@@ -114,4 +114,17 @@ describe("NegociacionController", () => {
       notFound,
     );
   });
+
+  it("listNegociaciones returns the service result for a member", async () => {
+    const negociaciones = [{ id: "negociacion-1" }];
+    const listNegociaciones = jest.fn().mockResolvedValue(negociaciones);
+    const controller = new NegociacionController({
+      listNegociaciones,
+    } as unknown as NegociacionService);
+
+    const result = await controller.listNegociaciones("caso-1", parteA);
+
+    expect(listNegociaciones).toHaveBeenCalledWith("caso-1", "user-a");
+    expect(result).toBe(negociaciones);
+  });
 });

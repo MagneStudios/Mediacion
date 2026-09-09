@@ -13,6 +13,18 @@ export type RolUsuario = 'admin' | 'parte' | 'mediador' | 'estudio';
 
 export type EstadoCaso =
   | 'nuevo'
+  /**
+   * C-01: el caso no puede abrirse porque alguna de las dos partes en disputa
+   * no tiene la suscripción al día. Es la opción A que el cliente eligió el
+   * 01/09/2026 —cada parte paga la suya— implementada en DB como un gate:
+   * `trg_casos_gate_suscripciones` bloquea la transición a
+   * `activo`/`en_negociacion` mientras el verificador dé false
+   * (`20260902120000_c01_gate_suscripciones.sql`).
+   *
+   * El mediador no cuenta: no paga suscripción y se suma recién en ronda 3,
+   * así que nunca es el que bloquea.
+   */
+  | 'pendiente_suscripciones'
   | 'activo'
   | 'en_negociacion'
   | 'acordado'
@@ -23,6 +35,22 @@ export type EstadoCaso =
 
 /** Resolution method chosen for a case. Matches the `metodo_caso` enum. */
 export type MetodoCaso = 'negociacion' | 'conciliacion' | 'mediacion';
+
+/**
+ * C-04 (cambios cliente 27/08): the order every surface must present the
+ * methods in — ascending degree of third-party involvement in the process.
+ * Negotiation is between the parties alone; conciliation adds guidance;
+ * mediation puts a neutral third party in the middle.
+ *
+ * The criterion is the client's and applies app-wide, so it lives here once
+ * instead of being re-typed per screen — the method picker and the dashboard
+ * filters used to declare the same literal each, and nothing stopped the
+ * third surface from being born out of order.
+ *
+ * Presentation only. The backend's validation array (`casos.service.ts`) is a
+ * different concern and carries no ordering meaning.
+ */
+export const metodosEnOrden: readonly MetodoCaso[] = ['negociacion', 'conciliacion', 'mediacion'];
 
 /** Invitation delivery method. Matches the `tipo_invitacion` enum. */
 export type TipoInvitacion = 'link' | 'codigo' | 'email';
@@ -47,7 +75,19 @@ export type CaseVisualStatus = 'success' | 'warning' | 'error' | 'info' | 'neutr
  * show a different label depending on what's pending for this party.
  * Keys match `cases.status.*` in the i18n resources.
  */
-export type CaseStatusLabelKey = 'inReview' | 'proposalReady' | 'signed' | 'awaitingCounterparty' | 'expired';
+export type CaseStatusLabelKey =
+  | 'inReview'
+  | 'proposalReady'
+  | 'signed'
+  | 'awaitingCounterparty'
+  /**
+   * C-01: falta al menos una suscripción para que el caso se abra. La etiqueta
+   * es deliberadamente impersonal —no dice *quién* está en falta— porque las
+   * dos partes ven la misma tarjeta y el estado de pago de la contraparte no
+   * es un dato que le corresponda a esta parte.
+   */
+  | 'awaitingSubscriptions'
+  | 'expired';
 
 export type CaseSummary = {
   id: string;
@@ -75,7 +115,17 @@ export type CaseInvitation = {
   token: string | null;
   emailDestino: string | null;
   estado: EstadoInvitacion;
-  pagoACargo: PagoACargo;
+  /**
+   * `null` when the invitation was read back from the server rather than
+   * created in this session: `GET /casos/:id/invitaciones` does not select
+   * `pago_a_cargo` (the column exists — `20260810120000_cambios_reunion_07_08.sql`
+   * — but `InvitacionView` omits it). Nullable rather than defaulted, because
+   * guessing `'invitador'` for an invitation whose invitador chose "paga la
+   * otra parte" would put the wrong party in front of a paywall. Pedido a BE
+   * en `docs/pedidos-frontend-a-backend.md` §8; el día que lo agreguen, vuelve
+   * a ser no-nullable.
+   */
+  pagoACargo: PagoACargo | null;
   createdAt: string;
 };
 

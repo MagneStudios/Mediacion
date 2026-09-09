@@ -1,53 +1,15 @@
 import { HttpException } from "@nestjs/common";
 import type { AppConfig } from "../config/config";
+import { buildTestAppConfig } from "../config/config.test-fixture";
 import { VencimientoController } from "./vencimiento.controller";
 import type { VencimientoScheduler } from "./vencimiento.scheduler";
 
 const cronSecret = "cron-secret-test";
 
-function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
-  return {
-    port: 3000,
-    supabaseJwtSecret: "secret",
-    databaseUrl: "postgresql://placeholder",
-    openrouterApiKey: "sk-or-test-key",
-    docusignIntegrationKey: "ik-test",
-    docusignClientSecret: "secret-test",
-    docusignAccountId: "account-test",
-    docusignBasePath: "https://demo.docusign.net/restapi",
-    docusignWebhookSecret: "whsec-test",
-    docusignUserId: "user-test",
-    docusignOauthBase: "account-d.docusign.com",
-    docusignPrivateKey: "test-private-key-pem",
-    signnowBasePath: "https://api-eval.signnow.com",
-    signnowClientId: "signnow-client-id",
-    signnowClientSecret: "signnow-client-secret",
-    signnowUserEmail: "signnow@test",
-    signnowUserPassword: "signnow-password",
-    signnowWebhookSecret: "signnow-whsec-test",
-    signnowWebhookCallbackUrl: "https://api.test/api/webhooks/signnow",
-    smtpHost: "smtp.example.com",
-    smtpPort: 587,
-    smtpUser: "smtp-user",
-    smtpPass: "smtp-pass",
-    fcmKey: "fcm-key",
-    apnsKey: "apns-key",
-    operacionesEmail: "operaciones@test",
-    legalAvisoDiasAnticipacion: 10,
-    legalPublicRequestsPerWindow: 5,
-    legalPublicWindowMs: 3_600_000,
-    mpAccessToken: "mp-access-token",
-    mpWebhookSecret: "mp-webhook-secret",
-    cronSecret,
-    corsOrigins: [],
-    ...overrides,
-  };
-}
-
 function buildController(runSweep: jest.Mock): VencimientoController {
   return new VencimientoController(
     { runSweep } as unknown as VencimientoScheduler,
-    buildAppConfig(),
+    buildTestAppConfig({ cronSecret }),
   );
 }
 

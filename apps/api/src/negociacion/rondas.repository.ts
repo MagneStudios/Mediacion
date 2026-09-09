@@ -8,19 +8,41 @@ import type { Ronda } from "./negociacion.types";
 export function buildInsertNextRondaQuery(
   db: Kysely<Database>,
   casoId: string,
+  negociacionId: string,
   numero: number,
 ) {
   return db
     .insertInto("rondas")
-    .values({ caso_id: casoId, numero })
+    .values({ caso_id: casoId, negociacion_id: negociacionId, numero })
     .returningAll();
 }
 
-export function buildCurrentRondaActualQuery(
+export function buildActiveNegociacionQuery(
   db: Kysely<Database>,
   casoId: string,
 ) {
-  return db.selectFrom("casos").select("ronda_actual").where("id", "=", casoId);
+  return db
+    .selectFrom("negociaciones")
+    .select(["id", "round"])
+    .where("caso_id", "=", casoId)
+    .where("materia", "is", null);
+}
+
+/**
+ * `negociaciones.round` has no trigger keeping it in sync with the highest
+ * `rondas.numero` anymore (the migration that split rondas by negociacion_id
+ * also dropped `sync_ronda_actual()`); every insert of a new ronda must bump
+ * it explicitly or the case looks stuck on round 1 forever.
+ */
+export function buildBumpNegociacionRoundQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+  numero: number,
+) {
+  return db
+    .updateTable("negociaciones")
+    .set({ round: numero })
+    .where("id", "=", negociacionId);
 }
 
 export function buildFindByNumeroQuery(
@@ -39,20 +61,36 @@ export function buildFindByNumeroQuery(
 export class RondasRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
 
-  insertNextRonda(casoId: string, numero: number): Promise<Ronda> {
-    return buildInsertNextRondaQuery(this.kysely, casoId, numero)
-      .executeTakeFirstOrThrow()
+  insertNextRonda(
+    casoId: string,
+    negociacionId: string,
+    numero: number,
+  ): Promise<Ronda> {
+    return this.kysely
+      .transaction()
+      .execute(async (trx) => {
+        const ronda = await buildInsertNextRondaQuery(
+          trx,
+          casoId,
+          negociacionId,
+          numero,
+        ).executeTakeFirstOrThrow();
+        await buildBumpNegociacionRoundQuery(
+          trx,
+          negociacionId,
+          numero,
+        ).execute();
+        return ronda;
+      })
       .catch((error: unknown) => {
         throw toDomainError(error);
       });
   }
 
-  async currentRondaActual(casoId: string): Promise<number | undefined> {
-    const row = await buildCurrentRondaActualQuery(
-      this.kysely,
-      casoId,
-    ).executeTakeFirst();
-    return row?.ronda_actual;
+  resolveActiveNegociacion(
+    casoId: string,
+  ): Promise<{ id: string; round: number } | undefined> {
+    return buildActiveNegociacionQuery(this.kysely, casoId).executeTakeFirst();
   }
 
   findByNumero(casoId: string, numero: number): Promise<Ronda | undefined> {

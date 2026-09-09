@@ -1,6 +1,10 @@
 # Pedidos de Frontend — endpoints que faltan (módulo legal / TyC)
 
-**Fecha:** 16/08/2026, ampliado el 18/08 · **Autor:** Frontend · **Para:** Backend (§1–§6) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
+**Fecha:** 16/08/2026, ampliado el 18/08 y el 25/08 · **Autor:** Frontend · **Para:** Backend (§1–§6, §8–§10) y **DB + Producto** (§7, agregado el 18/08 — deja sin efecto el "DB no tiene nada pendiente" del §3)
+
+> **El inventario completo de la superficie de la API —qué consumimos, qué no y por qué— vive en `docs/integration-contract.md` §0.2 (25/08).** Este documento son los pedidos; ese es el estado.
+>
+> **Lo que está abierto hoy (25/08), de arriba hacia abajo por urgencia:** **§13** (el CI de `dev` está en rojo desde el PR #110, con el arreglo de una línea), **§10** (los datos para conectarnos a la API real — es lo único que nos frena para dejar de verificar contra mocks), **§8** (`pago_a_cargo` al select de invitaciones, una columna), **§11** (la fecha del evento de calendario, que hoy hace ininvocable a `POST /tareas/:id/calendario`), **§12** (onboarding — incluye un agujero: hoy cualquier usuario autenticado puede marcarse como biométricamente verificado), **§9** (`Content-Disposition` expuesto por CORS, para más adelante) y la **pregunta 1 de §7**, que sigue siendo de Producto.
 
 > **Este documento es del módulo legal (TyC). Los pedidos de monetización viven en `docs/pedidos-frontend-monetizacion.md`** (23/08): `GET /suscripciones/uso`, el cuerpo del error de cuota, las dos columnas nuevas de `GET /planes`, el `back_url` del preapproval, y tres cosas de DB + Producto que bloquean la página de pricing.
 >
@@ -238,6 +242,255 @@ Registro completo, con el detalle de dónde se ve cada cosa, en `docs/tyc-contra
 > 3. **Sin cambios:** el IVA sigue seedeado por país con la única entrada `AR` al 21% aplicando a los cuatro planes. No se tocó porque no era parte del pedido; si algún plan tributa distinto, también es una definición de Producto.
 >
 > **Dos salvedades que esta respuesta deja anotadas, no resueltas:** la preference de MP sigue mandando `unit_price` = precio **neto** mientras la UI muestra el final con IVA (preexistente; qué monto debe viajar a la pasarela es decisión BE/Producto pendiente), y el front todavía **no consume `GET /planes`** — el catálogo corre sobre el mock `plans.service.ts`, espejado a mano contra las migraciones.
+>
+> **La segunda salvedad quedó cerrada el 25/08 (FE, rama `feat/frontend-integracion-planes`):** el catálogo lee `GET /planes` de verdad — `services/api/plans.api-service.ts` + `plans.backed-service.ts`, con el mock intacto como fallback offline. Detalle en `docs/changelogs/2026-08-25.md`. **La primera sigue abierta** (el `unit_price` neto de la preference de MP es decisión BE/Producto). Dos cosas que la lectura real vuelve visibles y **no son de FE**: el catálogo va a mostrar **seis planes** (tres de un modelo de precios muerto) y `corporativo` se va a ver **gratis** por su `precio 0.00` — las dos están pedidas en `docs/pedidos-frontend-monetizacion.md` §5.1 y §5.2, y las dos se arreglan en la fuente: no vamos a filtrar por nombre desde el front.
+
+---
+
+## 8 · `pago_a_cargo` en `GET /casos/:id/invitaciones` — una columna al select
+
+**Autor:** Frontend, 25/08 · **Para:** Backend · **No bloquea**, y es de una línea
+
+**Contexto:** integramos `GET /casos/:id/invitaciones` (rama `feat/frontend-integracion-planes`). Estaba desde el commit `32515a3` del 30/07 y nunca lo habíamos consumido — el header de `cases.backed-service.ts` seguía afirmando que *"the API exposes only `POST`, with no read endpoint"*, que era cierto cuando se escribió y dejó de serlo sin que nos enteráramos. El costo mientras tanto: recargar la app volvía **irrecuperable** el código de invitación, y la única salida era emitir una segunda.
+
+Ya está andando y **no les pedimos nada para que funcione**. Esto es lo único que quedó cojo.
+
+**El pedido:** `InvitacionView` no trae `pago_a_cargo`. La columna existe (`20260810120000_cambios_reunion_07_08.sql`, `TEXT` nullable con CHECK no bloqueante) y `listByCaso` simplemente no la selecciona:
+
+```ts
+// apps/api/src/invitaciones/invitaciones.repository.ts, listByCaso
+.select([
+  "id", "caso_id", "tipo", "token", "email_destino", "estado",
+  "fecha_envio", "created_at",
+  // + "pago_a_cargo"
+])
+```
+
+**Por qué nos importa.** Es R-07: quién paga la suscripción atada a esa invitación. Lo mandamos nosotros en el `POST` y **es el único campo que la lectura no nos puede devolver**, así que hoy `CaseInvitation.pagoACargo` pasó a ser `PagoACargo | null` — `null` cuando la invitación viene del servidor y no de esta sesión. Preferimos eso a defaultear `'invitador'`: adivinar mal en una invitación donde el invitador eligió "paga la otra parte" pone a la **parte equivocada frente a un paywall**.
+
+**Qué esperamos leer:** el valor de la columna tal cual, `null` incluido (una invitación anterior a la migración no tiene el dato, y eso es una respuesta válida — no lo completen con un default del lado de ustedes). El día que llegue, `pagoACargo` vuelve a ser no-nullable de nuestro lado y el merge con la sesión se borra.
+
+**Dos cosas que NO les pedimos**, para que no construyan de más:
+
+- **Filtrar por `estado`.** Nos quedamos con la más reciente en `pendiente` y descartamos aceptadas/rechazadas/expiradas — es política de pantalla, no del endpoint.
+- **Garantizar el orden.** `listByCaso` ordena por `created_at desc`, pero ninguna ficha lo promete, así que ordenamos nosotros con el `created_at` que ya viaja. Si algún día lo declaran en la ficha, sacamos nuestro sort; mientras tanto no queremos que la elección del código que ve un usuario dependa de un detalle de implementación.
+
+**Y una nota de proceso, sin reproche:** este endpoint estuvo casi un mes construido y sin consumir porque nada nos avisó que había llegado. El changelog del 30/07 lo lista; el que no lo leyó fuimos nosotros. Lo levantamos porque revisamos la superficie entera de la API contra lo que consume la app, y salieron varios más (tareas, incumplimientos, export de acuerdo, onboarding). Los vamos integrando de a uno.
+
+---
+
+---
+
+## 9 · `Content-Disposition` del export de acuerdo — para cuando guardemos un archivo
+
+**Autor:** Frontend, 25/08 · **Para:** Backend · **No bloquea nada hoy**
+
+Integramos `GET /acuerdos/:id/exportar` y `POST`/`GET` de incumplimientos. Los tres andan con los shapes que ya tienen; esto es una nota para más adelante, no un pedido urgente.
+
+`exportAgreement` manda `Content-Disposition: attachment; filename="acuerdo-<id>.txt"`. **En Expo Web ese header es invisible para nosotros**: `applyCors` en `main.ts` no declara `exposedHeaders`, y sin `Access-Control-Expose-Headers` el navegador no deja leer ningún header fuera de la lista segura. En nativo sí se lee.
+
+Hoy **no lo consumimos y no nos importa**, porque la app no guarda archivos: no tiene `expo-file-system` ni `expo-sharing`, así que "exportar" significa mostrar el texto y ofrecerlo al portapapeles. No hay nada que nombrar.
+
+**El día que agreguemos guardado de archivos** —que es decisión nuestra + una dependencia nueva— vamos a necesitar el nombre, y ahí hay dos caminos:
+
+1. `exposedHeaders: ["Content-Disposition"]` en `applyCors`. Una línea.
+2. Nada, y lo derivamos nosotros (`acuerdo-<id>.txt`). Funciona, pero es una regla de ustedes copiada a mano de nuestro lado — exactamente el tipo de espejo que ya nos mordió con el catálogo de planes.
+
+Preferimos (1), pero avisamos antes de necesitarlo, no después.
+
+**Dos cosas que verificamos y están bien**, para que quede escrito:
+
+- El export es el **único** endpoint de la API que no responde JSON. Le hicimos una puerta propia en el cliente HTTP (`requestText`) en vez de un flag en `request`, porque `request<T>` devolviendo `undefined` para una respuesta exitosa es un tipo que miente. Los **errores** sí siguen siendo el envelope de siempre — el filtro de excepciones contesta antes que el handler de texto — así que se parsean igual que en todas las rutas.
+- `POST /acuerdos/:id/incumplimiento` mueve el acuerdo a `con_aviso` en la misma transacción. Lo consumimos **releyendo el acuerdo** después del write en vez de parchear el estado localmente: lo que la pantalla muestra es el estado del servidor, no nuestra suposición de lo que el write hizo.
+
+---
+
+## 10 · Los datos para conectarnos a la API real — lo único que nos frena ahora
+
+**Autor:** Frontend, 25/08 · **Para:** Backend (§10.1, §10.2, §10.4) y DB (§10.3, §10.5) · **Bloqueante para verificar, no para seguir construyendo**
+
+**Por qué recién ahora.** Hasta el fix de `custom_access_token` de hoy (`docs/changelogs-db/2026-08-25.md`), `POST /auth/v1/token` devolvía **500 en cada login**: no es que no hubiéramos levantado la app contra la API, es que no se podía entrar. Por eso las tres entregas de esta rama dicen, todas, "sin API viva". Ahora hay cuatro usuarios dev con login verificado en Cloud, y eso cambia.
+
+Integramos cuatro endpoints esta semana —`GET /planes`, `GET /casos/:id/invitaciones`, incumplimientos y el export de acuerdo— y **los cuatro están verificados sólo contra mocks y contra la lectura de su código**. Queremos cerrar eso antes de seguir sumando integraciones a ciegas.
+
+### 10.1 · Los tres valores del bundle
+
+`mediacion-app/env.example` los lista; necesitamos los reales:
+
+| Variable | Qué es | Quién lo tiene |
+|---|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | URL del proyecto de Supabase Cloud (el gateway de Kong) | DB / quien creó el proyecto |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | La **anon** key | ídem |
+| `EXPO_PUBLIC_API_URL` | Base de la API de Nest, sin barra final | BE — ver §10.2 |
+
+**No manden la `service_role` key.** `config/env.ts` se niega a arrancar si detecta una en ese slot (decodifica el payload y busca `"role":"service_role"`), justamente porque Expo inlinea estos valores dentro del bundle del cliente: esa key ahí es RLS bypasseado para cualquiera que abra las devtools. La anon es publicable por diseño; la otra no.
+
+Van a un `.env` local que **no se commitea**.
+
+### 10.2 · ¿La API de Nest está desplegada en algún lado?
+
+Si hay una URL alcanzable, con eso alcanza. Si no, la levantamos local contra la DB de Cloud y necesitamos saber **qué variables pedirle a la API**, que según `apps/api/src/config/config.ts` son dos obligatorias y una que nos importa a nosotros:
+
+- `SUPABASE_JWT_SECRET` — el secret del proyecto de Cloud. Sin esto el guard rechaza todos los tokens.
+- `DATABASE_URL` — la connection string de Cloud.
+- **`CORS_ORIGINS`** — ver §10.4. Sin esto no hay Expo Web contra API desplegada, y es el que se olvida.
+
+El resto (`OPENROUTER_API_KEY`, los ocho `DOCUSIGN_*`, `OPERACIONES_EMAIL`) los dejamos vacíos: degradan a placeholder o a log y no bloquean lo que vamos a probar.
+
+### 10.3 · ¿Cloud tiene la Fase 1 de monetización aplicada?
+
+Pregunta de una línea, con consecuencia visible. Si el seed de `20260821120000_monetizacion_fase1.sql` está en Cloud, **la pantalla de planes va a mostrar seis tarjetas** (`base`, `simple`, `plus`, `estudio` + `particular` + `corporativo`), tres de un modelo de precios que ya no existe, y `corporativo` se va a ver **gratis** porque su `precio` es `0.00` igual que el de `base`.
+
+No es un bug que vayamos a tapar desde el front: es §5.1 y §5.2 de `docs/pedidos-frontend-monetizacion.md`, sigue abierto, y **se arregla en la fuente**. Lo preguntamos para saber si al conectarnos vamos a estar mirando eso o no, y para que nadie lo reporte como una regresión de la integración del catálogo.
+
+### 10.4 · CORS para Expo Web
+
+`applyCors` (`apps/api/src/main.ts`) es opt-in: con `CORS_ORIGINS` sin setear **no habilita CORS en absoluto**, que es la decisión correcta para que un deploy sin configurar no quede abierto. Pero significa que contra una API desplegada, desde el navegador, no nos entra una sola request.
+
+Corremos Expo Web en `http://localhost:8081`. Si prueban desde otro puerto, el suyo. No hace falta comodín.
+
+### 10.5 · Dos cosas que vimos al traer el merge
+
+Ninguna es de FE y ninguna bloquea; las anotamos acá porque las vimos nosotros.
+
+- **`scripts/setup_test_env.ps1` quedó apuntando a un archivo que no está en el repo.** Le agregaron el paso `tmp/test_00_dev_users.sql` y `tmp/` está en `.gitignore` (línea 65), así que un clone limpio falla en el primer paso. A nosotros no nos afecta si apuntamos a Cloud, pero a cualquiera que levante el entorno local sí.
+- **La password de los usuarios dev quedó en un changelog versionado** (`docs/changelogs-db/2026-08-25.md`). Para usuarios de un proyecto de desarrollo es práctica normal; vale confirmar que ese proyecto de Cloud no comparte nada con datos reales, porque el repo es el lugar donde esa password va a seguir estando.
+
+### 10.6 · Qué vamos a hacer con esto, para que sepan qué esperar
+
+Runbook completo en `docs/frontend-conexion-backend.md`. En corto, las dos cosas que hoy están **deducidas y no observadas**, y que sólo la API real contesta:
+
+1. **`GET /planes` — ¿`precio` viaja como `"9.99"` o como `9.99`?** El tipo de ustedes dice `number`, pero `pg` devuelve `numeric` como **string** salvo que se registre un type parser, y `apps/api/src/database/kysely.provider.ts` no registra ninguno. Nuestro mapper acepta los dos a propósito, pero ninguna spec de BE fija el shape de lectura, así que hoy nadie sabe cuál es. **Si es string, vale que lo sepan ustedes también**: cualquier consumidor que haga aritmética sobre ese campo se lleva una sorpresa.
+2. **`GET /casos/:id/invitaciones` — el shape real de `InvitacionView`**, que leímos de `invitaciones.types.ts` y nunca vimos en el cable.
+
+Los dos mappers toleran lo que venga; lo que queremos es dejar de decir "deducido" en los changelogs.
+
+---
+
+---
+
+## 11 · `POST /tareas/:id/calendario` — pide una fecha que ninguna tarea tiene
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **No bloquea:** integramos los otros dos endpoints de tareas y la sección anda
+
+Integramos `GET /casos/:casoId/tareas` y `PATCH /tareas/:id`. **El tercero no**, y no es por falta de ganas.
+
+### 11.1 · El problema, en tres líneas de su propio código
+
+- `buildTareasFromAcuerdo` genera las tareas **sin `fecha_evento`** (`tarea-generation.ts`: sólo pone `acuerdo_id`, `caso_id`, `tipo` y `descripcion`).
+- `resolveFechaEvento` hace `input.fecha_evento ?? tarea.fecha_evento` y tira `400 invalid_input` si los dos faltan (`tareas.service.ts`).
+- `scheduleCalendarEvent` es lo **único** que escribe `fecha_evento` … y es justamente el endpoint que la exige.
+
+O sea: **el endpoint que setea la fecha requiere la fecha**. Ninguna tarea generada puede pasar por ahí sin que el cliente invente una.
+
+### 11.2 · Por qué no la inventamos nosotros
+
+Podríamos mandar "hoy + 7 días" y el endpoint contestaría 200. Sería un evento de calendario en una fecha **que nadie eligió**, sobre un acuerdo legal. Preferimos no tener la función a tenerla mintiendo.
+
+La otra salida es que la elija el usuario, y eso es UI nueva: **no hay ningún selector de fecha en toda la app** (el design system tiene `Input`, `Checkbox` y `SelectableCard`, nada de fechas). Antes de construirlo hace falta responder qué significa "la fecha" de una tarea como *"Económico — punto acordado: 45000"*, que es una pregunta de Producto, no de implementación.
+
+### 11.3 · Las tres opciones, para que elijan
+
+1. **El generador pone una fecha.** `buildTareasFromAcuerdo` la deriva del acuerdo (`fecha` + N días, o lo que Producto defina) y genera `tipo: 'evento_calendario'` donde corresponda. Nosotros no tocamos nada: la sección ya renderiza `eventDateLabel` cuando el dato viene.
+2. **La elige el usuario.** Necesitamos la definición de Producto y construimos el selector. Avisen y lo estimamos.
+3. **El endpoint se retira.** Si el calendario no está en el alcance de esta fase, mejor que no exista a que exista sin poder llamarse.
+
+Nos sirve cualquiera. Lo que no nos sirve es dejarlo como está, porque hoy es una ruta que **no se puede invocar desde ningún cliente honesto**.
+
+### 11.4 · Y una cosa que conviene que sepan de las tareas en general
+
+Las tareas se generan en **un solo lugar**: el webhook de DocuSign, cuando todas las firmas de un acuerdo completan (`docusign-webhook.service.ts` → `generateForAcuerdo`). Nada más las crea.
+
+Con las ocho `DOCUSIGN_*` sin configurar el webhook nunca dispara, así que **`GET /casos/:casoId/tareas` devuelve `[]` siempre**. No es un bug y nuestra sección lo dice con su estado vacío ("Las tareas van a aparecer acá una vez que el acuerdo las genere"). Lo anotamos para que nadie mire una lista vacía y reporte la integración como rota — y para que quede claro que **probar tareas punta a punta depende de DocuSign configurado**, no de nosotros.
+
+---
+
+## 12 · Onboarding — no lo vamos a construir todavía, y uno de los dos endpoints tiene un problema de diseño
+
+**Autor:** Frontend, 25/08 · **Para:** Backend + Producto · **§12.2 conviene leerlo aunque el resto no**
+
+Cerrando el inventario quedaban `POST /auth/biometria` y `POST /auth/consentimiento`. Los miramos para integrarlos y **decidimos no hacerlo**. Las razones no son de esfuerzo.
+
+### 12.1 · Biometría: el proveedor no existe, y la app no puede validar nada
+
+`Mediacion_Documentacion_Tecnica_v1_0.md` §"Calendario y biometría" dice, textual: *"verificación de identidad en el onboarding mediante **proveedor a definir**; se guarda el resultado de la validación, no la biometría cruda"*.
+
+O sea que el proveedor es una decisión abierta. Y del lado de la app: **no hay ningún SDK biométrico ni de KYC instalado** (`expo-local-authentication` no está entre las dependencias, ni ninguna otra).
+
+Entonces, la única pantalla que podríamos construir hoy es una que mande `{"resultado": "aprobada"}` **sin que ninguna validación haya ocurrido**. Es la app auto-certificando la identidad de su propio usuario, en un producto de mediación legal donde RN-12 trata la biometría como dato sensible. No lo vamos a hacer.
+
+### 12.2 · Y ese es el problema: hoy **cualquier usuario autenticado puede aprobarse a sí mismo**
+
+Esto no es una crítica de estilo, es su propia regla contradiciéndose entre dos rutas.
+
+`apps/api/src/me/profile-allowlist.ts` dice, textual:
+
+> *"`rol`, `email`, `activo`, `estudio_id` y **`verif_biometrica`** are deliberately absent: they are privilege or identity fields and **must never be settable from a self-service patch**."*
+
+Correcto, y `PATCH /me` lo cumple. Pero **`POST /auth/biometria` hace exactamente eso**: sin `@Roles`, sin verificación de origen, sin firma de proveedor. `OnboardingService.recordBiometricResult` valida que `resultado` esté en `['aprobada','rechazada']` y escribe la columna. Cualquiera con un token válido manda `{"resultado":"aprobada"}` y queda verificado.
+
+**Hoy el impacto es bajo**, y lo verificamos: `verif_biometrica` no gatea nada en `apps/api` — sólo viaja en `AuthenticatedUser` y en `GET /me`. Pero es un campo de identidad, y el día que algo dependa de él (habilitar un caso, firmar, contratar) el agujero pasa a ser el que decide.
+
+**Lo que sugerimos**, y no es de FE decidirlo: que el resultado entre por donde entran los otros hechos verificados, o sea **un callback del proveedor server-side**, como ya hace `POST /webhooks/docusign` para las firmas. El cliente inicia la verificación; quién dice que salió bien es el proveedor, no el cliente. Con esa forma nosotros integramos sin problema: iniciamos, mostramos estado, y leemos el resultado de `GET /me`.
+
+### 12.3 · Consentimiento: es la firma de identidad de DocuSign, y la mitad ya existe en otro lado
+
+La documentación técnica (§Endpoints, línea de `/auth/consentimiento`) lo define como *"Firma de identidad (DocuSign) y aceptación de T&C"*. Dos cosas, y las dos tienen problema:
+
+- **La firma de identidad por DocuSign no existe en ningún flujo de la app.** Lo único cableado a DocuSign es la firma del acuerdo. Un envelope de onboarding no lo genera ni lo consume nadie, y DocuSign está inerte hasta que se configuren las ocho `DOCUSIGN_*`.
+- **La aceptación de T&C ya está resuelta y en producción**, por el módulo legal: `POST /legal/aceptaciones` con su tabla, su re-aceptación bloqueante y su banner. Grabar además `usuarios.consentimiento_fecha` sería un **segundo registro de lo mismo**, con dos fechas que pueden discrepar y ninguna regla que diga cuál manda.
+
+Antes de tocarlo necesitamos saber si `consentimiento_*` es la firma de identidad (y entonces depende del envelope de onboarding, no de nosotros) o si quedó como duplicado del módulo legal (y entonces conviene retirarlo).
+
+### 12.4 · Qué necesitamos para poder hacerlo
+
+1. **El proveedor de biometría**, o la decisión de que el onboarding biométrico no entra en esta fase.
+2. **La forma del endpoint** una vez que exista el proveedor — sugerencia en §12.2.
+3. **Qué es `consentimiento_*`** y cómo convive con `legal_acceptances`.
+
+Con eso construimos el flujo. Sin eso, lo único que podemos entregar es una pantalla que miente sobre una verificación de identidad, y preferimos no tenerla.
+
+---
+
+## 13 · El CI de `dev` está en rojo desde el PR #110 — diagnóstico y arreglo de una línea
+
+**Autor:** Frontend, 25/08 · **Para:** DB · **No lo tocamos**: `supabase/migrations/` es de ustedes
+
+Lo encontramos mirando por qué el PR #111 tenía checks rojos. **No eran de nuestro cambio: `dev` ya estaba rojo**, y sigue estándolo.
+
+### 13.1 · `integration` — el `GRANT` a un rol que en CI no existe
+
+```
+psql:supabase/migrations/20260825000000_custom_access_token.sql:51:
+ERROR:  role "supabase_auth_admin" does not exist
+```
+
+La última línea de la migración es `GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;`. En un stack de Supabase real ese rol existe; el job `integration` de `ci-node.yml` corre las migraciones contra un **`postgres:16-alpine` pelado**, donde no. La migración aborta y el job sale con exit 3.
+
+**Se ve en el CI de `dev` mismo**, en la corrida del merge del PR #110 — o sea desde antes de que existiera cualquier rama nuestra. Todo PR abierto contra `dev` hereda el rojo.
+
+Que en local pase es esperable y no lo desmiente: `db reset` corre contra el stack completo de Supabase, con sus roles. El QA del changelog de DB (`36/36 migraciones OK`, `81/81 PASS`) es correcto **y CI igual se rompe**, porque los dos entornos no son el mismo.
+
+**El arreglo, guardando el `GRANT` como ya guardan otras cosas en esa misma migración:**
+
+```sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+    GRANT EXECUTE ON FUNCTION public.custom_access_token(jsonb) TO supabase_auth_admin;
+  END IF;
+END $$;
+```
+
+Idempotente en los dos entornos: en Supabase real otorga como hoy, en el postgres pelado de CI no hace nada. **No lo aplicamos nosotros**: `agents/back/AGENTS.md` marca los límites de repo, y es justo lo que reclamamos en §6.4 cuando se cruzó al revés. Si prefieren que lo mandemos nosotros, avisen y va.
+
+### 13.2 · `Vercel` — también rojo en `dev`, y no es del bundle
+
+El check de Vercel está en `failure` sobre el HEAD de `dev`, igual que en los PRs.
+
+Descartamos que sea del código de la app: corrimos localmente **los dos tramos exactos** del `buildCommand` de `vercel.json` — `pnpm --filter @mediacion/shared build` y `npx expo export --platform web` — y los dos salen con **exit 0**, con las 30 rutas exportadas. Lo que falla está del lado de Vercel (instalación, configuración del proyecto o cuota), no en lo que compilamos.
+
+No tenemos acceso al panel para leer el log (`npx vercel inspect` pide credenciales). Quien lo tenga, ahí está la respuesta.
 
 ---
 

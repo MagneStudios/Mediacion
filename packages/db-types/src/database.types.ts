@@ -44,7 +44,12 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_acuerdo"];
           fecha: string | null;
           id: string;
+          negociacion_id: string;
+          supersedes_agreement_id: string | null;
           updated_at: string;
+          valid_from: string;
+          version: number;
+          vigente: boolean;
         };
         Insert: {
           caso_id: string;
@@ -55,7 +60,12 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_acuerdo"];
           fecha?: string | null;
           id?: string;
+          negociacion_id: string;
+          supersedes_agreement_id?: string | null;
           updated_at?: string;
+          valid_from?: string;
+          version?: number;
+          vigente?: boolean;
         };
         Update: {
           caso_id?: string;
@@ -66,7 +76,12 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_acuerdo"];
           fecha?: string | null;
           id?: string;
+          negociacion_id?: string;
+          supersedes_agreement_id?: string | null;
           updated_at?: string;
+          valid_from?: string;
+          version?: number;
+          vigente?: boolean;
         };
         Relationships: [
           {
@@ -74,6 +89,20 @@ export type Database = {
             columns: ["caso_id"];
             isOneToOne: true;
             referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acuerdos_negociacion_id_fkey";
+            columns: ["negociacion_id"];
+            isOneToOne: false;
+            referencedRelation: "negociaciones";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acuerdos_supersedes_agreement_id_fkey";
+            columns: ["supersedes_agreement_id"];
+            isOneToOne: false;
+            referencedRelation: "acuerdos";
             referencedColumns: ["id"];
           },
         ];
@@ -239,7 +268,6 @@ export type Database = {
           metodo: Database["public"]["Enums"]["metodo_caso"];
           nombre: string;
           plazo: string | null;
-          ronda_actual: number;
           sla_tipo: string | null;
           updated_at: string;
         };
@@ -255,7 +283,6 @@ export type Database = {
           metodo: Database["public"]["Enums"]["metodo_caso"];
           nombre: string;
           plazo?: string | null;
-          ronda_actual?: number;
           sla_tipo?: string | null;
           updated_at?: string;
         };
@@ -271,7 +298,6 @@ export type Database = {
           metodo?: Database["public"]["Enums"]["metodo_caso"];
           nombre?: string;
           plazo?: string | null;
-          ronda_actual?: number;
           sla_tipo?: string | null;
           updated_at?: string;
         };
@@ -618,6 +644,7 @@ export type Database = {
           created_at: string;
           descripcion: string | null;
           id: string;
+          negociacion_id: string | null;
           nombre: string;
           parte_id: string;
           privado: boolean;
@@ -633,6 +660,7 @@ export type Database = {
           created_at?: string;
           descripcion?: string | null;
           id?: string;
+          negociacion_id?: string | null;
           nombre: string;
           parte_id: string;
           privado?: boolean;
@@ -648,6 +676,7 @@ export type Database = {
           created_at?: string;
           descripcion?: string | null;
           id?: string;
+          negociacion_id?: string | null;
           nombre?: string;
           parte_id?: string;
           privado?: boolean;
@@ -662,6 +691,13 @@ export type Database = {
             columns: ["caso_id"];
             isOneToOne: false;
             referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "items_negociacion_id_fkey";
+            columns: ["negociacion_id"];
+            isOneToOne: false;
+            referencedRelation: "negociaciones";
             referencedColumns: ["id"];
           },
           {
@@ -825,6 +861,47 @@ export type Database = {
             columns: ["mediador_id"];
             isOneToOne: false;
             referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      negociaciones: {
+        Row: {
+          caso_id: string;
+          created_at: string;
+          estado: Database["public"]["Enums"]["estado_negociacion"];
+          id: string;
+          materia?: Database["public"]["Enums"]["materia_acuerdo"] | null;
+          method: Database["public"]["Enums"]["metodo_caso"];
+          round: number;
+          updated_at: string;
+        };
+        Insert: {
+          caso_id: string;
+          created_at?: string;
+          estado?: Database["public"]["Enums"]["estado_negociacion"];
+          id?: string;
+          materia?: Database["public"]["Enums"]["materia_acuerdo"] | null;
+          method: Database["public"]["Enums"]["metodo_caso"];
+          round?: number;
+          updated_at?: string;
+        };
+        Update: {
+          caso_id?: string;
+          created_at?: string;
+          estado?: Database["public"]["Enums"]["estado_negociacion"];
+          id?: string;
+          materia?: Database["public"]["Enums"]["materia_acuerdo"];
+          method?: Database["public"]["Enums"]["metodo_caso"];
+          round?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "negociaciones_caso_id_fkey";
+            columns: ["caso_id"];
+            isOneToOne: false;
+            referencedRelation: "casos";
             referencedColumns: ["id"];
           },
         ];
@@ -1012,6 +1089,7 @@ export type Database = {
           fundamentacion: string | null;
           id: string;
           modelo_ia: string | null;
+          negociacion_id: string;
           ronda_id: string;
           updated_at: string;
         };
@@ -1024,6 +1102,7 @@ export type Database = {
           fundamentacion?: string | null;
           id?: string;
           modelo_ia?: string | null;
+          negociacion_id: string;
           ronda_id: string;
           updated_at?: string;
         };
@@ -1036,6 +1115,7 @@ export type Database = {
           fundamentacion?: string | null;
           id?: string;
           modelo_ia?: string | null;
+          negociacion_id?: string;
           ronda_id?: string;
           updated_at?: string;
         };
@@ -1045,6 +1125,13 @@ export type Database = {
             columns: ["caso_id"];
             isOneToOne: false;
             referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "propuestas_negociacion_id_fkey";
+            columns: ["negociacion_id"];
+            isOneToOne: false;
+            referencedRelation: "negociaciones";
             referencedColumns: ["id"];
           },
           {
@@ -1124,6 +1211,7 @@ export type Database = {
           fecha_fin: string | null;
           fecha_inicio: string;
           id: string;
+          negociacion_id: string;
           numero: number;
           updated_at: string;
         };
@@ -1134,6 +1222,7 @@ export type Database = {
           fecha_fin?: string | null;
           fecha_inicio?: string;
           id?: string;
+          negociacion_id: string;
           numero: number;
           updated_at?: string;
         };
@@ -1144,6 +1233,7 @@ export type Database = {
           fecha_fin?: string | null;
           fecha_inicio?: string;
           id?: string;
+          negociacion_id?: string;
           numero?: number;
           updated_at?: string;
         };
@@ -1153,6 +1243,13 @@ export type Database = {
             columns: ["caso_id"];
             isOneToOne: false;
             referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rondas_negociacion_id_fkey";
+            columns: ["negociacion_id"];
+            isOneToOne: false;
+            referencedRelation: "negociaciones";
             referencedColumns: ["id"];
           },
         ];
@@ -1556,12 +1653,14 @@ export type Database = {
         | "rechazada";
       estado_caso:
         | "nuevo"
+        | "pendiente_suscripciones"
         | "activo"
         | "en_negociacion"
         | "acordado"
         | "cerrado"
         | "terminado"
-        | "vencido";
+        | "vencido"
+        | "expirado";
       estado_invitacion: "pendiente" | "aceptada" | "rechazada" | "expirada";
       estado_mediacion:
         | "solicitada"
@@ -1570,6 +1669,12 @@ export type Database = {
         | "activa"
         | "finalizada";
       estado_notificacion: "pendiente" | "enviada" | "fallida";
+      estado_negociacion:
+        | "borrador"
+        | "activa"
+        | "acordada"
+        | "cerrada"
+        | "terminada";
       estado_pago: "pendiente" | "aprobado" | "rechazado";
       estado_propuesta: "pendiente" | "aceptada" | "rechazada";
       estado_ronda: "activa" | "completada";
@@ -1588,6 +1693,7 @@ export type Database = {
         | "pendiente_pago"
         | "pausada";
       estado_tarea: "pendiente" | "en_progreso" | "completada";
+      materia_acuerdo: "tenencia" | "alimentos" | "bienes" | "otro";
       metodo_caso: "negociacion" | "conciliacion" | "mediacion";
       rol_en_caso: "parte_a" | "parte_b" | "mediador";
       rol_usuario: "admin" | "parte" | "mediador" | "estudio";
@@ -1745,6 +1851,7 @@ export const Constants = {
       ],
       estado_caso: [
         "nuevo",
+        "pendiente_suscripciones",
         "activo",
         "en_negociacion",
         "acordado",
@@ -1762,6 +1869,13 @@ export const Constants = {
         "finalizada",
       ],
       estado_notificacion: ["pendiente", "enviada", "fallida"],
+      estado_negociacion: [
+        "borrador",
+        "activa",
+        "acordada",
+        "cerrada",
+        "terminada",
+      ],
       estado_pago: ["pendiente", "aprobado", "rechazado"],
       estado_propuesta: ["pendiente", "aceptada", "rechazada"],
       estado_ronda: ["activa", "completada"],
@@ -1782,6 +1896,7 @@ export const Constants = {
         "pausada",
       ],
       estado_tarea: ["pendiente", "en_progreso", "completada"],
+      materia_acuerdo: ["tenencia", "alimentos", "bienes", "otro"],
       metodo_caso: ["negociacion", "conciliacion", "mediacion"],
       rol_en_caso: ["parte_a", "parte_b", "mediador"],
       rol_usuario: ["admin", "parte", "mediador", "estudio"],

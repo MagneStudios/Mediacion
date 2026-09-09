@@ -1,4 +1,9 @@
-import { createApiBillingService, toSubscription } from '../billing.api-service';
+import {
+  createApiBillingService,
+  toSubscription,
+  toSubscriptionUsage,
+} from '../billing.api-service';
+import type { ApiUso } from '../billing.api-service';
 import type { HttpClient, RequestOptions } from '../http-client';
 
 /** Records every request and replays canned responses — no network. */
@@ -8,6 +13,10 @@ function fakeHttp(responses: Record<string, unknown>) {
     async request<T>(path: string, options?: RequestOptions): Promise<T> {
       calls.push({ path, options });
       return responses[path] as T;
+    },
+    /** No suite here reads text; a call would be a mistake worth hearing. */
+    async requestText(): Promise<string> {
+      throw new Error('requestText is not stubbed in this suite');
     },
   };
   return { http, calls };
@@ -47,6 +56,67 @@ describe('billing.api-service', () => {
 
     expect(calls).toEqual([{ path: '/suscripciones/vigente', options: undefined }]);
     expect(subscription.id).toBe('sus-1');
+  });
+
+  it('reads the usage without sending an owner the client could forge', async () => {
+    const { http, calls } = fakeHttp({
+      '/suscripciones/uso': {
+        period_start: '2026-08-17T12:00:00.000Z',
+        period_end: '2026-09-16T12:00:00.000Z',
+        negociaciones: { usado: 2, limite: 3 },
+        clientes: null,
+      },
+    });
+
+    const usage = await createApiBillingService(http).getUsage();
+
+    expect(calls).toEqual([{ path: '/suscripciones/uso', options: undefined }]);
+    expect(usage.negotiations).toEqual({ used: 2, limit: 3 });
+  });
+
+  it('maps the uso payload, keeping unlimited as unlimited', () => {
+    expect(
+      toSubscriptionUsage({
+        period_start: '2026-08-17T12:00:00.000Z',
+        period_end: '2026-09-16T12:00:00.000Z',
+        negociaciones: { usado: 4, limite: null },
+        clientes: { usado: 7, limite: 20 },
+      }),
+    ).toEqual({
+      periodStart: '2026-08-17T12:00:00.000Z',
+      periodEnd: '2026-09-16T12:00:00.000Z',
+      // `limite: null` is unlimited, not a cap of zero.
+      negotiations: { used: 4, limit: null },
+      clients: { used: 7, limit: 20 },
+    });
+  });
+
+  it('keeps a null clientes as null, never as a counter sitting at zero', () => {
+    // "No sos titular de un estudio" and "usaste 0 de tus 20" are different
+    // sentences, and only one of them belongs on screen.
+    const usage = toSubscriptionUsage({
+      period_start: '2026-08-17T12:00:00.000Z',
+      period_end: '2026-09-16T12:00:00.000Z',
+      negociaciones: { usado: 0, limite: 3 },
+      clientes: null,
+    });
+
+    expect(usage.clients).toBeNull();
+  });
+
+  it('degrades a count it cannot use instead of rendering "usaste 2.5 de 3"', () => {
+    const usage = toSubscriptionUsage({
+      period_start: 'no es una fecha',
+      period_end: '2026-09-16T12:00:00.000Z',
+      negociaciones: { usado: 2.5, limite: -1 },
+      clientes: null,
+    } as unknown as ApiUso);
+
+    expect(usage.periodStart).toBeNull();
+    expect(usage.negotiations.used).toBe(0);
+    // An unusable limit degrades to unlimited, the direction that never invents
+    // a wall the server did not report.
+    expect(usage.negotiations.limit).toBeNull();
   });
 
   it('posts the baja to the id it was given, with no body', async () => {

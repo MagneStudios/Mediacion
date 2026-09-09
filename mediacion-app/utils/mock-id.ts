@@ -64,6 +64,11 @@ export function generateMockHistoryId(): string {
   return `history-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
 
+/** Mock breach-notice identifier for the in-memory session store. */
+export function generateMockBreachNoticeId(): string {
+  return `breach-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
 /** Mock mediation-record identifier for the in-memory session store. */
 export function generateMockMediationId(): string {
   return `mediation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;

@@ -78,8 +78,24 @@ export type AuthGateProps = {
  */
 export function AuthGate({ children, authService }: AuthGateProps) {
   const auth = authService === undefined ? (backend?.auth ?? null) : authService;
+  const pathname = usePathname();
 
   if (auth === null) {
+    // The auth screens are the one thing the pass-through cannot pass through
+    // to. `login.tsx` and `signup.tsx` call `useAuthSession()` unconditionally,
+    // and without a backend there is no `AuthSessionProvider` above them — so
+    // reaching either one threw and dropped the app into the error boundary.
+    // Nothing links there in this mode, but a typed URL, a bookmark or a
+    // restored tab all get there, and the web build's catch-all rewrite means
+    // the route resolves rather than 404s.
+    //
+    // Sending them home is the same answer `Gate` already gives a signed-in
+    // visitor on an auth route (there is nothing to do there), and it keeps the
+    // rule in the one file that owns it instead of teaching both screens to
+    // survive without their provider.
+    if (matches(authRoutes, pathname)) {
+      return <Redirect href="/" />;
+    }
     return <>{children}</>;
   }
 

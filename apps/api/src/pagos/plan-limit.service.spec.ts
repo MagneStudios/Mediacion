@@ -67,6 +67,25 @@ describe("PlanLimitService", () => {
 
     expect(thrown).toBeInstanceOf(HttpException);
     expect((thrown as HttpException).getStatus()).toBe(403);
+    expect((thrown as HttpException).getResponse()).toEqual({
+      code: "plan_limit_exceeded",
+      message: "Plan case limit reached",
+      recurso: "casos",
+      usado: 5,
+      limite: 5,
+    });
+  });
+
+  it("reports the real count as usado when the stock is overshot", async () => {
+    const executeTakeFirst = jest.fn().mockResolvedValue({ limite_casos: 2 });
+    const { service } = buildService({
+      executeTakeFirst,
+      countRow: { count: "7" },
+    });
+
+    await expect(service.assertCanCreateCase("user-1")).rejects.toMatchObject({
+      response: { recurso: "casos", usado: 7, limite: 2 },
+    });
   });
 
   it("allows creation when the caller is under the plan's limite_casos", async () => {

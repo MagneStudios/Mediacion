@@ -9,6 +9,8 @@ export const planColumns = [
   "limite_iteraciones_ia",
   "precio",
   "moneda",
+  "max_negotiations_per_period",
+  "max_clients_per_period",
 ] as const;
 
 export type Plan = Pick<
@@ -97,4 +99,63 @@ export type ApplyPagoInput = {
 
 export type ApplyPagoResult = {
   applied: boolean;
+};
+
+export const estadoSuscripcionVencida: Suscripcion["estado"] = "vencida";
+
+export const estadosSuscripcionConPlan: Suscripcion["estado"][] = [
+  estadoSuscripcionActiva,
+  estadoSuscripcionVencida,
+];
+
+export const quotaKindNegotiation = "negotiation";
+
+export const suscripcionForUsoColumns = [
+  "suscripciones.id",
+  "suscripciones.fecha_inicio",
+  "suscripciones.current_period_start",
+  "suscripciones.current_period_end",
+  "planes.max_negotiations_per_period",
+  "planes.max_clients_per_period",
+] as const;
+
+export type SuscripcionForUso = Pick<
+  Suscripcion,
+  "id" | "fecha_inicio" | "current_period_start" | "current_period_end"
+> &
+  Pick<
+    Selectable<Database["planes"]>,
+    "max_negotiations_per_period" | "max_clients_per_period"
+  >;
+
+export type BillingPeriod = {
+  period_start: string;
+  period_end: string;
+};
+
+export type SuscripcionPeriodRow = Pick<
+  Suscripcion,
+  "current_period_start" | "current_period_end"
+>;
+
+export const usageCounterColumns = [
+  "negotiations_created",
+  "clients_created",
+] as const;
+
+export type UsageCounter = Pick<
+  Selectable<Database["usage_counters"]>,
+  (typeof usageCounterColumns)[number]
+>;
+
+export type UsoMedidor = {
+  usado: number;
+  limite: number | null;
+};
+
+export type UsoView = {
+  period_start: string;
+  period_end: string;
+  negociaciones: UsoMedidor;
+  clientes: UsoMedidor | null;
 };

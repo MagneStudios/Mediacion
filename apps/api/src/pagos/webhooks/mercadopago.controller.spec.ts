@@ -1,49 +1,11 @@
 import { createHmac } from "node:crypto";
 import { HttpException } from "@nestjs/common";
 import type { AppConfig } from "../../config/config";
-import type { PagosService } from "../pagos.service";
+import { buildTestAppConfig } from "../../config/config.test-fixture";
 import { MercadoPagoWebhookController } from "./mercadopago.controller";
+import type { PaymentRouterService } from "./payment-router.service";
 
 const secret = "mp-webhook-secret";
-
-function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
-  return {
-    port: 3000,
-    supabaseJwtSecret: "secret",
-    databaseUrl: "postgresql://placeholder",
-    openrouterApiKey: "sk-or-test-key",
-    docusignIntegrationKey: "ik-test",
-    docusignClientSecret: "secret-test",
-    docusignAccountId: "account-test",
-    docusignBasePath: "https://demo.docusign.net/restapi",
-    docusignWebhookSecret: "docusign-secret",
-    docusignUserId: "user-test",
-    docusignOauthBase: "account-d.docusign.com",
-    docusignPrivateKey: "test-private-key-pem",
-    signnowBasePath: "https://api-eval.signnow.com",
-    signnowClientId: "signnow-client-id",
-    signnowClientSecret: "signnow-client-secret",
-    signnowUserEmail: "signnow@test",
-    signnowUserPassword: "signnow-password",
-    signnowWebhookSecret: "signnow-whsec-test",
-    signnowWebhookCallbackUrl: "https://api.test/api/webhooks/signnow",
-    mpAccessToken: "mp-access-token",
-    mpWebhookSecret: secret,
-    cronSecret: "cron-secret",
-    corsOrigins: [],
-    smtpHost: "smtp.example.com",
-    smtpPort: 587,
-    smtpUser: "smtp-user",
-    smtpPass: "smtp-pass",
-    fcmKey: "fcm-key",
-    apnsKey: "apns-key",
-    operacionesEmail: "operaciones@test",
-    legalAvisoDiasAnticipacion: 10,
-    legalPublicRequestsPerWindow: 5,
-    legalPublicWindowMs: 3_600_000,
-    ...overrides,
-  };
-}
 
 function signManifest(
   dataId: string,
@@ -59,8 +21,8 @@ describe("MercadoPagoWebhookController", () => {
   it("verifies the x-signature and forwards data.id (from query) to the service", async () => {
     const processWebhookPayment = jest.fn().mockResolvedValue(undefined);
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
     const ts = String(Math.floor(Date.now() / 1000));
     const requestId = "req-1";
@@ -85,8 +47,8 @@ describe("MercadoPagoWebhookController", () => {
   it("falls back to data.id parsed from the body when the query param is absent", async () => {
     const processWebhookPayment = jest.fn().mockResolvedValue(undefined);
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
     const ts = String(Math.floor(Date.now() / 1000));
     const requestId = "req-1";
@@ -111,8 +73,8 @@ describe("MercadoPagoWebhookController", () => {
   it("rejects with 401 when the signature is missing, without invoking the service", async () => {
     const processWebhookPayment = jest.fn();
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
     const rawBody = Buffer.from(JSON.stringify({ data: { id: "123456" } }));
 
@@ -135,8 +97,8 @@ describe("MercadoPagoWebhookController", () => {
   it("rejects with 401 when the signature is forged, without invoking the service", async () => {
     const processWebhookPayment = jest.fn();
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
     const rawBody = Buffer.from(JSON.stringify({ data: { id: "123456" } }));
 
@@ -162,8 +124,8 @@ describe("MercadoPagoWebhookController", () => {
   it("rejects with 400 when the raw body is absent, never falling back to a parsed body", async () => {
     const processWebhookPayment = jest.fn();
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
 
     let thrown: unknown;
@@ -185,8 +147,8 @@ describe("MercadoPagoWebhookController", () => {
   it("rejects with 401 when data.id cannot be determined at all", async () => {
     const processWebhookPayment = jest.fn();
     const controller = new MercadoPagoWebhookController(
-      { processWebhookPayment } as unknown as PagosService,
-      buildAppConfig(),
+      { processWebhookPayment } as unknown as PaymentRouterService,
+      buildTestAppConfig(),
     );
     const rawBody = Buffer.from(JSON.stringify({ action: "payment.updated" }));
 

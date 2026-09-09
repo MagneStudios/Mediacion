@@ -1,4 +1,5 @@
 import type { INestApplication } from "@nestjs/common";
+import { HttpException, HttpStatus } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
@@ -21,6 +22,7 @@ describe("POST /suscripciones end-to-end", () => {
     createSuscripcion: jest.Mock,
     cancelSuscripcion: jest.Mock = jest.fn(),
     getVigente: jest.Mock = jest.fn(),
+    getUso: jest.Mock = jest.fn(),
   ): Promise<INestApplication> {
     const usersRepository = {
       findAuthById: (id: string) =>
@@ -32,7 +34,12 @@ describe("POST /suscripciones end-to-end", () => {
       providers: [
         {
           provide: SuscripcionesService,
-          useValue: { createSuscripcion, cancelSuscripcion, getVigente },
+          useValue: {
+            createSuscripcion,
+            cancelSuscripcion,
+            getVigente,
+            getUso,
+          },
         },
         { provide: UsersRepository, useValue: usersRepository },
         {
@@ -142,6 +149,64 @@ describe("POST /suscripciones end-to-end", () => {
 
     expect(response.status).toBe(401);
     expect(getVigente).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("reads the caller's usage through GET /suscripciones/uso with the §3.1 shape", async () => {
+    const uso = {
+      period_start: "2026-08-14T00:00:00.000Z",
+      period_end: "2026-09-13T00:00:00.000Z",
+      negociaciones: { usado: 2, limite: 3 },
+      clientes: null,
+    };
+    const getUso = jest.fn().mockResolvedValue(uso);
+    const app = await bootstrapApp(jest.fn(), jest.fn(), jest.fn(), getUso);
+
+    const response = await request(app.getHttpServer())
+      .get("/suscripciones/uso")
+      .set("Authorization", "Bearer user-a");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(uso);
+    expect(getUso).toHaveBeenCalledWith(parteA.id);
+    await app.close();
+  });
+
+  it("answers 404 suscripcion_not_found on /uso with the plain envelope", async () => {
+    const getUso = jest
+      .fn()
+      .mockRejectedValue(
+        new HttpException(
+          { code: "suscripcion_not_found", message: "Suscripcion not found" },
+          HttpStatus.NOT_FOUND,
+        ),
+      );
+    const app = await bootstrapApp(jest.fn(), jest.fn(), jest.fn(), getUso);
+
+    const response = await request(app.getHttpServer())
+      .get("/suscripciones/uso")
+      .set("Authorization", "Bearer user-a");
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: {
+        code: "suscripcion_not_found",
+        message: "Suscripcion not found",
+      },
+    });
+    await app.close();
+  });
+
+  it("rejects an unauthenticated uso read with 401", async () => {
+    const getUso = jest.fn();
+    const app = await bootstrapApp(jest.fn(), jest.fn(), jest.fn(), getUso);
+
+    const response = await request(app.getHttpServer()).get(
+      "/suscripciones/uso",
+    );
+
+    expect(response.status).toBe(401);
+    expect(getUso).not.toHaveBeenCalled();
     await app.close();
   });
 

@@ -52,7 +52,7 @@ jest.mock('@/services/legal.service', () => ({
 // eslint-disable-next-line import/first
 import PlanCheckoutScreen from '../checkout';
 
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS' };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 };
 
 async function renderScreen() {
   await render(

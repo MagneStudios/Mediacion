@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ConfirmationDialog, ErrorState, LoadingState } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -9,7 +9,9 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { PlanOptionCard } from '@/features/billing/components/PlanOptionCard';
+import { UsageSummaryCard } from '@/features/billing/components/UsageSummaryCard';
 import { useCurrentSubscription } from '@/features/billing/hooks/useCurrentSubscription';
+import { useSubscriptionUsage } from '@/features/billing/hooks/useSubscriptionUsage';
 import { usePlans } from '@/features/plans/hooks/usePlans';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import i18n from '@/i18n';
@@ -25,6 +27,7 @@ export default function MyPlanScreen() {
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
   const subscriptionResult = useCurrentSubscription();
+  const usageResult = useSubscriptionUsage();
   const plansResult = usePlans();
 
   const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
@@ -38,11 +41,19 @@ export default function MyPlanScreen() {
       setCancelDialogVisible(false);
       blurActiveElement();
       subscriptionResult.reload();
+      // The baja changes which plan (if any) the counters are measured against,
+      // so a stale usage block would keep reporting a quota that no longer
+      // applies.
+      usageResult.reload();
     } catch {
       setCancelStatus('error');
     }
   };
 
+  // Usage is deliberately absent from both gates. It is supplementary — the
+  // person came to see their plan — so a slow or failing `/uso` must not hold
+  // the whole screen hostage or replace it with an error. It reports its own
+  // trouble in place, with its own retry.
   const loading = subscriptionResult.status === 'loading' || plansResult.status === 'loading';
   const failed = subscriptionResult.status === 'error' || plansResult.status === 'error';
 
@@ -107,6 +118,23 @@ export default function MyPlanScreen() {
         </Text>
       ) : null}
 
+      {/*
+        `usage === null` en estado `success` es "no hay plan contra el cual
+        medir", que ya lo dice la línea de arriba — repetirlo con una tarjeta
+        vacía sería decir dos veces lo mismo.
+      */}
+      {usageResult.status === 'success' && usageResult.usage ? (
+        <UsageSummaryCard usage={usageResult.usage} />
+      ) : null}
+      {usageResult.status === 'error' ? (
+        <View style={styles.usageError}>
+          <Text style={styles.description}>{t('billing.usage.error')}</Text>
+          <Button variant="tertiary" size="sm" onPress={usageResult.reload}>
+            {t('common.retry')}
+          </Button>
+        </View>
+      ) : null}
+
       {plans.map((plan) => (
         <PlanOptionCard
           key={plan.id}
@@ -116,6 +144,8 @@ export default function MyPlanScreen() {
           casosLabel={t('admin.planes.card.casosLabel')}
           carpetasLabel={t('admin.planes.card.carpetasLabel')}
           iteracionesLabel={t('admin.planes.card.iteracionesLabel')}
+          negotiationsPerPeriodLabel={t('billing.myPlan.negotiationsPerPeriodLabel')}
+          clientsPerPeriodLabel={t('billing.myPlan.clientsPerPeriodLabel')}
           taxesIncludedLabel={t('billing.myPlan.taxesIncluded')}
           netoLabel={t('billing.checkout.breakdown.neto')}
           subscribeLabel={t('billing.myPlan.subscribeAction')}
@@ -169,6 +199,13 @@ export default function MyPlanScreen() {
 }
 
 const styles = StyleSheet.create({
+  usageError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
   container: {
     flex: 1,
     backgroundColor: semanticColors.surface.canvas,

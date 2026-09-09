@@ -33,12 +33,12 @@ EXPECTED_TABLES = [
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
     "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
     "usage_counters", "lawyer_requests", "payment_events",
+    "negociaciones",
 ]
 
 EXPECTED_FUNCTIONS = [
     "update_updated_at_column",
     "handle_new_user",
-    "sync_ronda_actual",
     "validate_caso_estado_transition",
     "validate_propuesta_estado_transition",
     "audit_trigger_func",
@@ -50,6 +50,9 @@ EXPECTED_FUNCTIONS = [
     "is_own_subscription",
     "has_accepted_current",
     "consume_quota",
+    "custom_access_token",
+    "caso_ambas_partes_suscripciones_activas",
+    "trg_casos_gate_suscripciones_fn",
 ]
 
 EXPECTED_ENUMS = [
@@ -59,7 +62,7 @@ EXPECTED_ENUMS = [
     "estado_mediacion", "estado_acuerdo", "tipo_tarea", "estado_tarea",
     "estado_suscripcion", "estado_pago", "canal_notificacion",
     "estado_notificacion", "estado_arrepentimiento",
-    "estado_solicitud_abogado",
+    "estado_solicitud_abogado", "materia_acuerdo", "estado_negociacion",
 ]
 
 RLS_TABLES = [
@@ -72,6 +75,7 @@ RLS_TABLES = [
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
     "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
     "usage_counters", "lawyer_requests", "payment_events",
+    "negociaciones",
 ]
 
 RESULTS = []
@@ -177,7 +181,7 @@ def main():
         """)
         check("updated_at triggers installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='set_updated_at'",
-              21, "21 tables have set_updated_at")
+              22, "22 tables have set_updated_at")
 
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",
@@ -186,6 +190,36 @@ def main():
         check("Propuesta state machine trigger installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trigger_validate_propuesta_estado'",
               1, "propuesta estado trigger")
+
+        # 6b. C-01 gate de suscripciones: enum value + trigger
+        print()
+        print("=== C-01 Gate Suscripciones ===")
+        check("estado_caso.pendiente_suscripciones exists", cur,
+              "SELECT NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid "
+              "WHERE t.typname = 'estado_caso' AND e.enumlabel = 'pendiente_suscripciones') = false",
+              True, "ADD VALUE 'pendiente_suscripciones' aplicado")
+        check("gate trigger installed", cur,
+              "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='trg_casos_gate_suscripciones'",
+              1, "trigger de gate de suscripciones sobre casos")
+
+        # 6c. Parte 5 — versionado de acuerdos: 4 columnas + índice
+        print()
+        print("=== Parte 5: versionado de acuerdos ===")
+        check("acuerdos.version exists", cur,
+              "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='acuerdos' AND column_name='version'",
+              1, "ADD COLUMN version (Parte 5)")
+        check("acuerdos.supersedes_agreement_id exists", cur,
+              "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='acuerdos' AND column_name='supersedes_agreement_id'",
+              1, "ADD COLUMN supersedes_agreement_id (Parte 5)")
+        check("acuerdos.vigente exists", cur,
+              "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='acuerdos' AND column_name='vigente'",
+              1, "ADD COLUMN vigente (Parte 5)")
+        check("acuerdos.valid_from exists", cur,
+              "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='acuerdos' AND column_name='valid_from'",
+              1, "ADD COLUMN valid_from (Parte 5)")
+        check("idx_acuerdos_negociacion_vigente exists", cur,
+              "SELECT COUNT(*) FROM pg_indexes WHERE schemaname='public' AND indexname='idx_acuerdos_negociacion_vigente'",
+              1, "CREATE INDEX (negociacion_id, vigente)")
 
         # 7. UNIQUE constraints
         print()
@@ -199,10 +233,10 @@ def main():
         existing_uniques = {row[0] for row in cur.fetchall()}
         expected_uniques = [
             "caso_partes_caso_usuario_unique",
-            "rondas_caso_numero_unique",
+            "negociaciones_caso_materia_unique",
             "respuestas_propuesta_unique",
-            "acuerdos_caso_unique",
-            "propuestas_caso_ronda_unique",
+            "rondas_negociacion_numero_unique",
+            "propuestas_negociacion_ronda_unique",
         ]
         for uq in expected_uniques:
             found = uq in existing_uniques

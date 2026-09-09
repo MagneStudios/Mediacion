@@ -1,6 +1,7 @@
 import type { Database } from "@mediacion/db-types";
 import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
@@ -25,7 +26,6 @@ const caseDetailColumns = [
   "casos.updated_at",
   "casos.plazo",
   "casos.sla_tipo",
-  "casos.ronda_actual",
 ] as const;
 
 const caseSummaryColumns = [
@@ -37,8 +37,23 @@ const caseSummaryColumns = [
   "casos.created_at",
   "casos.plazo",
   "casos.sla_tipo",
-  "casos.ronda_actual",
 ] as const;
+
+/**
+ * `ronda_actual` moved from `casos` to `negociaciones.round`. Kysely widens
+ * any subquery-as-column selection with `| null` (it can't statically know a
+ * correlated subquery always matches), so this is built with the `sql` tag
+ * instead of `eb.selectFrom(...).as(...)` to keep the column's real,
+ * non-nullable type — every caso has exactly one legacy (materia IS NULL)
+ * negociación by construction (`CasosRepository.createCaseWithParteA`).
+ */
+function withRondaActual() {
+  return sql<number>`(
+    select "round" from "negociaciones"
+    where "negociaciones"."caso_id" = "casos"."id"
+      and "negociaciones"."materia" is null
+  )`.as("ronda_actual");
+}
 
 export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
   return db
@@ -60,6 +75,24 @@ const estadosNotificacionTerminales = ["enviada", "fallida"] as const;
 
 const sweepBatchSize = 25;
 
+const activacionSavepoint = "gate_activacion_suscripciones";
+
+const casoBloqueadoSuscripcionesCode = "caso_bloqueado_suscripciones";
+
+/** True only for the C-01 gate's own conflict, never for conflicts at large. */
+function isGateBlocked(error: unknown): boolean {
+  if (!(error instanceof ConflictError)) {
+    return false;
+  }
+  const body = error.getResponse();
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "code" in body &&
+    (body as { code: unknown }).code === casoBloqueadoSuscripcionesCode
+  );
+}
+
 function casoNotAcordable(casoId: string): ConflictError {
   return new ConflictError(
     `Caso ${casoId} was not en_negociacion when marking acordado`,
@@ -70,10 +103,17 @@ function casoNotAcordable(casoId: string): ConflictError {
 export class CasosRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
 
-  createCaseWithParteA(input: CreateCasoDto, creadorId: string): Promise<Caso> {
+  createCaseWithParteA(
+    input: CreateCasoDto,
+    creadorId: string,
+    beforeInsert?: (trx: Kysely<Database>) => Promise<void>,
+  ): Promise<Caso> {
     return this.kysely
       .transaction()
       .execute(async (trx) => {
+        if (beforeInsert) {
+          await beforeInsert(trx);
+        }
         const caso = await trx
           .insertInto("casos")
           .values({
@@ -84,6 +124,15 @@ export class CasosRepository {
           })
           .returningAll()
           .executeTakeFirstOrThrow();
+
+        await trx
+          .insertInto("negociaciones")
+          .values({
+            caso_id: caso.id,
+            materia: null,
+            method: input.metodo,
+          })
+          .execute();
 
         await trx
           .insertInto("caso_partes")
@@ -108,6 +157,7 @@ export class CasosRepository {
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")
       .select([...caseSummaryColumns])
+      .select(() => withRondaActual())
       .where("caso_partes.usuario_id", "=", callerId)
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
       .execute();
@@ -152,23 +202,64 @@ export class CasosRepository {
       .selectFrom("casos")
       .innerJoin("caso_partes", "caso_partes.caso_id", "casos.id")
       .select([...caseDetailColumns])
+      .select(() => withRondaActual())
       .where("casos.id", "=", casoId)
       .where("caso_partes.usuario_id", "=", callerId)
       .where("caso_partes.estado_invitacion", "=", estadoInvitacionAceptada)
       .executeTakeFirst();
   }
 
-  activateIfNuevo(casoId: string, trx: Kysely<Database>): Promise<void> {
-    return trx
-      .updateTable("casos")
-      .set({ estado: "activo" })
-      .where("id", "=", casoId)
-      .where("estado", "=", "nuevo")
-      .execute()
-      .then(() => undefined)
-      .catch((error: unknown) => {
-        throw toDomainError(error);
-      });
+  /**
+   * Moves a caso out of `nuevo` when the second party joins: to `activo` when
+   * the C-01 gate lets it through, and to `pendiente_suscripciones` when it
+   * does not.
+   *
+   * The gate (`trg_casos_gate_suscripciones`) is the authority on "are both
+   * parties paid up", so this asks by attempting the real transition rather
+   * than re-deriving the rule here — there is no preview RPC, and a copy of the
+   * rule in application code is a copy that can drift from the trigger.
+   *
+   * The attempt runs inside a savepoint because a `RAISE EXCEPTION` poisons the
+   * whole transaction: without it, the gate firing would roll back the join
+   * that this activation is the last step of, and the party who just accepted
+   * their invitation would not be a member of anything. Rolling back to the
+   * savepoint discards only the failed UPDATE and leaves the join intact.
+   *
+   * Any conflict other than the gate propagates untouched — an invalid
+   * transition is still a real error, not something to hold.
+   */
+  async activateOrHoldForSuscripciones(
+    casoId: string,
+    trx: Kysely<Database>,
+  ): Promise<void> {
+    await sql`savepoint ${sql.raw(activacionSavepoint)}`.execute(trx);
+    try {
+      await trx
+        .updateTable("casos")
+        .set({ estado: "activo" })
+        .where("id", "=", casoId)
+        .where("estado", "=", "nuevo")
+        .execute();
+    } catch (error: unknown) {
+      const domainError = toDomainError(error);
+      if (!isGateBlocked(domainError)) {
+        throw domainError;
+      }
+      await sql`rollback to savepoint ${sql.raw(activacionSavepoint)}`.execute(
+        trx,
+      );
+      await trx
+        .updateTable("casos")
+        .set({ estado: "pendiente_suscripciones" })
+        .where("id", "=", casoId)
+        .where("estado", "=", "nuevo")
+        .execute()
+        .catch((holdError: unknown) => {
+          throw toDomainError(holdError);
+        });
+      return;
+    }
+    await sql`release savepoint ${sql.raw(activacionSavepoint)}`.execute(trx);
   }
 
   activateNegotiation(casoId: string): Promise<void> {

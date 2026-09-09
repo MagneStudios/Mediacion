@@ -2,8 +2,8 @@
  * Formatea un monto guardado en **unidades mínimas enteras**.
  *
  * El spec de monetización §12 lo exige: "todos los montos se manejan en
- * enteros de unidad mínima, nunca en `float`". Así que ARS 40.000 viaja como
- * `4000000` y se divide acá, en el borde de la presentación, una sola vez.
+ * enteros de unidad mínima, nunca en `float`". Así que ARS 50.000 viaja como
+ * `5000000` y se divide acá, en el borde de la presentación, una sola vez.
  *
  * La moneda **viene con el dato**, no está hardcodeada. Es la diferencia con
  * `formatPlanPrice` de `utils/format-plan-limit.ts`, que fija `currency:

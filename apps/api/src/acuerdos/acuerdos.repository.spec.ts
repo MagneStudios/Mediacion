@@ -6,15 +6,22 @@ import type { FirmasRepository } from "./firmas.repository";
 describe("AcuerdosRepository", () => {
   function createFakeKysely(options: {
     existing: { id: string } | undefined;
+    negociacion?: { id: string };
     inserted: unknown;
     insertRejection?: unknown;
   }) {
     const existingExecuteTakeFirst = jest
       .fn()
       .mockResolvedValue(options.existing);
-    const existingWhere = jest
+    const negociacionExecuteTakeFirstOrThrow = jest
       .fn()
-      .mockReturnValue({ executeTakeFirst: existingExecuteTakeFirst });
+      .mockResolvedValue(options.negociacion ?? { id: "negociacion-1" });
+    const whereChain: Record<string, jest.Mock> = {
+      executeTakeFirst: existingExecuteTakeFirst,
+      executeTakeFirstOrThrow: negociacionExecuteTakeFirstOrThrow,
+    };
+    const existingWhere = jest.fn().mockReturnValue(whereChain);
+    whereChain.where = existingWhere;
     const existingSelect = jest.fn().mockReturnValue({ where: existingWhere });
 
     const executeTakeFirstOrThrow = options.insertRejection
@@ -60,7 +67,11 @@ describe("AcuerdosRepository", () => {
     );
     expect(fakeKysely.insertInto).toHaveBeenCalledWith("acuerdos");
     expect(fakeKysely.values).toHaveBeenCalledWith(
-      expect.objectContaining({ caso_id: "caso-1", estado: "borrador" }),
+      expect.objectContaining({
+        caso_id: "caso-1",
+        negociacion_id: "negociacion-1",
+        estado: "borrador",
+      }),
     );
     expect(result).toBe(inserted);
   });

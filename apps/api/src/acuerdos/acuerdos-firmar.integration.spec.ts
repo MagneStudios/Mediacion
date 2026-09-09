@@ -111,6 +111,12 @@ describeDb("Firmar flow against a real database", () => {
       .executeTakeFirstOrThrow();
     casoId = caso.id;
 
+    const negociacion = await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     await kysely
       .insertInto("caso_partes")
       .values([
@@ -135,6 +141,7 @@ describeDb("Firmar flow against a real database", () => {
       .insertInto("acuerdos")
       .values({
         caso_id: casoId,
+        negociacion_id: negociacion.id,
         contenido: { split: "50/50" },
         estado: "borrador",
       })
@@ -153,6 +160,11 @@ describeDb("Firmar flow against a real database", () => {
       () =>
         kysely
           .deleteFrom("acuerdos")
+          .where("caso_id", "=", casoId ?? "")
+          .execute(),
+      () =>
+        kysely
+          .deleteFrom("negociaciones")
           .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>

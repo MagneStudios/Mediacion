@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 Write-Host "=== Setup entorno de tests ===" -ForegroundColor Cyan
 
 $steps = @(
+  @{ Name = "Dev users (test_00)";   File = "tmp/test_00_dev_users.sql" },
   @{ Name = "Usuarios (test_01)";    File = "tmp/test_01_setup.sql" },
   @{ Name = "Caso (test_02)";        File = "tmp/test_02_caso.sql" },
   @{ Name = "Items (test_03)";       File = "tmp/test_03_items.sql" },

@@ -92,6 +92,12 @@ describeDb("DocuSign webhook against a real app and database", () => {
       .executeTakeFirstOrThrow();
     casoId = caso.id;
 
+    const negociacion = await kysely
+      .insertInto("negociaciones")
+      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     await kysely
       .insertInto("caso_partes")
       .values([
@@ -116,6 +122,7 @@ describeDb("DocuSign webhook against a real app and database", () => {
       .insertInto("acuerdos")
       .values({
         caso_id: casoId,
+        negociacion_id: negociacion.id,
         contenido: { split: "50/50" },
         estado: "enviado_a_firma",
         docusign_envelope_id: envelopeId,
@@ -155,6 +162,11 @@ describeDb("DocuSign webhook against a real app and database", () => {
         kysely
           .deleteFrom("acuerdos")
           .where("id", "=", acuerdoId ?? "")
+          .execute(),
+      () =>
+        kysely
+          .deleteFrom("negociaciones")
+          .where("caso_id", "=", casoId ?? "")
           .execute(),
       () =>
         kysely

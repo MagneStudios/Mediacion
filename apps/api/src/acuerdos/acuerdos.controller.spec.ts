@@ -52,6 +52,19 @@ describe("AcuerdosController unit", () => {
     expect(result).toBe(payload);
   });
 
+  it("reads an agreement by its own id, with its signature statuses", async () => {
+    const payload = { acuerdo: { id: "acuerdo-1" }, firmas: [] };
+    const getById = jest.fn().mockResolvedValue(payload);
+    const controller = new AcuerdosController({
+      getById,
+    } as unknown as AcuerdosService);
+
+    const result = await controller.getById("acuerdo-1", parteA);
+
+    expect(getById).toHaveBeenCalledWith("acuerdo-1", "user-a");
+    expect(result).toBe(payload);
+  });
+
   it("returns the export body and sets the attachment filename header", async () => {
     const exportAgreement = jest.fn().mockResolvedValue({
       filename: "acuerdo-acuerdo-1.txt",
