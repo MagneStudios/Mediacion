@@ -113,7 +113,12 @@ describeDb("Firmar flow against a real database", () => {
 
     const negociacion = await kysely
       .insertInto("negociaciones")
-      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .values({
+        caso_id: casoId,
+        materia: null,
+        method: "mediacion",
+        estado: "acordada",
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
 

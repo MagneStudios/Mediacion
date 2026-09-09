@@ -2,9 +2,9 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
-import type { CasosRepository } from "../casos/casos.repository";
 import { ConflictError } from "../common/errors/domain-errors";
 import { propuestaViewColumns } from "./negociacion.types";
+import type { NegociacionesRepository } from "./negociaciones.repository";
 import {
   buildCreatePendingQuery,
   buildExistsForRondaQuery,
@@ -233,11 +233,11 @@ function createFakeKysely() {
 
 function createRepository(
   kysely: unknown,
-  casosRepository: unknown = {},
+  negociacionesRepository: unknown = {},
 ): PropuestasRepository {
   return new PropuestasRepository(
     kysely as never,
-    casosRepository as CasosRepository,
+    negociacionesRepository as NegociacionesRepository,
   );
 }
 
@@ -451,9 +451,11 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       { decision: "acepta" },
       { decision: "acepta" },
     ]);
-    const markAcordado = jest.fn().mockResolvedValue(undefined);
-    const casosRepository = { markAcordado } as unknown as CasosRepository;
-    const repository = createRepository(fake.kysely, casosRepository);
+    const markAcordadaByPropuesta = jest.fn().mockResolvedValue(undefined);
+    const negociacionesRepository = {
+      markAcordadaByPropuesta,
+    } as unknown as NegociacionesRepository;
+    const repository = createRepository(fake.kysely, negociacionesRepository);
 
     const result = await repository.resolveRespuesta(
       "caso-1",
@@ -463,7 +465,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
     );
 
     expect(result).toBe(aceptadaView);
-    expect(markAcordado).toHaveBeenCalledWith("caso-1", fake.trx);
+    expect(markAcordadaByPropuesta).toHaveBeenCalledWith("prop-1", fake.trx);
   });
 
   it("keeps the propuesta pendiente when only one parte has accepted so far", async () => {
@@ -473,9 +475,11 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       .mockResolvedValueOnce(pendienteView)
       .mockResolvedValueOnce({ id: "resp-1" });
     fake.execute.mockResolvedValueOnce([{ decision: "acepta" }]);
-    const markAcordado = jest.fn();
-    const casosRepository = { markAcordado } as unknown as CasosRepository;
-    const repository = createRepository(fake.kysely, casosRepository);
+    const markAcordadaByPropuesta = jest.fn();
+    const negociacionesRepository = {
+      markAcordadaByPropuesta,
+    } as unknown as NegociacionesRepository;
+    const repository = createRepository(fake.kysely, negociacionesRepository);
 
     const result = await repository.resolveRespuesta(
       "caso-1",
@@ -485,7 +489,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
     );
 
     expect(result).toBe(pendienteView);
-    expect(markAcordado).not.toHaveBeenCalled();
+    expect(markAcordadaByPropuesta).not.toHaveBeenCalled();
   });
 
   it("marks the propuesta rechazada and opens the next ronda, never writing casos.ronda_actual directly", async () => {
@@ -498,9 +502,11 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       .mockResolvedValueOnce(rechazadaView)
       .mockResolvedValueOnce({ id: "negociacion-1", round: 2 })
       .mockResolvedValueOnce({ id: "ronda-2", caso_id: "caso-1", numero: 3 });
-    const markAcordado = jest.fn();
-    const casosRepository = { markAcordado } as unknown as CasosRepository;
-    const repository = createRepository(fake.kysely, casosRepository);
+    const markAcordadaByPropuesta = jest.fn();
+    const negociacionesRepository = {
+      markAcordadaByPropuesta,
+    } as unknown as NegociacionesRepository;
+    const repository = createRepository(fake.kysely, negociacionesRepository);
 
     const result = await repository.resolveRespuesta(
       "caso-1",
@@ -518,7 +524,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
     });
     expect(fake.updateTable).toHaveBeenCalledWith("negociaciones");
     expect(fake.values).toHaveBeenCalledWith({ round: 3 });
-    expect(markAcordado).not.toHaveBeenCalled();
+    expect(markAcordadaByPropuesta).not.toHaveBeenCalled();
   });
 
   it("maps a duplicate response into a domain ConflictError via the shared pg-error guard", async () => {
@@ -619,9 +625,11 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       .mockResolvedValueOnce(pendienteView)
       .mockResolvedValueOnce({ id: "resp-1" });
     fake.execute.mockResolvedValueOnce([{ decision: "acepta" }]);
-    const markAcordado = jest.fn();
-    const casosRepository = { markAcordado } as unknown as CasosRepository;
-    const repository = createRepository(fake.kysely, casosRepository);
+    const markAcordadaByPropuesta = jest.fn();
+    const negociacionesRepository = {
+      markAcordadaByPropuesta,
+    } as unknown as NegociacionesRepository;
+    const repository = createRepository(fake.kysely, negociacionesRepository);
 
     const result = await repository.resolveRespuesta(
       "caso-1",
@@ -634,7 +642,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
     expect(fake.insertInto).toHaveBeenCalledWith("respuestas_propuesta");
   });
 
-  it("rejects the whole transaction when markAcordado throws, leaving the propuesta not aceptada", async () => {
+  it("rejects the whole transaction when marking the negociacion acordada throws, leaving the propuesta not aceptada", async () => {
     const aceptadaView = { ...pendienteView, estado: "aceptada" };
     const fake = createFakeTrxKysely();
     fake.executeTakeFirst.mockResolvedValueOnce({ id: "prop-1" });
@@ -647,11 +655,13 @@ describe("PropuestasRepository.resolveRespuesta", () => {
       { decision: "acepta" },
     ]);
     const conflict = new ConflictError(
-      "Caso caso-1 was not en_negociacion when marking acordado",
+      "negociacion-1 could not be marked acordada",
     );
-    const markAcordado = jest.fn().mockRejectedValue(conflict);
-    const casosRepository = { markAcordado } as unknown as CasosRepository;
-    const repository = createRepository(fake.kysely, casosRepository);
+    const markAcordadaByPropuesta = jest.fn().mockRejectedValue(conflict);
+    const negociacionesRepository = {
+      markAcordadaByPropuesta,
+    } as unknown as NegociacionesRepository;
+    const repository = createRepository(fake.kysely, negociacionesRepository);
 
     await expect(
       repository.resolveRespuesta("caso-1", "prop-1", "user-b", "acepta"),

@@ -3,6 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { KYSELY } from "../database/database.tokens";
 import type { NegociacionView } from "./negociacion.types";
+import { estadoNegociacionAcordada } from "./negociacion.types";
 
 /**
  * Every negociacion of a caso, each with the acuerdo currently in force.
@@ -39,6 +40,38 @@ export function buildListNegociacionesByCasoQuery(
     .orderBy("negociaciones.created_at", "asc");
 }
 
+/**
+ * The negociacion a propuesta belongs to. `propuestas.negociacion_id` is NOT
+ * NULL since the migration that moved the negotiation under a materia, so the
+ * propuesta id alone answers "which materia was just agreed" — no walk through
+ * `rondas` needed.
+ */
+export function buildResolveNegociacionByPropuestaQuery(
+  db: Kysely<Database>,
+  propuestaId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .select("negociacion_id")
+    .where("id", "=", propuestaId);
+}
+
+/**
+ * Marks one materia agreed. Guarded on the state it is leaving so a replayed
+ * acceptance is a no-op instead of a second write, and scoped to the
+ * negociacion: agreeing on tenencia must not say anything about alimentos.
+ */
+export function buildMarkNegociacionAcordadaQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+) {
+  return db
+    .updateTable("negociaciones")
+    .set({ estado: estadoNegociacionAcordada })
+    .where("id", "=", negociacionId)
+    .where("estado", "!=", estadoNegociacionAcordada);
+}
+
 type NegociacionRow = Omit<NegociacionView, "acuerdo_vigente"> & {
   acuerdo_id: string | null;
   acuerdo_estado:
@@ -61,6 +94,25 @@ function toView(row: NegociacionRow): NegociacionView {
 @Injectable()
 export class NegociacionesRepository {
   constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
+
+  /**
+   * Takes the caller's transaction rather than opening its own: this runs
+   * inside the same unit of work that accepted the propuesta, so a rollback
+   * there must not leave a negociacion marked agreed.
+   */
+  async markAcordadaByPropuesta(
+    propuestaId: string,
+    trx: Kysely<Database>,
+  ): Promise<void> {
+    const propuesta = await buildResolveNegociacionByPropuestaQuery(
+      trx,
+      propuestaId,
+    ).executeTakeFirstOrThrow();
+    await buildMarkNegociacionAcordadaQuery(
+      trx,
+      propuesta.negociacion_id,
+    ).execute();
+  }
 
   async listByCaso(casoId: string): Promise<NegociacionView[]> {
     const rows = (await buildListNegociacionesByCasoQuery(

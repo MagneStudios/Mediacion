@@ -62,6 +62,7 @@ describe("AcuerdosService", () => {
     assertMembership?: jest.Mock;
     findDetailForMember?: jest.Mock;
     insertDraft?: jest.Mock;
+    findNegociacionesAcordadas?: jest.Mock;
     findById?: jest.Mock;
     claimForSignature?: jest.Mock;
     persistSignatureEnvelope?: jest.Mock;
@@ -81,6 +82,13 @@ describe("AcuerdosService", () => {
     } as unknown as CasosRepository;
     const acuerdosRepository = {
       insertDraft: overrides?.insertDraft ?? jest.fn(),
+      findNegociacionesAcordadas:
+        overrides?.findNegociacionesAcordadas ??
+        jest
+          .fn()
+          .mockResolvedValue([
+            { id: "negociacion-1", acuerdo_vigente_id: null },
+          ]),
       findById: overrides?.findById ?? jest.fn(),
       claimForSignature:
         overrides?.claimForSignature ??
@@ -141,12 +149,17 @@ describe("AcuerdosService", () => {
       expect(findDetailForMember).not.toHaveBeenCalled();
     });
 
-    it("rejects with 422 when the caso is not in acordado state", async () => {
+    it("rejects with 422 when no negociacion of the caso is acordada", async () => {
       const findDetailForMember = jest
         .fn()
         .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
       const insertDraft = jest.fn();
-      const { service } = buildService({ findDetailForMember, insertDraft });
+      const findNegociacionesAcordadas = jest.fn().mockResolvedValue([]);
+      const { service } = buildService({
+        findDetailForMember,
+        insertDraft,
+        findNegociacionesAcordadas,
+      });
 
       let thrown: unknown;
       try {
@@ -160,10 +173,10 @@ describe("AcuerdosService", () => {
       expect(insertDraft).not.toHaveBeenCalled();
     });
 
-    it("generates a draft agreement from the accepted propuesta when the caso is acordado", async () => {
+    it("generates a draft agreement for the acordada negociacion that has none in force", async () => {
       const findDetailForMember = jest
         .fn()
-        .mockResolvedValue({ id: "caso-1", estado: "acordado" });
+        .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
       const propuesta = {
         id: "propuesta-1",
         contenido: { split: "50/50" },
@@ -190,6 +203,7 @@ describe("AcuerdosService", () => {
 
       expect(insertDraft).toHaveBeenCalledWith(
         "caso-1",
+        "negociacion-1",
         expect.objectContaining({ propuesta_id: "propuesta-1" }),
       );
       expect(result).toBe(insertedAcuerdo);
@@ -198,7 +212,7 @@ describe("AcuerdosService", () => {
     it("rejects with 422 when no accepted propuesta exists for the caso", async () => {
       const findDetailForMember = jest
         .fn()
-        .mockResolvedValue({ id: "caso-1", estado: "acordado" });
+        .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
       const kysely = createFakeKyselyWithPropuesta(undefined, []);
       const insertDraft = jest.fn();
       const { service } = buildService({
@@ -219,10 +233,10 @@ describe("AcuerdosService", () => {
       expect(insertDraft).not.toHaveBeenCalled();
     });
 
-    it("propagates the 409 thrown by the repository when a draft already exists for the caso", async () => {
+    it("propagates the 409 thrown by the repository when the negociacion already has one in force", async () => {
       const findDetailForMember = jest
         .fn()
-        .mockResolvedValue({ id: "caso-1", estado: "acordado" });
+        .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
       const propuesta = {
         id: "propuesta-1",
         contenido: {},
@@ -249,6 +263,69 @@ describe("AcuerdosService", () => {
       }
 
       expect(thrown).toBe(conflict);
+    });
+
+    it("skips the materia that already has an acuerdo in force and generates for the next one", async () => {
+      const findDetailForMember = jest
+        .fn()
+        .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
+      const propuesta = {
+        id: "propuesta-1",
+        contenido: {},
+        fundamentacion: null,
+        modelo_ia: null,
+      };
+      const kysely = createFakeKyselyWithPropuesta(propuesta, []);
+      const findNegociacionesAcordadas = jest.fn().mockResolvedValue([
+        { id: "negociacion-tenencia", acuerdo_vigente_id: "acuerdo-1" },
+        { id: "negociacion-alimentos", acuerdo_vigente_id: null },
+      ]);
+      const insertDraft = jest.fn().mockResolvedValue({ id: "acuerdo-2" });
+      const { service } = buildService({
+        findDetailForMember,
+        findNegociacionesAcordadas,
+        insertDraft,
+        kysely,
+      });
+
+      await service.generateAgreement("caso-1", "user-a");
+
+      expect(insertDraft).toHaveBeenCalledWith(
+        "caso-1",
+        "negociacion-alimentos",
+        expect.anything(),
+      );
+    });
+
+    it("rejects with 409 without inserting when every acordada materia already has one in force", async () => {
+      const findDetailForMember = jest
+        .fn()
+        .mockResolvedValue({ id: "caso-1", estado: "en_negociacion" });
+      const findNegociacionesAcordadas = jest
+        .fn()
+        .mockResolvedValue([
+          { id: "negociacion-1", acuerdo_vigente_id: "acuerdo-1" },
+        ]);
+      const insertDraft = jest.fn();
+      const { service } = buildService({
+        findDetailForMember,
+        findNegociacionesAcordadas,
+        insertDraft,
+      });
+
+      let thrown: unknown;
+      try {
+        await service.generateAgreement("caso-1", "user-a");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(409);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "acuerdo_already_exists" }),
+      );
+      expect(insertDraft).not.toHaveBeenCalled();
     });
   });
 

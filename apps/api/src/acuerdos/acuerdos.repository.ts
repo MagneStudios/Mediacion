@@ -3,6 +3,7 @@ import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
+import { estadoNegociacionAcordada } from "../negociacion/negociacion.types";
 import type { Acuerdo } from "./acuerdos.types";
 import {
   estadoAcuerdoBorrador,
@@ -11,11 +12,11 @@ import {
 } from "./acuerdos.types";
 import { FirmasRepository } from "./firmas.repository";
 
-function acuerdoAlreadyExists(): HttpException {
+export function acuerdoAlreadyExists(): HttpException {
   return new HttpException(
     {
       code: "acuerdo_already_exists",
-      message: "An agreement already exists for this case",
+      message: "An agreement is already in force for this negociacion",
     },
     HttpStatus.CONFLICT,
   );
@@ -37,6 +38,33 @@ export function acuerdoNotFound(): HttpException {
     HttpStatus.NOT_FOUND,
   );
 }
+
+/**
+ * Every agreed materia of a caso, each with the id of its acuerdo in force —
+ * null when it has none yet. Left-joined on `vigente` so a negociacion whose
+ * only agreements were superseded still reads as "needs one".
+ */
+export function buildFindNegociacionesAcordadasQuery(
+  db: Kysely<Database>,
+  casoId: string,
+) {
+  return db
+    .selectFrom("negociaciones")
+    .leftJoin("acuerdos", (join) =>
+      join
+        .onRef("acuerdos.negociacion_id", "=", "negociaciones.id")
+        .on("acuerdos.vigente", "=", true),
+    )
+    .select(["negociaciones.id as id", "acuerdos.id as acuerdo_vigente_id"])
+    .where("negociaciones.caso_id", "=", casoId)
+    .where("negociaciones.estado", "=", estadoNegociacionAcordada)
+    .orderBy("negociaciones.created_at", "asc");
+}
+
+export type NegociacionAcordada = {
+  id: string;
+  acuerdo_vigente_id: string | null;
+};
 
 @Injectable()
 export class AcuerdosRepository {
@@ -130,29 +158,56 @@ export class AcuerdosRepository {
       });
   }
 
-  insertDraft(casoId: string, contenido: Json): Promise<Acuerdo> {
+  findNegociacionesAcordadas(casoId: string): Promise<NegociacionAcordada[]> {
+    return buildFindNegociacionesAcordadasQuery(
+      this.kysely,
+      casoId,
+    ).execute() as Promise<NegociacionAcordada[]>;
+  }
+
+  /**
+   * The acuerdo currently in force for one materia. `vigente` — not the row's
+   * mere existence — is what "current" means since renegotiation supersedes
+   * agreements instead of deleting them.
+   */
+  findVigenteByNegociacion(
+    negociacionId: string,
+  ): Promise<Acuerdo | undefined> {
+    return this.kysely
+      .selectFrom("acuerdos")
+      .selectAll()
+      .where("negociacion_id", "=", negociacionId)
+      .where("vigente", "=", true)
+      .executeTakeFirst();
+  }
+
+  /**
+   * Scoped to the negociacion, not the caso: a caso holds one acuerdo per
+   * materia, so rejecting on "this caso already has an agreement" would block
+   * alimentos the moment tenencia had one.
+   */
+  insertDraft(
+    casoId: string,
+    negociacionId: string,
+    contenido: Json,
+  ): Promise<Acuerdo> {
     return this.kysely
       .transaction()
       .execute(async (trx) => {
         const existing = await trx
           .selectFrom("acuerdos")
           .select("id")
-          .where("caso_id", "=", casoId)
+          .where("negociacion_id", "=", negociacionId)
+          .where("vigente", "=", true)
           .executeTakeFirst();
         if (existing) {
           throw acuerdoAlreadyExists();
         }
-        const negociacion = await trx
-          .selectFrom("negociaciones")
-          .select("id")
-          .where("caso_id", "=", casoId)
-          .where("materia", "is", null)
-          .executeTakeFirstOrThrow();
         return trx
           .insertInto("acuerdos")
           .values({
             caso_id: casoId,
-            negociacion_id: negociacion.id,
+            negociacion_id: negociacionId,
             contenido,
             estado: estadoAcuerdoBorrador,
           })

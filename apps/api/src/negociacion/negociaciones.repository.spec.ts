@@ -3,6 +3,8 @@ import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import {
   buildListNegociacionesByCasoQuery,
+  buildMarkNegociacionAcordadaQuery,
+  buildResolveNegociacionByPropuestaQuery,
   NegociacionesRepository,
 } from "./negociaciones.repository";
 
@@ -129,5 +131,82 @@ describe("NegociacionesRepository.listByCaso", () => {
     );
 
     await expect(repository.listByCaso("caso-1")).resolves.toEqual([]);
+  });
+});
+
+describe("buildResolveNegociacionByPropuestaQuery", () => {
+  it("reads the negociacion straight off the propuesta, with no walk through rondas", () => {
+    const compiled = buildResolveNegociacionByPropuestaQuery(
+      createCompileOnlyKysely(),
+      "prop-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^select "negociacion_id" from "propuestas" where "id" = \$\d/i,
+    );
+    expect(compiled.sql).not.toMatch(/join|rondas/i);
+    expect(compiled.parameters).toContain("prop-1");
+  });
+});
+
+describe("buildMarkNegociacionAcordadaQuery", () => {
+  it("marks one negociacion acordada, scoped to its id so sibling materias are untouched", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^update "negociaciones" set "estado" = \$\d/i,
+    );
+    expect(compiled.sql).toMatch(/"id" = \$\d/i);
+    expect(compiled.parameters).toContain("acordada");
+    expect(compiled.parameters).toContain("negociacion-1");
+    expect(compiled.sql).not.toContain("caso_id");
+  });
+
+  it("guards on the state it is leaving, so a replayed acceptance is a no-op", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(/"estado" != \$\d/i);
+  });
+
+  it("never touches casos: the caso's acordado is derived from the signatures, not from this", () => {
+    const compiled = buildMarkNegociacionAcordadaQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).not.toContain('"casos"');
+  });
+});
+
+describe("NegociacionesRepository.markAcordadaByPropuesta", () => {
+  it("resolves the propuesta's negociacion and marks it, both on the caller's trx", async () => {
+    const markExecute = jest.fn().mockResolvedValue(undefined);
+    const executeTakeFirstOrThrow = jest
+      .fn()
+      .mockResolvedValue({ negociacion_id: "negociacion-7" });
+    const selectWhere = jest.fn().mockReturnValue({ executeTakeFirstOrThrow });
+    const select = jest.fn().mockReturnValue({ where: selectWhere });
+    const selectFrom = jest.fn().mockReturnValue({ select });
+    const updateWhere2 = jest.fn().mockReturnValue({ execute: markExecute });
+    const updateWhere1 = jest.fn().mockReturnValue({ where: updateWhere2 });
+    const set = jest.fn().mockReturnValue({ where: updateWhere1 });
+    const updateTable = jest.fn().mockReturnValue({ set });
+    const trx = { selectFrom, updateTable };
+    const repository = new NegociacionesRepository({} as never);
+
+    await repository.markAcordadaByPropuesta("prop-1", trx as never);
+
+    expect(selectFrom).toHaveBeenCalledWith("propuestas");
+    expect(selectWhere).toHaveBeenCalledWith("id", "=", "prop-1");
+    expect(updateTable).toHaveBeenCalledWith("negociaciones");
+    expect(set).toHaveBeenCalledWith({ estado: "acordada" });
+    expect(updateWhere1).toHaveBeenCalledWith("id", "=", "negociacion-7");
+    expect(markExecute).toHaveBeenCalled();
   });
 });

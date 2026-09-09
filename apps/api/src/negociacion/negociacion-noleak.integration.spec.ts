@@ -126,9 +126,10 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
     });
     const membershipService = new MembershipService(kysely);
     const casosRepository = new CasosRepository(kysely);
+    const negociacionesRepository = new NegociacionesRepository(kysely);
     const propuestasRepository = new PropuestasRepository(
       kysely,
-      casosRepository,
+      negociacionesRepository,
     );
     const rondasRepository = new RondasRepository(kysely);
     const configuracionRepository = new ConfiguracionRepository(kysely);
