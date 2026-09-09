@@ -1,8 +1,5 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @mediacion/shared build && cd mediacion-app && npx expo export --platform web --output-dir ../public",
+  "buildCommand": "pnpm --filter @mediacion/shared build && pnpm --dir mediacion-app exec expo export --platform web --output-dir ../public",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
+  "framework": null
 }
