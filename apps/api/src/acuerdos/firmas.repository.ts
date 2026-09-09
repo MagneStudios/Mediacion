@@ -121,27 +121,48 @@ export class FirmasRepository {
    * return acuerdos the caller is party to.
    */
   listInboxForUsuario(usuarioId: string): Promise<SignatureInboxEntry[]> {
-    return this.kysely
-      .selectFrom("firmas as own")
-      .innerJoin("acuerdos", "acuerdos.id", "own.acuerdo_id")
-      .innerJoin("casos", "casos.id", "acuerdos.caso_id")
-      .select((builder) => [
-        "own.acuerdo_id as acuerdo_id",
-        "acuerdos.caso_id as caso_id",
-        "casos.nombre as caso_nombre",
-        "casos.codigo as caso_codigo",
-        "acuerdos.estado as acuerdo_estado",
-        "own.docusign_status as own_status",
-        "own.fecha_firma as own_fecha_firma",
-        builder
-          .selectFrom("firmas as pending")
-          .select((inner) => inner.fn.countAll<number>().as("count"))
-          .whereRef("pending.acuerdo_id", "=", "own.acuerdo_id")
-          .where("pending.docusign_status", "!=", docusignStatusSigned)
-          .as("pending_signers"),
-      ])
-      .where("own.usuario_id", "=", usuarioId)
-      .orderBy("acuerdos.created_at", "desc")
-      .execute() as unknown as Promise<SignatureInboxEntry[]>;
+    return buildSignatureInboxQuery(
+      this.kysely,
+      usuarioId,
+    ).execute() as unknown as Promise<SignatureInboxEntry[]>;
   }
+}
+
+/**
+ * One inbox row per firma of the caller: the acuerdo, its caso, the materia and
+ * version that tell two acuerdos of the same caso apart, and the caller's own
+ * signature state.
+ *
+ * The negociacion is joined left, not inner: acuerdos.negociacion_id is NOT
+ * NULL, but a row that somehow lost its negociacion must still surface here as
+ * a pending signature rather than silently drop out of the inbox.
+ */
+export function buildSignatureInboxQuery(
+  db: Kysely<Database>,
+  usuarioId: string,
+) {
+  return db
+    .selectFrom("firmas as own")
+    .innerJoin("acuerdos", "acuerdos.id", "own.acuerdo_id")
+    .innerJoin("casos", "casos.id", "acuerdos.caso_id")
+    .leftJoin("negociaciones", "negociaciones.id", "acuerdos.negociacion_id")
+    .select((builder) => [
+      "own.acuerdo_id as acuerdo_id",
+      "acuerdos.caso_id as caso_id",
+      "casos.nombre as caso_nombre",
+      "casos.codigo as caso_codigo",
+      "negociaciones.materia as subject_type",
+      "acuerdos.version as version",
+      "acuerdos.estado as acuerdo_estado",
+      "own.docusign_status as own_status",
+      "own.fecha_firma as own_fecha_firma",
+      builder
+        .selectFrom("firmas as pending")
+        .select((inner) => inner.fn.countAll<number>().as("count"))
+        .whereRef("pending.acuerdo_id", "=", "own.acuerdo_id")
+        .where("pending.docusign_status", "!=", docusignStatusSigned)
+        .as("pending_signers"),
+    ])
+    .where("own.usuario_id", "=", usuarioId)
+    .orderBy("acuerdos.created_at", "desc");
 }

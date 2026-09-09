@@ -40,6 +40,14 @@ export class AcuerdosController {
     return this.acuerdosService.getForCaso(casoId, caller.id);
   }
 
+  @Get("acuerdos/:id")
+  getById(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<{ acuerdo: Acuerdo; firmas: FirmaStatus[] }> {
+    return this.acuerdosService.getById(id, caller.id);
+  }
+
   @Post("acuerdos/:id/firmar")
   sendToSignature(
     @Param("id", ParseUUIDPipe) id: string,

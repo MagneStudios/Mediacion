@@ -618,6 +618,103 @@ describe("AcuerdosService", () => {
     });
   });
 
+  describe("getById", () => {
+    const acuerdo = {
+      id: "acuerdo-1",
+      caso_id: "caso-1",
+      estado: "enviado_a_firma",
+      contenido: {},
+      documento_url: null,
+      fecha: null,
+    };
+
+    it("returns the agreement addressed by its own id, with its signature statuses", async () => {
+      const listByAcuerdo = jest
+        .fn()
+        .mockResolvedValue([
+          { id: "firma-1", usuario_id: "user-a", docusign_status: "signed" },
+        ]);
+      const { service, acuerdoAccessService } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+        listByAcuerdo,
+      });
+
+      const result = await service.getById("acuerdo-1", "user-a");
+
+      expect(acuerdoAccessService.assertReadAccess).toHaveBeenCalledWith(
+        "caso-1",
+        "user-a",
+      );
+      expect(listByAcuerdo).toHaveBeenCalledWith("acuerdo-1");
+      expect(result.acuerdo).toBe(acuerdo);
+      expect(result.firmas).toHaveLength(1);
+    });
+
+    it("checks access against the agreement's own caso, never one the caller supplied", async () => {
+      const { service, acuerdoAccessService } = buildService({
+        findById: jest
+          .fn()
+          .mockResolvedValue({ ...acuerdo, caso_id: "caso-real" }),
+      });
+
+      await service.getById("acuerdo-1", "user-a");
+
+      expect(acuerdoAccessService.assertReadAccess).toHaveBeenCalledWith(
+        "caso-real",
+        "user-a",
+      );
+    });
+
+    it("returns acuerdo_not_found for an unknown agreement, without checking access", async () => {
+      const { service, acuerdoAccessService } = buildService({
+        findById: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(service.getById("missing", "user-a")).rejects.toMatchObject({
+        status: 404,
+        response: { code: "acuerdo_not_found" },
+      });
+      expect(acuerdoAccessService.assertReadAccess).not.toHaveBeenCalled();
+    });
+
+    it("hides an inaccessible agreement behind the same acuerdo_not_found as an unknown id", async () => {
+      const listByAcuerdo = jest.fn();
+      const { service } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+        listByAcuerdo,
+        assertReadAccess: jest
+          .fn()
+          .mockRejectedValue(
+            new HttpException(
+              { code: "caso_not_found", message: "Case not found" },
+              404,
+            ),
+          ),
+      });
+
+      await expect(
+        service.getById("acuerdo-1", "outsider"),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: { code: "acuerdo_not_found" },
+      });
+      expect(listByAcuerdo).not.toHaveBeenCalled();
+    });
+
+    it("does not swallow a non-404 access failure into acuerdo_not_found", async () => {
+      const { service } = buildService({
+        findById: jest.fn().mockResolvedValue(acuerdo),
+        assertReadAccess: jest
+          .fn()
+          .mockRejectedValue(new Error("connection lost")),
+      });
+
+      await expect(service.getById("acuerdo-1", "user-a")).rejects.toThrow(
+        "connection lost",
+      );
+    });
+  });
+
   describe("exportAgreement", () => {
     const acuerdo = {
       id: "acuerdo-1",
