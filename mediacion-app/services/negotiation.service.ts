@@ -6,8 +6,11 @@ import {
   isCounterpartyReady,
   simulatedCounterpartyDecision,
 } from '../mocks/negotiation';
+import type { EstadoCaso } from '../types/case';
 import type {
   DecisionPropuesta,
+  EstadoNegociacion,
+  Negotiation,
   NegotiationRound,
   NegotiationState,
   OwnProposalResponse,
@@ -16,8 +19,16 @@ import type {
 } from '../types/negotiation';
 import { generateMockProposalId, generateMockRoundId } from '../utils/mock-id';
 import { getNegotiationEligibility } from '../utils/negotiation-eligibility';
+import { codeNegociacionNotAcordada } from './api/api-error';
 import { createBackedNegotiationService } from './api/negotiation.backed-service';
 import { backend } from './backend-instance';
+import { casesService } from './cases.service';
+import {
+  getAgreementForCase,
+  getAgreementVersion,
+  materializeFromAcceptedProposal,
+  supersedeWithDraft,
+} from './mock-agreement-store';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { positionsService } from './positions.service';
 
@@ -53,6 +64,19 @@ export type NegotiationService = {
    * simulated counterparty's raw decision.
    */
   getAcceptedProposal(caseId: string): Promise<SharedProposal | null>;
+  /**
+   * The caso's negociaciones — one per materia — each with its own estado,
+   * round and acuerdo in force. `[]` for a caso that has none yet.
+   */
+  listNegotiations(caseId: string): Promise<Negotiation[]>;
+  /**
+   * Opens the next round on a materia whose acuerdo in force is signed: the
+   * signed acuerdo stops being in force (it is kept), the next draft is
+   * created from its content, and the caso goes back to `en_negociacion`.
+   * Rejects with `negociacion_not_acordada` otherwise. Only the two ids come
+   * back — the caller re-reads the list and the caso.
+   */
+  renegotiate(negotiationId: string): Promise<{ negotiationId: string; agreementId: string }>;
 };
 
 /** In-memory only — cleared on app restart, never written to disk, never logged. */
@@ -91,6 +115,56 @@ function getOwnResponseForProposal(proposalId: string): OwnProposalResponse | nu
 async function ownPositionCount(caseId: string): Promise<number> {
   const items = await positionsService.getOwnPositions(caseId);
   return items.length;
+}
+
+/**
+ * El id de la negociación del mock. Es un fixture determinista, como
+ * `agreement-case-3-1`: ahora que la API tiene ids reales, un id de fixture
+ * es espejo y no invento. **Nunca viaja a un param de ruta** — las rutas de
+ * propuestas siguen siendo por caso.
+ */
+function mockNegotiationId(caseId: string): string {
+  return `negotiation-${caseId}`;
+}
+
+function caseIdFromMockNegotiationId(negotiationId: string): string | null {
+  return negotiationId.startsWith('negotiation-') ? negotiationId.slice('negotiation-'.length) : null;
+}
+
+/**
+ * El mock tiene una sola negociación por caso —la del modelo viejo, sin
+ * materia— así que su estado se deriva del estado del caso. Contra la API
+ * real es una columna propia (`negociaciones.estado`) y no se deriva de nada.
+ */
+function toMockEstadoNegociacion(estado: EstadoCaso): EstadoNegociacion {
+  switch (estado) {
+    case 'nuevo':
+    case 'pendiente_suscripciones':
+      return 'borrador';
+    case 'activo':
+    case 'en_negociacion':
+      return 'activa';
+    case 'acordado':
+      return 'acordada';
+    case 'cerrado':
+      return 'cerrada';
+    case 'terminado':
+    case 'vencido':
+    case 'expirado':
+      return 'terminada';
+  }
+}
+
+/** The inverse of `markCaseAsAgreed`: a renegociación reopens the caso. */
+function markCaseAsRenegotiating(caseId: string): void {
+  const detail = mockCaseDetails[caseId];
+  if (detail) {
+    mockCaseDetails[caseId] = { ...detail, estado: 'en_negociacion', statusLabelKey: 'inReview', visualStatus: 'info' };
+  }
+  const summaryIndex = mockCases.findIndex((c) => c.id === caseId);
+  if (summaryIndex !== -1) {
+    mockCases[summaryIndex] = { ...mockCases[summaryIndex], estado: 'en_negociacion', statusLabelKey: 'inReview', visualStatus: 'info' };
+  }
 }
 
 /** Mutates only estado/statusLabelKey/visualStatus/roundNumber — every other case field (title, counterpartyName, metodo, caseCode, descripcion, slaHours) is preserved. */
@@ -339,15 +413,78 @@ export function createMockNegotiationService(): NegotiationService {
       const accepted = mockProposals.find((proposal) => proposal.caseId === caseId && proposal.estado === 'aceptada');
       return delay(accepted ?? null, 300);
     },
+
+    async listNegotiations(caseId) {
+      const detail = mockCaseDetails[caseId];
+      if (!detail) return delay([], 300);
+
+      // Materializar acá también: con la lista, nadie lee el acuerdo "por
+      // caso" antes de que la tarjeta pida su id, así que un acuerdo aceptado
+      // en la sesión no existiría hasta que alguien lo pidiera.
+      const accepted = mockProposals.find((proposal) => proposal.caseId === caseId && proposal.estado === 'aceptada');
+      const agreement = getAgreementForCase(caseId) ?? (accepted ? materializeFromAcceptedProposal(caseId, accepted) : null);
+      const round = getMostRecentRound(caseId);
+
+      const negotiation: Negotiation = {
+        id: mockNegotiationId(caseId),
+        caseId,
+        // El mock es el modelo viejo, y eso es verdad: sin materia.
+        subjectType: null,
+        metodo: detail.metodo,
+        estado: toMockEstadoNegociacion(detail.estado),
+        roundNumber: round?.number ?? 0,
+        currentAgreement: agreement
+          ? { id: agreement.id, estado: agreement.estado, version: getAgreementVersion(agreement.id) }
+          : null,
+        createdAt: round?.createdAt ?? new Date(0).toISOString(),
+      };
+      return delay([negotiation], 300);
+    },
+
+    async renegotiate(negotiationId) {
+      const caseId = caseIdFromMockNegotiationId(negotiationId);
+      const agreement = caseId === null ? undefined : getAgreementForCase(caseId);
+      // Same gate as the server: an acuerdo in force **and signed**. A draft
+      // (renegotiating twice) or `con_aviso` is a 409, not a new round.
+      if (caseId === null || !agreement || agreement.estado !== 'firmado') {
+        return rejectAfter(codeNegociacionNotAcordada, 300);
+      }
+
+      const mostRecent = getMostRecentRound(caseId);
+      const nextNumber = mostRecent ? mostRecent.number + 1 : 1;
+      const round: NegotiationRound = {
+        id: generateMockRoundId(),
+        caseId,
+        number: nextNumber,
+        estado: 'activa',
+        proposalId: undefined,
+        mediatorAvailable: nextNumber >= 3,
+        createdAt: new Date().toISOString(),
+      };
+      const created = await delay(round, 600);
+
+      // One transaction's worth of writes, only after the mock "request"
+      // resolved: the draft, the round, and the caso back in negotiation.
+      const draft = supersedeWithDraft(agreement.id);
+      mockRounds.push(created);
+      markCaseAsRenegotiating(caseId);
+      return { negotiationId, agreementId: draft.id };
+    },
   };
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const negotiationService: NegotiationService = backend
-  ? createBackedNegotiationService(backend.negotiation, {
+/*
+  `live` es `backend` ya estrechado: dentro del closure async TypeScript
+  vuelve a verlo como `Backend | null`. Y `casesService` no estaba importado
+  — contra backend real, la primera lectura tiraba `ReferenceError`.
+*/
+const live = backend;
+export const negotiationService: NegotiationService = live
+  ? createBackedNegotiationService(live.negotiation, {
       getCaseDetail: (caseId) => casesService.getCaseDetail(caseId),
       getOwnPositionCount: async (caseId) => {
-        const positions = await backend.positions.getOwnPositions(caseId);
+        const positions = await live.positions.getOwnPositions(caseId);
         return positions.length;
       },
     })

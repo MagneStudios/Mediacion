@@ -16,6 +16,7 @@ function apiSummary(overrides: Partial<ApiCaseSummary> = {}): ApiCaseSummary {
   return {
     id: 'a1b2c3d4-0000-0000-0000-000000000000',
     nombre: 'Divorcio',
+    codigo: null,
     estado: 'activo',
     metodo: 'mediacion',
     created_at: '2026-07-01T00:00:00.000Z',

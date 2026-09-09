@@ -45,6 +45,10 @@ export const codeAcuerdoNotFound = 'acuerdo_not_found';
 export const codeMediacionNotFound = 'mediacion_not_found';
 export const codeItemNotFound = 'item_not_found';
 export const codePropuestaNotReady = 'propuesta_not_ready';
+/** `POST /negociaciones/:id/renegociar` on a materia with no acuerdo in force **and signed** — twice in a row included. */
+export const codeNegociacionNotAcordada = 'negociacion_not_acordada';
+/** Unknown negociación, not a member of its caso, or the caller is the mediador — all three, on purpose. */
+export const codeNegociacionNotFound = 'negociacion_not_found';
 export const codePropuestaAlreadyExists = 'propuesta_already_exists';
 export const codeBothPartiesRequired = 'both_parties_required';
 export const codeInvalidToken = 'invalid_token';

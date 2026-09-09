@@ -1,6 +1,7 @@
 import type { CaseDetail } from '@/types/case';
 import type {
   DecisionPropuesta,
+  Negotiation,
   NegotiationRound,
   NegotiationState,
   RoundHistoryItem,
@@ -12,6 +13,7 @@ import { getNegotiationEligibility } from '@/utils/negotiation-eligibility';
 import type { NegotiationService } from '../negotiation.service';
 import type { ApiNegotiationService } from './negotiation.api-service';
 import {
+  toNegotiation,
   toNegotiationRound,
   toRoundHistoryItem,
   toSharedProposal,
@@ -158,6 +160,16 @@ export function createBackedNegotiationService(
       return accepted === undefined
         ? null
         : toSharedProposal(accepted, accepted.ronda_numero);
+    },
+
+    async listNegotiations(caseId: string): Promise<Negotiation[]> {
+      const rows = await api.listNegociaciones(caseId);
+      return rows.map(toNegotiation);
+    },
+
+    async renegotiate(negotiationId: string): Promise<{ negotiationId: string; agreementId: string }> {
+      const view = await api.renegociar(negotiationId);
+      return { negotiationId: view.negotiation_id, agreementId: view.agreement_id };
     },
   };
 }

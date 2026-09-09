@@ -15,8 +15,8 @@ Nada de esto rompe la app hoy: todos los cambios de contrato son aditivos, y los
 |---|---|---|
 | §2.1 `GET /acuerdos/:id` | ✅ listo | ✅ **Sí, desde el 10/09** — `agreements.api-service.ts` `getById`; la bandeja, el dashboard, la firma y el historial leen por acuerdo (`docs/changelogs/2026-09-10.md`) |
 | §2.2 `subject_type` + `version` en `GET /firmas` | ✅ listo | ✅ **Sí, desde el 10/09** — la fila dice "Tenencia · v2"; `null` cae al título del caso |
-| §2.3 `GET /casos/:id/negociaciones` | ✅ listo | ❌ **No.** No hay ningún service que lo llame |
-| §2.4 `POST /negociaciones/:id/renegociar` | ✅ listo | ❌ **No.** Estaba congelado; ya se puede cablear |
+| §2.3 `GET /casos/:id/negociaciones` | ✅ listo | ✅ **Sí, desde el 10/09** — `NegotiationsListSection` dibuja una tarjeta por materia con su estado, ronda y acuerdo vigente (`docs/changelogs/2026-09-10-negociaciones-por-materia.md`) |
+| §2.4 `POST /negociaciones/:id/renegociar` | ✅ listo | ✅ **Sí, desde el 10/09** — botón sólo con acuerdo vigente firmado; el `409` tiene copy propio y relee la lista |
 | §7.1 `acordado` derivado | ✅ listo | ⚠️ **Sí, y ahora es correcto.** Ver §3 |
 | §7.2 `pendiente_suscripciones` | ✅ listo (04/09) | ✅ Sí |
 
@@ -132,6 +132,11 @@ Ninguno depende del anterior.
 - **Plantillas, catálogo de cláusulas, `agreement_data`, PDF.** Sigue bloqueado por el cliente (`docs/respuestas-cliente-01-09-2026.md` §7). Por eso `renegociar` **copia** el contenido del acuerdo anterior en vez de re-renderizarlo.
 - **Reemplazar el borrador de una renegociación con el contenido de la propuesta nueva.** Hoy, después de renegociar, la negociación queda con un borrador vigente que es copia del acuerdo viejo; cuando las partes acepten la propuesta de la ronda nueva, `POST /casos/:casoId/acuerdo` responde `409 acuerdo_already_exists`. Lo correcto ahí es **mandar ese borrador a firmar**, no regenerarlo. Sobreescribir su contenido depende del mismo catálogo de cláusulas que falta.
 - **`negotiationId` en las rutas de propuestas.** Ustedes dijeron que no lo consumen todavía; no lo inventamos.
+
+> **FE, 10/09 — dos pedidos, chicos, para cerrar esto de verdad:**
+>
+> 1. **¿Cómo nace la segunda negociación de un caso?** La única inserción en `negociaciones` es la de `POST /casos` (`casos.repository.ts:188`, una por caso) y `negociacion.controller.ts` no tiene ruta de alta. El detalle ya dibuja N materias, pero hoy ningún entorno puede producir N > 1, así que no lo pudimos verificar más allá de los tests.
+> 2. **`negotiationId` en las rutas de propuestas — ahora sí.** Es lo que deja que el resumen del flujo de propuestas y la elegibilidad sean por materia. Hasta entonces la lista dibuja el resumen una sola vez, por caso, y `getNegotiationEligibility` sigue leyendo `casos.estado` — tienen razón en §3.1 en que con N materias no alcanza, pero la fuente que nombran (`negociaciones.estado`) gobierna una tarjeta que sin ese id no puede actuar por materia.
 
 ---
 

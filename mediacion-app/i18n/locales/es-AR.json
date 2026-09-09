@@ -838,6 +838,35 @@
         "status": "Cerrado"
       }
     },
+    "list": {
+      "error": {
+        "title": "No pudimos cargar las negociaciones del caso"
+      }
+    },
+    "materia": {
+      "none": "Sin materia asignada"
+    },
+    "estado": {
+      "borrador": "Borrador",
+      "activa": "Activa",
+      "acordada": "Acordada",
+      "cerrada": "Cerrada",
+      "terminada": "Terminada"
+    },
+    "agreementVersion": "Acuerdo v{{version}}",
+    "renegotiate": {
+      "action": "Renegociar",
+      "dialog": {
+        "title": "¿Abrir una nueva ronda sobre este acuerdo?",
+        "body": "El acuerdo firmado deja de estar vigente, pero se conserva. Se abre una ronda nueva que parte de su contenido, y el caso vuelve a negociación.",
+        "confirm": "Renegociar",
+        "cancel": "Cancelar"
+      },
+      "error": {
+        "title": "No pudimos abrir la nueva ronda",
+        "notAcordada": "Esta materia ya no tiene un acuerdo firmado vigente. Actualizamos la lista."
+      }
+    },
     "dashboard": {
       "title": "Negociación",
       "privacyNotice": "Tus posiciones privadas no se muestran en la negociación. La contraparte no verá tus valores."
