@@ -12,6 +12,12 @@ Re-verificado **ruta por ruta** contra los controllers de `apps/api/src`, no con
 
 **Por qué existe esta capa.** Backend avisó que "faltan algunos endpoints por integrar". Al revisar la superficie entera aparecieron **siete rutas construidas, sin consumir y sin ninguna razón para no hacerlo** — algunas desde hacía casi un mes. **Las siete están integradas** (25/08). El resto de lo no consumido sí tiene razón, pero hasta hoy esa razón no estaba escrita en ningún lugar común: por eso la tabla de abajo, para que nadie la vuelva a descubrir desde cero.
 
+> ## 🚨 Leer primero: `docs/auditoria-desbloqueos-09-09-2026.md`
+>
+> El barrido del 09/09 encontró que **este documento subestima sistemáticamente lo que ya se puede hacer**. Tres razones que se repiten en varias filas: rutas que dejaron de estar bloqueadas y la fila no se actualizó, constraints de DB que cayeron y quedaron reimplementadas en código, y decisiones de cliente contestadas hace un mes que acá figuran como abiertas.
+>
+> Las correcciones de esta capa están abajo. **Las secciones §1, §3, §5 y §6 son una foto de julio y hoy son falsas casi por completo** — ver el aviso en §1.
+
 > ### 🔁 Re-verificado el 09/09/2026 — Backend volvió a preguntar
 >
 > Vuelto a correr **ruta por ruta** contra los controllers de hoy: **70 rutas**, cruzadas contra cada `http.request` de `mediacion-app/services`. Resultado: **no apareció ninguna ruta construida y sin consumir que no tenga razón.** El caso del 25/08 —siete rutas ignoradas por olvido— no se repitió.
@@ -35,12 +41,12 @@ En **negrita**, lo integrado el 25/08 — salvo `GET /suscripciones/uso`, que se
 | Ruta | Razón | ¿Bloquea? |
 |---|---|---|
 | `POST /tareas/:id/calendario` | ~~Ininvocable~~ **Corregido el 09/09: es invocable.** El endpoint acepta `fecha_evento` en el body (`tareas.service.ts:31`, `input?.fecha_evento ?? tarea.fecha_evento`), así que la ruta funciona. Lo que falta es **qué fecha mandarle**: las tareas las genera el webhook de DocuSign sin `fecha_evento`, y la app no tiene de dónde sacar una sin un date picker nuevo — que además obliga a definir qué significa "la fecha" de una tarea. **No es un bug de Backend: es una decisión de Producto** | **Sí**, pero de Producto — §11 de `pedidos-frontend-a-backend.md` |
-| `POST /suscripciones` · `POST /suscripciones/:id/pago` | `pago` devuelve un `init_point` de MP, no confirma un cobro, y no hay endpoint de factura. Cablearlo haría que la app reporte un pago aprobado y emita una factura por plata que nadie cobró | No — decisión escrita |
+| ~~`POST /suscripciones` · `POST /suscripciones/:id/pago`~~ | ⚠️ **Corregido el 09/09: la razón ya no vale.** Decía que `pago` "no confirma un cobro". **Sí lo confirma, server-side:** el webhook `POST /webhooks/mercadopago` verifica HMAC y `applyPayment` escribe `estado: activa` + `current_period_start/end` (`pagos.repository.ts:76-88`). La app no reporta nada — abre el `init_point` y re-lee `/suscripciones/vigente`, que ya consumimos. **Y su ausencia es la causa de la queja del cliente**: sólo el webhook y `reactivate` escriben `activa`, así que nadie llega a ese estado por la app, y el gate C-01 exige suscripción activa en las dos partes. Detalle en §2 de `auditoria-desbloqueos-09-09-2026.md` | **Sí** — es lo que rompe las demos |
 | `GET /acuerdos/:id/historial` | Devuelve filas crudas de `auditoria` (`accion`/`entidad`), sin correspondencia con el vocabulario de la pantalla | No — se derivan del acuerdo los dos eventos que la fila prueba |
 | `GET /acuerdos/:id/firmas` | Redundante: `GET /casos/:casoId/acuerdo` ya trae el bundle con `firmas` | No |
 | `GET /casos/:id/categorias` | Redundante: devuelve una lista **estática** (`categoriasBase`) idéntica al union de `types/position.ts`. Verificado valor por valor | No — pero es una ruta que quizá les convenga retirar |
 | `GET /casos/:id/plazo` | Redundante: `plazo`, `sla_tipo`, `ronda_actual` y `semaforo` ya viajan en `CaseSummary`/`CaseDetail` | No |
-| `PATCH /casos/:id/plazo` · `PATCH /casos/:id/estado` | No hay UI que los use ni pedido de Producto para que la haya | No — **avisen si esperaban que existiera** |
+| `PATCH /casos/:id/plazo` · `PATCH /casos/:id/estado` | ~~No hay pedido de Producto~~ ⚠️ **Corregido el 09/09: sí lo hay, y es fundacional.** `Mediacion_Documentacion_Tecnica_v1_0.md:319-320` los lista con rol **Parte** — no panel — como **RN-10** (*"una parte puede fijar un plazo puntual"*) y **RN-08** (*"cualquiera de las partes puede declarar expresamente el fin de una negociación"*). Nuestro propio `frontend-redesign/state-machines.md:14` ya modela la transición. Fijar un plazo es además lo que le da sentido al semáforo, que hoy dibujamos como decoración de sólo lectura | No bloquea a BE — **es trabajo de FE que nadie asignó**, y necesita un date picker que el design system no tiene |
 | `POST /auth/biometria` | El proveedor biométrico es *"a definir"* (doc técnica §Calendario y biometría) y la app no tiene SDK. Lo único construible hoy sería auto-certificar la identidad del propio usuario. **Además: cualquier usuario autenticado puede marcarse `aprobada`** — la misma regla que `profile-allowlist.ts` enforcea en `PATCH /me` la saltea esta ruta | **Sí** — §12 |
 | `POST /auth/consentimiento` | Es la firma de identidad por DocuSign (inerte) + la aceptación de T&C, que ya resuelve `POST /legal/aceptaciones`. Grabarlo sería un segundo registro de lo mismo | **Sí** — §12.3 |
 | `PATCH /mediacion/:id` | `@Roles("mediador","admin")` — no es de la app de partes | No |
@@ -53,7 +59,9 @@ En **negrita**, lo integrado el 25/08 — salvo `GET /suscripciones/uso`, que se
 1. **§10 — los datos para conectarnos a la API real.** Es lo único que nos frena para dejar de verificar contra mocks. Hasta el fix de auth del 25/08 no se podía ni hacer login, así que **las cuatro integraciones nuevas están verificadas sólo contra mocks y contra la lectura de su código**.
 2. **§12.2 — el resultado biométrico lo escribe el cliente.** No nos bloquea a nosotros (no vamos a construir esa pantalla), pero es su propia regla contradiciéndose entre dos rutas y conviene que lo miren antes de que algo dependa de esa columna.
 3. **§11 — quién decide la `fecha_evento`** de un evento de calendario. Tres opciones planteadas; cualquiera nos sirve.
-4. **§8 — `pago_a_cargo` al select de `listByCaso`.** Una columna. Mientras no esté, `CaseInvitation.pagoACargo` es nullable de nuestro lado.
+4. **§8 — `pago_a_cargo`.** ⚠️ **Corregido el 09/09: no es "una columna al select", son dos cambios.** La columna **nunca se escribe**: no está en `CreateInvitacionDto`, no está en el insert de `createInvite`, y `grep pago_a_cargo apps/api/src` da **cero**. Nosotros ya la mandamos en el POST y Nest la descarta en silencio. Si se agrega sólo al select, devuelve `null` para siempre y los dos lados creen que quedó cerrado. Hace falta aceptarla en el DTO **y** persistirla, *después* seleccionarla.
+   >
+   > Y su prioridad bajó: la decisión del cliente del 01/09 (cada parte paga su plan) la volvió una conveniencia, no un bloqueo — `pedidos-db-a-backend.md:31`. **Ojo:** `decisiones-db/2026-09-02-c01-c02-cliente.md:48` afirma que el endpoint "sigue devolviendo `pago_a_cargo` sin cambios". Nunca lo devolvió.
 5. ~~**§3.3 de `pedidos-frontend-monetizacion.md` — las dos columnas de `GET /planes`**~~ ✅ **Cerrado.** Backend las agregó el 03/09 y las consumimos el 08/09; `Plan` las expone como `maxNegotiationsPerPeriod`/`maxClientsPerPeriod` y las tarjetas del catálogo las muestran.
 
 > **Y lo que pasó a ser lo primero que necesitamos, al 09/09:** los tres endpoints de `docs/pedidos-frontend-acuerdos-modulares.md` (`GET /acuerdos/:id`, `subject_type`+`version` en `GET /firmas`, `GET /casos/:id/negociaciones`) más los §7.1 y §7.2 de `docs/pedidos-frontend-a-backend-recolocar-negociaciones.md`. **Son lo único que frena el refactor de acuerdos modulares**: DB entregó el modelo el 06/09.
@@ -112,6 +120,14 @@ Sections 1–4 below are the original 2026-07-24 audit and are kept verbatim for
 
 ---
 
+> ## ⚠️ De acá para abajo (§1 a §6) es una foto de julio de 2026, y hoy es falsa casi por completo
+>
+> Verificado contra el código el 09/09. **Los tres bloques de "Blocking — the app cannot talk to the API at all" están cerrados**: la app tiene `@supabase/supabase-js`, un composition root real (`services/api/backend.ts`), login/signup, y los 12 servicios con su variante *backed*. Los seis "Backend gaps that block specific screens" y cuatro de los cinco "Needs new schema" también están cerrados — la migración que los cierra (`20260730180000_backend_gap_features.sql`) se mergeó **el mismo día** que se escribió esta sección y nunca se plegó acá.
+>
+> **§6 es la más equivocada:** dice que `/case/join` está "intencionalmente sin cableado" y hoy llama a `POST /casos/unirse`, navega según `requiresPayment` y distingue tres estados de error.
+>
+> Se conserva para trazabilidad. **El estado actual es §0.2 más `docs/auditoria-desbloqueos-09-09-2026.md`.** No planifiques con lo de abajo.
+
 ## 1. Frontend data layer — current state
 
 **The app performs zero network I/O.** There is no `fetch`, no axios, no `supabase-js`, no API base URL, and no `EXPO_PUBLIC_*` env config anywhere in `mediacion-app`. All data flows through an in-memory mock service layer designed as a replaceable boundary:
@@ -162,7 +178,7 @@ Every error, without exception, is `{ "error": { "code": string, "message": stri
 | `GET /casos` | Bearer | — | `CaseSummary[]`: `id, nombre, estado, metodo, created_at` (`casos.types.ts:24-27`) |
 | `GET /casos/:id` | Bearer (member) | — | `CaseDetail`: `id, nombre, descripcion, metodo, estado, creador_id, created_at, updated_at` (`casos.types.ts:29-39`) |
 | `POST /casos/:id/invitaciones` | Bearer (creator) | `{tipo: "link"\|"codigo"\|"email", email_destino?}` (`invitaciones.types.ts:8-11`) | `{id, tipo, token, estado}` (`invitaciones.types.ts:13-16`) |
-| `POST /casos/unirse` | Bearer | `{token}` (`invitaciones.types.ts:18-20`) | `{id, estado}` of the joined caso (`invitaciones.types.ts:22`). Token TTL: 7 days from `fecha_envio` (`invitaciones/invitation-ttl.ts:1`); email invitations enforce caller-email match |
+| `POST /casos/unirse` | Bearer | `{token}` (`invitaciones.types.ts:18-20`) | `{id, estado}` of the joined caso (`invitaciones.types.ts:22`). **Token TTL: 7 days** from `fecha_envio` (`invitaciones/invitation-ttl.ts:1`) — ⚠️ **y eso contradice el requisito.** R-04 fijó **72 h** (`Cambios_Reunion_Mediacion_07-08-2026.md:43`), DB lo sembró como `configuracion.invitacion_ttl_horas = '72'`, nadie lee esa fila, y el copy de la app le dice 72 h al usuario en los dos idiomas. Hoy declaramos muerta una invitación que sigue siendo canjeable cuatro días más. Ver §1 de `auditoria-desbloqueos-09-09-2026.md`; email invitations enforce caller-email match |
 | `POST /casos/:casoId/items` | Bearer (member) | `CreateItemDto`: `{categoria, nombre, descripcion?, valor_min?, valor_max?, puede_ceder?, condiciones_cesion?}` (`items.types.ts:6-14`) | `OwnItem` (all item cols incl. `parte_id`, `privado`, timestamps; `items.types.ts:18-33`) |
 | `GET /casos/:casoId/items` | Bearer (owner-scoped) | — | `OwnItem[]` — only the caller's own items (RN-01) |
 | `GET /items/:id` | Bearer (owner) | — | `OwnItem` |
