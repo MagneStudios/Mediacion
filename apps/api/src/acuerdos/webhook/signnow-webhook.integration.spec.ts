@@ -142,7 +142,12 @@ describeDb("signNow webhook against a real app and database", () => {
 
     const negociacion = await kysely
       .insertInto("negociaciones")
-      .values({ caso_id: casoId, materia: null, method: "mediacion" })
+      .values({
+        caso_id: casoId,
+        materia: null,
+        method: "mediacion",
+        estado: "acordada",
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
 

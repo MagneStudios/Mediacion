@@ -224,7 +224,14 @@ describeDb(
       });
       const membershipService = new MembershipService(kysely);
       const casosRepository = new CasosRepository(kysely);
-      propuestasRepository = new PropuestasRepository(kysely, casosRepository);
+      const negociacionesRepository = new NegociacionesRepository(
+        kysely,
+        casosRepository,
+      );
+      propuestasRepository = new PropuestasRepository(
+        kysely,
+        negociacionesRepository,
+      );
       rondasRepository = new RondasRepository(kysely);
       const configuracionRepository = new ConfiguracionRepository(kysely);
       const aiProposalGenerator = createFakeAiProposalGenerator(
@@ -238,7 +245,7 @@ describeDb(
         rondasRepository,
         configuracionRepository,
         aiProposalGenerator,
-        new NegociacionesRepository(kysely),
+        new NegociacionesRepository(kysely, casosRepository),
       );
     });
 
@@ -346,7 +353,7 @@ describeDb(
         expect((thrown as HttpException).getStatus()).toBe(409);
       });
 
-      it("both partes accepting marks the propuesta aceptada and transitions the caso to acordado", async () => {
+      it("both partes accepting marks the propuesta aceptada and the negociacion acordada, leaving the caso alone", async () => {
         const result = await service.responder(propuestaId, parteAId, "acepta");
         expect(result.estado).toBe("aceptada");
 
@@ -357,12 +364,22 @@ describeDb(
           .executeTakeFirstOrThrow();
         expect(propuestaRow.estado).toBe("aceptada");
 
+        const negociacionRow = await kysely
+          .selectFrom("negociaciones")
+          .select("estado")
+          .where("caso_id", "=", casoId)
+          .executeTakeFirstOrThrow();
+        expect(negociacionRow.estado).toBe("acordada");
+
+        // The caso's `acordado` is derived from signed agreements, not from an
+        // acceptance: with three materias, closing it here would switch off the
+        // two nobody has agreed on yet.
         const casoRow = await kysely
           .selectFrom("casos")
           .select("estado")
           .where("id", "=", casoId)
           .executeTakeFirstOrThrow();
-        expect(casoRow.estado).toBe("acordado");
+        expect(casoRow.estado).toBe("en_negociacion");
       });
 
       it("an invalid propuesta estado transition attempted at the DB layer surfaces as 409 via the P0001 trigger", async () => {

@@ -55,12 +55,77 @@ function withRondaActual() {
   )`.as("ronda_actual");
 }
 
-export function buildMarkAcordadoQuery(db: Kysely<Database>, casoId: string) {
+/**
+ * `acordado` is derived, not written: a caso is agreed only once **every** one
+ * of its negociaciones has an acuerdo in force and signed
+ * (`docs/decisiones-db/2026-09-06-acuerdos-modulares.md` §3). Before materias
+ * existed this was set on the first accepted propuesta, which with three
+ * materias would switch off the two nobody had agreed on yet.
+ *
+ * One UPDATE with two `NOT EXISTS`, never a read-then-write: with two
+ * signatures completing at once, only the last one to commit sees every
+ * negociacion covered. The `estado = 'en_negociacion'` guard is what makes a
+ * replayed webhook a no-op, and the first `EXISTS` keeps a caso with no
+ * negociaciones at all from vacuously satisfying "all of them are signed".
+ */
+export function buildRecomputeAcordadoQuery(
+  db: Kysely<Database>,
+  casoId: string,
+) {
   return db
     .updateTable("casos")
     .set({ estado: "acordado" })
     .where("id", "=", casoId)
     .where("estado", "=", "en_negociacion")
+    .where(({ exists, not, selectFrom }) =>
+      exists(
+        selectFrom("negociaciones")
+          .select("negociaciones.id")
+          .whereRef("negociaciones.caso_id", "=", "casos.id"),
+      ).and(
+        not(
+          exists(
+            selectFrom("negociaciones")
+              .select("negociaciones.id")
+              .whereRef("negociaciones.caso_id", "=", "casos.id")
+              .where(
+                ({ not: notInner, exists: existsInner, selectFrom: from }) =>
+                  notInner(
+                    existsInner(
+                      from("acuerdos")
+                        .select("acuerdos.id")
+                        .whereRef(
+                          "acuerdos.negociacion_id",
+                          "=",
+                          "negociaciones.id",
+                        )
+                        .where("acuerdos.vigente", "=", true)
+                        .where("acuerdos.estado", "=", "firmado"),
+                    ),
+                  ),
+              ),
+          ),
+        ),
+      ),
+    )
+    .returning(["id"]);
+}
+
+/**
+ * The inverse of the recompute, for renegotiation: once a materia reopens it
+ * is no longer true that every one of them is signed. Guarded on `acordado`
+ * so reopening a materia of a caso that was never fully agreed is a no-op
+ * rather than a state change nobody asked for.
+ */
+export function buildReopenFromAcordadoQuery(
+  db: Kysely<Database>,
+  casoId: string,
+) {
+  return db
+    .updateTable("casos")
+    .set({ estado: "en_negociacion" })
+    .where("id", "=", casoId)
+    .where("estado", "=", "acordado")
     .returning(["id"]);
 }
 
@@ -90,12 +155,6 @@ function isGateBlocked(error: unknown): boolean {
     body !== null &&
     "code" in body &&
     (body as { code: unknown }).code === casoBloqueadoSuscripcionesCode
-  );
-}
-
-function casoNotAcordable(casoId: string): ConflictError {
-  return new ConflictError(
-    `Caso ${casoId} was not en_negociacion when marking acordado`,
   );
 }
 
@@ -275,14 +334,32 @@ export class CasosRepository {
       });
   }
 
-  markAcordado(casoId: string, trx: Kysely<Database>): Promise<void> {
-    return buildMarkAcordadoQuery(trx, casoId)
-      .executeTakeFirstOrThrow(() => casoNotAcordable(casoId))
+  /**
+   * Affecting no rows is the normal outcome, not an error: most signatures
+   * complete with other materias still open. Takes the caller's connection so
+   * it can run inside the transaction that marked the acuerdo signed.
+   */
+  recomputeAcordado(
+    casoId: string,
+    db: Kysely<Database> = this.kysely,
+  ): Promise<void> {
+    return buildRecomputeAcordadoQuery(db, casoId)
+      .execute()
       .then(() => undefined)
       .catch((error: unknown) => {
-        if (error instanceof ConflictError) {
-          throw error;
-        }
+        throw toDomainError(error);
+      });
+  }
+
+  /** Affecting no rows is normal: the caso may never have been acordado. */
+  reopenFromAcordado(
+    casoId: string,
+    db: Kysely<Database> = this.kysely,
+  ): Promise<void> {
+    return buildReopenFromAcordadoQuery(db, casoId)
+      .execute()
+      .then(() => undefined)
+      .catch((error: unknown) => {
         throw toDomainError(error);
       });
   }

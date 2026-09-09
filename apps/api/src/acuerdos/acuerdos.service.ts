@@ -8,7 +8,6 @@ import {
 } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { CasosRepository } from "../casos/casos.repository";
-import type { CaseDetail } from "../casos/casos.types";
 import { MembershipService } from "../casos/membership.service";
 import { normalizeTimestamp } from "../common/db/timestamp";
 import { KYSELY } from "../database/database.tokens";
@@ -17,7 +16,10 @@ import {
   agreementDocumentFilename,
   buildAgreementDocument,
 } from "./acuerdo-export";
-import { AcuerdosRepository } from "./acuerdos.repository";
+import {
+  AcuerdosRepository,
+  acuerdoAlreadyExists,
+} from "./acuerdos.repository";
 import type {
   Acuerdo,
   AcuerdoExport,
@@ -32,8 +34,6 @@ import type { FirmaStatus } from "./firmas.repository";
 import { FirmasRepository } from "./firmas.repository";
 import { readAcceptedPropuesta } from "./propuesta-read.query";
 
-const estadoCasoAcordado: CaseDetail["estado"] = "acordado";
-
 function casoNotFound(): HttpException {
   return new HttpException(
     { code: "caso_not_found", message: "Case not found" },
@@ -41,9 +41,17 @@ function casoNotFound(): HttpException {
   );
 }
 
+/**
+ * Same `code` as before on purpose — the front already maps it — but the state
+ * it reports moved: the gate is now the materia being agreed, not the caso,
+ * whose `acordado` is derived from the signatures downstream of this call.
+ */
 function casoNotAcordado(): HttpException {
   return new HttpException(
-    { code: "caso_not_acordado", message: "Case must be in acordado state" },
+    {
+      code: "caso_not_acordado",
+      message: "No negociacion of this case is in acordada state",
+    },
     HttpStatus.UNPROCESSABLE_ENTITY,
   );
 }
@@ -151,12 +159,20 @@ export class AcuerdosService {
     if (!caso) {
       throw casoNotFound();
     }
-    if (caso.estado !== estadoCasoAcordado) {
+    const acordadas =
+      await this.acuerdosRepository.findNegociacionesAcordadas(casoId);
+    if (acordadas.length === 0) {
       throw casoNotAcordado();
+    }
+    const pendiente = acordadas.find(
+      (negociacion) => negociacion.acuerdo_vigente_id === null,
+    );
+    if (!pendiente) {
+      throw acuerdoAlreadyExists();
     }
     const accepted = await readAcceptedPropuesta(this.kysely, casoId);
     const contenido = buildAgreementContent(accepted);
-    return this.acuerdosRepository.insertDraft(casoId, contenido);
+    return this.acuerdosRepository.insertDraft(casoId, pendiente.id, contenido);
   }
 
   async sendToSignature(acuerdoId: string, callerId: string): Promise<Acuerdo> {
