@@ -224,7 +224,10 @@ describeDb(
       });
       const membershipService = new MembershipService(kysely);
       const casosRepository = new CasosRepository(kysely);
-      const negociacionesRepository = new NegociacionesRepository(kysely);
+      const negociacionesRepository = new NegociacionesRepository(
+        kysely,
+        casosRepository,
+      );
       propuestasRepository = new PropuestasRepository(
         kysely,
         negociacionesRepository,
@@ -242,7 +245,7 @@ describeDb(
         rondasRepository,
         configuracionRepository,
         aiProposalGenerator,
-        new NegociacionesRepository(kysely),
+        new NegociacionesRepository(kysely, casosRepository),
       );
     });
 

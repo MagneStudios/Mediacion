@@ -19,6 +19,7 @@ import type {
   PropuestaContenido,
   PropuestaDetail,
   PropuestaView,
+  RenegociacionView,
 } from "./negociacion.types";
 import { NegociacionesRepository } from "./negociaciones.repository";
 import type { EnginePosition } from "./propuestas.repository";
@@ -28,6 +29,13 @@ import { RondasRepository } from "./rondas.repository";
 const rolMediador = "mediador" as const;
 const rn05MediadorDesdeRonda = 3;
 const validDecisiones: DecisionPropuesta[] = ["acepta", "rechaza"];
+
+function negociacionNotFound(): HttpException {
+  return new HttpException(
+    { code: "negociacion_not_found", message: "Negociacion not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
 
 function bothPartiesRequired(): HttpException {
   return new HttpException(
@@ -239,6 +247,31 @@ export class NegociacionService {
   ): Promise<NegociacionView[]> {
     await this.membershipService.assertMembership(casoId, callerId);
     return this.negociacionesRepository.listByCaso(casoId);
+  }
+
+  /**
+   * Reopens a signed materia. Addressed by negociacion, so the caso has to be
+   * resolved before membership can be asserted at all; a caller who is not a
+   * party gets the same 404 as a negociacion that does not exist. The mediador
+   * is excluded the way `responder` excludes them: reopening a negotiation is
+   * a party's act.
+   */
+  async renegociar(
+    negociacionId: string,
+    callerId: string,
+  ): Promise<RenegociacionView> {
+    const casoId = await this.negociacionesRepository.findCasoId(negociacionId);
+    if (!casoId) {
+      throw negociacionNotFound();
+    }
+    const membership = await this.membershipService.assertMembership(
+      casoId,
+      callerId,
+    );
+    if (membership.rol_en_caso === rolMediador) {
+      throw negociacionNotFound();
+    }
+    return this.negociacionesRepository.renegociar(negociacionId);
   }
 
   private async ensureActiveRonda(

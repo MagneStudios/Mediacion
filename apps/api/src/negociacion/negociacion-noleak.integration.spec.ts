@@ -126,7 +126,10 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
     });
     const membershipService = new MembershipService(kysely);
     const casosRepository = new CasosRepository(kysely);
-    const negociacionesRepository = new NegociacionesRepository(kysely);
+    const negociacionesRepository = new NegociacionesRepository(
+      kysely,
+      casosRepository,
+    );
     const propuestasRepository = new PropuestasRepository(
       kysely,
       negociacionesRepository,
@@ -144,7 +147,7 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       rondasRepository,
       configuracionRepository,
       aiProposalGenerator,
-      new NegociacionesRepository(kysely),
+      new NegociacionesRepository(kysely, casosRepository),
     );
 
     await insertAuthUser(

@@ -8,6 +8,7 @@ import {
 } from "../common/errors/domain-errors";
 import {
   buildRecomputeAcordadoQuery,
+  buildReopenFromAcordadoQuery,
   CasosRepository,
 } from "./casos.repository";
 import type { CreateCasoDto } from "./casos.types";
@@ -439,6 +440,34 @@ describe("CasosRepository", () => {
 
     it("never writes ronda_actual, which no longer lives on casos", () => {
       expect(compile("caso-1").sql).not.toContain("ronda_actual");
+    });
+  });
+
+  describe("buildReopenFromAcordadoQuery", () => {
+    it("is the exact inverse of the recompute, guarded on acordado", () => {
+      const compiled = buildReopenFromAcordadoQuery(
+        createCompileOnlyKysely(),
+        "caso-1",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/^update "casos" set "estado" = \$\d/i);
+      expect(compiled.parameters).toContain("en_negociacion");
+      expect(compiled.parameters).toContain("acordado");
+      expect(compiled.parameters).toContain("caso-1");
+    });
+
+    it("resolves without throwing when the caso was never acordado", async () => {
+      const execute = jest.fn().mockResolvedValue([]);
+      const returning = jest.fn().mockReturnValue({ execute });
+      const where2 = jest.fn().mockReturnValue({ returning });
+      const where1 = jest.fn().mockReturnValue({ where: where2 });
+      const set = jest.fn().mockReturnValue({ where: where1 });
+      const updateTable = jest.fn().mockReturnValue({ set });
+      const repository = new CasosRepository({} as never);
+
+      await expect(
+        repository.reopenFromAcordado("caso-1", { updateTable } as never),
+      ).resolves.toBeUndefined();
     });
   });
 

@@ -20,6 +20,9 @@ export type MateriaAcuerdo = NonNullable<Negociacion["materia"]>;
  */
 export const estadoNegociacionAcordada: EstadoNegociacion = "acordada";
 
+/** Where a renegotiation puts the materia back. */
+export const estadoNegociacionActiva: EstadoNegociacion = "activa";
+
 /**
  * The acuerdo currently in force for a negociacion. Null — never an object with
  * empty fields — when the negociacion has not produced one yet: "no agreement"
@@ -49,6 +52,16 @@ export type NegociacionView = {
   ronda_actual: Negociacion["round"];
   acuerdo_vigente: AcuerdoVigenteView | null;
   created_at: Negociacion["created_at"];
+};
+
+/**
+ * The frozen §2.4 shape: the negociacion that reopened and the draft that is
+ * now its starting point. Deliberately nothing else — the client re-reads
+ * `GET /casos/:id/negociaciones` for the rest.
+ */
+export type RenegociacionView = {
+  negotiation_id: Negociacion["id"];
+  agreement_id: Acuerdo["id"];
 };
 
 export const propuestaViewColumns = [

@@ -127,4 +127,17 @@ describe("NegociacionController", () => {
     expect(listNegociaciones).toHaveBeenCalledWith("caso-1", "user-a");
     expect(result).toBe(negociaciones);
   });
+
+  it("renegociar passes the negociacion id and the caller through to the service", async () => {
+    const view = { negotiation_id: "negociacion-1", agreement_id: "acuerdo-2" };
+    const renegociar = jest.fn().mockResolvedValue(view);
+    const controller = new NegociacionController({
+      renegociar,
+    } as unknown as NegociacionService);
+
+    const result = await controller.renegociar("negociacion-1", parteA);
+
+    expect(renegociar).toHaveBeenCalledWith("negociacion-1", "user-a");
+    expect(result).toBe(view);
+  });
 });

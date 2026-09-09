@@ -1,9 +1,26 @@
 import type { Database } from "@mediacion/db-types";
-import { Inject, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
+import {
+  estadoAcuerdoBorrador,
+  estadoAcuerdoFirmado,
+} from "../acuerdos/acuerdos.types";
+import { CasosRepository } from "../casos/casos.repository";
+import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
-import type { NegociacionView } from "./negociacion.types";
-import { estadoNegociacionAcordada } from "./negociacion.types";
+import type {
+  Acuerdo,
+  NegociacionView,
+  RenegociacionView,
+} from "./negociacion.types";
+import {
+  estadoNegociacionAcordada,
+  estadoNegociacionActiva,
+} from "./negociacion.types";
+import {
+  buildBumpNegociacionRoundQuery,
+  buildInsertNextRondaQuery,
+} from "./rondas.repository";
 
 /**
  * Every negociacion of a caso, each with the acuerdo currently in force.
@@ -72,6 +89,88 @@ export function buildMarkNegociacionAcordadaQuery(
     .where("estado", "!=", estadoNegociacionAcordada);
 }
 
+/**
+ * The negociacion plus the acuerdo in force, locked for the renegotiation:
+ * two callers renegotiating the same materia at once must not both read v1 as
+ * current and each insert a v2. Joined inner on `vigente` so a negociacion
+ * with nothing in force simply produces no row — the caller reports that as
+ * "not agreed", the same as an unsigned one.
+ */
+export function buildFindRenegociableQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+) {
+  return db
+    .selectFrom("negociaciones")
+    .innerJoin("acuerdos", (join) =>
+      join
+        .onRef("acuerdos.negociacion_id", "=", "negociaciones.id")
+        .on("acuerdos.vigente", "=", true),
+    )
+    .select([
+      "negociaciones.id as negociacion_id",
+      "negociaciones.caso_id as caso_id",
+      "negociaciones.round as round",
+      "acuerdos.id as acuerdo_id",
+      "acuerdos.estado as acuerdo_estado",
+      "acuerdos.version as acuerdo_version",
+      "acuerdos.contenido as acuerdo_contenido",
+    ])
+    .where("negociaciones.id", "=", negociacionId)
+    .forUpdate();
+}
+
+/** Retires the previous agreement without deleting it: it is legal proof. */
+export function buildSupersedeAcuerdoQuery(
+  db: Kysely<Database>,
+  acuerdoId: string,
+) {
+  return db
+    .updateTable("acuerdos")
+    .set({ vigente: false })
+    .where("id", "=", acuerdoId)
+    .where("vigente", "=", true);
+}
+
+/**
+ * The next version, preloaded with the retired one's content — the "starting
+ * point" §2.4 asks for. Not re-rendered from the accepted propuesta: the
+ * clause catalogue that would drive that does not exist yet.
+ */
+export function buildInsertAcuerdoSiguienteQuery(
+  db: Kysely<Database>,
+  previo: {
+    caso_id: string;
+    negociacion_id: string;
+    version: number;
+    acuerdo_id: string;
+    contenido: Acuerdo["contenido"];
+  },
+) {
+  return db
+    .insertInto("acuerdos")
+    .values({
+      caso_id: previo.caso_id,
+      negociacion_id: previo.negociacion_id,
+      contenido: previo.contenido,
+      estado: estadoAcuerdoBorrador,
+      version: previo.version + 1,
+      supersedes_agreement_id: previo.acuerdo_id,
+      vigente: true,
+    })
+    .returning(["id"]);
+}
+
+export function buildReactivarNegociacionQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+) {
+  return db
+    .updateTable("negociaciones")
+    .set({ estado: estadoNegociacionActiva })
+    .where("id", "=", negociacionId);
+}
+
 type NegociacionRow = Omit<NegociacionView, "acuerdo_vigente"> & {
   acuerdo_id: string | null;
   acuerdo_estado:
@@ -91,9 +190,32 @@ function toView(row: NegociacionRow): NegociacionView {
   };
 }
 
+export function buildFindCasoIdByNegociacionQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+) {
+  return db
+    .selectFrom("negociaciones")
+    .select("caso_id")
+    .where("id", "=", negociacionId);
+}
+
+export function negociacionNotAcordada(): HttpException {
+  return new HttpException(
+    {
+      code: "negociacion_not_acordada",
+      message: "This negociacion has no signed agreement in force",
+    },
+    HttpStatus.CONFLICT,
+  );
+}
+
 @Injectable()
 export class NegociacionesRepository {
-  constructor(@Inject(KYSELY) private readonly kysely: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY) private readonly kysely: Kysely<Database>,
+    @Inject(CasosRepository) private readonly casosRepository: CasosRepository,
+  ) {}
 
   /**
    * Takes the caller's transaction rather than opening its own: this runs
@@ -112,6 +234,69 @@ export class NegociacionesRepository {
       trx,
       propuesta.negociacion_id,
     ).execute();
+  }
+
+  async findCasoId(negociacionId: string): Promise<string | undefined> {
+    const row = await buildFindCasoIdByNegociacionQuery(
+      this.kysely,
+      negociacionId,
+    ).executeTakeFirst();
+    return row?.caso_id;
+  }
+
+  /**
+   * Reopens one materia over its signed agreement. Every step is in the same
+   * transaction on purpose: a superseded v1 with no v2, or a bumped round with
+   * no ronda row, would each leave the case unusable.
+   *
+   * The caso is reopened last and unconditionally — `reopenFromAcordado` is a
+   * no-op unless the caso really was `acordado`, which it only is when every
+   * materia was signed. That is exactly the claim this call invalidates.
+   */
+  renegociar(negociacionId: string): Promise<RenegociacionView> {
+    return this.kysely
+      .transaction()
+      .execute(async (trx) => {
+        const previo = await buildFindRenegociableQuery(
+          trx,
+          negociacionId,
+        ).executeTakeFirst();
+        if (!previo || previo.acuerdo_estado !== estadoAcuerdoFirmado) {
+          throw negociacionNotAcordada();
+        }
+        await buildSupersedeAcuerdoQuery(trx, previo.acuerdo_id).execute();
+        const siguiente = await buildInsertAcuerdoSiguienteQuery(trx, {
+          caso_id: previo.caso_id,
+          negociacion_id: previo.negociacion_id,
+          version: previo.acuerdo_version,
+          acuerdo_id: previo.acuerdo_id,
+          contenido: previo.acuerdo_contenido,
+        }).executeTakeFirstOrThrow();
+        await buildReactivarNegociacionQuery(trx, negociacionId).execute();
+        const numero = previo.round + 1;
+        await buildBumpNegociacionRoundQuery(
+          trx,
+          negociacionId,
+          numero,
+        ).execute();
+        await buildInsertNextRondaQuery(
+          trx,
+          previo.caso_id,
+          negociacionId,
+          numero,
+        ).executeTakeFirstOrThrow();
+        await this.casosRepository.reopenFromAcordado(previo.caso_id, trx);
+        return {
+          negotiation_id: negociacionId,
+          agreement_id: siguiente.id,
+        };
+      })
+      .catch((error: unknown) => {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        throw toDomainError(error);
+      });
   }
 
   async listByCaso(casoId: string): Promise<NegociacionView[]> {

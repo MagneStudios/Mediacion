@@ -111,6 +111,24 @@ export function buildRecomputeAcordadoQuery(
     .returning(["id"]);
 }
 
+/**
+ * The inverse of the recompute, for renegotiation: once a materia reopens it
+ * is no longer true that every one of them is signed. Guarded on `acordado`
+ * so reopening a materia of a caso that was never fully agreed is a no-op
+ * rather than a state change nobody asked for.
+ */
+export function buildReopenFromAcordadoQuery(
+  db: Kysely<Database>,
+  casoId: string,
+) {
+  return db
+    .updateTable("casos")
+    .set({ estado: "en_negociacion" })
+    .where("id", "=", casoId)
+    .where("estado", "=", "acordado")
+    .returning(["id"]);
+}
+
 const estadosElegiblesVencimiento: Caso["estado"][] = [
   "nuevo",
   "activo",
@@ -326,6 +344,19 @@ export class CasosRepository {
     db: Kysely<Database> = this.kysely,
   ): Promise<void> {
     return buildRecomputeAcordadoQuery(db, casoId)
+      .execute()
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
+  /** Affecting no rows is normal: the caso may never have been acordado. */
+  reopenFromAcordado(
+    casoId: string,
+    db: Kysely<Database> = this.kysely,
+  ): Promise<void> {
+    return buildReopenFromAcordadoQuery(db, casoId)
       .execute()
       .then(() => undefined)
       .catch((error: unknown) => {
