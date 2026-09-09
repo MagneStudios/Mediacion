@@ -1,6 +1,7 @@
 import { generateKeyPairSync } from "node:crypto";
 import { importSPKI, jwtVerify } from "jose";
 import type { AppConfig } from "../../config/config";
+import { buildTestAppConfig } from "../../config/config.test-fixture";
 import { DocusignOauthTokenClient } from "./docusign-oauth-token-client";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -8,38 +9,6 @@ const { privateKey, publicKey } = generateKeyPairSync("rsa", {
   privateKeyEncoding: { type: "pkcs8", format: "pem" },
   publicKeyEncoding: { type: "spki", format: "pem" },
 });
-
-function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
-  return {
-    port: 3000,
-    supabaseJwtSecret: "secret",
-    databaseUrl: "postgresql://placeholder",
-    openrouterApiKey: "sk-or-test-key",
-    docusignIntegrationKey: "ik-test",
-    docusignClientSecret: "secret-test",
-    docusignAccountId: "account-test",
-    docusignBasePath: "https://demo.docusign.net/restapi",
-    docusignWebhookSecret: "whsec-test",
-    docusignUserId: "user-test",
-    docusignOauthBase: "account-d.docusign.com",
-    docusignPrivateKey: privateKey as string,
-    mpAccessToken: "mp-access-token",
-    mpWebhookSecret: "mp-webhook-secret",
-    smtpHost: "smtp.example.com",
-    smtpPort: 587,
-    smtpUser: "smtp-user",
-    smtpPass: "smtp-pass",
-    fcmKey: "fcm-key",
-    apnsKey: "apns-key",
-    operacionesEmail: "operaciones@test",
-    legalAvisoDiasAnticipacion: 10,
-    legalPublicRequestsPerWindow: 5,
-    legalPublicWindowMs: 3_600_000,
-    cronSecret: "cron-secret",
-    corsOrigins: [],
-    ...overrides,
-  };
-}
 
 describe("DocusignOauthTokenClient", () => {
   afterEach(() => {
@@ -53,7 +22,9 @@ describe("DocusignOauthTokenClient", () => {
         Promise.resolve({ access_token: "token-1", expires_in: 3600 }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     const accessToken = await client.getAccessToken();
 
@@ -84,7 +55,9 @@ describe("DocusignOauthTokenClient", () => {
         Promise.resolve({ access_token: "token-1", expires_in: 3600 }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     await client.getAccessToken();
     const secondAccessToken = await client.getAccessToken();
@@ -108,7 +81,9 @@ describe("DocusignOauthTokenClient", () => {
           Promise.resolve({ access_token: "token-2", expires_in: 3600 }),
       });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     await client.getAccessToken();
     nowSpy.mockReturnValue(1_000_000 + 3600 * 1000 - 30_000);
@@ -125,7 +100,9 @@ describe("DocusignOauthTokenClient", () => {
       json: () => Promise.resolve({}),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     await expect(client.getAccessToken()).rejects.toThrow(
       "DocuSign OAuth token request failed with status 401",
@@ -138,7 +115,9 @@ describe("DocusignOauthTokenClient", () => {
       json: () => Promise.resolve({}),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     await expect(client.getAccessToken()).rejects.toThrow(
       "DocuSign OAuth response did not include an access_token",
@@ -152,7 +131,9 @@ describe("DocusignOauthTokenClient", () => {
         Promise.resolve({ access_token: "token-1", expires_in: 3600 }),
     });
     jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
-    const client = new DocusignOauthTokenClient(buildAppConfig());
+    const client = new DocusignOauthTokenClient(
+      buildTestAppConfig({ docusignPrivateKey: privateKey as string }),
+    );
 
     await client.getAccessToken();
     client.invalidate();

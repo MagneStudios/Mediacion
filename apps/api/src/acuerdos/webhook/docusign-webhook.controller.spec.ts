@@ -1,42 +1,11 @@
 import { createHmac } from "node:crypto";
 import { HttpException } from "@nestjs/common";
 import type { AppConfig } from "../../config/config";
+import { buildTestAppConfig } from "../../config/config.test-fixture";
 import { DocusignWebhookController } from "./docusign-webhook.controller";
 import type { DocusignWebhookService } from "./docusign-webhook.service";
 
 const secret = "whsec-test";
-
-function buildAppConfig(overrides?: Partial<AppConfig>): AppConfig {
-  return {
-    port: 3000,
-    supabaseJwtSecret: "secret",
-    databaseUrl: "postgresql://placeholder",
-    openrouterApiKey: "sk-or-test-key",
-    docusignIntegrationKey: "ik-test",
-    docusignClientSecret: "secret-test",
-    docusignAccountId: "account-test",
-    docusignBasePath: "https://demo.docusign.net/restapi",
-    docusignWebhookSecret: secret,
-    docusignUserId: "user-test",
-    docusignOauthBase: "account-d.docusign.com",
-    docusignPrivateKey: "test-private-key-pem",
-    mpAccessToken: "mp-access-token",
-    mpWebhookSecret: "mp-webhook-secret",
-    smtpHost: "smtp.example.com",
-    smtpPort: 587,
-    smtpUser: "smtp-user",
-    smtpPass: "smtp-pass",
-    fcmKey: "fcm-key",
-    apnsKey: "apns-key",
-    operacionesEmail: "operaciones@test",
-    legalAvisoDiasAnticipacion: 10,
-    legalPublicRequestsPerWindow: 5,
-    legalPublicWindowMs: 3_600_000,
-    cronSecret: "cron-secret",
-    corsOrigins: [],
-    ...overrides,
-  };
-}
 
 function signRawBody(rawBody: Buffer): string {
   return createHmac("sha256", secret).update(rawBody).digest("base64");
@@ -47,7 +16,7 @@ describe("DocusignWebhookController", () => {
     const applyEvent = jest.fn().mockResolvedValue(undefined);
     const controller = new DocusignWebhookController(
       { applyEvent } as unknown as DocusignWebhookService,
-      buildAppConfig(),
+      buildTestAppConfig(),
     );
     const payload = {
       envelopeId: "envelope-1",
@@ -71,7 +40,7 @@ describe("DocusignWebhookController", () => {
     const applyEvent = jest.fn();
     const controller = new DocusignWebhookController(
       { applyEvent } as unknown as DocusignWebhookService,
-      buildAppConfig(),
+      buildTestAppConfig(),
     );
     const rawBody = Buffer.from(JSON.stringify({ envelopeId: "envelope-1" }));
 
@@ -94,7 +63,7 @@ describe("DocusignWebhookController", () => {
     const applyEvent = jest.fn();
     const controller = new DocusignWebhookController(
       { applyEvent } as unknown as DocusignWebhookService,
-      buildAppConfig(),
+      buildTestAppConfig(),
     );
     const rawBody = Buffer.from(JSON.stringify({ envelopeId: "envelope-1" }));
 
@@ -114,7 +83,7 @@ describe("DocusignWebhookController", () => {
     const applyEvent = jest.fn();
     const controller = new DocusignWebhookController(
       { applyEvent } as unknown as DocusignWebhookService,
-      buildAppConfig(),
+      buildTestAppConfig(),
     );
 
     let thrown: unknown;
