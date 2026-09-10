@@ -121,6 +121,10 @@
       "mismatch": {
         "title": "We couldn't open that agreement",
         "description": "The agreement you opened isn't the one we expected for this case. Go back to the signatures inbox and try again, so you don't review the wrong document."
+      },
+      "notFound": {
+        "title": "We couldn't find that agreement",
+        "description": "The agreement you tried to open doesn't exist or is no longer available to you. Go back to the signatures inbox and try again."
       }
     },
     "sharedMarker": {
@@ -225,7 +229,8 @@
         "waitingOther": "Waiting for the other party",
         "completed": "Completed",
         "withNotice": "Under notice"
-      }
+      },
+      "subjectVersion": "{{subject}} · v{{version}}"
     },
     "breachNotice": {
       "form": {
@@ -773,6 +778,12 @@
     "negociacion": "Negotiation",
     "conciliacion": "Conciliation",
     "mediacion": "Mediation"
+  },
+  "subjectTypes": {
+    "tenencia": "Custody",
+    "alimentos": "Child support",
+    "bienes": "Assets",
+    "otro": "Other"
   },
   "negotiation": {
     "sectionTitle": "Negotiation",

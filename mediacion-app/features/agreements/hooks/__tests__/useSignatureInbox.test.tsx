@@ -24,6 +24,8 @@ const item: SignatureInboxItem = {
   caseId: 'case-1',
   caseTitle: 'Caso 1',
   agreementTitle: 'Acuerdo 1',
+  subjectType: null,
+  version: 1,
   estado: 'enviado_a_firma',
   ownStatus: 'pendiente',
 };

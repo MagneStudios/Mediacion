@@ -13,8 +13,8 @@ Nada de esto rompe la app hoy: todos los cambios de contrato son aditivos, y los
 
 | Pedido | Estado BE | ¿Lo consume el front? |
 |---|---|---|
-| §2.1 `GET /acuerdos/:id` | ✅ listo | ❌ **No.** `agreements.api-service.ts:74` sigue leyendo por caso |
-| §2.2 `subject_type` + `version` en `GET /firmas` | ✅ listo | ❌ **No.** `ApiSignatureInboxEntry` no tiene los dos campos |
+| §2.1 `GET /acuerdos/:id` | ✅ listo | ✅ **Sí, desde el 10/09** — `agreements.api-service.ts` `getById`; la bandeja, el dashboard, la firma y el historial leen por acuerdo (`docs/changelogs/2026-09-10.md`) |
+| §2.2 `subject_type` + `version` en `GET /firmas` | ✅ listo | ✅ **Sí, desde el 10/09** — la fila dice "Tenencia · v2"; `null` cae al título del caso |
 | §2.3 `GET /casos/:id/negociaciones` | ✅ listo | ❌ **No.** No hay ningún service que lo llame |
 | §2.4 `POST /negociaciones/:id/renegociar` | ✅ listo | ❌ **No.** Estaba congelado; ya se puede cablear |
 | §7.1 `acordado` derivado | ✅ listo | ⚠️ **Sí, y ahora es correcto.** Ver §3 |
@@ -93,6 +93,8 @@ Errores: `409 negociacion_not_acordada` (**código nuevo**) si la materia no tie
 Antes se escribía **a la primera propuesta aceptada**, o sea antes de que existiera ningún acuerdo, y mucho antes de que se firmara. Ahora se calcula al completarse cada firma, y sólo cuando **todas** las negociaciones del caso tienen acuerdo vigente + firmado.
 
 Consecuencia del lado de ustedes: `case-mapper.ts:91` mapea `acordado | cerrado | terminado` → `signed`. **Ese mapeo era optimista y ahora es exacto.** No hay que tocarlo — se los avisamos porque el estado llega más tarde en el ciclo que antes:
+
+> **FE, 10/09:** lo tocamos el 09/09, antes de leer esto — `terminado` ya no mapea a `signed` sino a su propia clave `terminated` (`docs/changelogs/2026-09-09-plazo-y-terminacion.md`). Un caso terminado sin acuerdo decía "Firmado". `acordado` y `cerrado` siguen en `signed`, y con lo de arriba ese mapeo pasa a ser exacto, como dicen.
 
 ```
 antes   aceptan ambas partes  →  caso 'acordado'  →  (generar acuerdo, firmar)

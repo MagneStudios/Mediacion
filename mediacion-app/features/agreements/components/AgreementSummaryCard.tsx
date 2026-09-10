@@ -11,6 +11,12 @@ import { useAgreement } from '../hooks/useAgreement';
 
 export type AgreementSummaryCardProps = {
   caseId: string;
+  /**
+   * El acuerdo de esta tarjeta, cuando quien la dibuja lo sabe (la lista de
+   * negociaciones lo trae como `acuerdo_vigente`). Con él, la lectura y la
+   * navegación son por acuerdo; sin él, "el acuerdo del caso".
+   */
+  agreementId?: string;
 };
 
 /**
@@ -19,10 +25,10 @@ export type AgreementSummaryCardProps = {
  * exists — this component fetches it itself and renders a calm
  * "not available" state on a null result rather than inventing content.
  */
-export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
+export function AgreementSummaryCard({ caseId, agreementId }: AgreementSummaryCardProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { status, state, reload } = useAgreement(caseId);
+  const { status, state, reload } = useAgreement(caseId, agreementId);
 
   if (status === 'loading') {
     return (
@@ -99,7 +105,10 @@ export function AgreementSummaryCard({ caseId }: AgreementSummaryCardProps) {
           fullWidth
           onPress={() => {
             blurActiveElement();
-            router.push({ pathname: '/case/[id]/agreement', params: { id: caseId } });
+            router.push({
+              pathname: '/case/[id]/agreement',
+              params: agreementId === undefined ? { id: caseId } : { id: caseId, agreementId },
+            });
           }}
         >
           {t('agreement.summary.viewAction')}

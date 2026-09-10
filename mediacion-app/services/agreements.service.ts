@@ -40,10 +40,17 @@ const agreementTitlePrefix = 'Acuerdo — Ronda';
  */
 export type AgreementsService = {
   getAgreementState(caseId: string): Promise<AgreementState | null>;
+  /**
+   * Lectura por acuerdo, no por caso. Es la que usa la bandeja de firmas: con
+   * más de un acuerdo por caso, `caseId` ya no dice cuál abrir — y ésta es la
+   * pantalla que firma. `null` si no existe o no es legible por quien pide.
+   */
+  getAgreementStateById(agreementId: string): Promise<AgreementState | null>;
   getAgreement(caseId: string): Promise<SharedAgreement | null>;
-  prepareSignatureDocument(caseId: string): Promise<AgreementState>;
+  /** Con `agreementId`, manda ese borrador a firmar tal cual; sin él, el camino por caso (existente o generado). */
+  prepareSignatureDocument(caseId: string, agreementId?: string): Promise<AgreementState>;
   submitOwnMockSignature(caseId: string, agreementId: string): Promise<AgreementState>;
-  getAgreementHistory(caseId: string): Promise<AgreementHistoryItem[]>;
+  getAgreementHistory(caseId: string, agreementId?: string): Promise<AgreementHistoryItem[]>;
   /**
    * Registers a breach notice and answers with the agreement state **as it is
    * afterwards** — the backend moves the acuerdo to `con_aviso` in the same
@@ -81,6 +88,10 @@ export function __mockForceAgreementFailure(operation: ForcibleOperation): void 
 
 function getAgreementForCase(caseId: string): SharedAgreement | undefined {
   return mockAgreements.find((agreement) => agreement.caseId === caseId);
+}
+
+function getAgreementById(agreementId: string): SharedAgreement | undefined {
+  return mockAgreements.find((agreement) => agreement.id === agreementId);
 }
 
 function getSigners(agreementId: string): SharedSignerStatus[] {
@@ -205,11 +216,21 @@ export function createMockAgreementsService(): AgreementsService {
       return buildAgreementState(agreement);
     },
 
+    /**
+     * Nunca materializa: no hay caso del cual hacerlo. Un id que no está —una
+     * recarga en web con el id de una sesión anterior— es `null`, y la
+     * pantalla lo dice como "no encontrado", no como "todavía no hay acuerdo".
+     */
+    async getAgreementStateById(agreementId) {
+      const agreement = getAgreementById(agreementId);
+      return delay(agreement ? buildAgreementState(agreement) : null, 300);
+    },
+
     async getAgreement(caseId) {
       return ensureAgreementFromAcceptedProposal(caseId);
     },
 
-    async prepareSignatureDocument(caseId) {
+    async prepareSignatureDocument(caseId, agreementId) {
       const existing = preparationInFlight[caseId];
       if (existing) return existing;
 
@@ -218,8 +239,11 @@ export function createMockAgreementsService(): AgreementsService {
           return rejectAfter('agreement_preparation_failed', 600);
         }
 
-        const agreement = await ensureAgreementFromAcceptedProposal(caseId);
-        if (!agreement) return rejectAfter('agreement_not_found', 300);
+        const agreement =
+          agreementId === undefined
+            ? await ensureAgreementFromAcceptedProposal(caseId)
+            : getAgreementById(agreementId);
+        if (!agreement || agreement.caseId !== caseId) return rejectAfter('agreement_not_found', 300);
         // Only 'borrador' → 'enviado_a_firma' is allowed here — this alone
         // rejects duplicate preparation and any read-only state ('firmado',
         // 'con_aviso'), and there is no backward transition anywhere in this
@@ -320,8 +344,11 @@ export function createMockAgreementsService(): AgreementsService {
       }
     },
 
-    async getAgreementHistory(caseId) {
-      const agreement = await ensureAgreementFromAcceptedProposal(caseId);
+    async getAgreementHistory(caseId, agreementId) {
+      const agreement =
+        agreementId === undefined
+          ? await ensureAgreementFromAcceptedProposal(caseId)
+          : getAgreementById(agreementId);
       if (!agreement) return delay([], 300);
       const items = [...(mockHistory[agreement.id] ?? [])].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       return delay(items, 400);
@@ -409,6 +436,10 @@ export function createMockAgreementsService(): AgreementsService {
           caseId: caseSummary.id,
           caseTitle: caseSummary.title,
           agreementTitle: agreement.title,
+          // Lo que la API devuelve para el modelo viejo, que es el único que
+          // el mock tiene: sin materia, primera versión.
+          subjectType: null,
+          version: 1,
           estado: agreement.estado,
           ownStatus: own?.status ?? 'pendiente',
           completedAt: agreement.completedAt,
