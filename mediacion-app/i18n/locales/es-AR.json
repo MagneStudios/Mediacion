@@ -478,6 +478,10 @@
       "error": {
         "title": "No pudimos crear el caso",
         "retry": "Reintentar"
+      },
+      "subscriptionRequired": {
+        "title": "Necesitás un plan activo para crear casos",
+        "action": "Elegir un plan"
       }
     },
     "invite": {

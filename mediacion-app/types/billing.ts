@@ -94,9 +94,16 @@ export type SubscriptionUsage = {
  * camino real —plata que nadie cobró todavía— que es exactamente lo que este
  * repo se prohíbe.
  */
+/**
+ * `activated` es el plan de precio 0: no hay checkout que abrir porque no hay
+ * nada que cobrar, y el servidor ya dejó la suscripción en `activa`. Se
+ * distingue de `simulated` porque acá la suscripción es real y no hay factura
+ * que mostrar, y de `redirect` porque no hay a dónde redirigir.
+ */
 export type CheckoutStart =
   | { kind: 'simulated'; subscription: MockSubscription; invoice: MockInvoice }
-  | { kind: 'redirect'; subscriptionId: string; checkoutUrl: string };
+  | { kind: 'redirect'; subscriptionId: string; checkoutUrl: string }
+  | { kind: 'activated'; subscriptionId: string };
 
 export type MockPayment = {
   id: string;

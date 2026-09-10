@@ -11,11 +11,14 @@ describe("PagosService", () => {
     createPreference?: jest.Mock;
     getPayment?: jest.Mock;
     findProfileById?: jest.Mock;
+    activateFreeSuscripcion?: jest.Mock;
   }) {
     const pagosRepository = {
       findSuscripcionForPreference:
         overrides?.findSuscripcionForPreference ?? jest.fn(),
       applyPayment: overrides?.applyPayment ?? jest.fn(),
+      activateFreeSuscripcion:
+        overrides?.activateFreeSuscripcion ?? jest.fn().mockResolvedValue(),
     } as unknown as PagosRepository;
     const mercadoPagoClient = {
       createPreference: overrides?.createPreference ?? jest.fn(),
@@ -71,6 +74,95 @@ describe("PagosService", () => {
         init_point: "https://mp.example.com/checkout/pref-1",
       });
       expect(pagosRepository.applyPayment).not.toHaveBeenCalled();
+      expect(pagosRepository.activateFreeSuscripcion).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Mercado Pago rechaza con 400 toda preferencia de monto cero, y el único
+     * camino a `activa` es el webhook de un pago aprobado. Sin este atajo el
+     * plan gratuito es inalcanzable: la suscripción nace en `pendiente_pago`
+     * y `consume_quota` niega cada alta de caso.
+     */
+    it("activates a zero-price plan server-side instead of sending it to Mercado Pago", async () => {
+      const findSuscripcionForPreference = jest.fn().mockResolvedValue({
+        id: "sus-free",
+        plan_nombre: "base",
+        plan_precio: "0.00",
+        plan_moneda: "ARS",
+      });
+      const activateFreeSuscripcion = jest.fn().mockResolvedValue(undefined);
+      const createPreference = jest.fn();
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        activateFreeSuscripcion,
+        createPreference,
+      });
+
+      const result = await service.createPreference("sus-free", "user-a");
+
+      expect(activateFreeSuscripcion).toHaveBeenCalledWith("sus-free");
+      expect(createPreference).not.toHaveBeenCalled();
+      expect(result).toEqual({ init_point: null, estado: "activa" });
+    });
+
+    /**
+     * `planes.precio` es NUMERIC y el driver lo entrega como string, así que
+     * el precio de un plan pago nunca debe caer en la rama gratuita por una
+     * comparación floja.
+     */
+    it("keeps a priced plan on the Mercado Pago path even when the price arrives as a string", async () => {
+      const findSuscripcionForPreference = jest.fn().mockResolvedValue({
+        id: "sus-1",
+        plan_nombre: "simple",
+        plan_precio: "9.99",
+        plan_moneda: "ARS",
+      });
+      const activateFreeSuscripcion = jest.fn();
+      const createPreference = jest.fn().mockResolvedValue({
+        id: "pref-1",
+        initPoint: "https://mp.example.com/checkout/pref-1",
+      });
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        activateFreeSuscripcion,
+        createPreference,
+      });
+
+      const result = await service.createPreference("sus-1", "user-a");
+
+      expect(activateFreeSuscripcion).not.toHaveBeenCalled();
+      expect(createPreference).toHaveBeenCalled();
+      expect(result).toEqual({
+        init_point: "https://mp.example.com/checkout/pref-1",
+      });
+    });
+
+    /**
+     * Un precio ilegible se trata como pago: saltear el cobro de un plan que
+     * no es gratis es peor que mandar a Mercado Pago uno que sí lo es.
+     */
+    it("treats an unparseable price as a priced plan", async () => {
+      const findSuscripcionForPreference = jest.fn().mockResolvedValue({
+        id: "sus-1",
+        plan_nombre: "roto",
+        plan_precio: "no-es-un-numero",
+        plan_moneda: "ARS",
+      });
+      const activateFreeSuscripcion = jest.fn();
+      const createPreference = jest.fn().mockResolvedValue({
+        id: "pref-1",
+        initPoint: "https://mp.example.com/checkout/pref-1",
+      });
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        activateFreeSuscripcion,
+        createPreference,
+      });
+
+      await service.createPreference("sus-1", "user-a");
+
+      expect(activateFreeSuscripcion).not.toHaveBeenCalled();
+      expect(createPreference).toHaveBeenCalled();
     });
 
     it("resolves the caller's estudio_id from their profile to build the owner filter", async () => {

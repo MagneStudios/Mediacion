@@ -141,6 +141,15 @@ export default function PlanCheckoutScreen() {
         router.replace({ pathname: '/profile/plan/receipt', params: { subscriptionId: start.subscription.id } });
         return;
       }
+      if (start.kind === 'activated') {
+        blurActiveElement();
+        // Plan gratuito: la suscripción ya está `activa`, así que no hay pago
+        // que esperar. Va al callback y no al receipt porque el receipt vive
+        // de una factura, y acá no hay ninguna: nadie cobró nada. El callback
+        // lee `GET /suscripciones/vigente`, que ya responde `activa`.
+        router.replace('/billing/callback');
+        return;
+      }
       // Se guarda antes de abrir: si abrir falla, la suscripción ya existe y
       // esta URL es la única forma de pagarla sin crear otra.
       setCheckoutUrl(start.checkoutUrl);
