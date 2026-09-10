@@ -25,10 +25,11 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 
 ## 1 · Estado por punto
 
-### #1 — TyC dentro del alta
-- [ ] Quitar `AcceptanceCheckboxes`, estado `termsAccepted`/`marketingAccepted` y `legalService.registerAcceptance()` de `app/profile/plan/checkout.tsx`.
-- [ ] Actualizar `app/profile/plan/__tests__/checkout.test.tsx`.
-- No tocar `ReacceptanceGate` (mecanismo distinto).
+### #1 — TyC dentro del alta ✅ (10/09)
+- [x] Se sacó `AcceptanceCheckboxes`, el estado `termsAccepted`/`marketingAccepted` y la llamada a `legalService.registerAcceptance()` de `app/profile/plan/checkout.tsx`. El botón de pago ya no depende de aceptar nada — la aceptación quedó una sola vez, en el signup.
+- [x] `app/profile/plan/__tests__/checkout.test.tsx` reescrito sin los asserts de checkbox/gate.
+- No se tocó `ReacceptanceGate` (mecanismo distinto: reaceptación de nuevas versiones de TyC).
+- Suite completa verde (148/148), `tsc --noEmit` sin errores.
 
 ### #2 — Elección de plan dentro del alta
 - [ ] `app/signup/_layout.tsx`, `app/signup/index.tsx` (paso 1, ex `app/signup.tsx`), `app/signup/plan.tsx` (paso 2).
