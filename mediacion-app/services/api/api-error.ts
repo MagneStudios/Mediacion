@@ -124,6 +124,14 @@ export const codeQuotaExceeded = 'quota_exceeded';
  * for both.
  */
 export const codePlanLimitExceeded = 'plan_limit_exceeded';
+/**
+ * `GET /me` (and, separately, `PATCH /me`) found no `usuarios` row for the
+ * caller's id — a real record, not a sync delay. Grouped with
+ * `codeUserNotProvisioned` by `is-unrecoverable-session-error.ts`: both mean
+ * "this signed-in identity has no account on our side", and both need the
+ * same reaction (sign out), not a retry that will fail identically forever.
+ */
+export const codeProfileNotFound = 'profile_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';
