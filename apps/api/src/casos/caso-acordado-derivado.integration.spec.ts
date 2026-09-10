@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Database } from "@mediacion/db-types";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "./caso-estado.fixture";
 import { CasosRepository } from "./casos.repository";
 import type { Caso } from "./casos.types";
 
@@ -73,20 +74,19 @@ describeDb(
     async function createCaso(
       estado: Caso["estado"] = "en_negociacion",
     ): Promise<string> {
-      const caso = await kysely
-        .insertInto("casos")
-        .values({
+      const casoId = await insertCasoEnEstado(
+        kysely,
+        {
           creador_id: creadorId,
           nombre: `Caso acordado derivado ${randomUUID()}`,
           metodo: "mediacion",
-          estado,
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      cleanup.push(() =>
-        kysely.deleteFrom("casos").where("id", "=", caso.id).execute(),
+        },
+        estado,
       );
-      return caso.id;
+      cleanup.push(() =>
+        kysely.deleteFrom("casos").where("id", "=", casoId).execute(),
+      );
+      return casoId;
     }
 
     async function createNegociacion(

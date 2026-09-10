@@ -32,15 +32,17 @@ export default function AgreementDashboardScreen() {
   const { id: caseId, agreementId: expectedAgreementId } = useLocalSearchParams<{
     id: string;
     /**
-     * Opcional: lo manda la bandeja de firmas, que sí sabe qué acuerdo
-     * prometió abrir. Entrando desde el caso no viene, y no hace falta.
+     * Lo manda quien sabe qué acuerdo quiere abrir —la bandeja de firmas, la
+     * tarjeta de una materia— y con él la pantalla **lee por acuerdo**, no por
+     * caso. Entrando desde el caso sin id se lee "el acuerdo del caso", que
+     * es correcto mientras haya uno solo.
      */
     agreementId?: string;
   }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { status, state, reload, prepareStatus, prepareDocument, breachStatus, reportBreach, resetBreachStatus } =
-    useAgreement(caseId);
+    useAgreement(caseId, expectedAgreementId);
   const breachNotices = useBreachNotices(state?.agreement.id ?? null);
   // RN-14: tasks are generated only once every signature completed, so a
   // draft or in-signature agreement cannot have any — asking would be a
@@ -86,6 +88,26 @@ export default function AgreementDashboardScreen() {
     );
   }
 
+  /*
+    Sin resultado con un id pedido no es "todavía no hay acuerdo": alguien
+    prometió abrir un documento concreto y no está, o no es legible. Decir
+    "no hay acuerdo" sobre uno firmado sería falso. Es alcanzable: una
+    recarga en web con el id de una sesión anterior del mock.
+  */
+  if (!state && expectedAgreementId) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: t('agreement.dashboard.title') }} />
+        <ErrorState
+          title={t('agreement.dashboard.notFound.title')}
+          description={t('agreement.dashboard.notFound.description')}
+          retryLabel={t('states.error.retry')}
+          onRetry={reload}
+        />
+      </View>
+    );
+  }
+
   if (!state) {
     return (
       <View style={styles.container}>
@@ -99,14 +121,9 @@ export default function AgreementDashboardScreen() {
   }
 
   /*
-    La pantalla se carga por caso, así que devuelve *un* acuerdo del caso.
-    Mientras haya uno solo (`UNIQUE (caso_id)`) siempre es el correcto, pero
-    el cliente pidió uno por materia: el día que haya dos, entrar desde la
-    fila "Alimentos" de la bandeja y que se abra el de tenencia se vería
-    exactamente igual que funcionar bien — y esto es una pantalla que firma.
-
-    Preferimos fallar ruidoso. Hoy esta rama es inalcanzable; el día que deje
-    de serlo, avisa en vez de mostrar el documento equivocado.
+    Con id la lectura ya es por acuerdo (`GET /acuerdos/:id`), así que esto
+    no puede fallar por construcción. Se queda como defensa: es una pantalla
+    que firma, y un documento equivocado se vería igual que funcionar bien.
   */
   if (expectedAgreementId && state.agreement.id !== expectedAgreementId) {
     return (
@@ -267,7 +284,13 @@ export default function AgreementDashboardScreen() {
           fullWidth
           onPress={() => {
             blurActiveElement();
-            router.push({ pathname: '/case/[id]/agreement/sign', params: { id: caseId } });
+            router.push({
+              pathname: '/case/[id]/agreement/sign',
+              // La pantalla de firma lee por el mismo id que ésta: es la que
+              // firma, y el riesgo de abrir otro documento se cierra ahí o no
+              // se cierra.
+              params: { id: caseId, agreementId: agreement.id },
+            });
           }}
         >
           {t('agreement.sign.goToAction')}
@@ -341,7 +364,7 @@ export default function AgreementDashboardScreen() {
             fullWidth
             onPress={() => {
               blurActiveElement();
-              router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
+              router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId, agreementId: agreement.id } });
             }}
           >
             {t('agreement.history.viewAction')}
@@ -354,7 +377,7 @@ export default function AgreementDashboardScreen() {
           fullWidth
           onPress={() => {
             blurActiveElement();
-            router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId } });
+            router.push({ pathname: '/case/[id]/agreement/history', params: { id: caseId, agreementId: agreement.id } });
           }}
         >
           {t('agreement.history.viewAction')}

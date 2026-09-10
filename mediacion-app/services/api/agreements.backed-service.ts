@@ -64,17 +64,36 @@ export function createBackedAgreementsService(
     return bundle === null ? null : buildState(caseId, bundle);
   }
 
-  async function reload(caseId: string): Promise<AgreementState> {
-    const state = await loadState(caseId);
+  /** The caso id comes from the bundle itself — nothing is assumed about it. */
+  async function loadStateById(agreementId: string): Promise<AgreementState | null> {
+    const bundle = await api.getById(agreementId);
+    return bundle === null ? null : buildState(bundle.acuerdo.caso_id, bundle);
+  }
+
+  /**
+   * Every re-read after a write goes by acuerdo id. A caso can hold more than
+   * one acuerdo, so re-reading by caso after signing could hand the screen a
+   * different document than the one just signed.
+   */
+  async function reloadById(agreementId: string): Promise<AgreementState> {
+    const state = await loadStateById(agreementId);
     if (state === null) {
-      throw new Error(`Acuerdo for caso ${caseId} was not readable`);
+      throw new Error(`Acuerdo ${agreementId} was not readable`);
     }
     return state;
+  }
+
+  async function loadStateFor(caseId: string, agreementId: string | undefined): Promise<AgreementState | null> {
+    return agreementId === undefined ? loadState(caseId) : loadStateById(agreementId);
   }
 
   return {
     getAgreementState(caseId: string): Promise<AgreementState | null> {
       return loadState(caseId);
+    },
+
+    getAgreementStateById(agreementId: string): Promise<AgreementState | null> {
+      return loadStateById(agreementId);
     },
 
     async getAgreement(caseId: string): Promise<SharedAgreement | null> {
@@ -83,18 +102,33 @@ export function createBackedAgreementsService(
     },
 
     /**
-     * "Preparing the document" is the draft→signature transition. If no acuerdo
-     * exists yet it is generated first, because a caso with an accepted
-     * propuesta and no acuerdo row is exactly the state this action exists to
-     * resolve.
+     * "Preparing the document" is the draft→signature transition. Without an
+     * id, and with no acuerdo yet, it is generated first: a caso with an
+     * accepted propuesta and no acuerdo row is exactly the state this action
+     * exists to resolve.
+     *
+     * With an id the draft already exists and is sent as is — never
+     * regenerated. After a renegociación the next draft is created server-side
+     * (`POST /negociaciones/:id/renegociar`), and `POST /casos/:id/acuerdo`
+     * would answer `409 acuerdo_already_exists` for it.
      */
-    async prepareSignatureDocument(caseId: string): Promise<AgreementState> {
+    async prepareSignatureDocument(caseId: string, agreementId?: string): Promise<AgreementState> {
+      if (agreementId !== undefined) {
+        const bundle = await api.getById(agreementId);
+        if (bundle === null) {
+          throw new Error(`Acuerdo ${agreementId} was not readable`);
+        }
+        if (bundle.acuerdo.estado === 'borrador') {
+          await api.sendToSignature(agreementId);
+        }
+        return reloadById(agreementId);
+      }
       const existing = await api.getForCase(caseId);
       const acuerdo = existing?.acuerdo ?? (await api.generate(caseId));
       if (acuerdo.estado === 'borrador') {
         await api.sendToSignature(acuerdo.id);
       }
-      return reload(caseId);
+      return reloadById(acuerdo.id);
     },
 
     async submitOwnMockSignature(
@@ -102,7 +136,7 @@ export function createBackedAgreementsService(
       agreementId: string,
     ): Promise<AgreementState> {
       await api.sendToSignature(agreementId);
-      return reload(caseId);
+      return reloadById(agreementId);
     },
 
     /**
@@ -110,8 +144,8 @@ export function createBackedAgreementsService(
      * always true once the row exists; `document_ready` only once it left
      * borrador and carries the timestamp that proves it.
      */
-    async getAgreementHistory(caseId: string): Promise<AgreementHistoryItem[]> {
-      const state = await loadState(caseId);
+    async getAgreementHistory(caseId: string, agreementId?: string): Promise<AgreementHistoryItem[]> {
+      const state = await loadStateFor(caseId, agreementId);
       if (state === null) {
         return [];
       }
@@ -160,7 +194,7 @@ export function createBackedAgreementsService(
       description: string,
     ): Promise<AgreementState> {
       await api.registerBreach(agreementId, description);
-      return reload(caseId);
+      return reloadById(agreementId);
     },
 
     getBreachNotices(agreementId: string): Promise<BreachNotice[]> {

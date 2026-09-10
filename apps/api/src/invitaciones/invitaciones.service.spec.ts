@@ -54,6 +54,7 @@ describe("InvitacionesService", () => {
         tipo: "link",
         token: "tok-abc",
         estado: "pendiente",
+        pago_a_cargo: null,
       });
       const { service } = buildService({ assertMembership, createInvite });
 
@@ -67,13 +68,97 @@ describe("InvitacionesService", () => {
         "link",
         "tok-abc",
         null,
+        null,
       );
       expect(result).toEqual({
         id: "inv-1",
         tipo: "link",
         token: "tok-abc",
         estado: "pendiente",
+        pago_a_cargo: null,
       });
+    });
+
+    it("R-07 · pago_a_cargo viaja al repositorio y vuelve en la respuesta", async () => {
+      const assertMembership = jest
+        .fn()
+        .mockResolvedValue({ rol_en_caso: "parte_a" });
+      const createInvite = jest.fn().mockResolvedValue({
+        id: "inv-9",
+        tipo: "email",
+        token: "tok-xyz",
+        estado: "pendiente",
+        pago_a_cargo: "invitador",
+      });
+      const { service } = buildService({ assertMembership, createInvite });
+
+      const result = await service.createInvitation("caso-1", "user-a", {
+        tipo: "email",
+        email_destino: "b@example.com",
+        pago_a_cargo: "invitador",
+      });
+
+      expect(createInvite).toHaveBeenCalledWith(
+        "caso-1",
+        "email",
+        expect.any(String),
+        "b@example.com",
+        "invitador",
+      );
+      expect(result.pago_a_cargo).toBe("invitador");
+    });
+
+    it("R-07 · un pago_a_cargo fuera del CHECK es 400, no un 409 genérico", async () => {
+      const assertMembership = jest.fn();
+      const createInvite = jest.fn();
+      const { service } = buildService({ assertMembership, createInvite });
+
+      let thrown: unknown;
+      try {
+        await service.createInvitation("caso-1", "user-a", {
+          tipo: "link",
+          pago_a_cargo: "estudio" as never,
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(400);
+      expect((thrown as HttpException).getResponse()).toMatchObject({
+        code: "invalid_input",
+      });
+      expect(assertMembership).not.toHaveBeenCalled();
+      expect(createInvite).not.toHaveBeenCalled();
+    });
+
+    it("R-07 · ausente o null pasa: la columna es nullable y el CHECK deja pasar NULL", async () => {
+      for (const pago of [undefined, null] as const) {
+        const assertMembership = jest
+          .fn()
+          .mockResolvedValue({ rol_en_caso: "parte_a" });
+        const createInvite = jest.fn().mockResolvedValue({
+          id: "inv-1",
+          tipo: "link",
+          token: "t",
+          estado: "pendiente",
+          pago_a_cargo: null,
+        });
+        const { service } = buildService({ assertMembership, createInvite });
+
+        await service.createInvitation("caso-1", "user-a", {
+          tipo: "link",
+          pago_a_cargo: pago,
+        });
+
+        expect(createInvite).toHaveBeenCalledWith(
+          "caso-1",
+          "link",
+          expect.any(String),
+          null,
+          null,
+        );
+      }
     });
 
     it("rejects a member who is not parte_a with 403, never creating an invite", async () => {
@@ -162,6 +247,7 @@ describe("InvitacionesService", () => {
         "email",
         "tok-abc",
         "target@test.com",
+        null,
       );
     });
 

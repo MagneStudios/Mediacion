@@ -1,28 +1,30 @@
-import { mockCases, mockCaseDetails } from '../mocks/cases';
-import { buildInitialAgreements, buildInitialHistory, buildInitialSigners, simulatedOtherPartySignature } from '../mocks/agreements';
+import { mockCases } from '../mocks/cases';
+import { simulatedOtherPartySignature } from '../mocks/agreements';
 import type {
   AgreementExport,
   AgreementHistoryItem,
-  AgreementHistoryEventKey,
   AgreementState,
   BreachNotice,
   SharedAgreement,
   SharedSignerStatus,
   SignatureInboxItem,
 } from '../types/agreement';
-import { generateMockAgreementId, generateMockBreachNoticeId, generateMockHistoryId } from '../utils/mock-id';
+import { generateMockBreachNoticeId } from '../utils/mock-id';
 import { createBackedAgreementsService } from './api/agreements.backed-service';
 import { backend } from './backend-instance';
 import { casesService } from './cases.service';
+import {
+  appendHistory,
+  getAgreementById,
+  getAgreementForCase,
+  getSigners,
+  materializeFromAcceptedProposal,
+  mockAgreements,
+  mockHistory,
+  mockSigners,
+} from './mock-agreement-store';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { negotiationService } from './negotiation.service';
-
-/**
- * The engine produces no agreement title, so the round it came from is the
- * only honest label. Not localized here: the real agreements service will read
- * `acuerdos.contenido` from the API instead of building this string.
- */
-const agreementTitlePrefix = 'Acuerdo — Ronda';
 
 /**
  * Replaceable service boundary for shared agreements and mock signatures.
@@ -40,10 +42,17 @@ const agreementTitlePrefix = 'Acuerdo — Ronda';
  */
 export type AgreementsService = {
   getAgreementState(caseId: string): Promise<AgreementState | null>;
+  /**
+   * Lectura por acuerdo, no por caso. Es la que usa la bandeja de firmas: con
+   * más de un acuerdo por caso, `caseId` ya no dice cuál abrir — y ésta es la
+   * pantalla que firma. `null` si no existe o no es legible por quien pide.
+   */
+  getAgreementStateById(agreementId: string): Promise<AgreementState | null>;
   getAgreement(caseId: string): Promise<SharedAgreement | null>;
-  prepareSignatureDocument(caseId: string): Promise<AgreementState>;
+  /** Con `agreementId`, manda ese borrador a firmar tal cual; sin él, el camino por caso (existente o generado). */
+  prepareSignatureDocument(caseId: string, agreementId?: string): Promise<AgreementState>;
   submitOwnMockSignature(caseId: string, agreementId: string): Promise<AgreementState>;
-  getAgreementHistory(caseId: string): Promise<AgreementHistoryItem[]>;
+  getAgreementHistory(caseId: string, agreementId?: string): Promise<AgreementHistoryItem[]>;
   /**
    * Registers a breach notice and answers with the agreement state **as it is
    * afterwards** — the backend moves the acuerdo to `con_aviso` in the same
@@ -56,10 +65,11 @@ export type AgreementsService = {
   getSignatureInbox(): Promise<SignatureInboxItem[]>;
 };
 
-/** In-memory only — cleared on app restart, never written to disk, never logged. */
-const mockAgreements: SharedAgreement[] = buildInitialAgreements();
-const mockSigners: Record<string, SharedSignerStatus[]> = buildInitialSigners();
-const mockHistory: Record<string, AgreementHistoryItem[]> = buildInitialHistory();
+/*
+  El store (acuerdos, firmantes, historial) vive en `mock-agreement-store.ts`
+  porque `negotiation.service.ts` también lo lee, y este archivo ya lo importa
+  a él. Ver el comentario de ese módulo.
+*/
 
 /** In-memory only, keyed by agreement id — cleared on app restart, never written to disk. */
 const mockBreachNotices: Record<string, BreachNotice[]> = {};
@@ -77,19 +87,6 @@ const failures = createFailureController<ForcibleOperation>();
 
 export function __mockForceAgreementFailure(operation: ForcibleOperation): void {
   failures.force(operation);
-}
-
-function getAgreementForCase(caseId: string): SharedAgreement | undefined {
-  return mockAgreements.find((agreement) => agreement.caseId === caseId);
-}
-
-function getSigners(agreementId: string): SharedSignerStatus[] {
-  return mockSigners[agreementId] ?? [];
-}
-
-function appendHistory(agreementId: string, eventKey: AgreementHistoryEventKey, status: SharedAgreement['estado'], timestamp?: string): void {
-  const list = mockHistory[agreementId] ?? (mockHistory[agreementId] = []);
-  list.push({ id: generateMockHistoryId(), eventKey, timestamp: timestamp ?? new Date().toISOString(), status });
 }
 
 function buildAgreementState(agreement: SharedAgreement, signers?: SharedSignerStatus[]): AgreementState {
@@ -124,11 +121,10 @@ const preparationInFlight: Record<string, Promise<AgreementState> | undefined> =
 const signatureInFlight: Record<string, Promise<AgreementState> | undefined> = {};
 
 /**
- * Deterministic mock materialization: an agreement only ever comes into
- * existence here, lazily, the first time it's needed for a case — and only
- * ever from a genuinely accepted shared proposal. Idempotent: repeated
- * calls for the same case return the same agreement, never a duplicate. A
- * failed or negative lookup never mutates anything.
+ * Lazily materializes the case's agreement from its accepted proposal, at
+ * most once per case (`materializeFromAcceptedProposal` is idempotent and the
+ * in-flight map covers the await on `negotiationService`). A failed or
+ * negative lookup never mutates anything.
  */
 async function ensureAgreementFromAcceptedProposal(caseId: string): Promise<SharedAgreement | null> {
   const existing = getAgreementForCase(caseId);
@@ -138,55 +134,12 @@ async function ensureAgreementFromAcceptedProposal(caseId: string): Promise<Shar
   if (inFlight) return inFlight;
 
   const promise = (async (): Promise<SharedAgreement | null> => {
-    // 1. Validate case existence.
-    const caseDetail = mockCaseDetails[caseId];
-    if (!caseDetail) return null;
-
-    // 2 & 3. The only "eligibility" gate is a genuinely accepted proposal —
-    // never nuevo, never activo/en_negociacion without joint acceptance,
-    // never a terminal state without one either. No case-estado branching
-    // beyond this is needed: only an accepted proposal ever exists at all.
+    // The only "eligibility" gate is a genuinely accepted proposal — never
+    // nuevo, never activo/en_negociacion without joint acceptance, never a
+    // terminal state without one either.
     const accepted = await negotiationService.getAcceptedProposal(caseId);
-    if (!accepted || accepted.estado !== 'aceptada' || accepted.caseId !== caseId) {
-      // 4/5/6. No accepted shared proposal — never invent agreement content.
-      return null;
-    }
-
-    // Re-check idempotency after the await in case a concurrent call
-    // committed while this one was waiting on negotiationService.
-    const raceCheck = getAgreementForCase(caseId);
-    if (raceCheck) return raceCheck;
-
-    // 7. Build the complete next object first…
-    const now = new Date().toISOString();
-    const agreement: SharedAgreement = {
-      id: generateMockAgreementId(),
-      caseId,
-      sourceProposalId: accepted.id,
-      sourceRoundNumber: accepted.roundNumber,
-      title: `${agreementTitlePrefix} ${accepted.roundNumber}`,
-      // The agreed content IS the meeting point the parties accepted — the
-      // agreement invents nothing the proposal did not already contain.
-      summary: accepted.narrative ?? '',
-      terms: accepted.meetingPoint.map((entry) => ({
-        id: `${accepted.id}-${entry.categoria}`,
-        title: entry.categoria,
-        description: entry.punto === null ? entry.estado : String(entry.punto),
-      })),
-      rationale: accepted.rationale,
-      estado: 'borrador',
-      createdAt: now,
-    };
-    const signers: SharedSignerStatus[] = [
-      { role: 'authenticated_party', status: 'pendiente' },
-      { role: 'other_party', status: 'pendiente' },
-    ];
-
-    // 8. …then commit atomically.
-    mockAgreements.push(agreement);
-    mockSigners[agreement.id] = signers;
-    appendHistory(agreement.id, 'agreement_created', 'borrador', now);
-    return agreement;
+    if (!accepted) return null;
+    return materializeFromAcceptedProposal(caseId, accepted);
   })();
 
   materializationInFlight[caseId] = promise;
@@ -205,11 +158,21 @@ export function createMockAgreementsService(): AgreementsService {
       return buildAgreementState(agreement);
     },
 
+    /**
+     * Nunca materializa: no hay caso del cual hacerlo. Un id que no está —una
+     * recarga en web con el id de una sesión anterior— es `null`, y la
+     * pantalla lo dice como "no encontrado", no como "todavía no hay acuerdo".
+     */
+    async getAgreementStateById(agreementId) {
+      const agreement = getAgreementById(agreementId);
+      return delay(agreement ? buildAgreementState(agreement) : null, 300);
+    },
+
     async getAgreement(caseId) {
       return ensureAgreementFromAcceptedProposal(caseId);
     },
 
-    async prepareSignatureDocument(caseId) {
+    async prepareSignatureDocument(caseId, agreementId) {
       const existing = preparationInFlight[caseId];
       if (existing) return existing;
 
@@ -218,8 +181,11 @@ export function createMockAgreementsService(): AgreementsService {
           return rejectAfter('agreement_preparation_failed', 600);
         }
 
-        const agreement = await ensureAgreementFromAcceptedProposal(caseId);
-        if (!agreement) return rejectAfter('agreement_not_found', 300);
+        const agreement =
+          agreementId === undefined
+            ? await ensureAgreementFromAcceptedProposal(caseId)
+            : getAgreementById(agreementId);
+        if (!agreement || agreement.caseId !== caseId) return rejectAfter('agreement_not_found', 300);
         // Only 'borrador' → 'enviado_a_firma' is allowed here — this alone
         // rejects duplicate preparation and any read-only state ('firmado',
         // 'con_aviso'), and there is no backward transition anywhere in this
@@ -320,8 +286,11 @@ export function createMockAgreementsService(): AgreementsService {
       }
     },
 
-    async getAgreementHistory(caseId) {
-      const agreement = await ensureAgreementFromAcceptedProposal(caseId);
+    async getAgreementHistory(caseId, agreementId) {
+      const agreement =
+        agreementId === undefined
+          ? await ensureAgreementFromAcceptedProposal(caseId)
+          : getAgreementById(agreementId);
       if (!agreement) return delay([], 300);
       const items = [...(mockHistory[agreement.id] ?? [])].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       return delay(items, 400);
@@ -409,6 +378,10 @@ export function createMockAgreementsService(): AgreementsService {
           caseId: caseSummary.id,
           caseTitle: caseSummary.title,
           agreementTitle: agreement.title,
+          // Lo que la API devuelve para el modelo viejo, que es el único que
+          // el mock tiene: sin materia, primera versión.
+          subjectType: null,
+          version: 1,
           estado: agreement.estado,
           ownStatus: own?.status ?? 'pendiente',
           completedAt: agreement.completedAt,
@@ -420,15 +393,20 @@ export function createMockAgreementsService(): AgreementsService {
 }
 
 /** Default instance consumed by the feature hooks — the single place to swap in a real API-backed implementation later. */
-export const agreementsService: AgreementsService = backend
-  ? createBackedAgreementsService(backend.agreements, {
+/*
+  `live` es `backend` ya estrechado: dentro del closure async TypeScript
+  vuelve a verlo como `Backend | null`.
+*/
+const live = backend;
+export const agreementsService: AgreementsService = live
+  ? createBackedAgreementsService(live.agreements, {
       getCaseTitle: (caseId) => casesService.getCaseTitle(caseId),
       getAcceptedRoundNumber: async (caseId) => {
         const accepted = await negotiationService.getAcceptedProposal(caseId);
         return accepted?.roundNumber ?? 0;
       },
       getCurrentUserId: async () => {
-        const session = await backend.auth.getSession();
+        const session = await live.auth.getSession();
         return session?.user?.id ?? null;
       },
     })

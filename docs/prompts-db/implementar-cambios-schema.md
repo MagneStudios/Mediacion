@@ -169,6 +169,6 @@ El archivo `packages/db-types/src/database.types.ts` está **mantenido a mano** 
 - `validate_rls.py` pasa.
 - El tipo `expired` en `estado_caso` es validado en transición por el trigger.
 - `plans.limite_casos IS NULL` = ilimitado, y el seed del plan "estudio" se inserta sin error.
-- `invitacion_ttl_horas` y `impuestos` existen en `configuracion` y se leen desde el backend.
+- ~~`invitacion_ttl_horas` existe en `configuracion` (semilla 72 h) pero **el backend NO la lee**~~ → **RESUELTO 09-09:** `joinCase` lee `configuracion.invitacion_ttl_horas` desde el backend (`apps/api/src/invitaciones/invitaciones.repository.ts`, fallback `DEFAULT_INVITATION_TTL_HOURS = 72` en `invitation-ttl.ts`) — cerró la corrección de auditoría FE 09-09 (§1 `docs/auditoria-desbloqueos-09-09-2026.md`). `impuestos` — **fuente confirmada**: `configuracion.impuestos` (R-09, seed `{"AR":{"iva":21,"otros_impuestos":0}}`) es la fuente parametrizable por país para el futuro módulo de facturación BE; hoy no existe código que lo consuma (no hay módulo facturas en `apps/api`).
 - Los tests de integración existentes (ci-node.yml con Postgres) no rompen.
 - `packages/db-types` compila (el typecheck `tsc -b` en raíz no da errores en `@mediacion/db-types`).

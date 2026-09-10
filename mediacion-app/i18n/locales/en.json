@@ -121,6 +121,10 @@
       "mismatch": {
         "title": "We couldn't open that agreement",
         "description": "The agreement you opened isn't the one we expected for this case. Go back to the signatures inbox and try again, so you don't review the wrong document."
+      },
+      "notFound": {
+        "title": "We couldn't find that agreement",
+        "description": "The agreement you tried to open doesn't exist or is no longer available to you. Go back to the signatures inbox and try again."
       }
     },
     "sharedMarker": {
@@ -225,7 +229,8 @@
         "waitingOther": "Waiting for the other party",
         "completed": "Completed",
         "withNotice": "Under notice"
-      }
+      },
+      "subjectVersion": "{{subject}} · v{{version}}"
     },
     "breachNotice": {
       "form": {
@@ -517,6 +522,26 @@
     }
   },
   "caseDetail": {
+    "deadline": {
+      "title": "Response deadline",
+      "none": "No response deadline has been set yet.",
+      "remaining": "{{hours}} h left on the deadline.",
+      "description": "Set how long you are willing to wait for a reply. The other party sees it on the case, and the dashboard traffic light reflects the time left.",
+      "preset": {
+        "24": "24 hours",
+        "72": "3 days",
+        "168": "1 week"
+      },
+      "error": "We couldn't set the deadline. Try again."
+    },
+    "terminate": {
+      "action": "End the negotiation",
+      "dialogTitle": "End this negotiation?",
+      "dialogBody": "We record that you ended the negotiation, with the date and time. The case stays in your history and the other party sees it as ended. It cannot be reopened: if you both want to negotiate again later, you will need to create a new case.",
+      "confirm": "Yes, end it",
+      "cancel": "No, keep negotiating",
+      "error": "We couldn't end the negotiation."
+    },
     "caseCode": "Case {{code}}",
     "privacyNotice": "Your private positions are never shared with the other party. They will only see what you choose to propose.",
     "awaitingCounterparty": {
@@ -594,6 +619,7 @@
       "inReview": "In review",
       "proposalReady": "Proposal ready",
       "signed": "Signed",
+      "terminated": "Negotiation ended",
       "awaitingCounterparty": "Waiting for the other party",
       "awaitingSubscriptions": "Subscriptions not active yet",
       "expired": "Invitation expired",
@@ -615,6 +641,8 @@
       "proposalReady": "There's a proposal waiting for your response.",
       "signed": "The agreement was signed by both parties.",
       "awaitingCounterparty": "Waiting for the other party to join the case.",
+      "awaitingSubscriptions": "The case cannot open until both parties have an active subscription.",
+      "terminated": "One of the parties ended the negotiation.",
       "expired": "Nobody joined in time. Start a new case to continue."
     },
     "cta": {
@@ -751,6 +779,12 @@
     "conciliacion": "Conciliation",
     "mediacion": "Mediation"
   },
+  "subjectTypes": {
+    "tenencia": "Custody",
+    "alimentos": "Child support",
+    "bienes": "Assets",
+    "otro": "Other"
+  },
   "negotiation": {
     "sectionTitle": "Negotiation",
     "summary": {
@@ -802,6 +836,35 @@
         "title": "Negotiation closed",
         "description": "This case no longer accepts new proposals or responses.",
         "status": "Closed"
+      }
+    },
+    "list": {
+      "error": {
+        "title": "We couldn't load the case's negotiations"
+      }
+    },
+    "materia": {
+      "none": "No subject assigned"
+    },
+    "estado": {
+      "borrador": "Draft",
+      "activa": "Active",
+      "acordada": "Agreed",
+      "cerrada": "Closed",
+      "terminada": "Ended"
+    },
+    "agreementVersion": "Agreement v{{version}}",
+    "renegotiate": {
+      "action": "Renegotiate",
+      "dialog": {
+        "title": "Open a new round on this agreement?",
+        "body": "The signed agreement stops being in force, but it is kept. A new round opens starting from its content, and the case goes back to negotiation.",
+        "confirm": "Renegotiate",
+        "cancel": "Cancel"
+      },
+      "error": {
+        "title": "We couldn't open the new round",
+        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list."
       }
     },
     "dashboard": {

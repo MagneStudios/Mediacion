@@ -14,9 +14,12 @@ describe("readAcceptedPropuesta", () => {
     const propuestaOrderBy1 = jest
       .fn()
       .mockReturnValue({ orderBy: propuestaOrderBy2 });
-    const propuestaWhere2 = jest
+    const propuestaWhere3 = jest
       .fn()
       .mockReturnValue({ orderBy: propuestaOrderBy1 });
+    const propuestaWhere2 = jest
+      .fn()
+      .mockReturnValue({ where: propuestaWhere3 });
     const propuestaWhere1 = jest
       .fn()
       .mockReturnValue({ where: propuestaWhere2 });
@@ -46,22 +49,28 @@ describe("readAcceptedPropuesta", () => {
       selectFrom,
       propuestaWhere1,
       propuestaWhere2,
+      propuestaWhere3,
       propuestaOrderBy1,
       propuestaOrderBy2,
       respuestasWhere,
     };
   }
 
-  it("loads the accepted propuesta and its respuestas for the caso", async () => {
+  it("loads the accepted propuesta and its respuestas for the negociacion", async () => {
     const propuesta = {
       id: "propuesta-1",
       caso_id: "caso-1",
+      negociacion_id: "neg-1",
       estado: "aceptada",
     };
     const respuestas = [{ id: "respuesta-1", propuesta_id: "propuesta-1" }];
     const fakeKysely = createFakeKysely({ propuesta, respuestas });
 
-    const result = await readAcceptedPropuesta(fakeKysely as never, "caso-1");
+    const result = await readAcceptedPropuesta(
+      fakeKysely as never,
+      "caso-1",
+      "neg-1",
+    );
 
     expect(fakeKysely.propuestaWhere1).toHaveBeenCalledWith(
       "caso_id",
@@ -69,6 +78,11 @@ describe("readAcceptedPropuesta", () => {
       "caso-1",
     );
     expect(fakeKysely.propuestaWhere2).toHaveBeenCalledWith(
+      "negociacion_id",
+      "=",
+      "neg-1",
+    );
+    expect(fakeKysely.propuestaWhere3).toHaveBeenCalledWith(
       "estado",
       "=",
       "aceptada",
@@ -92,7 +106,11 @@ describe("readAcceptedPropuesta", () => {
       respuestas: [],
     });
 
-    const result = await readAcceptedPropuesta(fakeKysely as never, "caso-1");
+    const result = await readAcceptedPropuesta(
+      fakeKysely as never,
+      "caso-1",
+      "neg-1",
+    );
 
     expect(result).toBeUndefined();
     expect(fakeKysely.selectFrom).toHaveBeenCalledTimes(1);

@@ -2,7 +2,7 @@ import { HttpException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { NegociacionController } from "./negociacion.controller";
 import type { NegociacionService } from "./negociacion.service";
-import type { PropuestaView } from "./negociacion.types";
+import type { NegociacionView, PropuestaView } from "./negociacion.types";
 
 const parteA: AuthenticatedUser = {
   id: "user-a",
@@ -15,6 +15,7 @@ describe("NegociacionController", () => {
     const pending: PropuestaView = {
       id: "prop-1",
       caso_id: "caso-1",
+      negociacion_id: "neg-1",
       ronda_id: "ronda-1",
       contenido: { meetingPoint: [], narrative: null },
       fundamentacion: null,
@@ -52,6 +53,7 @@ describe("NegociacionController", () => {
     const aceptada: PropuestaView = {
       id: "prop-1",
       caso_id: "caso-1",
+      negociacion_id: "neg-1",
       ronda_id: "ronda-1",
       contenido: { meetingPoint: [], narrative: "texto" },
       fundamentacion: null,
@@ -139,5 +141,101 @@ describe("NegociacionController", () => {
 
     expect(renegociar).toHaveBeenCalledWith("negociacion-1", "user-a");
     expect(result).toBe(view);
+  });
+
+  it("createNegociacion passes the caso id, the caller and the body through to the service", async () => {
+    const creada: NegociacionView = {
+      id: "negociacion-2",
+      caso_id: "caso-1",
+      subject_type: "alimentos",
+      metodo: "mediacion",
+      estado: "borrador",
+      ronda_actual: 1,
+      acuerdo_vigente: null,
+      created_at: "now",
+    };
+    const crearNegociacion = jest.fn().mockResolvedValue(creada);
+    const controller = new NegociacionController({
+      crearNegociacion,
+    } as unknown as NegociacionService);
+
+    const result = await controller.createNegociacion("caso-1", parteA, {
+      subject_type: "alimentos",
+    });
+
+    expect(crearNegociacion).toHaveBeenCalledWith("caso-1", "user-a", {
+      subject_type: "alimentos",
+    });
+    expect(result).toBe(creada);
+  });
+
+  it("createPropuestaForNegociacion addresses the negociacion, not the caso", async () => {
+    const pending: PropuestaView = {
+      id: "prop-9",
+      caso_id: "caso-1",
+      negociacion_id: "negociacion-2",
+      ronda_id: "ronda-7",
+      contenido: { meetingPoint: [], narrative: null },
+      fundamentacion: null,
+      estado: "pendiente",
+      modelo_ia: "openai/gpt-4",
+      fecha: "now",
+    };
+    const generatePropuestaForNegociacion = jest
+      .fn()
+      .mockResolvedValue(pending);
+    const controller = new NegociacionController({
+      generatePropuestaForNegociacion,
+    } as unknown as NegociacionService);
+
+    const result = await controller.createPropuestaForNegociacion(
+      "negociacion-2",
+      parteA,
+    );
+
+    expect(generatePropuestaForNegociacion).toHaveBeenCalledWith(
+      "negociacion-2",
+      "user-a",
+    );
+    expect(result).toBe(pending);
+  });
+
+  it("listPropuestasForNegociacion delegates with the negociacion id and the caller", async () => {
+    const detail = [{ id: "prop-9" }];
+    const listPropuestasForNegociacion = jest.fn().mockResolvedValue(detail);
+    const controller = new NegociacionController({
+      listPropuestasForNegociacion,
+    } as unknown as NegociacionService);
+
+    const result = await controller.listPropuestasForNegociacion(
+      "negociacion-2",
+      parteA,
+    );
+
+    expect(listPropuestasForNegociacion).toHaveBeenCalledWith(
+      "negociacion-2",
+      "user-a",
+    );
+    expect(result).toBe(detail);
+  });
+
+  it("propagates the 409 the service throws for a materia the caso already has", async () => {
+    const conflict = new HttpException(
+      {
+        code: "negociacion_materia_already_exists",
+        message: "This caso already has a negociacion for that materia",
+      },
+      409,
+    );
+    const crearNegociacion = jest.fn().mockRejectedValue(conflict);
+    const controller = new NegociacionController({
+      crearNegociacion,
+    } as unknown as NegociacionService);
+
+    await expect(
+      controller.createNegociacion("caso-1", parteA, {
+        subject_type: "alimentos",
+      }),
+    ).rejects.toBe(conflict);
   });
 });

@@ -11,14 +11,57 @@
  * This file does not import from packages/db-types or apps/api.
  */
 
+import type { EstadoAcuerdo } from './agreement';
+import type { MetodoCaso } from './case';
+
 /** Matches `rondas.estado`. */
 export type EstadoRonda = 'activa' | 'completada';
+
+/** Matches `negociaciones.estado` (enum `estado_negociacion`). Not the caso's estado. */
+export type EstadoNegociacion = 'borrador' | 'activa' | 'acordada' | 'cerrada' | 'terminada';
 
 /** Matches `propuestas.estado`. */
 export type EstadoPropuesta = 'pendiente' | 'aceptada' | 'rechazada';
 
 /** Matches `respuestas_propuesta.decision`. */
 export type DecisionPropuesta = 'acepta' | 'rechaza';
+
+/**
+ * Matches `negociaciones.materia` (enum `materia_acuerdo`). The column is
+ * nullable and `null` means "a negociación from before materias existed" —
+ * never `'otro'`: the API does not fill it in and neither does this app.
+ */
+export type MateriaAcuerdo = 'tenencia' | 'alimentos' | 'bienes' | 'otro';
+
+/**
+ * The acuerdo currently in force for a negociación, as `GET /casos/:id/
+ * negociaciones` reports it. `version` climbs with each renegociación.
+ */
+export type NegotiationAgreementRef = {
+  id: string;
+  estado: EstadoAcuerdo;
+  version: number;
+};
+
+/**
+ * One negociación of a caso — one per materia. Mirrors `NegociacionView`
+ * from `GET /casos/:id/negociaciones`: this is where the per-materia estado
+ * lives, and with more than one materia it is what says what each one
+ * allows — `casos.estado` no longer does.
+ */
+export type Negotiation = {
+  id: string;
+  caseId: string;
+  /** `null` = a negociación from before materias existed. Never `'otro'`. */
+  subjectType: MateriaAcuerdo | null;
+  /** Same enum as the caso's; `t(\`methods.${metodo}\`)` applies unchanged. */
+  metodo: MetodoCaso;
+  estado: EstadoNegociacion;
+  roundNumber: number;
+  /** `null` when the negociación has no acuerdo in force — never an empty object. */
+  currentAgreement: NegotiationAgreementRef | null;
+  createdAt: string;
+};
 
 /**
  * Product-level "what can this party do right now" state — not a backend

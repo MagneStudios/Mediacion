@@ -88,7 +88,13 @@ export function toStatusLabelKey(
   if (estado === 'pendiente_suscripciones') {
     return 'awaitingSubscriptions';
   }
-  if (estado === 'acordado' || estado === 'cerrado' || estado === 'terminado') {
+  // `terminado` sale de acá a propósito: es el fin autónomo de RN-08, no un
+  // acuerdo. `cerrado` sí acompaña a `acordado` porque es el cierre posterior
+  // a uno (`acordado → cerrado` es la única salida de `acordado` en el trigger).
+  if (estado === 'terminado') {
+    return 'terminated';
+  }
+  if (estado === 'acordado' || estado === 'cerrado') {
     return 'signed';
   }
   if (estado === 'en_negociacion') {

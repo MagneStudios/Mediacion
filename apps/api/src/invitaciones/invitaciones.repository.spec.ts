@@ -22,6 +22,7 @@ describe("InvitacionesRepository", () => {
         tipo: "link",
         token: "tok-abc",
         estado: "pendiente",
+        pago_a_cargo: null,
       };
       const fakeKysely = createFakeKysely(inserted);
       const casosRepository = new CasosRepository({} as never);
@@ -35,6 +36,7 @@ describe("InvitacionesRepository", () => {
         "link",
         "tok-abc",
         null,
+        null,
       );
 
       expect(fakeKysely.insertInto).toHaveBeenCalledWith("invitaciones");
@@ -45,6 +47,7 @@ describe("InvitacionesRepository", () => {
         estado: "pendiente",
         email_destino: null,
         fecha_envio: expect.any(String),
+        pago_a_cargo: null,
       });
       expect(result).toBe(inserted);
     });
@@ -55,6 +58,7 @@ describe("InvitacionesRepository", () => {
         tipo: "email",
         token: "tok-def",
         estado: "pendiente",
+        pago_a_cargo: "invitado",
       };
       const fakeKysely = createFakeKysely(inserted);
       const casosRepository = new CasosRepository({} as never);
@@ -68,11 +72,46 @@ describe("InvitacionesRepository", () => {
         "email",
         "tok-def",
         "target@example.com",
+        "invitado",
       );
 
       expect(fakeKysely.values).toHaveBeenCalledWith(
-        expect.objectContaining({ email_destino: "target@example.com" }),
+        expect.objectContaining({
+          email_destino: "target@example.com",
+          pago_a_cargo: "invitado",
+        }),
       );
+    });
+
+    it("R-07 · pago_a_cargo se persiste y vuelve en la fila creada", async () => {
+      const inserted = {
+        id: "inv-3",
+        tipo: "link",
+        token: "tok-ghi",
+        estado: "pendiente",
+        pago_a_cargo: "invitador",
+      };
+      const fakeKysely = createFakeKysely(inserted);
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        new CasosRepository({} as never),
+      );
+
+      const result = await repository.createInvite(
+        "caso-1",
+        "link",
+        "tok-ghi",
+        null,
+        "invitador",
+      );
+
+      expect(fakeKysely.values).toHaveBeenCalledWith(
+        expect.objectContaining({ pago_a_cargo: "invitador" }),
+      );
+      expect(fakeKysely.returning).toHaveBeenCalledWith(
+        expect.arrayContaining(["pago_a_cargo"]),
+      );
+      expect(result).toBe(inserted);
     });
 
     it("maps a token unique-violation to a uniform 409, leaking no db detail", async () => {
@@ -90,7 +129,7 @@ describe("InvitacionesRepository", () => {
 
       let thrown: unknown;
       try {
-        await repository.createInvite("caso-1", "link", "tok-abc", null);
+        await repository.createInvite("caso-1", "link", "tok-abc", null, null);
       } catch (error) {
         thrown = error;
       }

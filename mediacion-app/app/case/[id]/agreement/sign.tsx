@@ -17,11 +17,12 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function AgreementSignScreen() {
-  const { id: caseId } = useLocalSearchParams<{ id: string }>();
+  // Lee por acuerdo cuando el dashboard dice cuál: es la pantalla que firma.
+  const { id: caseId, agreementId: expectedAgreementId } = useLocalSearchParams<{ id: string; agreementId?: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
-  const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId);
+  const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId, expectedAgreementId);
 
   const [confirmed, setConfirmed] = useState(false);
   const agreementId = state?.agreement.id;

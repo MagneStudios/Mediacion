@@ -28,9 +28,10 @@ function createFakeKyselyWithPropuesta(
   const propuestaOrderBy1 = jest
     .fn()
     .mockReturnValue({ orderBy: propuestaOrderBy2 });
-  const propuestaWhere2 = jest
+  const propuestaWhere3 = jest
     .fn()
     .mockReturnValue({ orderBy: propuestaOrderBy1 });
+  const propuestaWhere2 = jest.fn().mockReturnValue({ where: propuestaWhere3 });
   const propuestaWhere1 = jest.fn().mockReturnValue({ where: propuestaWhere2 });
   const propuestaSelectAll = jest
     .fn()
@@ -54,7 +55,7 @@ function createFakeKyselyWithPropuesta(
     throw new Error(`unexpected table ${table}`);
   });
 
-  return { selectFrom };
+  return { selectFrom, propuestaWhere2 };
 }
 
 describe("AcuerdosService", () => {
@@ -294,6 +295,11 @@ describe("AcuerdosService", () => {
         "caso-1",
         "negociacion-alimentos",
         expect.anything(),
+      );
+      expect(kysely.propuestaWhere2).toHaveBeenCalledWith(
+        "negociacion_id",
+        "=",
+        "negociacion-alimentos",
       );
     });
 

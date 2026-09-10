@@ -16,6 +16,7 @@ import type {
   JoinedCaso,
   TipoInvitacion,
 } from "./invitaciones.types";
+import { valoresPagoACargo } from "./invitaciones.types";
 import { generateToken } from "./token";
 
 const validTipos: TipoInvitacion[] = ["link", "codigo", "email"];
@@ -50,6 +51,27 @@ function assertValidEmailDestino(dto: CreateInvitacionDto): void {
   }
 }
 
+/**
+ * R-07. Ausente o `null` es válido: la columna es nullable y su CHECK deja
+ * pasar NULL. Un valor presente y distinto se rechaza acá con `400
+ * invalid_input` en vez de dejar que el CHECK lo convierta en un `409
+ * conflict` genérico, que no le dice al cliente cuál era el campo.
+ */
+function assertValidPagoACargo(dto: CreateInvitacionDto): void {
+  if (dto.pago_a_cargo === undefined || dto.pago_a_cargo === null) {
+    return;
+  }
+  if (!valoresPagoACargo.includes(dto.pago_a_cargo)) {
+    throw new HttpException(
+      {
+        code: "invalid_input",
+        message: `pago_a_cargo must be one of ${valoresPagoACargo.join(", ")}`,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
 @Injectable()
 export class InvitacionesService {
   private readonly logger = new Logger(InvitacionesService.name);
@@ -70,6 +92,7 @@ export class InvitacionesService {
   ): Promise<InvitacionCreated> {
     assertValidTipo(dto.tipo);
     assertValidEmailDestino(dto);
+    assertValidPagoACargo(dto);
     const parte = await this.membershipService.assertMembership(
       casoId,
       callerId,
@@ -86,6 +109,7 @@ export class InvitacionesService {
       dto.tipo,
       token,
       dto.email_destino ?? null,
+      dto.pago_a_cargo ?? null,
     );
     try {
       await this.notifyInvitedUsuario(casoId, dto.email_destino);

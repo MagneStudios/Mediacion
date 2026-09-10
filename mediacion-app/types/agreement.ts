@@ -10,6 +10,8 @@
  * This file does not import from packages/db-types or apps/api.
  */
 
+import type { MateriaAcuerdo } from './negotiation';
+
 /** Matches `acuerdos.estado` exactly. No invented persisted states (no "preparing", "ready", "partially_signed", "completed", or "failed" enum members). */
 export type EstadoAcuerdo = 'borrador' | 'enviado_a_firma' | 'firmado' | 'con_aviso';
 
@@ -143,6 +145,14 @@ export type SignatureInboxItem = {
   caseId: string;
   caseTitle: string;
   agreementTitle: string;
+  /**
+   * La materia de la negociación del acuerdo. `null` es "modelo viejo, sin
+   * materia" — la API no rellena con `'otro'` y esta app tampoco: dos filas
+   * del mismo caso sólo se distinguen si este campo dice la verdad.
+   */
+  subjectType: MateriaAcuerdo | null;
+  /** `acuerdos.version`: sube con cada renegociación. Todo acuerdo existente vale `1`. */
+  version: number;
   estado: EstadoAcuerdo;
   ownStatus: MockSignatureStatus;
   completedAt?: string;

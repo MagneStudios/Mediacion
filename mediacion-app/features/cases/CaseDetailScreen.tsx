@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
+import { Button, Card, ConfirmationDialog, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { radii } from '../../design-system/tokens/radii';
@@ -16,10 +16,12 @@ import { casesService } from '../../services/cases.service';
 import { appendCaseNotice } from '../../services/notices.service';
 import type { CaseInvitation } from '../../types/case';
 import { blurActiveElement } from '../../utils/blur-active-element';
+import { canSetCaseDeadline, canTerminateCase } from '../../utils/case-actions';
 import { getPositionEligibility } from '../../utils/position-eligibility';
 import { LawyerSection } from '../lawyer/components/LawyerSection';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationsListSection } from '../negotiation/components/NegotiationsListSection';
+import { CaseDeadlineCard } from './components/CaseDeadlineCard';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
 import { InvitationResultCard } from './components/InvitationResultCard';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
@@ -42,6 +44,27 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 
   const [simulateDialogVisible, setSimulateDialogVisible] = useState(false);
   const [simulateStatus, setSimulateStatus] = useState<MutationStatus>('idle');
+
+  const [terminateDialogVisible, setTerminateDialogVisible] = useState(false);
+  const [terminateStatus, setTerminateStatus] = useState<MutationStatus>('idle');
+
+  /**
+   * RN-08 — el fin autónomo de la negociación. **Es irreversible**: `terminado`
+   * es absorbente en la máquina de estados de DB, así que va detrás de un
+   * diálogo y no de un botón suelto.
+   */
+  const confirmTerminate = async () => {
+    setTerminateStatus('pending');
+    try {
+      await casesService.terminateCase(caseId);
+      setTerminateStatus('idle');
+      setTerminateDialogVisible(false);
+      blurActiveElement();
+      reload();
+    } catch {
+      setTerminateStatus('error');
+    }
+  };
 
   const handleViewInvitation = async () => {
     setInvitationStatus('loading');
@@ -281,7 +304,15 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           primary={positionsSection}
           secondary={
             <>
-              <NegotiationsListSection caseId={caseId} estado={detail.estado} />
+              <NegotiationsListSection caseId={caseId} onCaseChanged={reload} />
+              {/*
+                RN-10. Sólo donde hay alguien que pueda responder: `nuevo` no
+                tiene contraparte y `pendiente_suscripciones` la tiene impedida
+                de actuar por el gate C-01 — ver `utils/case-actions.ts`.
+              */}
+              {canSetCaseDeadline(detail.estado) ? (
+                <CaseDeadlineCard caseId={caseId} slaHours={detail.slaHours} onChanged={reload} />
+              ) : null}
               <MediatorSummaryCard caseId={caseId} hideWhenUnavailable />
               {/*
                 Escalamiento manual del spec de monetizacion 7.2:
@@ -294,6 +325,46 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           }
         />
       )}
+
+      {/*
+        RN-08 — *"cualquiera de las partes puede declarar expresamente el fin de
+        una negociación"*. Al pie y en `destructive` porque es irreversible: los
+        estados a los que lleva no tienen vuelta en el trigger de DB.
+
+        Se esconde donde la transición no existiría: ofrecer el botón sobre un
+        caso ya acordado devolvería un `409` genérico que no le explica nada a
+        la persona.
+      */}
+      {canTerminateCase(detail.estado) ? (
+        <Button
+          variant="destructive"
+          size="lg"
+          fullWidth
+          onPress={() => {
+            setTerminateStatus('idle');
+            setTerminateDialogVisible(true);
+          }}
+        >
+          {t('caseDetail.terminate.action')}
+        </Button>
+      ) : null}
+
+      <ConfirmationDialog
+        visible={terminateDialogVisible}
+        title={t('caseDetail.terminate.dialogTitle')}
+        icon="alert-circle"
+        destructive
+        confirmLabel={t('caseDetail.terminate.confirm')}
+        confirmVariant="destructive"
+        onConfirm={() => void confirmTerminate()}
+        cancelLabel={t('caseDetail.terminate.cancel')}
+        onCancel={() => setTerminateDialogVisible(false)}
+        loading={terminateStatus === 'pending'}
+        errorTitle={terminateStatus === 'error' ? t('caseDetail.terminate.error') : undefined}
+        retryLabel={terminateStatus === 'error' ? t('common.retry') : undefined}
+      >
+        {t('caseDetail.terminate.dialogBody')}
+      </ConfirmationDialog>
 
       <SimulateInvitationAcceptanceDialog
         visible={simulateDialogVisible}

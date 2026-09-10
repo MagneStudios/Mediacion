@@ -11,6 +11,7 @@ import {
   buildFindByIdQuery,
   buildFindCasoIdQuery,
   buildFindDetailForCaseQuery,
+  buildFindDetailForNegociacionQuery,
   buildFindForCaseQuery,
   buildMarkEstadoQuery,
   buildPatchGeneratedQuery,
@@ -157,6 +158,50 @@ describe("PropuestasRepository query builders", () => {
 
       expect(compiled.sql).toMatch(/order by\s+"rondas"\."numero"\s+asc/i);
     });
+
+    it("carries negociacion_id so the client can tell which materia a propuesta belongs to", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForCaseQuery(
+        db,
+        "caso-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toContain('"propuestas"."negociacion_id"');
+    });
+  });
+
+  describe("buildFindDetailForNegociacionQuery", () => {
+    it("scopes by negociacion_id and never by caso_id — one materia, not the caso", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForNegociacionQuery(
+        db,
+        "negociacion-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toMatch(
+        /where\s+"propuestas"\."negociacion_id"\s*=\s*\$\d/i,
+      );
+      expect(compiled.sql).not.toMatch(/where\s+.*"caso_id"/i);
+      expect(compiled.parameters).toEqual(["user-a", "negociacion-1"]);
+    });
+
+    it("keeps the caller-scoped respuesta join and the chronological order", () => {
+      const db = createCompileOnlyKysely();
+
+      const compiled = buildFindDetailForNegociacionQuery(
+        db,
+        "negociacion-1",
+        "user-a",
+      ).compile();
+
+      expect(compiled.sql).toMatch(/left join\s+"respuestas_propuesta"/i);
+      expect(compiled.sql).toContain('"decision" as "own_decision"');
+      expect(compiled.sql).toMatch(/order by\s+"rondas"\."numero"\s+asc/i);
+    });
   });
 
   it("buildExistsForRondaQuery selects a single row scoped by caso_id and ronda_id", () => {
@@ -213,6 +258,7 @@ function createFakeKysely() {
   builder.values = returnBuilder;
   builder.set = returnBuilder;
   builder.where = returnBuilder;
+  builder.innerJoin = returnBuilder;
   builder.select = returnBuilder;
   builder.returning = returnBuilder;
   builder.limit = returnBuilder;
@@ -399,6 +445,7 @@ function createFakeTrxKysely() {
   builder.values = returnBuilder;
   builder.set = returnBuilder;
   builder.where = returnBuilder;
+  builder.innerJoin = returnBuilder;
   builder.select = returnBuilder;
   builder.selectAll = returnBuilder;
   builder.returning = returnBuilder;
@@ -431,6 +478,7 @@ describe("PropuestasRepository.resolveRespuesta", () => {
   const pendienteView = {
     id: "prop-1",
     caso_id: "caso-1",
+    negociacion_id: "negociacion-1",
     ronda_id: "ronda-1",
     contenido: { meetingPoint: [], narrative: "texto" },
     fundamentacion: null,

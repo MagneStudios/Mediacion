@@ -218,8 +218,8 @@ Lo que sí existe y sirve de base: dos wizards multi-paso con el mismo patrón (
 
 1. **El 409 del gate se muestra como lo que es**, no como un código inválido (§1.1). Es lo que le rompe las demos al cliente.
 2. **La afordancia de simulación deja de mentir** contra backend real (§1.2).
-3. **Acuerdos direccionados por `agreementId`** (§2.2a). Cierra el riesgo con consecuencia legal.
-4. **Lista de negociaciones en el detalle de caso** (§2.2b), con array de largo 1.
+3. ~~**Acuerdos direccionados por `agreementId`** (§2.2a). Cierra el riesgo con consecuencia legal.~~ ✅ 10/09 — `docs/changelogs/2026-09-10.md`.
+4. ~~**Lista de negociaciones en el detalle de caso** (§2.2b), con array de largo 1.~~ ✅ 10/09 — contra `GET /casos/:id/negociaciones`, no contra un array fabricado (`docs/changelogs/2026-09-10-negociaciones-por-materia.md`).
 5. **El string de copy legal** (§4).
 6. **Las fichas de pedidos a BE.**
 
@@ -230,6 +230,6 @@ Lo que sí existe y sirve de base: dos wizards multi-paso con el mismo patrón (
 
 ### Bloqueado
 
-9. Versionado, "Renegociar", `negotiationId` en rutas — esperan el modelo de DB.
+9. ~~Versionado, "Renegociar",~~ ✅ 10/09 — DB entregó el modelo el 06/09, BE los endpoints el 09/09. Sigue: `negotiationId` en las rutas de propuestas (pedido a BE el 10/09) y la ruta de alta de la segunda materia.
 10. Copy de los tres métodos — espera la respuesta de Victor.
 11. Plantillas, PDF, cronograma embebido — esperan el acuerdo marco.
