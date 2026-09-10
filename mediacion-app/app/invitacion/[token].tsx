@@ -1,5 +1,7 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 
+import { toFullInvitationLink } from '@/utils/invitation-link';
+
 /**
  * Punto #4 (AJUSTES-PACTUM-2026-09-10): "el link de invitación tiene que
  * llevar al mismo flujo con el código precargado".
@@ -20,7 +22,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
  */
 export default function InvitationDeepLinkScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
-  const fullToken = token ? `mediacionapp://invitacion/${token}` : '';
+  const fullToken = token ? toFullInvitationLink(token) : '';
 
   return <Redirect href={{ pathname: '/case/join', params: { token: fullToken } }} />;
 }

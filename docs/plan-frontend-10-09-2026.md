@@ -31,11 +31,14 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - No se tocó `ReacceptanceGate` (mecanismo distinto: reaceptación de nuevas versiones de TyC).
 - Suite completa verde (148/148), `tsc --noEmit` sin errores.
 
-### #2 — Elección de plan dentro del alta
-- [ ] `app/signup/_layout.tsx`, `app/signup/index.tsx` (paso 1, ex `app/signup.tsx`), `app/signup/plan.tsx` (paso 2).
-- [ ] `features/auth/hooks/useSignupFlow.tsx` (Context Provider, patrón `useCaseCreationFlow`).
-- [ ] Eliminar `app/signup.tsx`.
-- [ ] Verificar `billingService.subscribeToPlan` con plan free (precio 0) — contra mock funciona; contra backend real queda **pendiente de confirmar contrato**.
+### #2 — Elección de plan dentro del alta ✅ (10/09)
+- [x] `app/signup/_layout.tsx`, `app/signup/index.tsx` (paso 1, ex `app/signup.tsx`), `app/signup/plan.tsx` (paso 2). Eliminado `app/signup.tsx`.
+- [x] **Simplificación respecto al plan original:** en vez de un Context Provider (`useSignupFlow`), el único dato que viaja entre pasos (`joinToken`, punto #4) se pasa como query param entre rutas (`/signup?joinToken=` → `/signup/plan?joinToken=`), igual que ya hace `/case/join?token=`. El paso 1 completa el registro por sí mismo (`signUp` + `registerAcceptance`); no hace falta un draft compartido de campos como en el wizard de casos.
+- [x] Plan free = específicamente `plan.nombre === 'base'`, **no** `precio === 0` — `mocks/plans.ts` documenta que `plan-corporativo` también tiene precio 0 pero significa "a consultar", no gratis (decisión de producto abierta, `docs/plan-frontend-monetizacion.md` §1.2–§1.3). Gatillar por nombre evita que el wizard suscriba gratis a un plan pensado para venta negociada.
+- [x] `billingService.subscribeToPlan(planId)` ya existía y sirve tal cual para el plan free (mock, un solo paso, sin checkout). Contra backend real queda **pendiente de confirmar** si `POST /suscripciones` short-circuitea igual para precio 0 — no bloquea, documentado.
+- [x] **Bug real encontrado y arreglado** (no introducido por esta tanda): `onSuccess` en el signup leía `status` de `useAuthSession()` por closure, que queda obsoleto porque la promesa de `submitFn` resuelve después de que el componente ya re-renderizó con el nuevo status — la navegación post-signup nunca disparaba cuando la sesión se activaba sin confirmación de email. Arreglado con un `ref` que siempre lee el valor más reciente.
+- [x] `AuthGate.tsx` ajustado: `/signup/plan` ya no hereda el status "público"/"auth route" del `/signup` bare (necesita sesión); y un visitante sin cuenta que abre un link de invitación (`/invitacion/*`) ahora es mandado a `/signup?joinToken=...` en vez de perder el código en `/login`.
+- [ ] **Gap conocido (fuera de alcance de mañana):** el `joinToken` solo se propaga completo si el usuario elige el plan **free**. Si elige un plan pago, el wizard navega a `/profile/plan/checkout` sin forwardear el token — retomar el hilo tras un checkout (simulado o Mercado Pago real) requeriría tocar `checkout.tsx`, `receipt.tsx` y `billing/callback.tsx`, que no se justificaba para la prueba de aceptación de mañana (solo pide el camino free).
 
 ### #3 — Botón de cerrar sesión ✅ (10/09)
 - [x] `features/profile/components/GlobalSignOutAction.tsx` (nuevo) — reusa `useAccountActions`/`SignOutDialog`, mismo wiring que `/profile/account` (sin duplicar lógica).
@@ -49,8 +52,8 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - [x] `app/case/join.tsx`: lee `?token=` de `useLocalSearchParams` y precarga el input.
 - [x] `app/invitacion/[token].tsx` (nuevo): el link `mediacionapp://invitacion/mock-...` no resolvía a ninguna pantalla — esta ruta lo intercepta, reconstruye el string completo (necesario porque `CaseInvitation.token` para tipo "link" es la URL entera, no solo el segmento) y redirige a `/case/join?token=...`.
 - [x] Nuevo ícono `user-plus` agregado al registro de `design-system/components/Icon.tsx` (no había ninguno adecuado para "unirse").
-- [ ] **Pendiente, depende de #2:** cuando un usuario sin cuenta abre el link, `AuthGate` lo manda a `/login` (ni `/invitacion/*` ni `/case/join` son rutas públicas) y el token se pierde. Falta que el wizard de signup propague `?joinToken=` y redirija a `/case/join?token=...` al terminar el alta — se resuelve al implementar #2.
-- [x] Tests: `app/case/__tests__/join.test.tsx` (prefill), `app/invitacion/__tests__/[token].test.tsx` (nuevo), `features/cases/__tests__/CasesDashboardScreen.test.tsx` (CTA + empty state). Suite completa verde: 148 suites / 1332 tests, `tsc --noEmit` sin errores.
+- [x] **Cerrado con #2:** un usuario sin cuenta que abre el link ahora llega a `/signup?joinToken=...` (ajuste en `AuthGate.tsx`) en vez de perder el código en `/login`; el wizard de signup lo propaga y redirige a `/case/join?token=...` al terminar (plan free) o lo mantiene pendiente si eligió pago (ver nota en #2 sobre el alcance limitado ahí).
+- [x] Tests: `app/case/__tests__/join.test.tsx` (prefill), `app/invitacion/__tests__/[token].test.tsx` (nuevo), `features/cases/__tests__/CasesDashboardScreen.test.tsx` (CTA + empty state). Suite completa verde.
 
 ### #5 — Invitar en cualquier momento
 - [ ] Ampliar en `features/cases/CaseDetailScreen.tsx` la condición que hoy limita la sección de invitación a `estado === 'nuevo'`.

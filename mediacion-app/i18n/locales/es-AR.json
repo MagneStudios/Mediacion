@@ -292,6 +292,20 @@
       "checkEmail": {
         "title": "Revisá tu correo",
         "description": "Te enviamos un enlace para confirmar tu cuenta. Cuando lo confirmes, vas a poder iniciar sesión."
+      },
+      "plan": {
+        "title": "Elegí tu plan",
+        "description": "Podés empezar gratis o elegir un plan pago — tu cuenta queda lista apenas elijas uno.",
+        "loading": "Buscando los planes disponibles…",
+        "error": {
+          "title": "No pudimos cargar los planes",
+          "retry": "Reintentar"
+        },
+        "subscribing": "Activando tu plan…",
+        "subscribeError": {
+          "title": "No pudimos activar el plan gratuito",
+          "retry": "Reintentar"
+        }
       }
     }
   },

@@ -292,6 +292,20 @@
       "checkEmail": {
         "title": "Check your email",
         "description": "We sent you a link to confirm your account. Once confirmed, you'll be able to sign in."
+      },
+      "plan": {
+        "title": "Choose your plan",
+        "description": "Start for free or pick a paid plan — your account is ready as soon as you choose one.",
+        "loading": "Looking for the available plans…",
+        "error": {
+          "title": "We couldn't load the plans",
+          "retry": "Retry"
+        },
+        "subscribing": "Activating your plan…",
+        "subscribeError": {
+          "title": "We couldn't activate the free plan",
+          "retry": "Retry"
+        }
       }
     }
   },
