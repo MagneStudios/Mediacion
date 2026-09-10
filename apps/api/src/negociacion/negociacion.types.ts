@@ -12,6 +12,7 @@ export type EstadoPropuesta = Propuesta["estado"];
 export type DecisionPropuesta = RespuestaPropuesta["decision"];
 export type EstadoNegociacion = Negociacion["estado"];
 export type MateriaAcuerdo = NonNullable<Negociacion["materia"]>;
+export type MetodoCaso = Negociacion["method"];
 
 /**
  * The materia's own agreed state, and what gates generating its acuerdo. It is
@@ -22,6 +23,19 @@ export const estadoNegociacionAcordada: EstadoNegociacion = "acordada";
 
 /** Where a renegotiation puts the materia back. */
 export const estadoNegociacionActiva: EstadoNegociacion = "activa";
+
+/**
+ * Every materia a caller may open a negociacion for. Declared here rather than
+ * derived at runtime — there is no reflection over a Postgres enum — and
+ * guarded by a compile spec that fails `tsc` if `materia_acuerdo` ever grows
+ * past it, so a new materia cannot be silently rejected as `invalid_input`.
+ */
+export const materiasAcuerdo = [
+  "tenencia",
+  "alimentos",
+  "bienes",
+  "otro",
+] as const;
 
 /**
  * The acuerdo currently in force for a negociacion. Null — never an object with
@@ -67,6 +81,7 @@ export type RenegociacionView = {
 export const propuestaViewColumns = [
   "id",
   "caso_id",
+  "negociacion_id",
   "ronda_id",
   "contenido",
   "fundamentacion",
@@ -105,4 +120,15 @@ export type PropuestaContenido = {
 
 export type RespuestaDto = {
   decision: DecisionPropuesta;
+};
+
+/**
+ * The body of the alta route. `subject_type` is the wire name the signature
+ * inbox and `NegociacionView` already use for `negociaciones.materia`, and it
+ * is required: the materia-less negociacion is created by `POST /casos`, and
+ * letting a client post a second one would give the caso two rows that no
+ * materia tells apart.
+ */
+export type CreateNegociacionDto = {
+  subject_type: MateriaAcuerdo;
 };

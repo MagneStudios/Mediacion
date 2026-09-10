@@ -170,7 +170,11 @@ export class AcuerdosService {
     if (!pendiente) {
       throw acuerdoAlreadyExists();
     }
-    const accepted = await readAcceptedPropuesta(this.kysely, casoId);
+    const accepted = await readAcceptedPropuesta(
+      this.kysely,
+      casoId,
+      pendiente.id,
+    );
     const contenido = buildAgreementContent(accepted);
     return this.acuerdosRepository.insertDraft(casoId, pendiente.id, contenido);
   }

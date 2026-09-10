@@ -54,15 +54,23 @@ describe("buildActiveNegociacionQuery", () => {
 });
 
 describe("buildFindByNumeroQuery", () => {
-  it("reads a ronda by caso id and numero, read-only", () => {
+  it("reads a ronda by negociacion id and numero, read-only", () => {
     const db = createCompileOnlyKysely();
 
-    const compiled = buildFindByNumeroQuery(db, "caso-1", 1).compile();
+    const compiled = buildFindByNumeroQuery(db, "neg-1", 1).compile();
 
     expect(compiled.sql).toMatch(/^select\s+\S+.*from\s+"rondas"/i);
-    expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
+    expect(compiled.sql).toMatch(/where\s+.*"negociacion_id"\s*=\s*\$\d/i);
     expect(compiled.sql).toMatch(/where\s+.*"numero"\s*=\s*\$\d/i);
-    expect(compiled.parameters).toEqual(["caso-1", 1]);
+    expect(compiled.parameters).toEqual(["neg-1", 1]);
+  });
+
+  it("never scopes by caso id — two materias each have a ronda 1", () => {
+    const db = createCompileOnlyKysely();
+
+    const compiled = buildFindByNumeroQuery(db, "neg-1", 1).compile();
+
+    expect(compiled.sql).not.toMatch(/"caso_id"/i);
   });
 });
 
@@ -180,13 +188,13 @@ describe("RondasRepository", () => {
     expect(result).toBeUndefined();
   });
 
-  it("findByNumero returns the ronda matching caso id and numero", async () => {
+  it("findByNumero returns the ronda matching negociacion id and numero", async () => {
     const ronda = { id: "ronda-1", caso_id: "caso-1", numero: 1 };
     const fake = createFakeKysely();
     fake.executeTakeFirst.mockResolvedValue(ronda);
     const repository = new RondasRepository(fake.kysely as never);
 
-    const result = await repository.findByNumero("caso-1", 1);
+    const result = await repository.findByNumero("neg-1", 1);
 
     expect(result).toBe(ronda);
   });
@@ -196,7 +204,7 @@ describe("RondasRepository", () => {
     fake.executeTakeFirst.mockResolvedValue(undefined);
     const repository = new RondasRepository(fake.kysely as never);
 
-    const result = await repository.findByNumero("caso-1", 1);
+    const result = await repository.findByNumero("neg-1", 1);
 
     expect(result).toBeUndefined();
   });

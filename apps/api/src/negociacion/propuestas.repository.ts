@@ -12,14 +12,16 @@ import type {
   PropuestaView,
 } from "./negociacion.types";
 import { propuestaViewColumns } from "./negociacion.types";
-import { NegociacionesRepository } from "./negociaciones.repository";
+import {
+  buildResolveNegociacionRoundByPropuestaQuery,
+  NegociacionesRepository,
+} from "./negociaciones.repository";
 import { buildPropuestaLockQuery } from "./propuesta-lock-query";
 import {
   buildFindByPropuestaQuery,
   buildInsertRespuestaQuery,
 } from "./respuestas.repository";
 import {
-  buildActiveNegociacionQuery,
   buildBumpNegociacionRoundQuery,
   buildInsertNextRondaQuery,
 } from "./rondas.repository";
@@ -133,6 +135,7 @@ export function buildFindDetailForCaseQuery(
     .select([
       "propuestas.id",
       "propuestas.caso_id",
+      "propuestas.negociacion_id",
       "propuestas.ronda_id",
       "propuestas.contenido",
       "propuestas.fundamentacion",
@@ -144,6 +147,42 @@ export function buildFindDetailForCaseQuery(
       "propia.decision as own_decision",
     ])
     .where("propuestas.caso_id", "=", casoId)
+    .orderBy("rondas.numero", "asc");
+}
+
+/**
+ * The same projection scoped to one materia. Kept beside the per-caso query
+ * instead of replacing it: the caso-scoped list is what the negotiation screen
+ * still reads for a caso that was never split by materia.
+ */
+export function buildFindDetailForNegociacionQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+  callerId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .innerJoin("rondas", "rondas.id", "propuestas.ronda_id")
+    .leftJoin("respuestas_propuesta as propia", (join) =>
+      join
+        .onRef("propia.propuesta_id", "=", "propuestas.id")
+        .on("propia.parte_id", "=", callerId),
+    )
+    .select([
+      "propuestas.id",
+      "propuestas.caso_id",
+      "propuestas.negociacion_id",
+      "propuestas.ronda_id",
+      "propuestas.contenido",
+      "propuestas.fundamentacion",
+      "propuestas.estado",
+      "propuestas.modelo_ia",
+      "propuestas.fecha",
+      "rondas.numero as ronda_numero",
+      "rondas.estado as ronda_estado",
+      "propia.decision as own_decision",
+    ])
+    .where("propuestas.negociacion_id", "=", negociacionId)
     .orderBy("rondas.numero", "asc");
 }
 
@@ -257,6 +296,21 @@ export class PropuestasRepository {
       });
   }
 
+  findDetailForNegociacion(
+    negociacionId: string,
+    callerId: string,
+  ): Promise<PropuestaDetail[]> {
+    return buildFindDetailForNegociacionQuery(
+      this.kysely,
+      negociacionId,
+      callerId,
+    )
+      .execute()
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
+  }
+
   async existsForRonda(casoId: string, rondaId: string): Promise<boolean> {
     const row = await buildExistsForRondaQuery(
       this.kysely,
@@ -325,9 +379,9 @@ export class PropuestasRepository {
             estadoRechazada,
           ).executeTakeFirstOrThrow();
           const { id: negociacionId, round: numeroActual } =
-            await buildActiveNegociacionQuery(
+            await buildResolveNegociacionRoundByPropuestaQuery(
               trx,
-              casoId,
+              propuestaId,
             ).executeTakeFirstOrThrow();
           await buildInsertNextRondaQuery(
             trx,

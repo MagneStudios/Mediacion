@@ -11,6 +11,7 @@ import type { AuthenticatedUser } from "../auth/authenticated-user";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { NegociacionService } from "./negociacion.service";
 import type {
+  CreateNegociacionDto,
   NegociacionView,
   PropuestaDetail,
   PropuestaView,
@@ -50,6 +51,28 @@ export class NegociacionController {
     return this.negociacionService.listPropuestas(casoId, caller.id);
   }
 
+  @Post("negociaciones/:negociacionId/propuestas")
+  createPropuestaForNegociacion(
+    @Param("negociacionId", ParseUUIDPipe) negociacionId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<PropuestaView> {
+    return this.negociacionService.generatePropuestaForNegociacion(
+      negociacionId,
+      caller.id,
+    );
+  }
+
+  @Get("negociaciones/:negociacionId/propuestas")
+  listPropuestasForNegociacion(
+    @Param("negociacionId", ParseUUIDPipe) negociacionId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<PropuestaDetail[]> {
+    return this.negociacionService.listPropuestasForNegociacion(
+      negociacionId,
+      caller.id,
+    );
+  }
+
   @Post("negociaciones/:id/renegociar")
   renegociar(
     @Param("id", ParseUUIDPipe) id: string,
@@ -64,5 +87,14 @@ export class NegociacionController {
     @CurrentUser() caller: AuthenticatedUser,
   ): Promise<NegociacionView[]> {
     return this.negociacionService.listNegociaciones(casoId, caller.id);
+  }
+
+  @Post("casos/:casoId/negociaciones")
+  createNegociacion(
+    @Param("casoId", ParseUUIDPipe) casoId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() body: CreateNegociacionDto,
+  ): Promise<NegociacionView> {
+    return this.negociacionService.crearNegociacion(casoId, caller.id, body);
   }
 }

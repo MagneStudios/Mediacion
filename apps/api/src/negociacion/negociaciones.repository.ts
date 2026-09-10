@@ -10,6 +10,8 @@ import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
 import type {
   Acuerdo,
+  MateriaAcuerdo,
+  MetodoCaso,
   NegociacionView,
   RenegociacionView,
 } from "./negociacion.types";
@@ -71,6 +73,51 @@ export function buildResolveNegociacionByPropuestaQuery(
     .selectFrom("propuestas")
     .select("negociacion_id")
     .where("id", "=", propuestaId);
+}
+
+/**
+ * The negociacion of a propuesta together with its current round. The
+ * rejection branch of `resolveRespuesta` opens the next ronda, and the round it
+ * has to bump is the one of the propuesta's own materia — reading the caso's
+ * legacy negociacion instead moved tenencia forward because alimentos was
+ * rejected.
+ */
+export function buildResolveNegociacionRoundByPropuestaQuery(
+  db: Kysely<Database>,
+  propuestaId: string,
+) {
+  return db
+    .selectFrom("propuestas")
+    .innerJoin("negociaciones", "negociaciones.id", "propuestas.negociacion_id")
+    .select(["negociaciones.id as id", "negociaciones.round as round"])
+    .where("propuestas.id", "=", propuestaId);
+}
+
+/**
+ * Opens a materia. `onConflict().doNothing()` over
+ * `negociaciones_caso_materia_unique` rather than an existence check: under
+ * READ COMMITTED two callers adding `tenencia` at the same moment both read
+ * "absent", and the second insert is what has to be recognised as the
+ * duplicate. No row back therefore means the materia was already open.
+ */
+export function buildInsertNegociacionQuery(
+  db: Kysely<Database>,
+  casoId: string,
+  materia: MateriaAcuerdo,
+  method: MetodoCaso,
+) {
+  return db
+    .insertInto("negociaciones")
+    .values({ caso_id: casoId, materia, method })
+    .onConflict((oc) => oc.columns(["caso_id", "materia"]).doNothing())
+    .returning([
+      "id",
+      "caso_id",
+      "method as metodo",
+      "estado",
+      "round as ronda_actual",
+      "created_at",
+    ]);
 }
 
 /**
@@ -190,14 +237,29 @@ function toView(row: NegociacionRow): NegociacionView {
   };
 }
 
-export function buildFindCasoIdByNegociacionQuery(
+/**
+ * The caso a negociacion belongs to and the round it is on — what every route
+ * addressed by negociacion id needs before it can assert membership or resolve
+ * a ronda.
+ */
+export function buildFindNegociacionByIdQuery(
   db: Kysely<Database>,
   negociacionId: string,
 ) {
   return db
     .selectFrom("negociaciones")
-    .select("caso_id")
+    .select(["caso_id", "round"])
     .where("id", "=", negociacionId);
+}
+
+export function negociacionMateriaAlreadyExists(): HttpException {
+  return new HttpException(
+    {
+      code: "negociacion_materia_already_exists",
+      message: "This caso already has a negociacion for that materia",
+    },
+    HttpStatus.CONFLICT,
+  );
 }
 
 export function negociacionNotAcordada(): HttpException {
@@ -236,12 +298,53 @@ export class NegociacionesRepository {
     ).execute();
   }
 
-  async findCasoId(negociacionId: string): Promise<string | undefined> {
-    const row = await buildFindCasoIdByNegociacionQuery(
+  findById(
+    negociacionId: string,
+  ): Promise<{ caso_id: string; round: number } | undefined> {
+    return buildFindNegociacionByIdQuery(
       this.kysely,
       negociacionId,
     ).executeTakeFirst();
-    return row?.caso_id;
+  }
+
+  /**
+   * Opens a materia and, in the same transaction, drops the caso out of
+   * `acordado`: "every negociacion of this caso is signed" stops being true the
+   * moment one more exists. `reopenFromAcordado` is a no-op on a caso that was
+   * not agreed, which is the common case.
+   */
+  crear(
+    casoId: string,
+    materia: MateriaAcuerdo,
+    method: MetodoCaso,
+  ): Promise<NegociacionView> {
+    return this.kysely
+      .transaction()
+      .execute(async (trx) => {
+        const creada = await buildInsertNegociacionQuery(
+          trx,
+          casoId,
+          materia,
+          method,
+        ).executeTakeFirst();
+        if (!creada) {
+          throw negociacionMateriaAlreadyExists();
+        }
+        await this.casosRepository.reopenFromAcordado(casoId, trx);
+        return toView({
+          ...creada,
+          subject_type: materia,
+          acuerdo_id: null,
+          acuerdo_estado: null,
+          acuerdo_version: null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        throw toDomainError(error);
+      });
   }
 
   /**

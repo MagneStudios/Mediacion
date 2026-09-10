@@ -1,13 +1,17 @@
 import type { Database } from "@mediacion/db-types";
+import { HttpException, HttpStatus } from "@nestjs/common";
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import {
+  buildFindNegociacionByIdQuery,
   buildFindRenegociableQuery,
   buildInsertAcuerdoSiguienteQuery,
+  buildInsertNegociacionQuery,
   buildListNegociacionesByCasoQuery,
   buildMarkNegociacionAcordadaQuery,
   buildReactivarNegociacionQuery,
   buildResolveNegociacionByPropuestaQuery,
+  buildResolveNegociacionRoundByPropuestaQuery,
   buildSupersedeAcuerdoQuery,
   NegociacionesRepository,
 } from "./negociaciones.repository";
@@ -322,5 +326,156 @@ describe("buildReactivarNegociacionQuery", () => {
     );
     expect(compiled.parameters).toContain("activa");
     expect(compiled.parameters).toContain("negociacion-1");
+  });
+});
+
+describe("buildFindNegociacionByIdQuery", () => {
+  it("reads the caso and the round of one negociacion, read-only", () => {
+    const compiled = buildFindNegociacionByIdQuery(
+      createCompileOnlyKysely(),
+      "negociacion-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(
+      /^select\s+"caso_id",\s*"round"\s+from\s+"negociaciones"/i,
+    );
+    expect(compiled.sql).toMatch(/where\s+"id"\s*=\s*\$\d/i);
+    expect(compiled.sql).not.toMatch(/insert|update|delete/i);
+    expect(compiled.parameters).toEqual(["negociacion-1"]);
+  });
+});
+
+describe("buildResolveNegociacionRoundByPropuestaQuery", () => {
+  it("joins the propuesta to its own negociacion and reads that round", () => {
+    const compiled = buildResolveNegociacionRoundByPropuestaQuery(
+      createCompileOnlyKysely(),
+      "prop-1",
+    ).compile();
+
+    expect(compiled.sql).toMatch(/from\s+"propuestas"/i);
+    expect(compiled.sql).toMatch(
+      /inner join\s+"negociaciones"\s+on\s+"negociaciones"\."id"\s*=\s*"propuestas"\."negociacion_id"/i,
+    );
+    expect(compiled.sql).toMatch(/where\s+"propuestas"\."id"\s*=\s*\$\d/i);
+    expect(compiled.sql).not.toMatch(/"materia"/i);
+    expect(compiled.parameters).toEqual(["prop-1"]);
+  });
+});
+
+describe("buildInsertNegociacionQuery", () => {
+  function compile() {
+    return buildInsertNegociacionQuery(
+      createCompileOnlyKysely(),
+      "caso-1",
+      "alimentos",
+      "mediacion",
+    ).compile();
+  }
+
+  it("inserts the materia and the caso's metodo, leaving estado and round to their defaults", () => {
+    const compiled = compile();
+
+    expect(compiled.sql).toMatch(
+      /^insert into "negociaciones" \("caso_id", "materia", "method"\) values \(\$1, \$2, \$3\)/i,
+    );
+    expect(compiled.parameters).toEqual(["caso-1", "alimentos", "mediacion"]);
+  });
+
+  it("leans on negociaciones_caso_materia_unique instead of an existence check", () => {
+    const compiled = compile();
+
+    expect(compiled.sql).toMatch(
+      /on conflict\s*\(\s*"caso_id",\s*"materia"\s*\)\s*do nothing/i,
+    );
+  });
+
+  it("returns the view columns, never the materia column it was given", () => {
+    const compiled = compile();
+
+    expect(compiled.sql).toMatch(/returning/i);
+    expect(compiled.sql).toMatch(/"method"\s+as\s+"metodo"/i);
+    expect(compiled.sql).toMatch(/"round"\s+as\s+"ronda_actual"/i);
+  });
+});
+
+describe("NegociacionesRepository.crear", () => {
+  function createFakeInsertKysely(inserted: unknown) {
+    const executeTakeFirst = jest.fn().mockResolvedValue(inserted);
+    const returning = jest.fn().mockReturnValue({ executeTakeFirst });
+    const onConflict = jest.fn().mockReturnValue({ returning });
+    const values = jest.fn().mockReturnValue({ onConflict });
+    const insertInto = jest.fn().mockReturnValue({ values });
+    const trx = { insertInto };
+    const execute = jest.fn((callback: (trx: unknown) => unknown) =>
+      callback(trx),
+    );
+    return {
+      kysely: { transaction: jest.fn(() => ({ execute })) },
+      trx,
+      insertInto,
+      values,
+    };
+  }
+
+  it("returns the new materia with no acuerdo in force and reopens the caso in the same trx", async () => {
+    const fake = createFakeInsertKysely({
+      id: "negociacion-2",
+      caso_id: "caso-1",
+      metodo: "mediacion",
+      estado: "borrador",
+      ronda_actual: 1,
+      created_at: "2026-09-10T10:00:00.000Z",
+    });
+    const reopenFromAcordado = jest.fn().mockResolvedValue(undefined);
+    const repository = new NegociacionesRepository(
+      fake.kysely as never,
+      {
+        reopenFromAcordado,
+      } as never,
+    );
+
+    const result = await repository.crear("caso-1", "alimentos", "mediacion");
+
+    expect(fake.values).toHaveBeenCalledWith({
+      caso_id: "caso-1",
+      materia: "alimentos",
+      method: "mediacion",
+    });
+    expect(reopenFromAcordado).toHaveBeenCalledWith("caso-1", fake.trx);
+    expect(result).toEqual({
+      id: "negociacion-2",
+      caso_id: "caso-1",
+      subject_type: "alimentos",
+      metodo: "mediacion",
+      estado: "borrador",
+      ronda_actual: 1,
+      acuerdo_vigente: null,
+      created_at: "2026-09-10T10:00:00.000Z",
+    });
+  });
+
+  it("reports a materia the caso already has as 409, without reopening it", async () => {
+    const fake = createFakeInsertKysely(undefined);
+    const reopenFromAcordado = jest.fn();
+    const repository = new NegociacionesRepository(
+      fake.kysely as never,
+      {
+        reopenFromAcordado,
+      } as never,
+    );
+
+    let thrown: unknown;
+    try {
+      await repository.crear("caso-1", "alimentos", "mediacion");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+    expect((thrown as HttpException).getResponse()).toEqual(
+      expect.objectContaining({ code: "negociacion_materia_already_exists" }),
+    );
+    expect(reopenFromAcordado).not.toHaveBeenCalled();
   });
 });
