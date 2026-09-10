@@ -186,7 +186,9 @@ export function createMockCasesService(): CasesService {
               : null,
         emailDestino: input.tipo === 'email' ? (input.emailDestino ?? null) : null,
         estado: 'pendiente',
-        pagoACargo: input.pagoACargo,
+        // Punto #6: el frontend ya no define quién paga — `null` es la
+        // respuesta válida documentada en `CaseInvitation.pagoACargo`.
+        pagoACargo: input.pagoACargo ?? null,
         createdAt: new Date().toISOString(),
       };
 

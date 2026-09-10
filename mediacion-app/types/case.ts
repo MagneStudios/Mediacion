@@ -148,5 +148,14 @@ export type CreateInvitationInput = {
   casoId: string;
   tipo: TipoInvitacion;
   emailDestino?: string;
-  pagoACargo: PagoACargo;
+  /**
+   * Punto #6 (AJUSTES-PACTUM-2026-09-10): el selector "quién paga" se sacó
+   * de la UI de creación — el modelo pasa a ser "cada parte paga la suya"
+   * (suscripción individual), no un split ni una elección entre las partes.
+   * Queda opcional en vez de eliminado porque `CaseInvitation.pagoACargo`
+   * ya documentaba que `null` es una respuesta válida del servidor ("una
+   * invitación sin definir quién paga sigue siendo válida"); el frontend
+   * ahora simplemente nunca lo define.
+   */
+  pagoACargo?: PagoACargo;
 };

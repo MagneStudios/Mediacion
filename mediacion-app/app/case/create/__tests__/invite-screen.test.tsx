@@ -48,7 +48,10 @@ async function selectCard(title: string, expectedSelectedCount: number) {
   await waitFor(() => expect(screen.getAllByText(i18n.t('caseCreation.method.selected'))).toHaveLength(expectedSelectedCount));
 }
 
-describe('CaseCreateInviteScreen — R-07 pago a cargo selector', () => {
+// Punto #6 (AJUSTES-PACTUM-2026-09-10): "sacar el split 50/50 de la UI y de
+// la lógica de cobro". El selector "quién paga" (R-07) se sacó de esta
+// pantalla — el modelo pasa a ser suscripción individual por parte.
+describe('CaseCreateInviteScreen', () => {
   beforeEach(() => {
     mockPush.mockReset();
     mockSetInvitationResult.mockReset();
@@ -56,13 +59,13 @@ describe('CaseCreateInviteScreen — R-07 pago a cargo selector', () => {
     mockDraft = { caseId: 'case-1', invitation: null };
   });
 
-  it('renders both "quién paga" options', async () => {
+  it('no muestra ningún selector de "quién paga"', async () => {
     await renderScreen();
-    expect(screen.getByText(i18n.t('caseCreation.invite.pagoACargo.invitador.title'))).toBeTruthy();
-    expect(screen.getByText(i18n.t('caseCreation.invite.pagoACargo.invitado.title'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('caseCreation.invite.pagoACargo.invitador.title'))).toBeNull();
+    expect(screen.queryByText(i18n.t('caseCreation.invite.pagoACargo.invitado.title'))).toBeNull();
   });
 
-  it('keeps submit disabled until both a payer and an invitation method are chosen', async () => {
+  it('keeps submit disabled until an invitation method is chosen', async () => {
     mockCreateInvitation.mockResolvedValue({
       id: 'inv-1',
       caseId: 'case-1',
@@ -70,12 +73,12 @@ describe('CaseCreateInviteScreen — R-07 pago a cargo selector', () => {
       token: 'tok',
       emailDestino: null,
       estado: 'pendiente',
-      pagoACargo: 'invitador',
+      pagoACargo: null,
       createdAt: '2026-08-10T00:00:00.000Z',
     });
     await renderScreen();
 
-    // Pressing submit before either choice is made must be a no-op — the
+    // Pressing submit before a method is chosen must be a no-op — the
     // button's own `disabled` prop is what enforces this, checked here via
     // its observable effect since Button's accessibilityLabel falls back to
     // `loadingLabel` regardless of `loading`, making a role/name query
@@ -83,16 +86,12 @@ describe('CaseCreateInviteScreen — R-07 pago a cargo selector', () => {
     submit();
     expect(mockCreateInvitation).not.toHaveBeenCalled();
 
-    await selectCard(i18n.t('caseCreation.invite.pagoACargo.invitador.title'), 1);
-    submit();
-    expect(mockCreateInvitation).not.toHaveBeenCalled();
-
-    await selectCard(i18n.t('caseCreation.invite.method.link.title'), 2);
+    await selectCard(i18n.t('caseCreation.invite.method.link.title'), 1);
     submit();
     await waitFor(() => expect(mockCreateInvitation).toHaveBeenCalled());
   });
 
-  it('sends the selected pagoACargo when preparing the invitation', async () => {
+  it('prepara la invitación sin enviar pagoACargo', async () => {
     mockCreateInvitation.mockResolvedValue({
       id: 'inv-1',
       caseId: 'case-1',
@@ -100,19 +99,17 @@ describe('CaseCreateInviteScreen — R-07 pago a cargo selector', () => {
       token: 'tok',
       emailDestino: null,
       estado: 'pendiente',
-      pagoACargo: 'invitado',
+      pagoACargo: null,
       createdAt: '2026-08-10T00:00:00.000Z',
     });
     await renderScreen();
 
-    await selectCard(i18n.t('caseCreation.invite.pagoACargo.invitado.title'), 1);
-    await selectCard(i18n.t('caseCreation.invite.method.link.title'), 2);
+    await selectCard(i18n.t('caseCreation.invite.method.link.title'), 1);
     submit();
 
-    await waitFor(() =>
-      expect(mockCreateInvitation).toHaveBeenCalledWith(
-        expect.objectContaining({ casoId: 'case-1', tipo: 'link', pagoACargo: 'invitado' }),
-      ),
-    );
+    await waitFor(() => expect(mockCreateInvitation).toHaveBeenCalled());
+    const sentInput = mockCreateInvitation.mock.calls[0][0];
+    expect(sentInput).toEqual({ casoId: 'case-1', tipo: 'link', emailDestino: undefined });
+    expect(sentInput).not.toHaveProperty('pagoACargo');
   });
 });

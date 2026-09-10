@@ -126,7 +126,10 @@ export function createApiCasesService(
           body: {
             tipo: input.tipo,
             ...(input.emailDestino ? { email_destino: input.emailDestino } : {}),
-            pago_a_cargo: input.pagoACargo,
+            // Punto #6 (AJUSTES-PACTUM-2026-09-10): el frontend ya no ofrece
+            // elegir quién paga — se manda solo si vino definido (nunca
+            // desde la UI actual), en vez de forzar un valor.
+            ...(input.pagoACargo ? { pago_a_cargo: input.pagoACargo } : {}),
           },
         },
       );
@@ -141,7 +144,7 @@ export function createApiCasesService(
         token: created.token,
         emailDestino: input.emailDestino ?? null,
         estado: created.estado,
-        pagoACargo: input.pagoACargo,
+        pagoACargo: input.pagoACargo ?? null,
         createdAt: clock().toISOString(),
       };
     },

@@ -5,8 +5,9 @@ import i18n from '../../../i18n';
 import { profileService } from '../../../services/profile.service';
 import type { MockProfile, UpdateProfileInput } from '../../../types/profile';
 import { idiomaToLocale } from '../../../utils/map-language';
+import { isUnrecoverableSessionError } from '../../../utils/is-unrecoverable-session-error';
 
-export type FetchStatus = 'loading' | 'error' | 'success';
+export type FetchStatus = 'loading' | 'error' | 'sessionBroken' | 'success';
 export type MutationStatus = 'idle' | 'pending' | 'error';
 
 /**
@@ -57,9 +58,9 @@ export function useProfile() {
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (cancelled) return;
-        setStatus('error');
+        setStatus(isUnrecoverableSessionError(error) ? 'sessionBroken' : 'error');
       });
     return () => {
       cancelled = true;

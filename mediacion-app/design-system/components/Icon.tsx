@@ -27,6 +27,7 @@ import {
   Tag,
   Trash2,
   User,
+  UserPlus,
   Wallet,
   X,
   type LucideIcon,
@@ -69,6 +70,7 @@ const ICONS = {
   tag: Tag,
   'trash-2': Trash2,
   user: User,
+  'user-plus': UserPlus,
   wallet: Wallet,
   x: X,
 } satisfies Record<string, LucideIcon>;

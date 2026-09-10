@@ -9,10 +9,8 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { TaxBreakdownSummary } from '@/features/billing/components/TaxBreakdownSummary';
-import { AcceptanceCheckboxes } from '@/features/legal/components/AcceptanceCheckboxes';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { billingService } from '@/services/billing.service';
-import { legalService } from '@/services/legal.service';
 import { plansService } from '@/services/plans.service';
 import type { Plan } from '@/types/plan';
 import { blurActiveElement } from '@/utils/blur-active-element';
@@ -36,11 +34,6 @@ export default function PlanCheckoutScreen() {
   const [fetchStatus, setFetchStatus] = useState<FetchStatus>('loading');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [payStatus, setPayStatus] = useState<PayStatus>('idle');
-  // Instructivo TyC §2: the checkout is a contracting point, so acceptance is
-  // asked here too — unchecked by default, and the pay button stays disabled
-  // until the mandatory one is ticked. Marketing remains optional.
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [marketingAccepted, setMarketingAccepted] = useState(false);
   /**
    * El checkout que ya devolvió el servidor, si lo devolvió.
    *
@@ -126,10 +119,7 @@ export default function PlanCheckoutScreen() {
   };
 
   const handlePay = async () => {
-    // The disabled button is UI courtesy; this guard covers programmatic
-    // calls. The real guarantee is the future DB constraint that rejects a
-    // contract without a current acceptance (docs/reparto-tyc-devs.md #11).
-    if (payStatus === 'submitting' || !termsAccepted) return;
+    if (payStatus === 'submitting') return;
     // Ya hay una suscripción creada y un checkout devuelto: esto es "abrir de
     // nuevo", no "contratar de nuevo".
     if (checkoutUrl !== null) {
@@ -138,10 +128,11 @@ export default function PlanCheckoutScreen() {
     }
     setPayStatus('submitting');
     try {
-      // Recorded before contracting so the server-side record exists when
-      // the subscription insert hits the acceptance constraint. The body
-      // only carries the marketing opt-in — IP/UA/version are server-side.
-      await legalService.registerAcceptance({ marketing: marketingAccepted });
+      // Punto #1 (AJUSTES-PACTUM-2026-09-10): la aceptación de TyC ya se
+      // registró en el alta (app/signup.tsx) — pedirla de nuevo acá era el
+      // duplicado que el cliente reportó. El checkout ya no vuelve a llamar
+      // legalService.registerAcceptance(); el enforcement real sigue siendo
+      // la constraint de backend (docs/reparto-tyc-devs.md #11).
       const start = await billingService.startCheckout(plan.id);
       if (start.kind === 'simulated') {
         blurActiveElement();
@@ -191,14 +182,6 @@ export default function PlanCheckoutScreen() {
 
       <Text style={styles.sandboxNotice}>{t('billing.checkout.sandboxNotice')}</Text>
 
-      <AcceptanceCheckboxes
-        termsAccepted={termsAccepted}
-        onChangeTerms={setTermsAccepted}
-        marketingAccepted={marketingAccepted}
-        onChangeMarketing={setMarketingAccepted}
-        disabled={payStatus === 'submitting'}
-      />
-
       {payStatus === 'checkoutPending' ? (
         <ErrorState
           title={t('billing.checkout.checkoutPending.title')}
@@ -214,7 +197,6 @@ export default function PlanCheckoutScreen() {
           size="lg"
           fullWidth
           onPress={handlePay}
-          disabled={!termsAccepted}
           loading={payStatus === 'submitting'}
           loadingLabel={t('billing.checkout.paying')}
         >

@@ -5,12 +5,14 @@ import i18n from '@/i18n';
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
+let mockSearchParams: { token?: string } = {};
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   router: {
     replace: (...args: unknown[]) => mockReplace(...args),
     push: (...args: unknown[]) => mockPush(...args),
   },
+  useLocalSearchParams: () => mockSearchParams,
 }));
 
 jest.mock('@/hooks/use-responsive-layout', () => ({
@@ -46,6 +48,7 @@ describe('CaseJoinScreen', () => {
     mockReplace.mockReset();
     mockPush.mockReset();
     mockJoinCase.mockReset();
+    mockSearchParams = {};
   });
 
   it('renders the join form in its idle state', async () => {
@@ -196,5 +199,21 @@ describe('CaseJoinScreen', () => {
     await renderScreen();
     await fireEvent.press(submit());
     expect(mockJoinCase).not.toHaveBeenCalled();
+  });
+
+  describe('punto #4: token precargado desde el link de invitación', () => {
+    it('prefills the input from the ?token= param instead of starting blank', async () => {
+      mockSearchParams = { token: 'mediacionapp://invitacion/mock-abc123' };
+      await renderScreen();
+
+      expect(input().props.value).toBe('mediacionapp://invitacion/mock-abc123');
+      // A prefilled, non-blank token means the submit action starts enabled.
+      expect(submit().props.accessibilityState.disabled).toBe(false);
+    });
+
+    it('still starts blank when there is no token param', async () => {
+      await renderScreen();
+      expect(input().props.value).toBe('');
+    });
   });
 });

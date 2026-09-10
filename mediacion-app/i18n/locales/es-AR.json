@@ -292,6 +292,20 @@
       "checkEmail": {
         "title": "Revisá tu correo",
         "description": "Te enviamos un enlace para confirmar tu cuenta. Cuando lo confirmes, vas a poder iniciar sesión."
+      },
+      "plan": {
+        "title": "Elegí tu plan",
+        "description": "Podés empezar gratis o elegir un plan pago — tu cuenta queda lista apenas elijas uno.",
+        "loading": "Buscando los planes disponibles…",
+        "error": {
+          "title": "No pudimos cargar los planes",
+          "retry": "Reintentar"
+        },
+        "subscribing": "Activando tu plan…",
+        "subscribeError": {
+          "title": "No pudimos activar el plan gratuito",
+          "retry": "Reintentar"
+        }
       }
     }
   },
@@ -333,7 +347,7 @@
     },
     "paymentRequired": {
       "title": "Necesitás una suscripción activa",
-      "body": "Quien te invitó eligió que vos te hagas cargo de la suscripción para acceder a este caso.",
+      "body": "Cada parte paga su propia suscripción para poder operar en el caso — activá la tuya para continuar.",
       "viewPlansAction": "Ver planes",
       "demoBypass": {
         "description": "Solo en esta demostración podés continuar sin pagar.",
@@ -473,17 +487,6 @@
     "invite": {
       "title": "Invitá a la contraparte",
       "subtitle": "Elegí cómo querés compartir el acceso a este caso.",
-      "pagoACargo": {
-        "sectionTitle": "¿Quién paga la suscripción?",
-        "invitador": {
-          "title": "Yo pago",
-          "description": "La suscripción queda a tu cargo."
-        },
-        "invitado": {
-          "title": "Paga la otra parte",
-          "description": "La otra parte va a tener que suscribirse para acceder al caso."
-        }
-      },
       "method": {
         "sectionTitle": "¿Cómo querés invitar?",
         "link": {
@@ -509,6 +512,10 @@
         "codigo": "Copiar código"
       },
       "copied": "Copiado",
+      "share": {
+        "link": "Compartir enlace",
+        "codigo": "Compartir código"
+      },
       "sendInvitation": "Preparar invitación",
       "preparedMessage": "La invitación quedó preparada.",
       "sandboxMessage": "La invitación se registró en el entorno de prueba.",
@@ -553,6 +560,12 @@
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
       "viewInvitation": "Ver invitación",
       "invitationError": "No pudimos cargar la invitación",
+      "invitationStatus": {
+        "pendiente": "Invitación pendiente",
+        "aceptada": "Invitación aceptada",
+        "rechazada": "Invitación rechazada",
+        "expirada": "Invitación vencida"
+      },
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",
@@ -609,10 +622,12 @@
     "eyebrow": "Panel de casos",
     "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
+    "joinCase": "Unirme a un caso",
     "loading": "Buscando tus casos…",
     "empty": {
       "title": "Todavía no tenés casos",
-      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista.",
+      "joinAction": "Unirme con un código"
     },
     "error": {
       "title": "No pudimos cargar tus casos",
@@ -659,7 +674,8 @@
     "back": "Atrás",
     "retry": "Reintentar",
     "loading": "Cargando…",
-    "mainNavigation": "Navegación principal"
+    "mainNavigation": "Navegación principal",
+    "signOut": "Cerrar sesión"
   },
   "mediator": {
     "sectionTitle": "Acompañamiento",
@@ -1219,6 +1235,11 @@
       "overview": "Esta sección utiliza datos simulados. Ninguna acción de cuenta o sesión afecta un sistema real todavía.",
       "notifications": "Los avisos que activés acá todavía no están conectados a notificaciones reales: no se envían emails ni push en esta demostración.",
       "account": "Las acciones de esta pantalla son solo demostrativas. No hay autenticación real ni se elimina información."
+    },
+    "sessionBroken": {
+      "title": "Tu cuenta todavía no está lista",
+      "description": "Hubo un problema al cargar tu perfil. Cerrá sesión y volvé a entrar; si el problema sigue, contactanos.",
+      "action": "Cerrar sesión"
     },
     "header": {
       "title": "Perfil"
