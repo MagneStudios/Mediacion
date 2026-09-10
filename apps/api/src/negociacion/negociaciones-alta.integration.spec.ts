@@ -302,6 +302,39 @@ describeDb("Opening a second negociacion against a real database", () => {
     expect(rondaAlimentos?.caso_id).toBe(casoId);
   });
 
+  it("activar saca una materia de borrador, y es idempotente y sin marcha atrás", async () => {
+    const casoId = await seedCasoConParte("en_negociacion");
+    const tenencia = await repository.crear(casoId, "tenencia", "mediacion");
+    const alimentos = await repository.crear(casoId, "alimentos", "mediacion");
+
+    await repository.activar(tenencia.id);
+
+    const leer = async (id: string) =>
+      (
+        await kysely
+          .selectFrom("negociaciones")
+          .select("estado")
+          .where("id", "=", id)
+          .executeTakeFirstOrThrow()
+      ).estado;
+
+    expect(await leer(tenencia.id)).toBe("activa");
+    expect(await leer(alimentos.id)).toBe("borrador");
+
+    // Repetirlo no rompe nada, y una materia acordada no vuelve a activa por
+    // este camino: para eso está `renegociar`, que sí es explícito.
+    await repository.activar(tenencia.id);
+    expect(await leer(tenencia.id)).toBe("activa");
+
+    await kysely
+      .updateTable("negociaciones")
+      .set({ estado: "acordada" })
+      .where("id", "=", alimentos.id)
+      .execute();
+    await repository.activar(alimentos.id);
+    expect(await leer(alimentos.id)).toBe("acordada");
+  });
+
   it("moves one materia's round without touching the other", async () => {
     const casoId = await seedCasoConParte("en_negociacion");
     const tenencia = await repository.crear(casoId, "tenencia", "mediacion");

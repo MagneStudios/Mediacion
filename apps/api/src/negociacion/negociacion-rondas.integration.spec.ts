@@ -3,6 +3,7 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException } from "@nestjs/common";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "../casos/caso-estado.fixture";
 import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
@@ -94,21 +95,16 @@ async function insertCaso(
   creadorId: string,
   nombre: string,
 ): Promise<string> {
-  const caso = await kysely
-    .insertInto("casos")
-    .values({
-      creador_id: creadorId,
-      nombre,
-      metodo: "mediacion",
-      estado: "en_negociacion",
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  const casoId = await insertCasoEnEstado(
+    kysely,
+    { creador_id: creadorId, nombre, metodo: "mediacion" },
+    "en_negociacion",
+  );
   await kysely
     .insertInto("negociaciones")
-    .values({ caso_id: caso.id, materia: null, method: "mediacion" })
+    .values({ caso_id: casoId, materia: null, method: "mediacion" })
     .execute();
-  return caso.id;
+  return casoId;
 }
 
 async function insertPartes(
@@ -295,9 +291,27 @@ describeDb(
       });
 
       it("rejects responder with 409 propuesta_not_ready while narrative generation is still in flight", async () => {
+        const antes = await kysely
+          .selectFrom("negociaciones")
+          .select("estado")
+          .where("caso_id", "=", casoId)
+          .where("materia", "is", null)
+          .executeTakeFirstOrThrow();
+        expect(antes.estado).toBe("borrador");
+
         const pending = await service.generatePropuesta(casoId, parteAId);
         propuestaId = pending.id;
         expect((pending.contenido as PropuestaContenido).narrative).toBeNull();
+
+        // La materia arranca junto con el caso: hasta que esto existió,
+        // `negociaciones.estado` se quedaba en su default para siempre.
+        const despues = await kysely
+          .selectFrom("negociaciones")
+          .select("estado")
+          .where("caso_id", "=", casoId)
+          .where("materia", "is", null)
+          .executeTakeFirstOrThrow();
+        expect(despues.estado).toBe("activa");
 
         let thrown: unknown;
         try {
@@ -316,7 +330,13 @@ describeDb(
       });
 
       it("a duplicate propuesta for the same ronda fires the real propuestas_caso_ronda_unique constraint as 409", async () => {
-        const ronda = await rondasRepository.findByNumero(casoId, 1);
+        const activa = await rondasRepository.resolveActiveNegociacion(casoId);
+        if (!activa) {
+          throw new Error(
+            "expected the caso to have its materia-less negociacion",
+          );
+        }
+        const ronda = await rondasRepository.findByNumero(activa.id, 1);
         if (!ronda) {
           throw new Error("expected ronda 1 to already exist for this caso");
         }
@@ -459,7 +479,11 @@ describeDb(
         );
         expect(rejected.estado).toBe("rechazada");
 
-        const rondaDos = await rondasRepository.findByNumero(casoId, 2);
+        const activa = await rondasRepository.resolveActiveNegociacion(casoId);
+        const rondaDos = await rondasRepository.findByNumero(
+          activa?.id ?? "",
+          2,
+        );
         expect(rondaDos).toBeDefined();
 
         const negociacionRow = await kysely
@@ -491,7 +515,11 @@ describeDb(
         );
         expect(rejected.estado).toBe("rechazada");
 
-        const rondaTres = await rondasRepository.findByNumero(casoId, 3);
+        const activa = await rondasRepository.resolveActiveNegociacion(casoId);
+        const rondaTres = await rondasRepository.findByNumero(
+          activa?.id ?? "",
+          3,
+        );
         expect(rondaTres).toBeDefined();
 
         const negociacionRow = await kysely

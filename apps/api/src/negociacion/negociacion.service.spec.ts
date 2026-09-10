@@ -46,6 +46,7 @@ function buildService(overrides?: {
   findDetailForNegociacion?: jest.Mock;
   listByCaso?: jest.Mock;
   findNegociacionById?: jest.Mock;
+  activar?: jest.Mock;
   crear?: jest.Mock;
   findDetailForMember?: jest.Mock;
   renegociar?: jest.Mock;
@@ -107,6 +108,7 @@ function buildService(overrides?: {
     findById:
       overrides?.findNegociacionById ??
       jest.fn().mockResolvedValue({ caso_id: "caso-1", round: 1 }),
+    activar: overrides?.activar ?? jest.fn().mockResolvedValue(undefined),
     crear:
       overrides?.crear ??
       jest.fn().mockResolvedValue({

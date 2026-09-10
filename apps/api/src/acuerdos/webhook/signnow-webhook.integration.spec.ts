@@ -6,6 +6,7 @@ import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
 import request from "supertest";
 import { AppModule } from "../../app.module";
+import { insertCasoEnEstado } from "../../casos/caso-estado.fixture";
 import { KYSELY } from "../../database/database.tokens";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
@@ -108,17 +109,16 @@ describeDb("signNow webhook against a real app and database", () => {
     await insertAuthUser(kysely, parteAId, parteAEmail);
     await insertAuthUser(kysely, parteBId, parteBEmail);
 
-    const caso = await kysely
-      .insertInto("casos")
-      .values({
+    const casoIdCreado = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: parteAId,
         nombre: `Caso integracion signnow ${randomUUID()}`,
         metodo: "mediacion",
-        estado: "acordado",
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    casoId = caso.id;
+      },
+      "acordado",
+    );
+    casoId = casoIdCreado;
 
     await kysely
       .insertInto("caso_partes")

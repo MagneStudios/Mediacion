@@ -15,8 +15,8 @@
 
 1. **Flag `tsc -b` en `apps/api` (P4):** portar `acuerdos`/`rondas`/`propuestas`/`mediaciones` a `negociacion_id`; reemplazar toda lectura de `casos.ronda_actual` por `negociaciones.round`. Detalle y líneas en `docs/pedidos-db-a-backend-acuerdos-modulares.md` §3.
 2. **`invitacion_ttl_horas`:** ✅ **Resuelto 09-09** — el backend ahora lee `configuracion.invitacion_ttl_horas` (fallback 72 h) en `invitations.repository.ts` / `invitation-ttl.ts`. Documentado en `docs/integration-contract.md` y `docs/frontend-redesign/state-machines.md`.
-3. **`pago_a_cargo`:** son dos cambios, no uno — la columna existe en `invociaciones` pero **nunca se persiste ni se expone** en `GET /casos/:id/invitaciones`.
-4. **`negociaciones.estado`:** escribirlo tras la creación (el motor sigue leyendo por caso).
+3. **`pago_a_cargo`:** ✅ **Resuelto 10-09** — entra opcional por el body de `POST /casos/:id/invitaciones`, se persiste y sale tanto en la respuesta del alta como en `GET /casos/:id/invitaciones`. Un valor fuera del `CHECK` es `400 invalid_input` (no el `409 conflict` genérico de la constraint); `null` sigue siendo válido porque `NULL IN (...)` no es `FALSE`. `valoresPagoACargo` en `invitaciones.types.ts` es la copia a mano del CHECK: la columna es `TEXT`, no un enum, así que el dominio no se puede derivar del esquema.
+4. **`negociaciones.estado`:** ✅ **Resuelto 10-09** — pasa de `borrador` a `activa` al generarse la primera propuesta de esa materia, el mismo momento en que el caso pasa a `en_negociacion`. El UPDATE está guardado en `borrador`: es idempotente y una materia `acordada` no vuelve atrás por ahí (para eso está `renegociar`). `cerrada`/`terminada` siguen sin escribirse: terminar un caso no termina sus materias hoy, y decidir si debería es producto.
 5. **Versionado P5:** consumir `vigente`/`supersedes_agreement_id` en el flujo Renegociar.
 6. **`acordado` derivado:** calcularlo en BE (`CasosRepository.markAcordado`) cuando todas las materias del caso tienen acuerdo vigente+firmado.
 
@@ -37,3 +37,16 @@ Los 10 fallos son preexistentes y en módulos ajenos a acuerdos modulares / mig 
 - `acuerdos_select`: devuelve 2 en vez de 1 (P4 — la política resuelve el caso por `negociacion_id`; conviene revisar si el caso de prueba debe tener 1 o 2 acuerdos).
 
 Ninguno es regresión de las correcciones de esta sesión (migration 44 solo afecta `casos.estado`; los edits de doc no tocan RLS). Se recomienda un seguimiento aparte.
+
+---
+
+## Respuesta de Backend — 2026-09-10
+
+Los seis pedidos quedan cerrados: 1 y 5 con acuerdos modulares, 6 con `acordado` derivado, 2 el 09-09, y 3 y 4 hoy (arriba). Detalle en `docs/changelogs/2026-09-10-pendientes-post-auditoria.md`.
+
+**Y una cosa que encontramos al intentar comprobarlos, que conviene que sepan:** las **ocho suites de integration estaban rojas** desde la migración 44 — 42 tests, todos con el mismo error, `Estado inicial inválido en INSERT`. Las fixtures insertaban `casos` directo en `en_negociacion`/`acordado`/`cerrado` y esa migración hizo correr la máquina de estados también en INSERT. Ya está arreglado con un helper único (`apps/api/src/casos/caso-estado.fixture.ts`) que camina la máquina, y **la corrida completa contra Postgres real quedó en 176 suites / 1486 tests, cero skipped** — la primera entera en verde desde el 09-09.
+
+Dos notas para DB de eso:
+
+1. **`trg_casos_gate_suscripciones` también aplica a los saltos de una fixture**, y a `reopenFromAcordado`. Cualquier transición a `activo`/`en_negociacion` con partes sin suscripción activa levanta `caso_bloqueado_suscripciones` — incluida la que hace `POST /negociaciones/:id/renegociar`, que rollbackea la renegociación entera. Puede ser exactamente lo que el gate quiere; lo decimos porque no está escrito en ningún lado.
+2. **Sin `DATABASE_URL` jest saltea todas las suites de integration y reporta verde.** Ocho suites estuvieron rotas un día entero sin que nada avisara, y en el camino se colaron tres llamadas con una firma vieja que tampoco avisó. Si CI corre sin base, ese verde no significa nada.

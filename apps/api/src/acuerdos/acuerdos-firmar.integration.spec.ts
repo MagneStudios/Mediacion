@@ -3,6 +3,7 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException } from "@nestjs/common";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "../casos/caso-estado.fixture";
 import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AcuerdoAccessService } from "./acuerdo-access.service";
@@ -99,17 +100,16 @@ describeDb("Firmar flow against a real database", () => {
       `firmar-c-${randomUUID()}@integration.test`,
     );
 
-    const caso = await kysely
-      .insertInto("casos")
-      .values({
+    const casoIdCreado = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: parteAId,
         nombre: `Caso integracion firmar ${randomUUID()}`,
         metodo: "mediacion",
-        estado: "acordado",
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    casoId = caso.id;
+      },
+      "acordado",
+    );
+    casoId = casoIdCreado;
 
     const negociacion = await kysely
       .insertInto("negociaciones")

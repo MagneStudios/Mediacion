@@ -255,6 +255,10 @@ export class NegociacionService {
     [positionsA, positionsB]: [PositionInput[], PositionInput[]],
   ): Promise<PropuestaView> {
     await this.casosRepository.activateNegotiation(casoId);
+    // El caso y la materia arrancan juntos: hasta acá `negociaciones.estado`
+    // se quedaba en su default `borrador` para siempre, porque lo único que
+    // lo escribía era aceptar la propuesta (`acordada`) y renegociar.
+    await this.negociacionesRepository.activar(negociacionId);
     const rondaId = await this.ensureActiveRonda(casoId, negociacionId, round);
     const alreadyExists = await this.propuestasRepository.existsForRonda(
       casoId,

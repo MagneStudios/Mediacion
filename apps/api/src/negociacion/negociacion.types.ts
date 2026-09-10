@@ -24,6 +24,9 @@ export const estadoNegociacionAcordada: EstadoNegociacion = "acordada";
 /** Where a renegotiation puts the materia back. */
 export const estadoNegociacionActiva: EstadoNegociacion = "activa";
 
+/** The default the schema gives a negociacion until it is actually negotiated. */
+export const estadoNegociacionBorrador: EstadoNegociacion = "borrador";
+
 /**
  * Every materia a caller may open a negociacion for. Declared here rather than
  * derived at runtime — there is no reflection over a Postgres enum — and

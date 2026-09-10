@@ -3,6 +3,7 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException } from "@nestjs/common";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "../casos/caso-estado.fixture";
 import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AcuerdoAccessService } from "./acuerdo-access.service";
@@ -91,17 +92,15 @@ describeDb("Agreement generation against a real database", () => {
       `acuerdos-c-${randomUUID()}@integration.test`,
     );
 
-    const caso = await kysely
-      .insertInto("casos")
-      .values({
+    casoId = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: parteAId,
         nombre: `Caso integracion acuerdos ${randomUUID()}`,
         metodo: "mediacion",
-        estado: "acordado",
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    casoId = caso.id;
+      },
+      "acordado",
+    );
 
     const negociacion = await kysely
       .insertInto("negociaciones")
@@ -249,20 +248,19 @@ describeDb("Agreement generation against a real database", () => {
   });
 
   it("rejects generation with 422 when the caso is not in acordado state", async () => {
-    const otherCaso = await kysely
-      .insertInto("casos")
-      .values({
+    const otherCasoId = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: parteAId,
         nombre: `Caso en negociacion ${randomUUID()}`,
         metodo: "mediacion",
-        estado: "en_negociacion",
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      },
+      "en_negociacion",
+    );
     await kysely
       .insertInto("caso_partes")
       .values({
-        caso_id: otherCaso.id,
+        caso_id: otherCasoId,
         usuario_id: parteAId,
         rol_en_caso: "parte_a",
         estado_invitacion: "aceptada",
@@ -272,7 +270,7 @@ describeDb("Agreement generation against a real database", () => {
 
     let thrown: unknown;
     try {
-      await service.generateAgreement(otherCaso.id, parteAId);
+      await service.generateAgreement(otherCasoId, parteAId);
     } catch (error) {
       thrown = error;
     }
@@ -284,9 +282,9 @@ describeDb("Agreement generation against a real database", () => {
       () =>
         kysely
           .deleteFrom("caso_partes")
-          .where("caso_id", "=", otherCaso.id)
+          .where("caso_id", "=", otherCasoId)
           .execute(),
-      () => kysely.deleteFrom("casos").where("id", "=", otherCaso.id).execute(),
+      () => kysely.deleteFrom("casos").where("id", "=", otherCasoId).execute(),
     ]);
   });
 });

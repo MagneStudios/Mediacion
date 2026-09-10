@@ -3,6 +3,7 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException } from "@nestjs/common";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "../casos/caso-estado.fixture";
 import { CasosRepository } from "../casos/casos.repository";
 import { NegociacionesRepository } from "./negociaciones.repository";
 
@@ -79,24 +80,23 @@ describeDb("Renegotiating a signed materia against a real database", () => {
     acuerdoEstado?: "borrador" | "enviado_a_firma" | "firmado";
     conAcuerdo?: boolean;
   }): Promise<{ casoId: string; negociacionId: string; acuerdoId?: string }> {
-    const caso = await kysely
-      .insertInto("casos")
-      .values({
+    const casoId = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: creadorId,
         nombre: `Caso renegociacion ${randomUUID()}`,
         metodo: "mediacion",
-        estado: options.casoEstado ?? "acordado",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+      },
+      options.casoEstado ?? "acordado",
+    );
     cleanup.push(() =>
-      kysely.deleteFrom("casos").where("id", "=", caso.id).execute(),
+      kysely.deleteFrom("casos").where("id", "=", casoId).execute(),
     );
 
     const negociacion = await kysely
       .insertInto("negociaciones")
       .values({
-        caso_id: caso.id,
+        caso_id: casoId,
         materia: "tenencia",
         method: "mediacion",
         estado: "acordada",
@@ -118,13 +118,13 @@ describeDb("Renegotiating a signed materia against a real database", () => {
     );
 
     if (options.conAcuerdo === false) {
-      return { casoId: caso.id, negociacionId: negociacion.id };
+      return { casoId: casoId, negociacionId: negociacion.id };
     }
 
     const acuerdo = await kysely
       .insertInto("acuerdos")
       .values({
-        caso_id: caso.id,
+        caso_id: casoId,
         negociacion_id: negociacion.id,
         contenido: contenidoV1,
         estado: options.acuerdoEstado ?? "firmado",
@@ -140,7 +140,7 @@ describeDb("Renegotiating a signed materia against a real database", () => {
     );
 
     return {
-      casoId: caso.id,
+      casoId: casoId,
       negociacionId: negociacion.id,
       acuerdoId: acuerdo.id,
     };

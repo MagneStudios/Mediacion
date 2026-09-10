@@ -18,6 +18,7 @@ import type {
 import {
   estadoNegociacionAcordada,
   estadoNegociacionActiva,
+  estadoNegociacionBorrador,
 } from "./negociacion.types";
 import {
   buildBumpNegociacionRoundQuery,
@@ -208,6 +209,29 @@ export function buildInsertAcuerdoSiguienteQuery(
     .returning(["id"]);
 }
 
+/**
+ * Saca una materia de `borrador` cuando empieza a negociarse de verdad — el
+ * mismo momento en que el caso pasa a `en_negociacion`. Sin esto la columna
+ * que la 40 creó nunca salía de su default: una negociación con propuestas y
+ * rondas seguía figurando `borrador`, y la tarjeta por materia del front
+ * mostraba "Borrador" para algo vivo (pedido 4 de
+ * `docs/pedidos-db-post-auditoria-09-09.md`).
+ *
+ * Guardada en `borrador` a propósito: es idempotente, y una materia ya
+ * `acordada` que recibe otra propuesta no puede volver atrás por este camino
+ * (para eso está `renegociar`, que sí es explícito).
+ */
+export function buildActivarNegociacionQuery(
+  db: Kysely<Database>,
+  negociacionId: string,
+) {
+  return db
+    .updateTable("negociaciones")
+    .set({ estado: estadoNegociacionActiva })
+    .where("id", "=", negociacionId)
+    .where("estado", "=", estadoNegociacionBorrador);
+}
+
 export function buildReactivarNegociacionQuery(
   db: Kysely<Database>,
   negociacionId: string,
@@ -296,6 +320,16 @@ export class NegociacionesRepository {
       trx,
       propuesta.negociacion_id,
     ).execute();
+  }
+
+  /** Afectar cero filas es normal: la materia ya estaba activa o acordada. */
+  activar(negociacionId: string): Promise<void> {
+    return buildActivarNegociacionQuery(this.kysely, negociacionId)
+      .execute()
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        throw toDomainError(error);
+      });
   }
 
   findById(
