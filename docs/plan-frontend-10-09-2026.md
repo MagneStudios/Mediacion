@@ -43,10 +43,13 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - [x] `app/profile/account.tsx` se dejó como está (su propia card con descripción es más apropiada ahí); no se duplicó lógica, solo hay dos presentaciones de UI sobre el mismo hook.
 - [x] Tests: `features/profile/components/__tests__/GlobalSignOutAction.test.tsx` (nuevo), `components/__tests__/DesktopTopbar.test.tsx` (actualizado). Suite completa de `features/profile` + `components/__tests__` + `app/(tabs)/profile` verde (457 tests).
 
-### #4 — Unirse a un caso con código (bloqueante)
-- [ ] CTA en `features/cases/CasesDashboardScreen.tsx` (header + empty state).
-- [ ] `app/case/join.tsx`: leer `?token=` de `useLocalSearchParams` y precargar el input.
-- [ ] Wizard de signup (#2) propaga `?joinToken=` y redirige a `/case/join?token=...` al terminar si corresponde.
+### #4 — Unirse a un caso con código (bloqueante) ✅ (10/09, parcial — falta la pata de #2)
+- [x] CTA en `features/cases/CasesDashboardScreen.tsx`: botón "Unirme a un caso" en el header (junto a "Crear un caso") + acción en el `EmptyState`.
+- [x] `app/case/join.tsx`: lee `?token=` de `useLocalSearchParams` y precarga el input.
+- [x] `app/invitacion/[token].tsx` (nuevo): el link `mediacionapp://invitacion/mock-...` no resolvía a ninguna pantalla — esta ruta lo intercepta, reconstruye el string completo (necesario porque `CaseInvitation.token` para tipo "link" es la URL entera, no solo el segmento) y redirige a `/case/join?token=...`.
+- [x] Nuevo ícono `user-plus` agregado al registro de `design-system/components/Icon.tsx` (no había ninguno adecuado para "unirse").
+- [ ] **Pendiente, depende de #2:** cuando un usuario sin cuenta abre el link, `AuthGate` lo manda a `/login` (ni `/invitacion/*` ni `/case/join` son rutas públicas) y el token se pierde. Falta que el wizard de signup propague `?joinToken=` y redirija a `/case/join?token=...` al terminar el alta — se resuelve al implementar #2.
+- [x] Tests: `app/case/__tests__/join.test.tsx` (prefill), `app/invitacion/__tests__/[token].test.tsx` (nuevo), `features/cases/__tests__/CasesDashboardScreen.test.tsx` (CTA + empty state). Suite completa verde: 148 suites / 1332 tests, `tsc --noEmit` sin errores.
 
 ### #5 — Invitar en cualquier momento
 - [ ] Ampliar en `features/cases/CaseDetailScreen.tsx` la condición que hoy limita la sección de invitación a `estado === 'nuevo'`.

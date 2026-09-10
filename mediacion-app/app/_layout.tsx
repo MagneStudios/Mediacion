@@ -162,6 +162,7 @@ export default function RootLayout() {
           <Stack.Screen name="case/[id]/negotiation" options={{ headerShown: false }} />
           <Stack.Screen name="case/[id]/agreement" options={{ headerShown: false }} />
           <Stack.Screen name="case/[id]/mediator" options={{ headerShown: false }} />
+          <Stack.Screen name="invitacion/[token]" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="notices" options={{ headerShown: false }} />
           <Stack.Screen name="admin" options={{ headerShown: false }} />

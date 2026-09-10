@@ -605,10 +605,12 @@
     "eyebrow": "Case dashboard",
     "description": "Review your cases and next steps.",
     "createCase": "Start a case",
+    "joinCase": "Join a case",
     "loading": "Looking for your cases…",
     "empty": {
       "title": "No cases yet",
-      "description": "Once you start or join a case, it will show up in this list."
+      "description": "Once you start or join a case, it will show up in this list.",
+      "joinAction": "Join with a code"
     },
     "error": {
       "title": "We couldn't load your cases",

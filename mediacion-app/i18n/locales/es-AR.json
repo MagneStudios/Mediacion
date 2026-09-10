@@ -605,10 +605,12 @@
     "eyebrow": "Panel de casos",
     "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
+    "joinCase": "Unirme a un caso",
     "loading": "Buscando tus casos…",
     "empty": {
       "title": "Todavía no tenés casos",
-      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista.",
+      "joinAction": "Unirme con un código"
     },
     "error": {
       "title": "No pudimos cargar tus casos",

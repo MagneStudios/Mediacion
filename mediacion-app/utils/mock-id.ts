@@ -21,8 +21,9 @@ export function generateMockCode(): string {
 
 /**
  * Mock invitation link using the app's own registered scheme (see app.json
- * "scheme": "mediacionapp") — not a real external domain, and not wired to
- * any deep-link handling in this phase. Clearly a dev-only placeholder.
+ * "scheme": "mediacionapp") — not a real external domain. Resolves via
+ * app/invitacion/[token].tsx, which reconstructs this exact string and
+ * redirects to /case/join?token=... (AJUSTES-PACTUM-2026-09-10, punto #4).
  */
 export function generateMockInvitationLink(): string {
   const token = randomString(10, CODE_ALPHABET).toLowerCase();
