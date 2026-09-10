@@ -655,7 +655,8 @@
     "back": "Atrás",
     "retry": "Reintentar",
     "loading": "Cargando…",
-    "mainNavigation": "Navegación principal"
+    "mainNavigation": "Navegación principal",
+    "signOut": "Cerrar sesión"
   },
   "mediator": {
     "sectionTitle": "Acompañamiento",
@@ -1215,6 +1216,11 @@
       "overview": "Esta sección utiliza datos simulados. Ninguna acción de cuenta o sesión afecta un sistema real todavía.",
       "notifications": "Los avisos que activés acá todavía no están conectados a notificaciones reales: no se envían emails ni push en esta demostración.",
       "account": "Las acciones de esta pantalla son solo demostrativas. No hay autenticación real ni se elimina información."
+    },
+    "sessionBroken": {
+      "title": "Tu cuenta todavía no está lista",
+      "description": "Hubo un problema al cargar tu perfil. Cerrá sesión y volvé a entrar; si el problema sigue, contactanos.",
+      "action": "Cerrar sesión"
     },
     "header": {
       "title": "Perfil"

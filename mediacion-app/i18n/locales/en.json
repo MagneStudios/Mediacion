@@ -655,7 +655,8 @@
     "back": "Back",
     "retry": "Try again",
     "loading": "Loading…",
-    "mainNavigation": "Main navigation"
+    "mainNavigation": "Main navigation",
+    "signOut": "Sign out"
   },
   "mediator": {
     "sectionTitle": "Mediator support",
@@ -1215,6 +1216,11 @@
       "overview": "This section uses simulated data. No account or session action affects a real system yet.",
       "notifications": "The alerts you enable here aren't connected to real notifications yet: no emails or push notifications are sent in this demo.",
       "account": "The actions on this screen are demonstration-only. There is no real authentication and no data is deleted."
+    },
+    "sessionBroken": {
+      "title": "Your account isn't ready yet",
+      "description": "There was a problem loading your profile. Sign out and back in; contact us if the problem continues.",
+      "action": "Sign out"
     },
     "header": {
       "title": "Profile"

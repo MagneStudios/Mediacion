@@ -36,10 +36,12 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - [ ] Eliminar `app/signup.tsx`.
 - [ ] Verificar `billingService.subscribeToPlan` con plan free (precio 0) — contra mock funciona; contra backend real queda **pendiente de confirmar contrato**.
 
-### #3 — Botón de cerrar sesión
-- [ ] `features/profile/components/GlobalSignOutAction.tsx` (nuevo, extraído de `app/profile/account.tsx`).
-- [ ] Montar en `components/DesktopTopbar.tsx` y en `app/(tabs)/_layout.tsx` (headerRight).
-- [ ] Reusar en `app/profile/account.tsx`.
+### #3 — Botón de cerrar sesión ✅ (10/09)
+- [x] `features/profile/components/GlobalSignOutAction.tsx` (nuevo) — reusa `useAccountActions`/`SignOutDialog`, mismo wiring que `/profile/account` (sin duplicar lógica).
+- [x] Montado en `components/DesktopTopbar.tsx` (desktop, junto al avatar).
+- [x] Montado globalmente para mobile/compact en `app/_layout.tsx` (`CompactGlobalSignOut`, botón flotante arriba a la derecha, ya que en compact no hay un único punto de montaje como el topbar — cada sección fuera de `(tabs)` tiene su propio header nativo).
+- [x] `app/profile/account.tsx` se dejó como está (su propia card con descripción es más apropiada ahí); no se duplicó lógica, solo hay dos presentaciones de UI sobre el mismo hook.
+- [x] Tests: `features/profile/components/__tests__/GlobalSignOutAction.test.tsx` (nuevo), `components/__tests__/DesktopTopbar.test.tsx` (actualizado). Suite completa de `features/profile` + `components/__tests__` + `app/(tabs)/profile` verde (457 tests).
 
 ### #4 — Unirse a un caso con código (bloqueante)
 - [ ] CTA en `features/cases/CasesDashboardScreen.tsx` (header + empty state).
