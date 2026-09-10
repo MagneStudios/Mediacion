@@ -22,9 +22,9 @@ jest.mock('@/features/plans/hooks/usePlans', () => ({
   usePlans: () => mockPlansResult,
 }));
 
-const mockSubscribeToPlan = jest.fn();
+const mockStartCheckout = jest.fn();
 jest.mock('@/services/billing.service', () => ({
-  billingService: { subscribeToPlan: (...args: unknown[]) => mockSubscribeToPlan(...args) },
+  billingService: { startCheckout: (...args: unknown[]) => mockStartCheckout(...args) },
 }));
 
 // eslint-disable-next-line import/first
@@ -46,7 +46,7 @@ describe('SignupPlanScreen (punto #2)', () => {
   beforeEach(() => {
     mockReplace.mockReset();
     mockPush.mockReset();
-    mockSubscribeToPlan.mockReset();
+    mockStartCheckout.mockReset();
     mockSearchParams = {};
   });
 
@@ -73,22 +73,40 @@ describe('SignupPlanScreen (punto #2)', () => {
   });
 
   describe('el plan base (gratis, self-serve)', () => {
-    it('se suscribe en el mismo paso, sin pasar por checkout, y termina el alta en el dashboard', async () => {
+    // `startCheckout`, no `subscribeToPlan`: contra backend real,
+    // `subscribeToPlan` es mock-only para siempre (no hay endpoint de
+    // factura) — `startCheckout` es lo que BE activa de verdad sin pasar
+    // por Mercado Pago para un plan de precio 0 (fix(pagos) 10/09).
+    it('activa el plan via startCheckout (kind: activated) y termina el alta en el dashboard', async () => {
       mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
-      mockSubscribeToPlan.mockResolvedValue({ subscription: { id: 'sub-1' }, invoice: { id: 'inv-1' } });
+      mockStartCheckout.mockResolvedValue({ kind: 'activated', subscriptionId: 'sub-1' });
       await renderScreen();
 
       await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
 
-      await waitFor(() => expect(mockSubscribeToPlan).toHaveBeenCalledWith('plan-base'));
+      await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('plan-base'));
       await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
       expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('también funciona contra el mock (kind: simulated)', async () => {
+      mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+      mockStartCheckout.mockResolvedValue({
+        kind: 'simulated',
+        subscription: { id: 'sub-1' },
+        invoice: { id: 'inv-1' },
+      });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
     });
 
     it('si viene con un joinToken pendiente, termina en /case/join con el código precargado en vez del dashboard', async () => {
       mockSearchParams = { joinToken: 'mediacionapp://invitacion/mock-abc123' };
       mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
-      mockSubscribeToPlan.mockResolvedValue({ subscription: { id: 'sub-1' }, invoice: { id: 'inv-1' } });
+      mockStartCheckout.mockResolvedValue({ kind: 'activated', subscriptionId: 'sub-1' });
       await renderScreen();
 
       await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
@@ -101,9 +119,22 @@ describe('SignupPlanScreen (punto #2)', () => {
       );
     });
 
-    it('shows a recoverable error and does not navigate when the mock subscription fails', async () => {
+    it('defensivo: si el servidor devuelve un checkout real (kind: redirect) para "base", cae al checkout real en vez de manejarlo acá', async () => {
       mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
-      mockSubscribeToPlan.mockRejectedValue(new Error('mock_subscribe_failed'));
+      mockStartCheckout.mockResolvedValue({ kind: 'redirect', subscriptionId: 'sub-1', checkoutUrl: 'https://mp/x' });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
+
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith({ pathname: '/profile/plan/checkout', params: { planId: 'plan-base' } }),
+      );
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('shows a recoverable error and does not navigate when starting checkout fails', async () => {
+      mockPlansResult = { status: 'success', plans: [basePlan], refresh: jest.fn() };
+      mockStartCheckout.mockRejectedValue(new Error('mock_subscribe_failed'));
       await renderScreen();
 
       await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
@@ -121,7 +152,7 @@ describe('SignupPlanScreen (punto #2)', () => {
       await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
 
       expect(mockPush).toHaveBeenCalledWith({ pathname: '/profile/plan/checkout', params: { planId: 'plan-estudio' } });
-      expect(mockSubscribeToPlan).not.toHaveBeenCalled();
+      expect(mockStartCheckout).not.toHaveBeenCalled();
     });
   });
 
@@ -137,7 +168,7 @@ describe('SignupPlanScreen (punto #2)', () => {
       await fireEvent.press(screen.getByText(i18n.t('billing.myPlan.subscribeAction')));
 
       expect(mockPush).toHaveBeenCalledWith({ pathname: '/profile/plan/checkout', params: { planId: 'plan-corporativo' } });
-      expect(mockSubscribeToPlan).not.toHaveBeenCalled();
+      expect(mockStartCheckout).not.toHaveBeenCalled();
     });
   });
 });

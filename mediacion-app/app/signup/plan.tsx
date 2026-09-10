@@ -67,10 +67,26 @@ export default function SignupPlanScreen() {
 
     // Punto #2: el plan free termina el alta ahí mismo, sin pasar por
     // checkout — ninguna cuenta debe quedar sin plan asignado.
+    //
+    // `startCheckout`, no `subscribeToPlan`: contra backend real,
+    // `subscribeToPlan` es y seguirá siendo mock-only (no hay endpoint de
+    // factura, ver `services/api/billing.backed-service.ts`) — llamarlo acá
+    // simulaba un éxito local sin crear ninguna suscripción de verdad en el
+    // servidor. Desde que BE activa un plan de precio 0 sin pasar por
+    // Mercado Pago (`fix(pagos)` 10/09), `startCheckout` ya resuelve esto
+    // igual que hace `/profile/plan/checkout` para el mismo caso.
     setSubscribingPlanId(plan.id);
     setStatus('submitting');
     try {
-      await billingService.subscribeToPlan(plan.id);
+      const start = await billingService.startCheckout(plan.id);
+      if (start.kind === 'redirect') {
+        // Defensivo: el plan "base" se espera gratis, pero si el precio
+        // cambiara del lado del servidor, mejor caer al checkout real (que
+        // sí sabe abrir Mercado Pago) que manejar un pago acá.
+        setStatus('idle');
+        router.push({ pathname: '/profile/plan/checkout', params: { planId: plan.id } });
+        return;
+      }
       setStatus('idle');
       goNext();
     } catch {
