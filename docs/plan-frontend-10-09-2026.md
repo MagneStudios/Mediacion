@@ -55,10 +55,12 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - [x] **Cerrado con #2:** un usuario sin cuenta que abre el link ahora llega a `/signup?joinToken=...` (ajuste en `AuthGate.tsx`) en vez de perder el código en `/login`; el wizard de signup lo propaga y redirige a `/case/join?token=...` al terminar (plan free) o lo mantiene pendiente si eligió pago (ver nota en #2 sobre el alcance limitado ahí).
 - [x] Tests: `app/case/__tests__/join.test.tsx` (prefill), `app/invitacion/__tests__/[token].test.tsx` (nuevo), `features/cases/__tests__/CasesDashboardScreen.test.tsx` (CTA + empty state). Suite completa verde.
 
-### #5 — Invitar en cualquier momento
-- [ ] Ampliar en `features/cases/CaseDetailScreen.tsx` la condición que hoy limita la sección de invitación a `estado === 'nuevo'`.
-- [ ] Botón "compartir" en `InvitationResultCard` (usar `Share` de `react-native`, sin dependencias nuevas).
-- [ ] Fuera de alcance (decisión de producto ya documentada en el código): reenviar/regenerar invitación.
+### #5 — Invitar en cualquier momento ✅ (10/09, alcance revisado)
+- [x] **Revisión del alcance:** el plan original suponía ampliar a más estados de `EstadoCaso`, pero cruzando contra la máquina de estados (`types/case.ts`) eso no aplica — un caso solo permanece sin contraparte en `nuevo` (o pasa a `expirado` a las 72h); en `pendiente_suscripciones`/`activo`/etc. la contraparte YA se unió. Es decir, "cualquier momento antes de que se una" ya estaba cubierto por la sección existente para `estado === 'nuevo'`, sin límite de tiempo artificial. Lo que realmente faltaba era más chico:
+- [x] Badge de estado de la invitación (pendiente/aceptada/rechazada/expirada) en `features/cases/CaseDetailScreen.tsx` — el tipo `EstadoInvitacion` ya existía, solo faltaba mostrarlo ("para que se entienda por qué el caso todavía no avanza").
+- [x] Botón "compartir" en `InvitationResultCard` (usa `Share` de `react-native`, sin dependencias nuevas), junto al de copiar.
+- Fuera de alcance (decisión de producto ya documentada en el código, confirmado con el usuario): reenviar/regenerar invitación.
+- Tests: `features/cases/components/__tests__/InvitationResultCard.test.tsx` (nuevo), casos nuevos en `features/cases/__tests__/CaseDetailScreen.test.tsx`. Suite completa verde (150/150, 1356 tests), `tsc -b` sin errores.
 
 ### #6 — Sacar el pago 50/50
 - [ ] Quitar selector `pagoACargo` de `app/case/create/invite.tsx`.

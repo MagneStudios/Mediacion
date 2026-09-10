@@ -519,6 +519,10 @@
         "codigo": "Copiar código"
       },
       "copied": "Copiado",
+      "share": {
+        "link": "Compartir enlace",
+        "codigo": "Compartir código"
+      },
       "sendInvitation": "Preparar invitación",
       "preparedMessage": "La invitación quedó preparada.",
       "sandboxMessage": "La invitación se registró en el entorno de prueba.",
@@ -563,6 +567,12 @@
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
       "viewInvitation": "Ver invitación",
       "invitationError": "No pudimos cargar la invitación",
+      "invitationStatus": {
+        "pendiente": "Invitación pendiente",
+        "aceptada": "Invitación aceptada",
+        "rechazada": "Invitación rechazada",
+        "expirada": "Invitación vencida"
+      },
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",

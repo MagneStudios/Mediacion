@@ -519,6 +519,10 @@
         "codigo": "Copy code"
       },
       "copied": "Copied",
+      "share": {
+        "link": "Share link",
+        "codigo": "Share code"
+      },
       "sendInvitation": "Prepare invitation",
       "preparedMessage": "The invitation is ready.",
       "sandboxMessage": "The invitation was recorded in the test environment.",
@@ -563,6 +567,12 @@
       "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
       "viewInvitation": "View invitation",
       "invitationError": "We couldn't load the invitation",
+      "invitationStatus": {
+        "pendiente": "Invitation pending",
+        "aceptada": "Invitation accepted",
+        "rechazada": "Invitation declined",
+        "expirada": "Invitation expired"
+      },
       "simulateAcceptance": {
         "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
         "action": "Simulate invitation acceptance",

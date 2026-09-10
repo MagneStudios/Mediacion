@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
@@ -13,15 +13,23 @@ export type InvitationResultCardProps = {
   monospace?: boolean;
   copyLabel?: string;
   copiedLabel?: string;
+  /**
+   * Punto #5 (AJUSTES-PACTUM-2026-09-10): "ofrecer las dos vías: copiar
+   * código y copiar/compartir link". Uses `Share` from `react-native`
+   * (already a dependency, no new package) — the caller owns whether it
+   * makes sense for the current `value` (e.g. not for a bare email
+   * destination, which has nothing to "share").
+   */
+  shareLabel?: string;
 };
 
 /**
  * Displays a generated invitation link or code (or, for email, just the
- * destination address) in a readable card, with an optional copy action.
- * The value is never logged — it only ever renders to the screen and, on
- * request, to the system clipboard.
+ * destination address) in a readable card, with optional copy/share
+ * actions. The value is never logged — it only ever renders to the screen
+ * and, on request, to the system clipboard or share sheet.
  */
-export function InvitationResultCard({ label, value, monospace = false, copyLabel, copiedLabel }: InvitationResultCardProps) {
+export function InvitationResultCard({ label, value, monospace = false, copyLabel, copiedLabel, shareLabel }: InvitationResultCardProps) {
   const [justCopied, setJustCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,17 +40,33 @@ export function InvitationResultCard({ label, value, monospace = false, copyLabe
     resetTimer.current = setTimeout(() => setJustCopied(false), 2000);
   };
 
+  const handleShare = () => {
+    // Fire-and-forget: Share.share rejects if the person dismisses the sheet
+    // without picking a target, which is a normal outcome, not a failure to
+    // surface.
+    Share.share({ message: value }).catch(() => {});
+  };
+
   return (
     <Card style={styles.card}>
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.value, monospace ? styles.mono : null]} selectable>
         {value}
       </Text>
-      {copyLabel ? (
-        <View accessibilityLiveRegion="polite">
-          <Button variant="secondary" size="sm" onPress={handleCopy}>
-            {justCopied ? (copiedLabel ?? copyLabel) : copyLabel}
-          </Button>
+      {copyLabel || shareLabel ? (
+        <View style={styles.actions}>
+          {copyLabel ? (
+            <View accessibilityLiveRegion="polite">
+              <Button variant="secondary" size="sm" onPress={handleCopy}>
+                {justCopied ? (copiedLabel ?? copyLabel) : copyLabel}
+              </Button>
+            </View>
+          ) : null}
+          {shareLabel ? (
+            <Button variant="secondary" size="sm" onPress={handleShare}>
+              {shareLabel}
+            </Button>
+          ) : null}
         </View>
       ) : null}
     </Card>
@@ -69,5 +93,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.mono.fontFamily,
     fontSize: 20,
     letterSpacing: 2,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
 });

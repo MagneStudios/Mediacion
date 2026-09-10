@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, ConfirmationDialog, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
+import { Badge, Button, Card, ConfirmationDialog, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { radii } from '../../design-system/tokens/radii';
@@ -232,19 +232,31 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
 
           <Card style={styles.awaitingInvitationCard}>
             {invitation ? (
-              <InvitationResultCard
-                label={
-                  invitation.tipo === 'link'
-                    ? t('caseCreation.invite.linkLabel')
-                    : invitation.tipo === 'codigo'
-                      ? t('caseCreation.invite.codeLabel')
-                      : t('caseCreation.invite.emailLabel')
-                }
-                value={invitation.token ?? invitation.emailDestino ?? ''}
-                monospace={invitation.tipo === 'codigo'}
-                copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
-                copiedLabel={t('caseCreation.invite.copied')}
-              />
+              <>
+                {/*
+                  Punto #5: "mostrar el estado de la invitación... para que
+                  se entienda por qué el caso todavía no avanza" — el tipo
+                  ya distingue pendiente/aceptada/rechazada/expirada
+                  (`EstadoInvitacion`), solo faltaba mostrarlo.
+                */}
+                <Badge variant={invitation.estado === 'aceptada' ? 'solid' : 'neutral'}>
+                  {t(`caseDetail.awaitingCounterparty.invitationStatus.${invitation.estado}`)}
+                </Badge>
+                <InvitationResultCard
+                  label={
+                    invitation.tipo === 'link'
+                      ? t('caseCreation.invite.linkLabel')
+                      : invitation.tipo === 'codigo'
+                        ? t('caseCreation.invite.codeLabel')
+                        : t('caseCreation.invite.emailLabel')
+                  }
+                  value={invitation.token ?? invitation.emailDestino ?? ''}
+                  monospace={invitation.tipo === 'codigo'}
+                  copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
+                  copiedLabel={t('caseCreation.invite.copied')}
+                  shareLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.share.${invitation.tipo}`) : undefined}
+                />
+              </>
             ) : invitationStatus === 'error' ? (
               <ErrorState
                 title={t('caseDetail.awaitingCounterparty.invitationError')}
