@@ -45,6 +45,32 @@ jest.mock('@/features/agreements/hooks/useAgreement', () => ({
   useAgreement: () => mockAgreement,
 }));
 
+/**
+ * La lista de negociaciones del caso. El acuerdo se dibuja porque una
+ * negociacion tiene `currentAgreement`, no porque el caso este `acordado`.
+ */
+const mockNegotiationsReload = jest.fn();
+const mockNegotiations: { status: 'loading' | 'error' | 'empty' | 'success'; items: unknown } = {
+  status: 'empty',
+  items: [],
+};
+jest.mock('@/features/negotiation/hooks/useNegotiations', () => ({
+  useNegotiations: () => ({ ...mockNegotiations, reload: mockNegotiationsReload }),
+}));
+
+function negotiationWithAgreement(estado: 'firmado' | 'con_aviso' = 'firmado') {
+  return {
+    id: 'neg-1',
+    caseId: 'case-1',
+    subjectType: null,
+    metodo: 'mediacion',
+    estado: 'acordada',
+    roundNumber: 2,
+    currentAgreement: { id: 'a1', estado, version: 1 },
+    createdAt: '2026-09-01T00:00:00.000Z',
+  };
+}
+
 const mockReload = jest.fn();
 const mockTerminateCase = jest.fn();
 jest.mock('@/services/cases.service', () => ({
@@ -124,6 +150,8 @@ beforeEach(() => {
   mockMediator.state = null;
   mockAgreement.status = 'loading';
   mockAgreement.state = null;
+  mockNegotiations.status = 'empty';
+  mockNegotiations.items = [];
   mockIsWide = false;
   mockHorizontalPadding = 16;
 });
@@ -305,11 +333,16 @@ describe('CaseDetailScreen — active case', () => {
     expect(screen.getByText(t('mediator.sectionTitle'))).toBeTruthy();
   });
 
-  it('shows agreement section only when estado is acordado', async () => {
+  it('shows the agreement section only when a negociacion has an agreement in force, not by caso estado', async () => {
+    // `acordado` ahora llega al final del ciclo, y con dos materias firmar
+    // una no dice nada de la otra: un caso acordado sin acuerdo vigente en su
+    // negociacion no dibuja la tarjeta.
+    mockDetail = buildDetail({ estado: 'acordado', visualStatus: 'success', statusLabelKey: 'signed' });
     await renderScreen();
     expect(screen.queryByText(t('agreement.sectionTitle'))).toBeNull();
 
-    mockDetail = buildDetail({ estado: 'acordado', visualStatus: 'success', statusLabelKey: 'signed' });
+    mockNegotiations.status = 'success';
+    mockNegotiations.items = [negotiationWithAgreement()];
     mockAgreement.status = 'success';
     mockAgreement.state = {
       agreement: { id: 'a1', title: 'Test', summary: '', terms: [], estado: 'firmado', readyAt: null, completedAt: null },
@@ -423,11 +456,13 @@ describe('CaseDetailScreen — responsive', () => {
     expect(screen.getByText(t('mediator.sectionTitle'))).toBeTruthy();
   });
 
-  it('renders agreement content in wide layout when acordado', async () => {
+  it('renders agreement content in wide layout when a negociacion has an agreement', async () => {
     mockIsWide = true;
     mockHorizontalPadding = 32;
     mockDetail = buildDetail({ estado: 'acordado', visualStatus: 'success', statusLabelKey: 'signed' });
     mockStatus = 'success';
+    mockNegotiations.status = 'success';
+    mockNegotiations.items = [negotiationWithAgreement()];
     mockAgreement.status = 'success';
     mockAgreement.state = {
       agreement: { id: 'a1', title: 'Test', summary: '', terms: [], estado: 'firmado', readyAt: null, completedAt: null },
@@ -453,6 +488,8 @@ describe('CaseDetailScreen — responsive', () => {
       mediation: { id: 'm1', caseId: 'case-1', estado: 'aceptada', ronda: 3, fechaSolicitud: '', fechaAceptacion: '' },
       eligibility: 'assigned',
     };
+    mockNegotiations.status = 'success';
+    mockNegotiations.items = [negotiationWithAgreement()];
     mockAgreement.status = 'success';
     mockAgreement.state = {
       agreement: { id: 'a1', title: 'Test', summary: '', terms: [], estado: 'firmado', readyAt: null, completedAt: null },
@@ -614,6 +651,8 @@ describe('CaseDetailScreen — con_aviso visual priority', () => {
   it('renders con_aviso label when agreement is in that estado', async () => {
     mockDetail = buildDetail({ estado: 'acordado', visualStatus: 'success', statusLabelKey: 'signed' });
     mockStatus = 'success';
+    mockNegotiations.status = 'success';
+    mockNegotiations.items = [negotiationWithAgreement('con_aviso')];
     mockAgreement.status = 'success';
     mockAgreement.state = {
       agreement: { id: 'a1', title: 'Test', summary: '', terms: [], estado: 'con_aviso', readyAt: null, completedAt: null },

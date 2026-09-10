@@ -838,6 +838,35 @@
         "status": "Closed"
       }
     },
+    "list": {
+      "error": {
+        "title": "We couldn't load the case's negotiations"
+      }
+    },
+    "materia": {
+      "none": "No subject assigned"
+    },
+    "estado": {
+      "borrador": "Draft",
+      "activa": "Active",
+      "acordada": "Agreed",
+      "cerrada": "Closed",
+      "terminada": "Ended"
+    },
+    "agreementVersion": "Agreement v{{version}}",
+    "renegotiate": {
+      "action": "Renegotiate",
+      "dialog": {
+        "title": "Open a new round on this agreement?",
+        "body": "The signed agreement stops being in force, but it is kept. A new round opens starting from its content, and the case goes back to negotiation.",
+        "confirm": "Renegotiate",
+        "cancel": "Cancel"
+      },
+      "error": {
+        "title": "We couldn't open the new round",
+        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list."
+      }
+    },
     "dashboard": {
       "title": "Negotiation",
       "privacyNotice": "Your private positions are never shown in the negotiation. The other party won't see your values."

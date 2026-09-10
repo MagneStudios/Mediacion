@@ -1,12 +1,19 @@
 import type { DecisionPropuesta } from '@/types/negotiation';
 
 import type { HttpClient } from './http-client';
-import type { ApiPropuestaDetail, ApiPropuestaView } from './negotiation-mapper';
+import type { ApiNegociacion, ApiPropuestaDetail, ApiPropuestaView, ApiRenegociacion } from './negotiation-mapper';
 
 export type ApiNegotiationService = {
   listPropuestas(caseId: string): Promise<ApiPropuestaDetail[]>;
   generatePropuesta(caseId: string): Promise<ApiPropuestaView>;
   responder(proposalId: string, decision: DecisionPropuesta): Promise<ApiPropuestaView>;
+  /** A caso with no negociaciones answers `[]`, not 404 — nothing to swallow here. */
+  listNegociaciones(caseId: string): Promise<ApiNegociacion[]>;
+  /**
+   * Opens the next round on a materia whose acuerdo in force is signed.
+   * `409 negociacion_not_acordada` otherwise — including twice in a row.
+   */
+  renegociar(negotiationId: string): Promise<ApiRenegociacion>;
 };
 
 export function createApiNegotiationService(http: HttpClient): ApiNegotiationService {
@@ -30,6 +37,16 @@ export function createApiNegotiationService(http: HttpClient): ApiNegotiationSer
       return http.request<ApiPropuestaView>(`/propuestas/${proposalId}/responder`, {
         method: 'POST',
         body: { decision },
+      });
+    },
+
+    listNegociaciones(caseId: string): Promise<ApiNegociacion[]> {
+      return http.request<ApiNegociacion[]>(`/casos/${caseId}/negociaciones`);
+    },
+
+    renegociar(negotiationId: string): Promise<ApiRenegociacion> {
+      return http.request<ApiRenegociacion>(`/negociaciones/${negotiationId}/renegociar`, {
+        method: 'POST',
       });
     },
   };

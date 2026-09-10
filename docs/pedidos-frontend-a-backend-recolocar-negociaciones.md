@@ -2,7 +2,7 @@
 >
 > **Backend cerró §7.1, §7.2 y los tres del §8 el 09/09 a las 16:53** ([`58e8023`](https://github.com/MagneStudios/Mediacion/commit/58e8023) y anteriores), y lo documentó en `docs/pedidos-backend-a-frontend-acuerdos-modulares.md`. Verificado contra `dev` el 10/09: `recomputeAcordado` corre desde el webhook de DocuSign (§7.1), `casos.repository.ts:312` escribe `pendiente_suscripciones` (§7.2), y `acuerdos.controller.ts:43-49`, `firmas.repository.ts:157-158` y `negociacion.controller.ts:61` son §8.1, §8.2 y §8.3. La tabla "sigue abierto" de abajo quedó vieja **el mismo día que se escribió**: se verificó contra un árbol sin ese merge. Queda como registro.
 >
-> **Del lado nuestro:** §8.1 y §8.2 se consumen desde el 10/09 (`docs/changelogs/2026-09-10.md`); §8.3 y `renegociar`, en el PR siguiente.
+> **Del lado nuestro:** §8.1 y §8.2 se consumen desde el 10/09 (`docs/changelogs/2026-09-10.md`); §8.3 y `renegociar`, el mismo día (`docs/changelogs/2026-09-10-negociaciones-por-materia.md`).
 >
 > ---
 >
