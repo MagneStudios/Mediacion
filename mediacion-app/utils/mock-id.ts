@@ -98,3 +98,8 @@ export function generateMockPaymentId(): string {
 export function generateMockInvoiceId(): string {
   return `invoice-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock negociación identifier for a materia created via `createNegotiation` — never for the legacy negociación, which has its own deterministic id. */
+export function generateMockNegotiationId(): string {
+  return `negotiation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

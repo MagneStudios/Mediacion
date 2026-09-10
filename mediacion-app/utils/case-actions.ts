@@ -55,6 +55,22 @@ export function canSetCaseDeadline(estado: EstadoCaso): boolean {
 }
 
 /**
+ * Espejo de `estadosCasoNegociables` en `negociacion.service.ts` del
+ * backend (`POST /casos/:id/negociaciones`). Igual que las otras utils de
+ * elegibilidad: el servidor sólo exige ser miembro, así que ofrecer el botón
+ * fuera de estos estados sería un `409 caso_no_negociable` sin explicación.
+ *
+ * **`pendiente_suscripciones` afuera a propósito** — es el gate C-01: la otra
+ * parte está impedida de actuar hasta que haya suscripción, así que abrirle
+ * una materia nueva no le sirve a nadie todavía.
+ */
+const estadosCasoNegociables: EstadoCaso[] = ['nuevo', 'activo', 'en_negociacion', 'acordado'];
+
+export function canAddMateria(estado: EstadoCaso): boolean {
+  return estadosCasoNegociables.includes(estado);
+}
+
+/**
  * Las opciones de plazo que ofrecemos, en horas.
  *
  * **Son duraciones y no una fecha de calendario, y es una decisión, no una

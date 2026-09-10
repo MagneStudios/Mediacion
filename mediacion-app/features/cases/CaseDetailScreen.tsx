@@ -304,7 +304,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           primary={positionsSection}
           secondary={
             <>
-              <NegotiationsListSection caseId={caseId} onCaseChanged={reload} />
+              <NegotiationsListSection caseId={caseId} estado={detail.estado} onCaseChanged={reload} />
               {/*
                 RN-10. Sólo donde hay alguien que pueda responder: `nuevo` no
                 tiene contraparte y `pendiente_suscripciones` la tiene impedida

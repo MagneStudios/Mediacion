@@ -49,6 +49,10 @@ export const codePropuestaNotReady = 'propuesta_not_ready';
 export const codeNegociacionNotAcordada = 'negociacion_not_acordada';
 /** Unknown negociación, not a member of its caso, or the caller is the mediador — all three, on purpose. */
 export const codeNegociacionNotFound = 'negociacion_not_found';
+/** `POST /casos/:id/negociaciones` for a materia the caso already has open. */
+export const codeNegociacionMateriaAlreadyExists = 'negociacion_materia_already_exists';
+/** `POST /casos/:id/negociaciones` on a caso outside `nuevo|activo|en_negociacion|acordado` — the same states `pendiente_suscripciones` excludes on purpose (C-01). */
+export const codeCasoNoNegociable = 'caso_no_negociable';
 export const codePropuestaAlreadyExists = 'propuesta_already_exists';
 export const codeBothPartiesRequired = 'both_parties_required';
 export const codeInvalidToken = 'invalid_token';

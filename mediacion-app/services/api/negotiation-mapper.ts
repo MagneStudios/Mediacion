@@ -34,6 +34,8 @@ export type ApiPropuestaDetail = {
   ronda_numero: number;
   ronda_estado: EstadoRonda;
   own_decision: 'acepta' | 'rechaza' | null;
+  /** Ahora viaja de verdad (10/09) — ver `propuestaViewColumns` del lado de Backend. */
+  negociacion_id: string;
 };
 
 /**
@@ -108,6 +110,7 @@ export function toSharedProposal(
     ...(row.fundamentacion === null ? {} : { rationale: row.fundamentacion }),
     estado: row.estado,
     createdAt: row.fecha,
+    negotiationId: row.negociacion_id,
   };
 }
 
@@ -125,6 +128,7 @@ export function toNegotiationRound(row: ApiPropuestaDetail): NegotiationRound {
     proposalId: row.id,
     mediatorAvailable: row.ronda_numero >= mediatorFromRound,
     createdAt: row.fecha,
+    negotiationId: row.negociacion_id,
   };
 }
 

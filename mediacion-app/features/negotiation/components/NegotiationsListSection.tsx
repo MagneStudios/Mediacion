@@ -6,13 +6,18 @@ import { Button, Card } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
+import type { EstadoCaso } from '../../../types/case';
+import { canAddMateria } from '../../../utils/case-actions';
 import { AgreementSummaryCard } from '../../agreements/components/AgreementSummaryCard';
 import { useNegotiations } from '../hooks/useNegotiations';
+import { AddMateriaCard } from './AddMateriaCard';
 import { NegotiationMateriaCard } from './NegotiationMateriaCard';
 import { NegotiationSummaryCard } from './NegotiationSummaryCard';
 
 export type NegotiationsListSectionProps = {
   caseId: string;
+  /** Gatea `AddMateriaCard` — nunca deriva la lista, que sale de `useNegotiations`. */
+  estado: EstadoCaso;
   /** Relee el caso. Renegociar lo devuelve de `acordado` a `en_negociacion`. */
   onCaseChanged: () => void;
 };
@@ -22,9 +27,12 @@ export type NegotiationsListSectionProps = {
  * `GET /casos/:id/negociaciones`.
  *
  * **La tarjeta de resumen se dibuja una vez, arriba.** Es el estado del flujo
- * de propuestas, que sigue siendo **por caso**: las rutas de propuestas no
- * llevan `negotiationId` porque dijimos que no lo consumíamos. Dibujarla N
- * veces mostraría N copias del mismo dato.
+ * de propuestas de la negociación legacy — la sin materia. Las rutas de
+ * propuestas por negociación ya existen (`negotiationId` llega hasta
+ * `useNegotiation`/`useRoundHistory`), pero esta tarjeta sigue siendo por
+ * caso a propósito: dibujarla una vez por materia mostraría N copias de un
+ * resumen que ya vive en la tarjeta de cada `NegotiationMateriaCard`, que es
+ * la que navega a la negociación de esa materia por su propio id.
  *
  * **El acuerdo se muestra porque existe, no porque el caso esté `acordado`.**
  * Ese gate vivía acá y ya no alcanza: `acordado` ahora se deriva al completarse
@@ -36,7 +44,7 @@ export type NegotiationsListSectionProps = {
  * Una lista vacía es un caso recién creado, no un error. Un error se dice
  * adentro de la sección, con reintento, sin que la sección desaparezca.
  */
-export function NegotiationsListSection({ caseId, onCaseChanged }: NegotiationsListSectionProps) {
+export function NegotiationsListSection({ caseId, estado, onCaseChanged }: NegotiationsListSectionProps) {
   const { t } = useTranslation();
   const result = useNegotiations(caseId);
 
@@ -63,6 +71,14 @@ export function NegotiationsListSection({ caseId, onCaseChanged }: NegotiationsL
             </Fragment>
           ))
         : null}
+
+      {canAddMateria(estado) ? (
+        <AddMateriaCard
+          caseId={caseId}
+          existingSubjectTypes={result.status === 'success' ? result.items.map((negotiation) => negotiation.subjectType) : []}
+          onAdded={result.reload}
+        />
+      ) : null}
     </>
   );
 }

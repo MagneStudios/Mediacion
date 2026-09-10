@@ -41,4 +41,38 @@ describe('negotiation.api-service — negociaciones', () => {
     await expect(createApiNegotiationService(http).renegociar('neg-1')).resolves.toEqual(view);
     expect(calls).toEqual([{ path: '/negociaciones/neg-1/renegociar', options: { method: 'POST' } }]);
   });
+
+  it('opens a negociación with the materia in the body, never the método', async () => {
+    const row = {
+      id: 'neg-2',
+      caso_id: 'caso-1',
+      subject_type: 'alimentos',
+      metodo: 'mediacion',
+      estado: 'borrador',
+      ronda_actual: 0,
+      acuerdo_vigente: null,
+      created_at: '2026-09-10T00:00:00.000Z',
+    };
+    const { http, calls } = fakeHttp({ '/casos/caso-1/negociaciones': row });
+
+    await expect(createApiNegotiationService(http).crearNegociacion('caso-1', 'alimentos')).resolves.toEqual(row);
+    expect(calls).toEqual([
+      { path: '/casos/caso-1/negociaciones', options: { method: 'POST', body: { subject_type: 'alimentos' } } },
+    ]);
+  });
+
+  it('lists the propuestas of one negociación, not the caso', async () => {
+    const { http, calls } = fakeHttp({ '/negociaciones/neg-1/propuestas': [] });
+
+    await expect(createApiNegotiationService(http).listPropuestasForNegociacion('neg-1')).resolves.toEqual([]);
+    expect(calls).toEqual([{ path: '/negociaciones/neg-1/propuestas', options: undefined }]);
+  });
+
+  it('generates a propuesta for one negociación with a body-less POST', async () => {
+    const view = { id: 'prop-1' };
+    const { http, calls } = fakeHttp({ '/negociaciones/neg-1/propuestas': view });
+
+    await expect(createApiNegotiationService(http).generatePropuestaForNegociacion('neg-1')).resolves.toEqual(view);
+    expect(calls).toEqual([{ path: '/negociaciones/neg-1/propuestas', options: { method: 'POST' } }]);
+  });
 });

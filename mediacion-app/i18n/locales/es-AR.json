@@ -846,6 +846,10 @@
     "materia": {
       "none": "Sin materia asignada"
     },
+    "addMateria": {
+      "title": "Agregar materia",
+      "error": "No pudimos agregar la materia. Probá de nuevo."
+    },
     "estado": {
       "borrador": "Borrador",
       "activa": "Activa",
@@ -864,7 +868,8 @@
       },
       "error": {
         "title": "No pudimos abrir la nueva ronda",
-        "notAcordada": "Esta materia ya no tiene un acuerdo firmado vigente. Actualizamos la lista."
+        "notAcordada": "Esta materia ya no tiene un acuerdo firmado vigente. Actualizamos la lista.",
+        "subscriptionRequired": "Para renegociar, las dos partes necesitan una suscripción activa. Revisá la tuya y avisale a la otra parte."
       }
     },
     "dashboard": {

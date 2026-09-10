@@ -15,11 +15,11 @@ import { blurActiveElement } from '@/utils/blur-active-element';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function NegotiationHistoryScreen() {
-  const { id: caseId } = useLocalSearchParams<{ id: string }>();
+  const { id: caseId, negotiationId } = useLocalSearchParams<{ id: string; negotiationId?: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { status: caseStatus, detail } = useCaseDetail(caseId);
-  const result = useRoundHistory(caseId);
+  const result = useRoundHistory(caseId, negotiationId);
   const { horizontalPadding } = useResponsiveLayout();
 
   if (caseStatus === 'loading') {
