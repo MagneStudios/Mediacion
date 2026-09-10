@@ -118,6 +118,7 @@ describe("InvitacionesRepository", () => {
       caso: { id: string; estado: string } | undefined;
       activateRejection?: unknown;
       parteInsertRejection?: unknown;
+      ttlHoras?: number;
     }) {
       const callOrder: string[] = [];
 
@@ -190,9 +191,26 @@ describe("InvitacionesRepository", () => {
         return { where: casoReadWhere };
       });
 
+      const configuracionExecuteTakeFirst = jest
+        .fn()
+        .mockResolvedValue(
+          options.ttlHoras === undefined
+            ? undefined
+            : { valor: String(options.ttlHoras) },
+        );
+      const configuracionWhere = jest
+        .fn()
+        .mockReturnValue({ executeTakeFirst: configuracionExecuteTakeFirst });
+      const configuracionSelect = jest
+        .fn()
+        .mockReturnValue({ where: configuracionWhere });
+
       const selectFrom = jest.fn((table: string) => {
         if (table === "invitaciones") {
           return { selectAll: invitacionSelectAll };
+        }
+        if (table === "configuracion") {
+          return { select: configuracionSelect };
         }
         if (table === "caso_partes") {
           return { select: miembrosSelect };
@@ -224,6 +242,7 @@ describe("InvitacionesRepository", () => {
         casoLockWhere,
         casoLockForUpdate,
         casoLockExecuteTakeFirst,
+        configuracionExecuteTakeFirst,
         callOrder,
       };
     }
@@ -442,7 +461,7 @@ describe("InvitacionesRepository", () => {
       expect(thrown).toBeInstanceOf(ConflictError);
     });
 
-    it("rejects a token sent more than 7 days ago with a uniform 404, marking it expirada, creating no rows", async () => {
+    it("rejects a token sent beyond the default 72-hour TTL with a uniform 404, marking it expirada, creating no rows", async () => {
       const eightDaysAgo = new Date(
         Date.now() - 8 * 24 * 60 * 60 * 1000,
       ).toISOString();
@@ -480,16 +499,16 @@ describe("InvitacionesRepository", () => {
       expect(fakeKysely.insertInto).not.toHaveBeenCalled();
     });
 
-    it("accepts a token sent 6 days ago, still within the 7-day TTL", async () => {
-      const sixDaysAgo = new Date(
-        Date.now() - 6 * 24 * 60 * 60 * 1000,
+    it("accepts a token sent 2 days ago, still within the default 72-hour TTL", async () => {
+      const twoDaysAgo = new Date(
+        Date.now() - 2 * 24 * 60 * 60 * 1000,
       ).toISOString();
       const fakeKysely = createFakeTrx({
         invitacion: {
           id: "inv-1",
           caso_id: "caso-1",
           tipo: "link",
-          fecha_envio: sixDaysAgo,
+          fecha_envio: twoDaysAgo,
         },
         miembros: [{ usuario_id: "user-a" }],
         caso: { id: "caso-1", estado: "activo" },
@@ -510,6 +529,75 @@ describe("InvitacionesRepository", () => {
 
       expect(result).toEqual({ id: "caso-1", estado: "activo" });
       expect(fakeKysely.insertInto).toHaveBeenCalledWith("caso_partes");
+    });
+
+    it("uses configuracion.invitacion_ttl_horas when present (96h keeps a 3-day-old token valid)", async () => {
+      const threeDaysAgo = new Date(
+        Date.now() - 3 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "link",
+          fecha_envio: threeDaysAgo,
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+        ttlHoras: 96,
+      });
+      const casosRepository = {
+        activateOrHoldForSuscripciones: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      const result = await repository.joinCase(
+        "tok-1",
+        "user-b",
+        "user-b@test.com",
+      );
+
+      expect(result).toEqual({ id: "caso-1", estado: "activo" });
+    });
+
+    it("expires a token under a tighter configured TTL (48h rejects a token sent 3 days ago)", async () => {
+      const threeDaysAgo = new Date(
+        Date.now() - 3 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const fakeKysely = createFakeTrx({
+        invitacion: {
+          id: "inv-1",
+          caso_id: "caso-1",
+          tipo: "link",
+          fecha_envio: threeDaysAgo,
+        },
+        miembros: [{ usuario_id: "user-a" }],
+        caso: { id: "caso-1", estado: "activo" },
+        ttlHoras: 48,
+      });
+      const casosRepository = {
+        activateOrHoldForSuscripciones: jest.fn(),
+      } as unknown as CasosRepository;
+      const repository = new InvitacionesRepository(
+        fakeKysely as never,
+        casosRepository,
+      );
+
+      let thrown: unknown;
+      try {
+        await repository.joinCase("tok-1", "user-b", "user-b@test.com");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(fakeKysely.invitacionUpdateSet).toHaveBeenCalledWith({
+        estado: "expirada",
+      });
     });
 
     it("rejects a mismatched email on an email-type invitation with a uniform 403, creating no rows", async () => {
