@@ -16,9 +16,10 @@ import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow'
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
 import { blurActiveElement } from '@/utils/blur-active-element';
+import { isNoActiveSubscriptionError } from '@/utils/is-no-active-subscription-error';
 import { getQuotaLimit, type QuotaLimit } from '@/utils/quota-limit';
 
-type CreateStatus = 'idle' | 'submitting' | 'error';
+type CreateStatus = 'idle' | 'submitting' | 'error' | 'subscriptionRequired';
 
 export default function CaseCreateReviewScreen() {
   const { t } = useTranslation();
@@ -68,6 +69,13 @@ export default function CaseCreateReviewScreen() {
       if (limit) {
         setQuotaLimit(limit);
         setStatus('idle');
+        return;
+      }
+      // Falta contratar, no falla nada: reintentar volvería a rebotar contra
+      // `consume_quota` para siempre. Lleva a elegir plan en vez de ofrecer
+      // un botón que no puede funcionar.
+      if (isNoActiveSubscriptionError(error)) {
+        setStatus('subscriptionRequired');
         return;
       }
       setStatus('error');
@@ -121,7 +129,19 @@ export default function CaseCreateReviewScreen() {
       <PrivacyNotice>{t('caseCreation.review.privacyReminder')}</PrivacyNotice>
 
       <View style={styles.actions}>
-        {status === 'error' ? (
+        {status === 'subscriptionRequired' ? (
+          // La acción no es reintentar sino ir a elegir plan: es lo único que
+          // destraba el alta. Reusa el mismo diferido que el diálogo de cuota,
+          // por el mismo motivo — ver el efecto de `leavingToPlans`.
+          <ErrorState
+            title={t('caseCreation.review.subscriptionRequired.title')}
+            retryLabel={t('caseCreation.review.subscriptionRequired.action')}
+            onRetry={() => {
+              setStatus('idle');
+              setLeavingToPlans(true);
+            }}
+          />
+        ) : status === 'error' ? (
           <ErrorState
             title={t('caseCreation.review.error.title')}
             retryLabel={t('caseCreation.review.error.retry')}

@@ -74,6 +74,21 @@ export const codeInvitationExpired = 'invitation_expired';
  */
 export const codeCasoBloqueadoSuscripciones = 'caso_bloqueado_suscripciones';
 /**
+ * `consume_quota` rechazó el alta porque **quien la pide** no tiene ninguna
+ * suscripción `activa` ni `vencida` (`NO_ACTIVE_SUBSCRIPTION`, tipado en
+ * `apps/api/src/common/db/pg-error.ts`).
+ *
+ * Primo de `codeCasoBloqueadoSuscripciones` pero no el mismo: aquel es el
+ * gate C-01, que mira a **las dos partes** de un caso ya existente; este es
+ * el alta, y habla solo de la propia. La distinción importa porque el consejo
+ * cambia: acá alcanza con elegir un plan.
+ *
+ * Hasta que existió este código el 409 caía en el conflicto genérico, y la
+ * pantalla de alta decía "No pudimos crear el caso" a alguien a quien solo le
+ * faltaba contratar.
+ */
+export const codeNoActiveSubscription = 'no_active_subscription';
+/**
  * No published version of a legal document (`GET /legal/documentos/:tipo`).
  * A real, calm outcome — not a failure: the legal page renders its empty
  * state for it, so the backed service maps this code to `undefined` rather

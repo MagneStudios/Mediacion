@@ -464,6 +464,10 @@
       "error": {
         "title": "We couldn't create the case",
         "retry": "Try again"
+      },
+      "subscriptionRequired": {
+        "title": "You need an active plan to create cases",
+        "action": "Choose a plan"
       }
     },
     "invite": {
