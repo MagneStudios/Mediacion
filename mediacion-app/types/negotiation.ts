@@ -86,6 +86,13 @@ export type NegotiationRound = {
   mediatorAvailable: boolean;
   createdAt: string;
   completedAt?: string;
+  /**
+   * Which negociación this round belongs to. Absent means the legacy
+   * negociación (materia-less) of `caseId` — every round created before
+   * negociaciones-por-materia existed predates this field, and treating
+   * absence as "legacy" instead of backfilling it keeps that data honest.
+   */
+  negotiationId?: string;
 };
 
 /**
@@ -131,6 +138,8 @@ export type SharedProposal = {
   rationale?: string;
   estado: EstadoPropuesta;
   createdAt: string;
+  /** Same absence-means-legacy rule as `NegotiationRound.negotiationId`. */
+  negotiationId?: string;
 };
 
 /** True while the AI engine has not written the narrative yet. */

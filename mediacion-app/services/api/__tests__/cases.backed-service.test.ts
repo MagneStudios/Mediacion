@@ -32,7 +32,7 @@ function stubApi(overrides: Partial<ApiCasesService> = {}): ApiCasesService {
   };
 }
 
-/** As `listInvitations` hands them over: mapped, newest first, pagoACargo null. */
+/** As `listInvitations` hands them over: mapped, newest first, pagoACargo included for real since 10/09. */
 function serverInvitation(overrides: Partial<CaseInvitation> = {}): CaseInvitation {
   return {
     id: 'inv-1',
@@ -41,7 +41,7 @@ function serverInvitation(overrides: Partial<CaseInvitation> = {}): CaseInvitati
     token: 'ABC123',
     emailDestino: null,
     estado: 'pendiente',
-    pagoACargo: null,
+    pagoACargo: 'invitador',
     createdAt: '2026-07-30T00:00:00.000Z',
     ...overrides,
   };
@@ -56,9 +56,7 @@ describe('createBackedCasesService', () => {
   });
 
   describe('getInvitation', () => {
-    // Reads `GET /casos/:id/invitaciones`. The session map is no longer the
-    // source of the invitation — only of `pagoACargo`, the one field that
-    // endpoint does not return.
+    // A plain read of `GET /casos/:id/invitaciones` — no session bookkeeping.
     it('reads the code from the server, so a reload no longer loses it', async () => {
       // The regression this integration exists to kill: no createInvitation
       // call in this session, and the code still comes back.
@@ -109,40 +107,17 @@ describe('createBackedCasesService', () => {
       await expect(service.getInvitation('caso-1')).resolves.toBeNull();
     });
 
-    it('completes pagoACargo from the session for the invitation this session created', async () => {
-      // The endpoint does not select `pago_a_cargo`; we know it for an
-      // invitation we sent ourselves.
+    it('reports pagoACargo straight from the server — no session bookkeeping involved', async () => {
+      // Before 10/09 the GET did not select `pago_a_cargo` and this service
+      // patched it in from a session-scoped map. That map is gone: the value
+      // is whatever the server says, period.
       const service = createBackedCasesService(
-        stubApi({
-          createInvitation: async () =>
-            serverInvitation({ id: 'inv-1', pagoACargo: 'invitado' }),
-          listInvitations: async () => [serverInvitation({ id: 'inv-1' })],
-        }),
+        stubApi({ listInvitations: async () => [serverInvitation({ id: 'inv-1', pagoACargo: 'invitado' })] }),
       );
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'codigo', pagoACargo: 'invitado' });
 
       await expect(service.getInvitation('caso-1')).resolves.toMatchObject({
         id: 'inv-1',
         pagoACargo: 'invitado',
-      });
-    });
-
-    it('does not lend that payer choice to a different invitation', async () => {
-      // A second invitation issued from another device is a different row, and
-      // its payer may well be the other one. Matching by caso instead of by id
-      // would put the wrong party in front of a paywall.
-      const service = createBackedCasesService(
-        stubApi({
-          createInvitation: async () =>
-            serverInvitation({ id: 'inv-1', pagoACargo: 'invitado' }),
-          listInvitations: async () => [serverInvitation({ id: 'inv-2' })],
-        }),
-      );
-      await service.createInvitation({ casoId: 'caso-1', tipo: 'codigo', pagoACargo: 'invitado' });
-
-      await expect(service.getInvitation('caso-1')).resolves.toMatchObject({
-        id: 'inv-2',
-        pagoACargo: null,
       });
     });
 
@@ -200,23 +175,16 @@ describe('createBackedCasesService', () => {
     });
   });
 
-  it('records the invitation only after the API accepted it', async () => {
-    // Proven through pagoACargo, which is the only thing the session map
-    // still contributes: a rejected POST must leave nothing behind, so the
-    // server row comes back exactly as the server sent it.
+  it('propagates a createInvitation failure rather than swallowing it', async () => {
     const service = createBackedCasesService(
       stubApi({
         createInvitation: async () => {
           throw new Error('rejected');
         },
-        listInvitations: async () => [serverInvitation({ id: 'inv-1' })],
       }),
     );
     await expect(
       service.createInvitation({ casoId: 'caso-1', tipo: 'email', pagoACargo: 'invitado' }),
     ).rejects.toThrow('rejected');
-    await expect(service.getInvitation('caso-1')).resolves.toMatchObject({
-      pagoACargo: null,
-    });
   });
 });

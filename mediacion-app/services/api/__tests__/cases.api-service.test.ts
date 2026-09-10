@@ -192,6 +192,7 @@ describe('createApiCasesService', () => {
       estado: 'pendiente' as const,
       fecha_envio: '2026-07-30T00:00:00.000Z',
       created_at: '2026-07-30T00:00:00.000Z',
+      pago_a_cargo: 'invitador' as const,
     };
 
     it('reads the caso’s invitations and maps them to the domain shape', async () => {
@@ -210,11 +211,19 @@ describe('createApiCasesService', () => {
           token: 'ABC123',
           emailDestino: null,
           estado: 'pendiente',
-          // Not selected by `InvitacionView` — never guessed here.
-          pagoACargo: null,
+          pagoACargo: 'invitador',
           createdAt: '2026-07-30T00:00:00.000Z',
         },
       ]);
+    });
+
+    it('keeps a null pago_a_cargo as null — a real, valid server answer, not a gap', async () => {
+      const { http } = buildHttp(() => [{ ...invitationRow, pago_a_cargo: null }]);
+      const service = createApiCasesService(http, () => now);
+
+      const [invitation] = await service.listInvitations('caso-1');
+
+      expect(invitation.pagoACargo).toBeNull();
     });
 
     it('orders newest first itself, without trusting the server’s order', async () => {

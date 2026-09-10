@@ -127,14 +127,12 @@ export type CaseInvitation = {
   emailDestino: string | null;
   estado: EstadoInvitacion;
   /**
-   * `null` when the invitation was read back from the server rather than
-   * created in this session: `GET /casos/:id/invitaciones` does not select
-   * `pago_a_cargo` (the column exists — `20260810120000_cambios_reunion_07_08.sql`
-   * — but `InvitacionView` omits it). Nullable rather than defaulted, because
-   * guessing `'invitador'` for an invitation whose invitador chose "paga la
-   * otra parte" would put the wrong party in front of a paywall. Pedido a BE
-   * en `docs/pedidos-frontend-a-backend.md` §8; el día que lo agreguen, vuelve
-   * a ser no-nullable.
+   * `null` es una respuesta real y legítima del servidor: la columna es
+   * nullable (una invitación sin definir quién paga sigue siendo válida — el
+   * gate C-01 se resuelve después, cuando cada parte contrata), no un hueco
+   * que este tipo tenga que rellenar. Antes del 10/09 `null` también podía
+   * significar "el servidor no la devuelve todavía"; eso ya no pasa —
+   * `GET /casos/:id/invitaciones` la trae siempre, sea cual sea su valor real.
    */
   pagoACargo: PagoACargo | null;
   createdAt: string;

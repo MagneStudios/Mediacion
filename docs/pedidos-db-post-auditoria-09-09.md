@@ -50,3 +50,9 @@ Dos notas para DB de eso:
 
 1. **`trg_casos_gate_suscripciones` también aplica a los saltos de una fixture**, y a `reopenFromAcordado`. Cualquier transición a `activo`/`en_negociacion` con partes sin suscripción activa levanta `caso_bloqueado_suscripciones` — incluida la que hace `POST /negociaciones/:id/renegociar`, que rollbackea la renegociación entera. Puede ser exactamente lo que el gate quiere; lo decimos porque no está escrito en ningún lado.
 2. **Sin `DATABASE_URL` jest saltea todas las suites de integration y reporta verde.** Ocho suites estuvieron rotas un día entero sin que nada avisara, y en el camino se colaron tres llamadas con una firma vieja que tampoco avisó. Si CI corre sin base, ese verde no significa nada.
+
+---
+
+## Respuesta de Frontend — 2026-09-10
+
+§3 y §4 consumidos el mismo día — `docs/changelogs/2026-09-10-post-desbloqueos-backend.md`. `pago_a_cargo` real reemplazó el merge de sesión que veníamos arrastrando desde el 25/08; `negociaciones.estado` ya no se deriva de `casos.estado` de nuestro lado tampoco — se deriva de la ronda/propuesta propia de cada negociación, que es lo que hacía falta para que una segunda materia tenga estado propio.

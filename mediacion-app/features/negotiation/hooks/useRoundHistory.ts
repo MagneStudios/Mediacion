@@ -10,17 +10,18 @@ export type UseRoundHistoryResult =
   | { status: 'empty'; items: [] }
   | { status: 'success'; items: RoundHistoryItem[] };
 
-/** Read-only completed-round history for one case. */
-export function useRoundHistory(caseId: string): UseRoundHistoryResult {
+/** Read-only completed-round history — of one materia when its id is known, else of the legacy negociación. */
+export function useRoundHistory(caseId: string, negotiationId?: string): UseRoundHistoryResult {
+  const key = negotiationId ?? caseId;
   const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'success'>('loading');
   const [items, setItems] = useState<RoundHistoryItem[]>([]);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
-  const activeCaseIdRef = useRef(caseId);
-  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
+  const activeKeyRef = useRef(key);
+  const [resultKey, setResultKey] = useState<string | null>(null);
 
-  if (activeCaseIdRef.current !== caseId) {
-    activeCaseIdRef.current = caseId;
+  if (activeKeyRef.current !== key) {
+    activeKeyRef.current = key;
     hasLoadedOnceRef.current = false;
   }
 
@@ -32,10 +33,10 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
   const fetchSilently = useCallback(() => {
     let cancelled = false;
     negotiationService
-      .getRoundHistory(caseId)
+      .getRoundHistory(caseId, negotiationId)
       .then((result) => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setItems(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
       })
@@ -45,30 +46,30 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
     return () => {
       cancelled = true;
     };
-  }, [caseId]);
+  }, [caseId, negotiationId, key]);
 
   useEffect(() => {
     let cancelled = false;
     setStatus('loading');
     hasLoadedOnceRef.current = false;
     negotiationService
-      .getRoundHistory(caseId)
+      .getRoundHistory(caseId, negotiationId)
       .then((result) => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setItems(result);
         setStatus(result.length === 0 ? 'empty' : 'success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setStatus('error');
       });
     return () => {
       cancelled = true;
     };
-  }, [caseId, attempt]);
+  }, [caseId, negotiationId, key, attempt]);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,7 +78,7 @@ export function useRoundHistory(caseId: string): UseRoundHistoryResult {
     }, [fetchSilently]),
   );
 
-  if (resultCaseId !== caseId || status === 'loading') return { status: 'loading', items: undefined };
+  if (resultKey !== key || status === 'loading') return { status: 'loading', items: undefined };
   if (status === 'error') return { status, items: undefined, reload };
   if (status === 'empty') return { status, items: [] };
   return { status, items };

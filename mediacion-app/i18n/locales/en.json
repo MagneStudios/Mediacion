@@ -846,6 +846,10 @@
     "materia": {
       "none": "No subject assigned"
     },
+    "addMateria": {
+      "title": "Add subject",
+      "error": "We couldn't add the subject. Try again."
+    },
     "estado": {
       "borrador": "Draft",
       "activa": "Active",
@@ -864,7 +868,8 @@
       },
       "error": {
         "title": "We couldn't open the new round",
-        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list."
+        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list.",
+        "subscriptionRequired": "To renegotiate, both parties need an active subscription. Check yours and let the other party know."
       }
     },
     "dashboard": {

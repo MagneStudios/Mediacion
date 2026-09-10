@@ -2,6 +2,7 @@ import { I18nextProvider } from 'react-i18next';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
+import type { EstadoCaso } from '@/types/case';
 import type { Negotiation } from '@/types/negotiation';
 
 const t = i18n.t.bind(i18n);
@@ -31,6 +32,15 @@ jest.mock('../../../agreements/components/AgreementSummaryCard', () => {
   };
 });
 
+jest.mock('../AddMateriaCard', () => {
+  const { Text } = require('react-native');
+  return {
+    AddMateriaCard: ({ existingSubjectTypes }: { existingSubjectTypes: (string | null)[] }) => (
+      <Text>{`add-materia:${existingSubjectTypes.join(',')}`}</Text>
+    ),
+  };
+});
+
 const mockReload = jest.fn();
 let mockNegotiations: { status: 'loading' | 'error' | 'empty' | 'success'; items: Negotiation[] | undefined };
 jest.mock('../../hooks/useNegotiations', () => ({
@@ -54,10 +64,10 @@ function negotiation(overrides: Partial<Negotiation> = {}): Negotiation {
   };
 }
 
-async function renderSection() {
+async function renderSection(estado: EstadoCaso = 'en_negociacion') {
   await render(
     <I18nextProvider i18n={i18n}>
-      <NegotiationsListSection caseId="case-1" onCaseChanged={jest.fn()} />
+      <NegotiationsListSection caseId="case-1" estado={estado} onCaseChanged={jest.fn()} />
     </I18nextProvider>,
   );
 }
@@ -69,8 +79,9 @@ beforeEach(() => {
 
 describe('NegotiationsListSection', () => {
   it('dibuja el resumen del caso una sola vez, arriba, y una tarjeta por materia', async () => {
-    // El flujo de propuestas sigue siendo por caso — las rutas no llevan
-    // negotiationId — asi que el resumen no se repite por materia.
+    // El resumen sigue siendo el de la legacy, aunque las rutas de propuestas
+    // ya soporten negotiationId: repetirlo por materia mostraria N copias de
+    // un dato que la propia NegotiationMateriaCard ya resuelve por su lado.
     mockNegotiations = {
       status: 'success',
       items: [negotiation({ id: 'neg-tenencia' }), negotiation({ id: 'neg-alimentos', subjectType: 'alimentos' })],
@@ -127,5 +138,21 @@ describe('NegotiationsListSection', () => {
     expect(screen.getByText(t('negotiation.list.error.title'))).toBeTruthy();
     await fireEvent.press(screen.getByText(t('common.retry')));
     expect(mockReload).toHaveBeenCalledTimes(1);
+  });
+
+  it('ofrece agregar materia con las que ya estan abiertas, cuando el caso lo permite', async () => {
+    mockNegotiations = {
+      status: 'success',
+      items: [negotiation({ subjectType: null }), negotiation({ id: 'neg-alimentos', subjectType: 'alimentos' })],
+    };
+    await renderSection('en_negociacion');
+
+    expect(screen.getByText('add-materia:,alimentos')).toBeTruthy();
+  });
+
+  it('no ofrece agregar materia en un estado no negociable — el gate C-01 incluido', async () => {
+    await renderSection('pendiente_suscripciones');
+
+    expect(screen.queryByText(/^add-materia:/)).toBeNull();
   });
 });
