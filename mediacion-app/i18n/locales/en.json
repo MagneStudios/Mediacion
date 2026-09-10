@@ -347,7 +347,7 @@
     },
     "paymentRequired": {
       "title": "You need an active subscription",
-      "body": "Whoever invited you chose for you to cover the subscription to access this case.",
+      "body": "Each party pays for their own subscription to operate on the case — activate yours to continue.",
       "viewPlansAction": "View plans",
       "demoBypass": {
         "description": "Only in this demonstration can you continue without paying.",
@@ -483,17 +483,6 @@
     "invite": {
       "title": "Invite the other party",
       "subtitle": "Choose how you'd like to share access to this case.",
-      "pagoACargo": {
-        "sectionTitle": "Who pays for the subscription?",
-        "invitador": {
-          "title": "I pay",
-          "description": "The subscription stays on you."
-        },
-        "invitado": {
-          "title": "The other party pays",
-          "description": "The other party will need to subscribe to access the case."
-        }
-      },
       "method": {
         "sectionTitle": "How do you want to invite?",
         "link": {

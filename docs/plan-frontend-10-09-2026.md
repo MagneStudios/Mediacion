@@ -10,14 +10,16 @@
 
 Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el código** y son mucho más baratos de lo que parecía en la lectura del pedido: la pantalla de "unirse con código" ya está construida pero sin ningún link que lleve a ella, y la sección de invitar desde el detalle del caso ya existe para el estado `nuevo`, solo falta ampliarla a otros estados.
 
-| # | Cambio | Estado | Alcance de esta tanda |
-|---|--------|--------|------------------------|
-| 1 | TyC dentro del alta | 🟡 Ya está en signup, falta sacar el duplicado | Quitar `AcceptanceCheckboxes` de `checkout.tsx` |
-| 2 | Elección de plan (incl. free) dentro del alta | 🔴 No existe, hay que construir el wizard | `app/signup/{index,plan}.tsx` + `useSignupFlow` |
-| 3 | Botón de cerrar sesión global | 🔴 Solo existe en `/profile/account` | `GlobalSignOutAction` reusable en topbar/tabs |
-| 4 | Pantalla para ingresar código y unirse | 🟡 **Ya existe (`app/case/join.tsx`), está huérfana** | Agregar entry points + soporte de `?token=` |
-| 5 | Invitar/reinvitar en cualquier momento | 🟡 Ya existe para `estado === 'nuevo'` | Ampliar condición + botón compartir |
-| 6 | Sacar el pago 50/50 → suscripción individual | 🟡 No existe "50/50" literal, existe `pagoACargo` | Cosmético/preparatorio — enforcement real es de backend |
+| # | Cambio | Estado |
+|---|--------|--------|
+| 1 | TyC dentro del alta | ✅ Hecho — se sacó el duplicado del checkout |
+| 2 | Elección de plan (incl. free) dentro del alta | ✅ Hecho — wizard de 2 pasos (`app/signup/{index,plan}.tsx`) |
+| 3 | Botón de cerrar sesión global | ✅ Hecho — `GlobalSignOutAction` en topbar (desktop) y flotante (mobile) |
+| 4 | Pantalla para ingresar código y unirse | ✅ Hecho — CTAs agregados + deep link `app/invitacion/[token].tsx` |
+| 5 | Invitar/reinvitar en cualquier momento | ✅ Hecho (alcance revisado) — badge de estado + compartir |
+| 6 | Sacar el pago 50/50 → suscripción individual | ✅ Hecho (alcance cosmético) — selector sacado, enforcement real sigue siendo de backend |
+
+**Los 6 puntos del checklist quedaron implementados y verificados (10/09).** Suite completa verde (150 suites / 1356 tests), `pnpm tsc -b` sin errores. Quedan documentados más abajo los gaps conocidos que dependen de backend o de trabajo fuera de alcance de esta tanda.
 
 **Importante para la demo:** el punto 6 no puede quedar 100% resuelto desde frontend — el gate real de "cada parte paga la suya" es un trigger de backend (`trg_casos_gate_suscripciones`). Esta tanda solo saca el selector "quién paga" de la UI y ajusta el copy. Comunicar esto explícitamente al cliente, no presentarlo como cerrado end-to-end.
 
@@ -62,11 +64,14 @@ Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el c
 - Fuera de alcance (decisión de producto ya documentada en el código, confirmado con el usuario): reenviar/regenerar invitación.
 - Tests: `features/cases/components/__tests__/InvitationResultCard.test.tsx` (nuevo), casos nuevos en `features/cases/__tests__/CaseDetailScreen.test.tsx`. Suite completa verde (150/150, 1356 tests), `tsc -b` sin errores.
 
-### #6 — Sacar el pago 50/50
-- [ ] Quitar selector `pagoACargo` de `app/case/create/invite.tsx`.
-- [ ] Cambiar copy de `app/case/[id]/payment-required.tsx` a "necesitás tu propia suscripción".
-- [ ] Mantener el tipo `PagoACargo` en `types/case.ts` sin romper compatibilidad con el backend actual.
-- [ ] **No implementable end-to-end sin backend** — dejar constancia en el PR.
+### #6 — Sacar el pago 50/50 ✅ (10/09, alcance cosmético acordado)
+- [x] Quitado el selector "quién paga" de `app/case/create/invite.tsx` — ya no se pregunta ni se envía `pagoACargo` al crear una invitación.
+- [x] `CreateInvitationInput.pagoACargo` (`types/case.ts`) pasó a opcional — `CaseInvitation.pagoACargo` ya documentaba que `null` es una respuesta válida del servidor, así que el frontend simplemente nunca lo define. Ajustado también `services/cases.service.ts` (mock) y `services/api/cases.api-service.ts` (solo se manda el campo si viene definido, igual que `emailDestino`).
+- [x] Copy de `app/case/[id]/payment-required.tsx` actualizado: de "quien te invitó eligió que vos pagues" a "cada parte paga su propia suscripción".
+- [x] i18n: eliminadas las keys `caseCreation.invite.pagoACargo.*` (quedaban sin uso) en ambos locales.
+- **Efecto secundario esperado, no un bug:** contra el mock, `requiresPayment` en `joinCase` se calcula como `pagoACargo === 'invitado'` (`services/cases.service.ts`) — como el frontend ya nunca setea `pagoACargo`, esa rama del mock (pantalla `payment-required` alcanzada vía el flujo normal de invitación) queda efectivamente inalcanzable en modo mock. Es exactamente lo esperado: esa lógica demostraba el modelo viejo. El gate real (C-01, suscripción por parte) es un mecanismo de backend completamente aparte (`pendiente_suscripciones`) y no se tocó.
+- **No implementable end-to-end sin backend** (confirmado con el usuario antes de implementar): el enforcement real de "cada parte paga la suya" sigue siendo el trigger `trg_casos_gate_suscripciones`. Esta tanda es solo UI/copy — no presentar como resuelto en la demo.
+- Tests: `app/case/create/__tests__/invite-screen.test.tsx` reescrito (sin el selector). Suite completa verde (150/150, 1356 tests), `tsc -b` sin errores.
 
 ---
 
