@@ -44,5 +44,15 @@ Esto **no** era parte del plan: quedó en el árbol de trabajo cuando arrancamos
 
 ### Lo que queda
 
-- Committear el bloque `sessionBroken` con su propio mensaje (el i18n ya está; falta sólo el código).
 - (Del plan) el `joinToken` para plan pago, y el enforcement real del punto 6, siguen dependiendo de backend/checkout real.
+
+---
+
+### Post-merge: 2 bugs encontrados al testear contra `fix(pagos)`/`fix(casos)` (10/09, mismo día)
+
+Al pedir "testeá que esté bien" después del merge de PR #134, contra el resto de lo que ya estaba en `dev` (`9562c35` fix(pagos), `9a5e441` fix(casos), `a10c0aa` sessionBroken — este último ya sí quedó commiteado, cerrando el ítem anterior):
+
+1. **`pnpm tsc -b` (el typecheck de CI) estaba roto en `dev`.** `apps/api/src/pagos/pagos.service.spec.ts:21` llamaba `jest.fn().mockResolvedValue()` sin argumento — TS2554. No lo introdujo el punto 6 ni nada de esta tanda; venía de `fix(pagos)` (`9562c35`), mergeado directo a `dev` en paralelo. Un caracter de más (`mockResolvedValue(undefined)`) lo arregla.
+2. **`app/signup/plan.tsx` (punto 2) llamaba `billingService.subscribeToPlan()` para el plan free — que es y será mock-only para siempre** (no hay endpoint de factura, ver `services/api/billing.backed-service.ts`). Contra backend real eso simulaba un éxito local sin crear ninguna suscripción de verdad: un usuario nuevo hubiera terminado el alta creyendo tener el plan free activo y chocado con `NO_ACTIVE_SUBSCRIPTION` en el primer intento de crear un caso — justo el error que `fix(casos)` (`9a5e441`, mergeado el mismo día) se ocupa de mostrar con claridad, pero que nunca debería haber aparecido para alguien que "ya" tenía el plan free. Cambiado a `billingService.startCheckout()`, que desde `fix(pagos)` resuelve el precio 0 sin pasar por Mercado Pago (`kind: 'activated'`) — es el mismo método que ya usa `/profile/plan/checkout`.
+
+Ambos arreglados, testeados (`pnpm jest` en `mediacion-app` — 150/150, 1361 tests; `pnpm --filter @mediacion/api test` — 151/151 suites no gateadas por `DATABASE_URL`) y pusheados a `dev`.
