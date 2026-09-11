@@ -1041,6 +1041,7 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
+          is_self_serve: boolean;
           limite_carpetas: number;
           limite_casos: number | null;
           limite_iteraciones_ia: number;
@@ -1054,6 +1055,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          is_self_serve?: boolean;
           limite_carpetas: number;
           limite_casos?: number | null;
           limite_iteraciones_ia: number;
@@ -1067,6 +1069,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          is_self_serve?: boolean;
           limite_carpetas?: number;
           limite_casos?: number | null;
           limite_iteraciones_ia?: number;

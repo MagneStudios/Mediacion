@@ -15,11 +15,15 @@ import type {
   PagoACargo,
   TipoInvitacion,
 } from "./invitaciones.types";
-import { isInvitationExpired } from "./invitation-ttl";
+import {
+  DEFAULT_INVITATION_TTL_HOURS,
+  isInvitationExpired,
+} from "./invitation-ttl";
 
 const estadoInvitacionPendiente = "pendiente" as const;
 const estadoInvitacionExpirada = "expirada" as const;
 const tipoInvitacionEmail = "email" as const;
+const configKeyInvitacionTtlHoras = "invitacion_ttl_horas" as const;
 
 function invalidTokenError(): HttpException {
   return new HttpException(
@@ -91,7 +95,8 @@ export class InvitacionesRepository {
           throw invalidTokenError();
         }
 
-        if (isInvitationExpired(invitacion.fecha_envio)) {
+        const ttlHoras = await this.invitationTtlHoras(trx);
+        if (isInvitationExpired(invitacion.fecha_envio, undefined, ttlHoras)) {
           await trx
             .updateTable("invitaciones")
             .set({ estado: estadoInvitacionExpirada })
@@ -178,6 +183,24 @@ export class InvitacionesRepository {
         }
         throw toDomainError(error);
       });
+  }
+
+  private async invitationTtlHoras(
+    db: Kysely<Database>,
+  ): Promise<number> {
+    const row = await db
+      .selectFrom("configuracion")
+      .select("valor")
+      .where("clave", "=", configKeyInvitacionTtlHoras)
+      .executeTakeFirst();
+    const raw = row?.valor;
+    if (typeof raw !== "string" && typeof raw !== "number") {
+      return DEFAULT_INVITATION_TTL_HOURS;
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : DEFAULT_INVITATION_TTL_HOURS;
   }
 
   listByCaso(casoId: string): Promise<InvitacionView[]> {
