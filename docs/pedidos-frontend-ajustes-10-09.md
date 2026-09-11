@@ -32,11 +32,12 @@ Backend lo resolvió en `fix(pagos): el plan de precio 0 se activa sin pasar por
 
 **El merge de `dev` lo dejó más urgente, no menos:** el short-circuit de §1 se implementó sobre `precio === 0`, así que **el backend hoy activa gratis también a `corporativo`** (que cuesta `0.00` pero es "a consultar", no self-serve). No es un bug bloqueante para la demo de mañana —el plan base es el único que aparece en el wizard free— pero es exactamente el caso de borde que `is_self_serve` viene a resolver.
 
-Lo que necesitamos, con una sola fuente de verdad (`is_self_serve`, o `precio NULL` para `corporativo`):
+**Estado 10/09 — DB: RESUELTO ✅** (rama `feat/supabase-db`). Migración `20260910120000_planes_is_self_serve.sql`: `ALTER TABLE planes ADD COLUMN is_self_serve BOOLEAN NOT NULL DEFAULT true`; `UPDATE planes SET is_self_serve = false WHERE nombre = 'corporativo'` (único plan "a consultar"). `base`/`simple`/`plus`/`particular`/`estudio` quedan `true`. Decisión: `docs/decisiones-db/2026-09-10-planes-self-serve.md`; changelog: `docs/changelogs-db/2026-09-10.md`; db-types actualizado. Auditado: `supabase db lint` limpio, `db reset` 45 migraciones, `smoke_migrations.py` 92/92, typecheck db-types OK, `validate_rls.py` 44/61 (los 17 fallos son preexistentes y ajenos a `planes`).
 
-- **DB:** la columna en `planes` (o el seed que distinga `corporativo` con `precio NULL`).
-- **Backend:** que `isFreePlan` deje de mirar `precio === 0` y resuelva contra esa columna.
-- **Frontend:** que el wizard free deje de gatillar por `plan.nombre === 'base'` y use la misma señal.
+Lo que falta de tu lado, con la columna ya en `planes` (y en db-types):
+
+- **Backend:** `isFreePlan(precio)` → resolver contra `planes.is_self_serve`. El free del alta es `base` (`precio = 0 AND is_self_serve`); no activar `corporativo` (`is_self_serve = false`). Dejar de usar `precio === 0` como señal.
+- **Frontend:** el wizard free deja de gatillar por `plan.nombre === 'base'` y usa `is_self_serve` (o el flag que BE devuelva desde `GET /planes`).
 
 ---
 
