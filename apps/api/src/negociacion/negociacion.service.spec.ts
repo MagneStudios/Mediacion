@@ -43,8 +43,12 @@ function buildService(overrides?: {
   resolveRespuesta?: jest.Mock;
   findForCase?: jest.Mock;
   findDetailForCase?: jest.Mock;
+  findDetailForNegociacion?: jest.Mock;
   listByCaso?: jest.Mock;
-  findCasoIdByNegociacion?: jest.Mock;
+  findNegociacionById?: jest.Mock;
+  activar?: jest.Mock;
+  crear?: jest.Mock;
+  findDetailForMember?: jest.Mock;
   renegociar?: jest.Mock;
 }) {
   const membershipService = {
@@ -65,6 +69,8 @@ function buildService(overrides?: {
     findForCase: overrides?.findForCase ?? jest.fn().mockResolvedValue([]),
     findDetailForCase:
       overrides?.findDetailForCase ?? jest.fn().mockResolvedValue([]),
+    findDetailForNegociacion:
+      overrides?.findDetailForNegociacion ?? jest.fn().mockResolvedValue([]),
   } as unknown as PropuestasRepository;
   const rondasRepository = {
     resolveActiveNegociacion:
@@ -89,12 +95,32 @@ function buildService(overrides?: {
   } as unknown as AiProposalGenerator;
   const casosRepository = {
     activateNegotiation: jest.fn().mockResolvedValue(undefined),
+    findDetailForMember:
+      overrides?.findDetailForMember ??
+      jest.fn().mockResolvedValue({
+        id: "caso-1",
+        estado: "en_negociacion",
+        metodo: "mediacion",
+      }),
   } as unknown as CasosRepository;
   const negociacionesRepository = {
     listByCaso: overrides?.listByCaso ?? jest.fn().mockResolvedValue([]),
-    findCasoId:
-      overrides?.findCasoIdByNegociacion ??
-      jest.fn().mockResolvedValue("caso-1"),
+    findById:
+      overrides?.findNegociacionById ??
+      jest.fn().mockResolvedValue({ caso_id: "caso-1", round: 1 }),
+    activar: overrides?.activar ?? jest.fn().mockResolvedValue(undefined),
+    crear:
+      overrides?.crear ??
+      jest.fn().mockResolvedValue({
+        id: "negociacion-2",
+        caso_id: "caso-1",
+        subject_type: "alimentos",
+        metodo: "mediacion",
+        estado: "borrador",
+        ronda_actual: 1,
+        acuerdo_vigente: null,
+        created_at: "now",
+      }),
     renegociar:
       overrides?.renegociar ??
       jest.fn().mockResolvedValue({
@@ -118,6 +144,7 @@ function buildService(overrides?: {
     rondasRepository,
     configuracionRepository,
     aiProposalGenerator,
+    casosRepository,
   };
 }
 
@@ -166,6 +193,7 @@ describe("NegociacionService.generatePropuesta", () => {
     const pending: PropuestaView = {
       id: "prop-1",
       caso_id: "caso-1",
+      negociacion_id: "neg-1",
       ronda_id: "ronda-1",
       contenido: {
         meetingPoint: [
@@ -563,6 +591,7 @@ describe("NegociacionService.responder", () => {
     const aceptada: PropuestaView = {
       id: "prop-1",
       caso_id: "caso-1",
+      negociacion_id: "neg-1",
       ronda_id: "ronda-1",
       contenido: { meetingPoint: [], narrative: "texto" },
       fundamentacion: null,
@@ -748,7 +777,7 @@ describe("NegociacionService.renegociar", () => {
     const assertMembership = jest.fn();
     const renegociar = jest.fn();
     const { service } = buildService({
-      findCasoIdByNegociacion: jest.fn().mockResolvedValue(undefined),
+      findNegociacionById: jest.fn().mockResolvedValue(undefined),
       assertMembership,
       renegociar,
     });
@@ -804,5 +833,321 @@ describe("NegociacionService.renegociar", () => {
 
     expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
     expect(renegociar).not.toHaveBeenCalled();
+  });
+});
+
+describe("NegociacionService.crearNegociacion", () => {
+  it("inherits the caso's metodo and returns the new materia", async () => {
+    const crear = jest.fn().mockResolvedValue({
+      id: "negociacion-2",
+      caso_id: "caso-1",
+      subject_type: "alimentos",
+      metodo: "conciliacion",
+      estado: "borrador",
+      ronda_actual: 1,
+      acuerdo_vigente: null,
+      created_at: "now",
+    });
+    const { service } = buildService({
+      crear,
+      findDetailForMember: jest.fn().mockResolvedValue({
+        id: "caso-1",
+        estado: "en_negociacion",
+        metodo: "conciliacion",
+      }),
+    });
+
+    const result = await service.crearNegociacion("caso-1", "user-a", {
+      subject_type: "alimentos",
+    });
+
+    expect(crear).toHaveBeenCalledWith("caso-1", "alimentos", "conciliacion");
+    expect(result.subject_type).toBe("alimentos");
+    expect(result.acuerdo_vigente).toBeNull();
+  });
+
+  it("rejects a subject_type outside the materia_acuerdo enum with 400 before touching the repository", async () => {
+    const crear = jest.fn();
+    const assertMembership = jest.fn();
+    const { service } = buildService({ crear, assertMembership });
+
+    let thrown: unknown;
+    try {
+      await service.crearNegociacion("caso-1", "user-a", {
+        subject_type: "vivienda" as never,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    expect((thrown as HttpException).getResponse()).toMatchObject({
+      code: "invalid_input",
+    });
+    expect(assertMembership).not.toHaveBeenCalled();
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing body with 400 rather than inserting a materia-less negociacion", async () => {
+    const crear = jest.fn();
+    const { service } = buildService({ crear });
+
+    await expect(
+      service.crearNegociacion("caso-1", "user-a", undefined as never),
+    ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("propagates the membership 404 for a caller who is not a party", async () => {
+    const notFound = new HttpException(
+      { code: "caso_not_found", message: "Case not found" },
+      HttpStatus.NOT_FOUND,
+    );
+    const crear = jest.fn();
+    const { service } = buildService({
+      crear,
+      assertMembership: jest.fn().mockRejectedValue(notFound),
+    });
+
+    await expect(
+      service.crearNegociacion("caso-1", "stranger", {
+        subject_type: "bienes",
+      }),
+    ).rejects.toBe(notFound);
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("rejects the mediador with 404 — splitting the caso by materia is a party's act", async () => {
+    const crear = jest.fn();
+    const { service } = buildService({
+      crear,
+      assertMembership: jest
+        .fn()
+        .mockResolvedValue({ rol_en_caso: "mediador" }),
+    });
+
+    await expect(
+      service.crearNegociacion("caso-1", "mediador-1", {
+        subject_type: "bienes",
+      }),
+    ).rejects.toMatchObject({
+      status: HttpStatus.NOT_FOUND,
+      response: { code: "caso_not_found" },
+    });
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("rejects with 409 caso_no_negociable on a caso that is already terminado", async () => {
+    const crear = jest.fn();
+    const { service } = buildService({
+      crear,
+      findDetailForMember: jest.fn().mockResolvedValue({
+        id: "caso-1",
+        estado: "terminado",
+        metodo: "mediacion",
+      }),
+    });
+
+    let thrown: unknown;
+    try {
+      await service.crearNegociacion("caso-1", "user-a", {
+        subject_type: "bienes",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+    expect((thrown as HttpException).getResponse()).toMatchObject({
+      code: "caso_no_negociable",
+    });
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("allows a materia on an acordado caso — the repository is what reopens it", async () => {
+    const crear = jest.fn().mockResolvedValue({
+      id: "negociacion-2",
+      caso_id: "caso-1",
+      subject_type: "bienes",
+      metodo: "mediacion",
+      estado: "borrador",
+      ronda_actual: 1,
+      acuerdo_vigente: null,
+      created_at: "now",
+    });
+    const { service } = buildService({
+      crear,
+      findDetailForMember: jest.fn().mockResolvedValue({
+        id: "caso-1",
+        estado: "acordado",
+        metodo: "mediacion",
+      }),
+    });
+
+    await service.crearNegociacion("caso-1", "user-a", {
+      subject_type: "bienes",
+    });
+
+    expect(crear).toHaveBeenCalledWith("caso-1", "bienes", "mediacion");
+  });
+});
+
+describe("NegociacionService.generatePropuestaForNegociacion", () => {
+  it("creates the propuesta on the addressed negociacion and its own round", async () => {
+    const readBothPartyPositionsForEngine = jest
+      .fn()
+      .mockResolvedValue(bothPartyPositions);
+    const findByNumero = jest
+      .fn()
+      .mockResolvedValue({ id: "ronda-7", caso_id: "caso-1", numero: 2 });
+    const createPending = jest.fn().mockResolvedValue({ id: "prop-9" });
+    const resolveActiveNegociacion = jest.fn();
+    const { service } = buildService({
+      readBothPartyPositionsForEngine,
+      findByNumero,
+      createPending,
+      resolveActiveNegociacion,
+      findNegociacionById: jest
+        .fn()
+        .mockResolvedValue({ caso_id: "caso-1", round: 2 }),
+    });
+
+    await service.generatePropuestaForNegociacion("negociacion-2", "user-a");
+
+    expect(findByNumero).toHaveBeenCalledWith("negociacion-2", 2);
+    expect(createPending).toHaveBeenCalledWith(
+      "caso-1",
+      "ronda-7",
+      "negociacion-2",
+      expect.anything(),
+      iaConfig.modelo,
+    );
+    expect(resolveActiveNegociacion).not.toHaveBeenCalled();
+  });
+
+  it("opens the ronda of that negociacion when it has none yet", async () => {
+    const readBothPartyPositionsForEngine = jest
+      .fn()
+      .mockResolvedValue(bothPartyPositions);
+    const findByNumero = jest.fn().mockResolvedValue(undefined);
+    const insertNextRonda = jest.fn().mockResolvedValue({ id: "ronda-nueva" });
+    const createPending = jest.fn().mockResolvedValue({ id: "prop-9" });
+    const { service } = buildService({
+      readBothPartyPositionsForEngine,
+      findByNumero,
+      insertNextRonda,
+      createPending,
+      findNegociacionById: jest
+        .fn()
+        .mockResolvedValue({ caso_id: "caso-1", round: 1 }),
+    });
+
+    await service.generatePropuestaForNegociacion("negociacion-2", "user-a");
+
+    expect(insertNextRonda).toHaveBeenCalledWith("caso-1", "negociacion-2", 1);
+    expect(createPending).toHaveBeenCalledWith(
+      "caso-1",
+      "ronda-nueva",
+      "negociacion-2",
+      expect.anything(),
+      iaConfig.modelo,
+    );
+  });
+
+  it("rejects with 404 negociacion_not_found for an unknown id, without asserting membership", async () => {
+    const assertMembership = jest.fn();
+    const createPending = jest.fn();
+    const { service } = buildService({
+      assertMembership,
+      createPending,
+      findNegociacionById: jest.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(
+      service.generatePropuestaForNegociacion("negociacion-9", "user-a"),
+    ).rejects.toMatchObject({
+      status: HttpStatus.NOT_FOUND,
+      response: { code: "negociacion_not_found" },
+    });
+    expect(assertMembership).not.toHaveBeenCalled();
+    expect(createPending).not.toHaveBeenCalled();
+  });
+});
+
+describe("NegociacionService.listPropuestasForNegociacion", () => {
+  it("returns the propuestas of that materia for a parte", async () => {
+    const detail = [{ id: "prop-1" }];
+    const findDetailForNegociacion = jest.fn().mockResolvedValue(detail);
+    const { service } = buildService({ findDetailForNegociacion });
+
+    const result = await service.listPropuestasForNegociacion(
+      "negociacion-2",
+      "user-a",
+    );
+
+    expect(findDetailForNegociacion).toHaveBeenCalledWith(
+      "negociacion-2",
+      "user-a",
+    );
+    expect(result).toBe(detail);
+  });
+
+  it("hides a materia below ronda 3 from the mediador — RN-05 read per materia", async () => {
+    const findDetailForNegociacion = jest.fn();
+    const { service } = buildService({
+      findDetailForNegociacion,
+      assertMembership: jest
+        .fn()
+        .mockResolvedValue({ rol_en_caso: "mediador" }),
+      findNegociacionById: jest
+        .fn()
+        .mockResolvedValue({ caso_id: "caso-1", round: 2 }),
+    });
+
+    await expect(
+      service.listPropuestasForNegociacion("negociacion-2", "mediador-1"),
+    ).rejects.toMatchObject({
+      status: HttpStatus.NOT_FOUND,
+      response: { code: "negociacion_not_found" },
+    });
+    expect(findDetailForNegociacion).not.toHaveBeenCalled();
+  });
+
+  it("lets the mediador read a materia that reached ronda 3, whatever the other materias are on", async () => {
+    const detail = [{ id: "prop-1" }];
+    const findDetailForNegociacion = jest.fn().mockResolvedValue(detail);
+    const { service } = buildService({
+      findDetailForNegociacion,
+      assertMembership: jest
+        .fn()
+        .mockResolvedValue({ rol_en_caso: "mediador" }),
+      findNegociacionById: jest
+        .fn()
+        .mockResolvedValue({ caso_id: "caso-1", round: 3 }),
+    });
+
+    const result = await service.listPropuestasForNegociacion(
+      "negociacion-2",
+      "mediador-1",
+    );
+
+    expect(result).toBe(detail);
+  });
+
+  it("rejects with 404 negociacion_not_found for an unknown id", async () => {
+    const findDetailForNegociacion = jest.fn();
+    const { service } = buildService({
+      findDetailForNegociacion,
+      findNegociacionById: jest.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(
+      service.listPropuestasForNegociacion("negociacion-9", "user-a"),
+    ).rejects.toMatchObject({
+      status: HttpStatus.NOT_FOUND,
+      response: { code: "negociacion_not_found" },
+    });
+    expect(findDetailForNegociacion).not.toHaveBeenCalled();
   });
 });

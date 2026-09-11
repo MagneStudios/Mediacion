@@ -3,6 +3,7 @@ import type { Database } from "@mediacion/db-types";
 import { HttpException } from "@nestjs/common";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
+import { insertCasoEnEstado } from "../casos/caso-estado.fixture";
 import { CasosRepository } from "../casos/casos.repository";
 import { MembershipService } from "../casos/membership.service";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
@@ -166,17 +167,16 @@ describeDb("Negociacion RN-01 no-leak against a real database", () => {
       `negociacion-c-${randomUUID()}@integration.test`,
     );
 
-    const caso = await kysely
-      .insertInto("casos")
-      .values({
+    const casoIdCreado = await insertCasoEnEstado(
+      kysely,
+      {
         creador_id: parteAId,
         nombre: `Caso integracion negociacion noleak ${randomUUID()}`,
         metodo: "mediacion",
-        estado: "en_negociacion",
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    casoId = caso.id;
+      },
+      "en_negociacion",
+    );
+    casoId = casoIdCreado;
 
     await kysely
       .insertInto("negociaciones")

@@ -105,6 +105,13 @@ export function createBackedBillingService(
       // a qué fila aplicarle el pago.
       const created = await api.createSubscription(planId);
       const preference = await api.startPayment(created.id);
+      // Plan de precio 0: BE ya lo dejó `activa` y no hay checkout que abrir.
+      // Se mira `estado` y no la ausencia de `init_point`, porque un
+      // `init_point` faltante también es el síntoma de una preferencia que no
+      // se pudo armar — y ese caso sigue siendo un error.
+      if (preference.estado === 'activa') {
+        return { kind: 'activated', subscriptionId: created.id };
+      }
       const checkoutUrl = toCheckoutUrl(preference.init_point);
       if (checkoutUrl === null) {
         // La suscripción quedó creada en `pendiente_pago`, que es un estado

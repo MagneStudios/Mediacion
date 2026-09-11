@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { ResponsiveAppShell } from '@/components/ResponsiveAppShell';
@@ -17,9 +17,40 @@ import { ErrorState } from '@/design-system';
 import { AuthGate } from '@/features/auth/AuthGate';
 import { ReacceptanceGate } from '@/features/legal/components/ReacceptanceGate';
 import { VersionNoticeBanner } from '@/features/legal/components/VersionNoticeBanner';
-import { colors } from '@/design-system/tokens/colors';
+import { GlobalSignOutAction } from '@/features/profile/components/GlobalSignOutAction';
+import { colors, semanticColors } from '@/design-system/tokens/colors';
+import { radii } from '@/design-system/tokens/radii';
+import { spacing } from '@/design-system/tokens/spacing';
 import { useDocumentLang } from '@/hooks/use-document-lang';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import '@/i18n';
+
+/**
+ * Point #3 (AJUSTES-PACTUM-2026-09-10): logout accesible desde cualquier
+ * pantalla. En desktop, `DesktopTopbar` ya lo resuelve (mounted once by
+ * `ResponsiveAppShell`). En mobile/compact no hay un único punto de montaje
+ * equivalente — cada ruta fuera de `(tabs)` posee su propio header nativo
+ * (single-ownership rule, ver comentario del root `<Stack>` más abajo) — así
+ * que en vez de tocar cada `_layout.tsx` de cada sección, este botón flota
+ * sobre el shell entero, igual que `VersionNoticeBanner`, y solo se monta
+ * cuando el shell NO está en modo desktop (ahí ya está en el topbar).
+ */
+function CompactGlobalSignOut() {
+  const { showDesktopSidebar } = useResponsiveLayout();
+  const insets = useSafeAreaInsets();
+
+  if (showDesktopSidebar) {
+    return null;
+  }
+
+  return (
+    <View pointerEvents="box-none" style={[styles.compactSignOutLayer, { top: insets.top + spacing.xs }]}>
+      <View style={styles.compactSignOutButton}>
+        <GlobalSignOutAction color={colors.ink} />
+      </View>
+    </View>
+  );
+}
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -108,6 +139,7 @@ export default function RootLayout() {
       */}
       <View style={styles.appColumn}>
       <VersionNoticeBanner />
+      <CompactGlobalSignOut />
       <ResponsiveAppShell>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -130,6 +162,7 @@ export default function RootLayout() {
           <Stack.Screen name="case/[id]/negotiation" options={{ headerShown: false }} />
           <Stack.Screen name="case/[id]/agreement" options={{ headerShown: false }} />
           <Stack.Screen name="case/[id]/mediator" options={{ headerShown: false }} />
+          <Stack.Screen name="invitacion/[token]" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="notices" options={{ headerShown: false }} />
           <Stack.Screen name="admin" options={{ headerShown: false }} />
@@ -163,8 +196,25 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 
 const styles = StyleSheet.create({
   // The banner and the shell stack vertically; the shell takes what's left.
+  // `relative` so CompactGlobalSignOut's absolute layer positions against
+  // the whole column, not just whichever screen happens to be mounted.
   appColumn: {
     flex: 1,
+    position: 'relative',
+  },
+  compactSignOutLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'flex-end',
+    paddingRight: spacing.md,
+    zIndex: 20,
+  },
+  compactSignOutButton: {
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 1,
+    borderColor: semanticColors.border.soft,
   },
 });
 

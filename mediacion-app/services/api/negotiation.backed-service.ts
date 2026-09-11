@@ -1,6 +1,8 @@
 import type { CaseDetail } from '@/types/case';
 import type {
   DecisionPropuesta,
+  MateriaAcuerdo,
+  Negotiation,
   NegotiationRound,
   NegotiationState,
   RoundHistoryItem,
@@ -12,6 +14,7 @@ import { getNegotiationEligibility } from '@/utils/negotiation-eligibility';
 import type { NegotiationService } from '../negotiation.service';
 import type { ApiNegotiationService } from './negotiation.api-service';
 import {
+  toNegotiation,
   toNegotiationRound,
   toRoundHistoryItem,
   toSharedProposal,
@@ -55,10 +58,10 @@ export function createBackedNegotiationService(
   api: ApiNegotiationService,
   deps: NegotiationDeps,
 ): NegotiationService {
-  async function loadState(caseId: string): Promise<NegotiationState> {
+  async function loadState(caseId: string, negotiationId?: string): Promise<NegotiationState> {
     const [detail, propuestas] = await Promise.all([
       deps.getCaseDetail(caseId),
-      api.listPropuestas(caseId),
+      negotiationId === undefined ? api.listPropuestas(caseId) : api.listPropuestasForNegociacion(negotiationId),
     ]);
 
     const sorted = [...propuestas].sort(byRoundDesc);
@@ -104,9 +107,13 @@ export function createBackedNegotiationService(
     };
   }
 
-  async function generateAndReread(caseId: string): Promise<SharedProposal> {
-    await api.generatePropuesta(caseId);
-    const state = await loadState(caseId);
+  async function generateAndReread(caseId: string, negotiationId?: string): Promise<SharedProposal> {
+    if (negotiationId === undefined) {
+      await api.generatePropuesta(caseId);
+    } else {
+      await api.generatePropuestaForNegociacion(negotiationId);
+    }
+    const state = await loadState(caseId, negotiationId);
     if (state.currentProposal === null) {
       throw new Error(
         `Propuesta for caso ${caseId} was not readable right after generation`,
@@ -116,12 +123,12 @@ export function createBackedNegotiationService(
   }
 
   return {
-    getNegotiationState(caseId: string): Promise<NegotiationState> {
-      return loadState(caseId);
+    getNegotiationState(caseId: string, negotiationId?: string): Promise<NegotiationState> {
+      return loadState(caseId, negotiationId);
     },
 
-    generateSharedProposal(caseId: string): Promise<SharedProposal> {
-      return generateAndReread(caseId);
+    generateSharedProposal(caseId: string, negotiationId?: string): Promise<SharedProposal> {
+      return generateAndReread(caseId, negotiationId);
     },
 
     async submitOwnProposalResponse(
@@ -131,21 +138,26 @@ export function createBackedNegotiationService(
     ): Promise<NegotiationState> {
       await api.responder(proposalId, decision);
       // The response may resolve the round and flip the propuesta's estado, so
-      // the whole snapshot is re-read instead of being patched locally.
+      // the whole snapshot is re-read instead of being patched locally. No
+      // negotiationId here: responder is keyed by proposalId alone, and this
+      // re-read is only ever reached from the per-caso legacy screen —
+      // per-materia responses re-read through `submitResponse` on that
+      // screen's own `useNegotiation(caseId, negotiationId)` call.
       return loadState(caseId);
     },
 
-    async startNextRound(caseId: string): Promise<NegotiationRound> {
-      await generateAndReread(caseId);
-      const state = await loadState(caseId);
+    async startNextRound(caseId: string, negotiationId?: string): Promise<NegotiationRound> {
+      await generateAndReread(caseId, negotiationId);
+      const state = await loadState(caseId, negotiationId);
       if (state.currentRound === null) {
         throw new Error(`Ronda for caso ${caseId} was not readable after starting it`);
       }
       return state.currentRound;
     },
 
-    async getRoundHistory(caseId: string): Promise<RoundHistoryItem[]> {
-      const propuestas = await api.listPropuestas(caseId);
+    async getRoundHistory(caseId: string, negotiationId?: string): Promise<RoundHistoryItem[]> {
+      const propuestas =
+        negotiationId === undefined ? await api.listPropuestas(caseId) : await api.listPropuestasForNegociacion(negotiationId);
       return propuestas
         .filter((row) => row.ronda_estado === 'completada')
         .sort((a, b) => a.ronda_numero - b.ronda_numero)
@@ -158,6 +170,21 @@ export function createBackedNegotiationService(
       return accepted === undefined
         ? null
         : toSharedProposal(accepted, accepted.ronda_numero);
+    },
+
+    async listNegotiations(caseId: string): Promise<Negotiation[]> {
+      const rows = await api.listNegociaciones(caseId);
+      return rows.map(toNegotiation);
+    },
+
+    async renegotiate(negotiationId: string): Promise<{ negotiationId: string; agreementId: string }> {
+      const view = await api.renegociar(negotiationId);
+      return { negotiationId: view.negotiation_id, agreementId: view.agreement_id };
+    },
+
+    async createNegotiation(caseId: string, subjectType: MateriaAcuerdo): Promise<Negotiation> {
+      const row = await api.crearNegociacion(caseId, subjectType);
+      return toNegotiation(row);
     },
   };
 }

@@ -1,4 +1,5 @@
 import { createApiAgreementsService, toBreachNotice } from '../agreements.api-service';
+import { ApiError } from '../api-error';
 import type { HttpClient, RequestOptions } from '../http-client';
 
 type Call = { path: string; options?: RequestOptions };
@@ -79,6 +80,79 @@ describe('agreements.api-service — incumplimientos', () => {
     await expect(
       createApiAgreementsService(http).listBreachNotices('acu-1'),
     ).resolves.toEqual([]);
+  });
+});
+
+const inboxRow = {
+  acuerdo_id: 'acu-1',
+  caso_id: 'caso-1',
+  caso_nombre: 'Caso Pérez',
+  caso_codigo: 'PER-001',
+  subject_type: 'tenencia' as const,
+  version: 2,
+  acuerdo_estado: 'enviado_a_firma' as const,
+  own_status: 'sent',
+  own_fecha_firma: null,
+  pending_signers: 1,
+};
+
+describe('agreements.api-service — signature inbox', () => {
+  it('carries subject_type and version into the row, which is what tells two rows of one caso apart', async () => {
+    const { http } = fakeHttp({ '/firmas': [inboxRow] });
+
+    const [item] = await createApiAgreementsService(http).listSignatureInbox();
+
+    expect(item.agreementId).toBe('acu-1');
+    expect(item.subjectType).toBe('tenencia');
+    expect(item.version).toBe(2);
+  });
+
+  it('keeps a null subject_type as null — the legacy model, never "otro"', async () => {
+    // The API leaves it null for a negociación that predates materias. Filling
+    // it in here would print a false label on a legal document's row.
+    const { http } = fakeHttp({ '/firmas': [{ ...inboxRow, subject_type: null, version: 1 }] });
+
+    const [item] = await createApiAgreementsService(http).listSignatureInbox();
+
+    expect(item.subjectType).toBeNull();
+    expect(item.version).toBe(1);
+  });
+});
+
+describe('agreements.api-service — getById', () => {
+  const bundle = { acuerdo: { id: 'acu-1', caso_id: 'caso-1', estado: 'firmado' }, firmas: [] };
+
+  it('reads the bundle by acuerdo, not by caso', async () => {
+    const { http, calls } = fakeHttp({ '/acuerdos/acu-1': bundle });
+
+    await expect(createApiAgreementsService(http).getById('acu-1')).resolves.toEqual(bundle);
+    expect(calls).toEqual([{ path: '/acuerdos/acu-1', options: undefined }]);
+  });
+
+  it('answers null on acuerdo_not_found, which is also what the API says for one the caller may not read', async () => {
+    const http: HttpClient = {
+      async request() {
+        throw new ApiError('acuerdo_not_found', 'not found', 404);
+      },
+      async requestText() {
+        return '';
+      },
+    };
+
+    await expect(createApiAgreementsService(http).getById('acu-9')).resolves.toBeNull();
+  });
+
+  it('propagates anything that is not a "not there"', async () => {
+    const http: HttpClient = {
+      async request() {
+        throw new ApiError('network_unavailable', 'offline', 0);
+      },
+      async requestText() {
+        return '';
+      },
+    };
+
+    await expect(createApiAgreementsService(http).getById('acu-1')).rejects.toMatchObject({ code: 'network_unavailable' });
   });
 });
 

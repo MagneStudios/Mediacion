@@ -87,6 +87,17 @@ export type CaseStatusLabelKey =
    * es un dato que le corresponda a esta parte.
    */
   | 'awaitingSubscriptions'
+  /**
+   * RN-08: una parte declaró el fin de la negociación. **Distinto de
+   * `signed`**, que es donde caen `acordado` y `cerrado`.
+   *
+   * Hasta el 09/09 `terminado` compartía la etiqueta de `signed` y nadie lo
+   * notó porque el estado era inalcanzable: ninguna pantalla podía escribirlo.
+   * En cuanto se pudo terminar un caso, un caso abandonado **sin acuerdo**
+   * habría dicho "Firmado" en el dashboard — que en un producto legal no es un
+   * matiz de copy.
+   */
+  | 'terminated'
   | 'expired';
 
 export type CaseSummary = {
@@ -116,14 +127,12 @@ export type CaseInvitation = {
   emailDestino: string | null;
   estado: EstadoInvitacion;
   /**
-   * `null` when the invitation was read back from the server rather than
-   * created in this session: `GET /casos/:id/invitaciones` does not select
-   * `pago_a_cargo` (the column exists — `20260810120000_cambios_reunion_07_08.sql`
-   * — but `InvitacionView` omits it). Nullable rather than defaulted, because
-   * guessing `'invitador'` for an invitation whose invitador chose "paga la
-   * otra parte" would put the wrong party in front of a paywall. Pedido a BE
-   * en `docs/pedidos-frontend-a-backend.md` §8; el día que lo agreguen, vuelve
-   * a ser no-nullable.
+   * `null` es una respuesta real y legítima del servidor: la columna es
+   * nullable (una invitación sin definir quién paga sigue siendo válida — el
+   * gate C-01 se resuelve después, cuando cada parte contrata), no un hueco
+   * que este tipo tenga que rellenar. Antes del 10/09 `null` también podía
+   * significar "el servidor no la devuelve todavía"; eso ya no pasa —
+   * `GET /casos/:id/invitaciones` la trae siempre, sea cual sea su valor real.
    */
   pagoACargo: PagoACargo | null;
   createdAt: string;
@@ -139,5 +148,14 @@ export type CreateInvitationInput = {
   casoId: string;
   tipo: TipoInvitacion;
   emailDestino?: string;
-  pagoACargo: PagoACargo;
+  /**
+   * Punto #6 (AJUSTES-PACTUM-2026-09-10): el selector "quién paga" se sacó
+   * de la UI de creación — el modelo pasa a ser "cada parte paga la suya"
+   * (suscripción individual), no un split ni una elección entre las partes.
+   * Queda opcional en vez de eliminado porque `CaseInvitation.pagoACargo`
+   * ya documentaba que `null` es una respuesta válida del servidor ("una
+   * invitación sin definir quién paga sigue siendo válida"); el frontend
+   * ahora simplemente nunca lo define.
+   */
+  pagoACargo?: PagoACargo;
 };

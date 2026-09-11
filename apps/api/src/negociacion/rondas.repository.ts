@@ -45,15 +45,21 @@ export function buildBumpNegociacionRoundQuery(
     .where("id", "=", negociacionId);
 }
 
+/**
+ * Scoped to the negociacion, not the caso: `rondas_negociacion_numero_unique`
+ * replaced the old per-caso unique, so with two materias open there are two
+ * rondas numbered 1 and the caso alone no longer identifies one. Reading by
+ * caso handed the propuesta of one materia the ronda of another.
+ */
 export function buildFindByNumeroQuery(
   db: Kysely<Database>,
-  casoId: string,
+  negociacionId: string,
   numero: number,
 ) {
   return db
     .selectFrom("rondas")
     .selectAll()
-    .where("caso_id", "=", casoId)
+    .where("negociacion_id", "=", negociacionId)
     .where("numero", "=", numero);
 }
 
@@ -93,10 +99,13 @@ export class RondasRepository {
     return buildActiveNegociacionQuery(this.kysely, casoId).executeTakeFirst();
   }
 
-  findByNumero(casoId: string, numero: number): Promise<Ronda | undefined> {
+  findByNumero(
+    negociacionId: string,
+    numero: number,
+  ): Promise<Ronda | undefined> {
     return buildFindByNumeroQuery(
       this.kysely,
-      casoId,
+      negociacionId,
       numero,
     ).executeTakeFirst();
   }

@@ -29,6 +29,7 @@ const notice: BreachNotice = {
 function fakeApi(overrides: Partial<ApiAgreementsService> = {}): ApiAgreementsService {
   return {
     getForCase: jest.fn().mockResolvedValue({ acuerdo: acuerdo('firmado'), firmas: [] }),
+    getById: jest.fn().mockResolvedValue({ acuerdo: acuerdo('firmado'), firmas: [] }),
     generate: jest.fn().mockResolvedValue(acuerdo('borrador')),
     sendToSignature: jest.fn().mockResolvedValue(acuerdo('enviado_a_firma')),
     registerBreach: jest.fn().mockResolvedValue(notice),
@@ -46,43 +47,122 @@ const deps = {
 };
 
 describe('agreements.backed-service — reportBreach', () => {
-  it('re-reads the agreement instead of assuming the estado the write caused', async () => {
+  it('re-reads the agreement by its id instead of assuming the estado the write caused', async () => {
     // The server flips the acuerdo to `con_aviso` in the same transaction.
-    // Patching that locally would be a guess; this reads it back.
-    const getForCase = jest
+    // Patching that locally would be a guess; this reads it back — and by
+    // acuerdo id: a caso can hold more than one, and re-reading by caso
+    // could hand the screen a different document than the one written to.
+    const getById = jest
       .fn()
       .mockResolvedValueOnce({ acuerdo: acuerdo('con_aviso'), firmas: [] });
-    const api = fakeApi({ getForCase });
+    const getForCase = jest.fn();
+    const api = fakeApi({ getById, getForCase });
     const service = createBackedAgreementsService(api, deps);
 
     const state = await service.reportBreach('caso-1', 'acu-1', 'algo pasó');
 
     expect(api.registerBreach).toHaveBeenCalledWith('acu-1', 'algo pasó');
-    expect(getForCase).toHaveBeenCalledWith('caso-1');
+    expect(getById).toHaveBeenCalledWith('acu-1');
+    expect(getForCase).not.toHaveBeenCalled();
     expect(state.agreement.estado).toBe('con_aviso');
   });
 
   it('does not re-read when the write failed', async () => {
-    const getForCase = jest.fn();
+    const getById = jest.fn();
     const api = fakeApi({
-      getForCase,
+      getById,
       registerBreach: jest.fn().mockRejectedValue(new Error('acuerdo_not_firmado')),
     });
 
     await expect(
       createBackedAgreementsService(api, deps).reportBreach('caso-1', 'acu-1', 'algo pasó'),
     ).rejects.toThrow('acuerdo_not_firmado');
-    expect(getForCase).not.toHaveBeenCalled();
+    expect(getById).not.toHaveBeenCalled();
   });
 
   it('fails loudly when the agreement is unreadable right after the write', async () => {
     // A registered notice with no state to show is a broken screen, not a
     // silent null: the caller has to know the re-read did not happen.
-    const api = fakeApi({ getForCase: jest.fn().mockResolvedValue(null) });
+    const api = fakeApi({ getById: jest.fn().mockResolvedValue(null) });
 
     await expect(
       createBackedAgreementsService(api, deps).reportBreach('caso-1', 'acu-1', 'algo pasó'),
-    ).rejects.toThrow(/caso-1/);
+    ).rejects.toThrow(/acu-1/);
+  });
+});
+
+describe('agreements.backed-service — addressed by acuerdo', () => {
+  it('reads the state by id and takes the caso from the bundle', async () => {
+    const getById = jest.fn().mockResolvedValue({ acuerdo: acuerdo('enviado_a_firma'), firmas: [] });
+    const getCaseTitle = jest.fn().mockResolvedValue('Custodia');
+    const api = fakeApi({ getById });
+
+    const state = await createBackedAgreementsService(api, { ...deps, getCaseTitle }).getAgreementStateById('acu-1');
+
+    expect(getById).toHaveBeenCalledWith('acu-1');
+    expect(getCaseTitle).toHaveBeenCalledWith('caso-1');
+    expect(state?.agreement.id).toBe('acu-1');
+    expect(api.getForCase).not.toHaveBeenCalled();
+  });
+
+  it('answers null, not an error, for an id that is not there', async () => {
+    const api = fakeApi({ getById: jest.fn().mockResolvedValue(null) });
+
+    await expect(createBackedAgreementsService(api, deps).getAgreementStateById('acu-9')).resolves.toBeNull();
+  });
+
+  it('re-reads by id after signing, never by caso', async () => {
+    const getForCase = jest.fn();
+    const api = fakeApi({ getForCase });
+
+    await createBackedAgreementsService(api, deps).submitOwnMockSignature('caso-1', 'acu-1');
+
+    expect(api.sendToSignature).toHaveBeenCalledWith('acu-1');
+    expect(api.getById).toHaveBeenCalledWith('acu-1');
+    expect(getForCase).not.toHaveBeenCalled();
+  });
+
+  it('sends a known draft to signature as it is — it never regenerates it', async () => {
+    // After a renegociación the next draft already exists server-side, and
+    // POST /casos/:id/acuerdo would answer 409 acuerdo_already_exists for it.
+    const getById = jest
+      .fn()
+      .mockResolvedValueOnce({ acuerdo: acuerdo('borrador'), firmas: [] })
+      .mockResolvedValueOnce({ acuerdo: acuerdo('enviado_a_firma'), firmas: [] });
+    const api = fakeApi({ getById });
+
+    const state = await createBackedAgreementsService(api, deps).prepareSignatureDocument('caso-1', 'acu-1');
+
+    expect(api.generate).not.toHaveBeenCalled();
+    expect(api.getForCase).not.toHaveBeenCalled();
+    expect(api.sendToSignature).toHaveBeenCalledWith('acu-1');
+    expect(state.agreement.estado).toBe('enviado_a_firma');
+  });
+
+  it('without an id still generates when the caso has none, then reads the new one by id', async () => {
+    const api = fakeApi({
+      getForCase: jest.fn().mockResolvedValue(null),
+      generate: jest.fn().mockResolvedValue({ ...acuerdo('borrador'), id: 'acu-new' }),
+      getById: jest.fn().mockResolvedValue({ acuerdo: { ...acuerdo('enviado_a_firma'), id: 'acu-new' }, firmas: [] }),
+    });
+
+    const state = await createBackedAgreementsService(api, deps).prepareSignatureDocument('caso-1');
+
+    expect(api.generate).toHaveBeenCalledWith('caso-1');
+    expect(api.sendToSignature).toHaveBeenCalledWith('acu-new');
+    expect(api.getById).toHaveBeenCalledWith('acu-new');
+    expect(state.agreement.id).toBe('acu-new');
+  });
+
+  it('derives the history from the acuerdo the id names', async () => {
+    const getById = jest.fn().mockResolvedValue({ acuerdo: acuerdo('borrador'), firmas: [] });
+    const api = fakeApi({ getById });
+
+    const items = await createBackedAgreementsService(api, deps).getAgreementHistory('caso-1', 'acu-1');
+
+    expect(getById).toHaveBeenCalledWith('acu-1');
+    expect(api.getForCase).not.toHaveBeenCalled();
+    expect(items.map((item) => item.eventKey)).toEqual(['agreement_created']);
   });
 });
 

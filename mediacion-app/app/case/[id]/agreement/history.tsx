@@ -13,9 +13,9 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAgreementDate } from '@/utils/format-agreement-date';
 
 export default function AgreementHistoryScreen() {
-  const { id: caseId } = useLocalSearchParams<{ id: string }>();
+  const { id: caseId, agreementId } = useLocalSearchParams<{ id: string; agreementId?: string }>();
   const { t } = useTranslation();
-  const result = useAgreementHistory(caseId);
+  const result = useAgreementHistory(caseId, agreementId);
   const { horizontalPadding } = useResponsiveLayout();
 
   return (

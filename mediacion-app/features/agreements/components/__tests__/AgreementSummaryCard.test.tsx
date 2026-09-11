@@ -54,10 +54,10 @@ function buildState(estado: string) {
   };
 }
 
-async function renderCard() {
+async function renderCard(agreementId?: string) {
   await render(
     <I18nextProvider i18n={i18n}>
-      <AgreementSummaryCard caseId="case-1" />
+      <AgreementSummaryCard caseId="case-1" agreementId={agreementId} />
     </I18nextProvider>,
   );
 }
@@ -67,6 +67,29 @@ beforeEach(() => {
   mockReload.mockClear();
   mockAgreementHook.status = 'success';
   mockAgreementHook.state = null;
+});
+
+describe('AgreementSummaryCard — direccionado por acuerdo', () => {
+  it('abre el acuerdo por id cuando lo sabe', async () => {
+    mockAgreementHook.state = buildState('firmado');
+    await renderCard('agr-tenencia');
+
+    await fireEvent.press(screen.getByText(i18n.t('agreement.summary.viewAction')));
+
+    expect(mockRoutePush).toHaveBeenCalledWith({
+      pathname: '/case/[id]/agreement',
+      params: { id: 'case-1', agreementId: 'agr-tenencia' },
+    });
+  });
+
+  it('sin id navega por caso, como antes', async () => {
+    mockAgreementHook.state = buildState('firmado');
+    await renderCard();
+
+    await fireEvent.press(screen.getByText(i18n.t('agreement.summary.viewAction')));
+
+    expect(mockRoutePush).toHaveBeenCalledWith({ pathname: '/case/[id]/agreement', params: { id: 'case-1' } });
+  });
 });
 
 describe('AgreementSummaryCard', () => {

@@ -31,6 +31,8 @@ function item(overrides: Partial<SignatureInboxItem> = {}): SignatureInboxItem {
     caseId: 'case-1',
     caseTitle: 'Caso Pérez',
     agreementTitle: 'Acuerdo Pérez',
+    subjectType: null,
+    version: 1,
     estado: 'enviado_a_firma',
     ownStatus: 'pendiente',
     ...overrides,
@@ -79,6 +81,34 @@ describe('SignaturesScreen — direccionado por acuerdo', () => {
     expect(screen.getByText('Tenencia')).toBeTruthy();
     expect(screen.getByText('Alimentos')).toBeTruthy();
     expect(screen.getAllByText(t('agreement.inbox.reviewAction'))).toHaveLength(2);
+  });
+
+  it('etiqueta cada fila con su materia y version, que es lo unico que distingue dos acuerdos del mismo caso', async () => {
+    // Con `agreementTitle` solo, dos materias del mismo caso son dos filas
+    // identicas. Y la version va siempre: /firmas lista tambien los acuerdos
+    // reemplazados, asi que "v1 completada" y "v2 pendiente" conviven.
+    mockInbox = {
+      status: 'success',
+      items: [
+        item({ agreementId: 'agr-tenencia', subjectType: 'tenencia', version: 2 }),
+        item({ agreementId: 'agr-alimentos', subjectType: 'alimentos', version: 1 }),
+      ],
+    };
+    await renderScreen();
+
+    expect(screen.getByText(`${t('subjectTypes.tenencia')} · v2`)).toBeTruthy();
+    expect(screen.getByText(`${t('subjectTypes.alimentos')} · v1`)).toBeTruthy();
+    expect(screen.queryByText('Acuerdo Pérez')).toBeNull();
+  });
+
+  it('sin materia cae al titulo del caso, y nunca a "Otro"', async () => {
+    // `null` es el modelo viejo. Un "Otro" inventado seria una etiqueta falsa
+    // sobre la fila de un documento legal.
+    mockInbox = { status: 'success', items: [item({ subjectType: null, version: 1 })] };
+    await renderScreen();
+
+    expect(screen.getByText('Acuerdo Pérez')).toBeTruthy();
+    expect(screen.queryByText(t('subjectTypes.otro'))).toBeNull();
   });
 
   it('cada fila lleva su propio acuerdo, no el del vecino', async () => {

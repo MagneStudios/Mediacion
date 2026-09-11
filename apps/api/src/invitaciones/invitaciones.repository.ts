@@ -12,6 +12,7 @@ import type {
   InvitacionCreated,
   InvitacionView,
   JoinedCaso,
+  PagoACargo,
   TipoInvitacion,
 } from "./invitaciones.types";
 import {
@@ -43,6 +44,7 @@ export class InvitacionesRepository {
     tipo: TipoInvitacion,
     token: string,
     emailDestino: string | null,
+    pagoACargo: PagoACargo | null,
   ): Promise<InvitacionCreated> {
     return this.kysely
       .insertInto("invitaciones")
@@ -53,12 +55,13 @@ export class InvitacionesRepository {
         estado: estadoInvitacionPendiente,
         email_destino: emailDestino,
         fecha_envio: new Date().toISOString(),
+        pago_a_cargo: pagoACargo,
       })
-      .returning(["id", "tipo", "token", "estado"])
+      .returning(["id", "tipo", "token", "estado", "pago_a_cargo"])
       .executeTakeFirstOrThrow()
       .catch((error: unknown) => {
         throw toDomainError(error);
-      });
+      }) as Promise<InvitacionCreated>;
   }
 
   findUsuarioIdByEmail(email: string): Promise<string | undefined> {
@@ -212,6 +215,7 @@ export class InvitacionesRepository {
         "estado",
         "fecha_envio",
         "created_at",
+        "pago_a_cargo",
       ])
       .where("caso_id", "=", casoId)
       .orderBy("created_at", "desc")

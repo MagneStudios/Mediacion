@@ -26,6 +26,21 @@ const knownTriggerConflicts: Record<string, { code: string; message: string }> =
       code: "caso_bloqueado_suscripciones",
       message: "Both parties in the case need an active subscription",
     },
+    /**
+     * `consume_quota` no usa el prefijo `slug:`: nombra sus fallas con un
+     * identificador en mayúsculas y nada más. Las dos entran acá porque el
+     * llamador sí necesita distinguirlas — son la diferencia entre "elegí un
+     * plan" y "algo quedó a medias en tu suscripción", y como conflicto
+     * genérico la app solo podía decir "no pudimos crear el caso".
+     */
+    NO_ACTIVE_SUBSCRIPTION: {
+      code: "no_active_subscription",
+      message: "An active subscription is required",
+    },
+    NO_BILLING_PERIOD: {
+      code: "no_billing_period",
+      message: "The subscription has no billing period",
+    },
   };
 
 function isPgError(error: unknown): error is { code: string; message: string } {
@@ -45,13 +60,27 @@ function triggerSlug(message: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * The whole message when it is nothing but a SCREAMING_SNAKE identifier, or
+ * `null`. `consume_quota` names its failures that way instead of with the
+ * `slug: texto` prefix, and both conventions are the same thing: a trigger
+ * author picking a stable name. The allowlist above still decides which ones
+ * mean anything to a caller — matching here only makes them lookup-able.
+ */
+function triggerSentinel(message: string): string | null {
+  const match = /^([A-Z][A-Z0-9_]*)$/.exec(message.trim());
+  return match ? match[1] : null;
+}
+
 export function toDomainError(error: unknown): Error {
   if (isPgError(error) && error.code === quotaExceededCode) {
     return new QuotaExceededError(null, error.message);
   }
   if (isPgError(error) && conflictCodes.has(error.code)) {
     const slug =
-      error.code === triggerExceptionCode ? triggerSlug(error.message) : null;
+      error.code === triggerExceptionCode
+        ? (triggerSlug(error.message) ?? triggerSentinel(error.message))
+        : null;
     const known = slug !== null ? knownTriggerConflicts[slug] : undefined;
     if (known) {
       return new ConflictError(error.message, known.code, known.message);

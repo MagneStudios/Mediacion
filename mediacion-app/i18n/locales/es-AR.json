@@ -121,6 +121,10 @@
       "mismatch": {
         "title": "No pudimos abrir ese acuerdo",
         "description": "El acuerdo que abriste no es el que esperábamos para este caso. Volvé a la bandeja de firmas y entrá de nuevo, para no revisar un documento que no corresponde."
+      },
+      "notFound": {
+        "title": "No encontramos ese acuerdo",
+        "description": "El acuerdo que intentaste abrir no existe o ya no está disponible para vos. Volvé a la bandeja de firmas y entrá de nuevo."
       }
     },
     "sharedMarker": {
@@ -225,7 +229,8 @@
         "waitingOther": "Esperando a la otra parte",
         "completed": "Completadas",
         "withNotice": "Con aviso"
-      }
+      },
+      "subjectVersion": "{{subject}} · v{{version}}"
     },
     "breachNotice": {
       "form": {
@@ -287,6 +292,20 @@
       "checkEmail": {
         "title": "Revisá tu correo",
         "description": "Te enviamos un enlace para confirmar tu cuenta. Cuando lo confirmes, vas a poder iniciar sesión."
+      },
+      "plan": {
+        "title": "Elegí tu plan",
+        "description": "Podés empezar gratis o elegir un plan pago — tu cuenta queda lista apenas elijas uno.",
+        "loading": "Buscando los planes disponibles…",
+        "error": {
+          "title": "No pudimos cargar los planes",
+          "retry": "Reintentar"
+        },
+        "subscribing": "Activando tu plan…",
+        "subscribeError": {
+          "title": "No pudimos activar el plan gratuito",
+          "retry": "Reintentar"
+        }
       }
     }
   },
@@ -328,7 +347,7 @@
     },
     "paymentRequired": {
       "title": "Necesitás una suscripción activa",
-      "body": "Quien te invitó eligió que vos te hagas cargo de la suscripción para acceder a este caso.",
+      "body": "Cada parte paga su propia suscripción para poder operar en el caso — activá la tuya para continuar.",
       "viewPlansAction": "Ver planes",
       "demoBypass": {
         "description": "Solo en esta demostración podés continuar sin pagar.",
@@ -459,22 +478,15 @@
       "error": {
         "title": "No pudimos crear el caso",
         "retry": "Reintentar"
+      },
+      "subscriptionRequired": {
+        "title": "Necesitás un plan activo para crear casos",
+        "action": "Elegir un plan"
       }
     },
     "invite": {
       "title": "Invitá a la contraparte",
       "subtitle": "Elegí cómo querés compartir el acceso a este caso.",
-      "pagoACargo": {
-        "sectionTitle": "¿Quién paga la suscripción?",
-        "invitador": {
-          "title": "Yo pago",
-          "description": "La suscripción queda a tu cargo."
-        },
-        "invitado": {
-          "title": "Paga la otra parte",
-          "description": "La otra parte va a tener que suscribirse para acceder al caso."
-        }
-      },
       "method": {
         "sectionTitle": "¿Cómo querés invitar?",
         "link": {
@@ -500,6 +512,10 @@
         "codigo": "Copiar código"
       },
       "copied": "Copiado",
+      "share": {
+        "link": "Compartir enlace",
+        "codigo": "Compartir código"
+      },
       "sendInvitation": "Preparar invitación",
       "preparedMessage": "La invitación quedó preparada.",
       "sandboxMessage": "La invitación se registró en el entorno de prueba.",
@@ -517,6 +533,26 @@
     }
   },
   "caseDetail": {
+    "deadline": {
+      "title": "Plazo de respuesta",
+      "none": "Todavía no hay un plazo de respuesta fijado.",
+      "remaining": "Quedan {{hours}} h de plazo.",
+      "description": "Fijá hasta cuándo esperás una respuesta. La contraparte lo ve en el caso, y el semáforo del panel refleja el tiempo que queda.",
+      "preset": {
+        "24": "24 horas",
+        "72": "3 días",
+        "168": "1 semana"
+      },
+      "error": "No pudimos fijar el plazo. Probá de nuevo."
+    },
+    "terminate": {
+      "action": "Terminar la negociación",
+      "dialogTitle": "¿Terminar esta negociación?",
+      "dialogBody": "Se registra que diste por terminada la negociación, con la fecha y la hora. El caso queda en el historial y la contraparte lo ve terminado. No se puede reabrir: si más adelante quieren volver a negociar, hay que crear un caso nuevo.",
+      "confirm": "Sí, terminar",
+      "cancel": "No, seguir negociando",
+      "error": "No pudimos terminar la negociación."
+    },
     "caseCode": "Caso {{code}}",
     "privacyNotice": "Tus posiciones privadas no se comparten con la otra parte. Solo va a ver lo que decidas proponer.",
     "awaitingCounterparty": {
@@ -524,6 +560,12 @@
       "description": "Cuando la otra parte se una al caso, vas a poder avanzar con la negociación.",
       "viewInvitation": "Ver invitación",
       "invitationError": "No pudimos cargar la invitación",
+      "invitationStatus": {
+        "pendiente": "Invitación pendiente",
+        "aceptada": "Invitación aceptada",
+        "rechazada": "Invitación rechazada",
+        "expirada": "Invitación vencida"
+      },
       "simulateAcceptance": {
         "description": "Podés simular que la otra parte aceptó la invitación para continuar con la demostración.",
         "action": "Simular aceptación de la invitación",
@@ -580,10 +622,12 @@
     "eyebrow": "Panel de casos",
     "description": "Revisá el estado de tus casos y los próximos pasos.",
     "createCase": "Crear un caso",
+    "joinCase": "Unirme a un caso",
     "loading": "Buscando tus casos…",
     "empty": {
       "title": "Todavía no tenés casos",
-      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista."
+      "description": "Cuando inicies o te sumen a un caso, va a aparecer en esta lista.",
+      "joinAction": "Unirme con un código"
     },
     "error": {
       "title": "No pudimos cargar tus casos",
@@ -594,6 +638,7 @@
       "inReview": "En revisión",
       "proposalReady": "Propuesta lista",
       "signed": "Firmado",
+      "terminated": "Negociación terminada",
       "awaitingCounterparty": "Esperando a la contraparte",
       "awaitingSubscriptions": "Falta activar suscripciones",
       "expired": "Invitación vencida",
@@ -615,6 +660,8 @@
       "proposalReady": "Hay una propuesta esperando tu respuesta.",
       "signed": "El acuerdo fue firmado por ambas partes.",
       "awaitingCounterparty": "Esperando a que la contraparte se una al caso.",
+      "awaitingSubscriptions": "El caso no puede abrirse hasta que las dos partes tengan una suscripción activa.",
+      "terminated": "Una de las partes dio por terminada la negociación.",
       "expired": "Nadie se unió a tiempo. Creá un caso nuevo para continuar."
     },
     "cta": {
@@ -627,7 +674,8 @@
     "back": "Atrás",
     "retry": "Reintentar",
     "loading": "Cargando…",
-    "mainNavigation": "Navegación principal"
+    "mainNavigation": "Navegación principal",
+    "signOut": "Cerrar sesión"
   },
   "mediator": {
     "sectionTitle": "Acompañamiento",
@@ -751,6 +799,12 @@
     "conciliacion": "Conciliación",
     "mediacion": "Mediación"
   },
+  "subjectTypes": {
+    "tenencia": "Tenencia",
+    "alimentos": "Alimentos",
+    "bienes": "Bienes",
+    "otro": "Otro"
+  },
   "negotiation": {
     "sectionTitle": "Negociación",
     "summary": {
@@ -802,6 +856,40 @@
         "title": "Negociación cerrada",
         "description": "Este caso ya no admite nuevas propuestas ni respuestas.",
         "status": "Cerrado"
+      }
+    },
+    "list": {
+      "error": {
+        "title": "No pudimos cargar las negociaciones del caso"
+      }
+    },
+    "materia": {
+      "none": "Sin materia asignada"
+    },
+    "addMateria": {
+      "title": "Agregar materia",
+      "error": "No pudimos agregar la materia. Probá de nuevo."
+    },
+    "estado": {
+      "borrador": "Borrador",
+      "activa": "Activa",
+      "acordada": "Acordada",
+      "cerrada": "Cerrada",
+      "terminada": "Terminada"
+    },
+    "agreementVersion": "Acuerdo v{{version}}",
+    "renegotiate": {
+      "action": "Renegociar",
+      "dialog": {
+        "title": "¿Abrir una nueva ronda sobre este acuerdo?",
+        "body": "El acuerdo firmado deja de estar vigente, pero se conserva. Se abre una ronda nueva que parte de su contenido, y el caso vuelve a negociación.",
+        "confirm": "Renegociar",
+        "cancel": "Cancelar"
+      },
+      "error": {
+        "title": "No pudimos abrir la nueva ronda",
+        "notAcordada": "Esta materia ya no tiene un acuerdo firmado vigente. Actualizamos la lista.",
+        "subscriptionRequired": "Para renegociar, las dos partes necesitan una suscripción activa. Revisá la tuya y avisale a la otra parte."
       }
     },
     "dashboard": {
@@ -1147,6 +1235,11 @@
       "overview": "Esta sección utiliza datos simulados. Ninguna acción de cuenta o sesión afecta un sistema real todavía.",
       "notifications": "Los avisos que activés acá todavía no están conectados a notificaciones reales: no se envían emails ni push en esta demostración.",
       "account": "Las acciones de esta pantalla son solo demostrativas. No hay autenticación real ni se elimina información."
+    },
+    "sessionBroken": {
+      "title": "Tu cuenta todavía no está lista",
+      "description": "Hubo un problema al cargar tu perfil. Cerrá sesión y volvé a entrar; si el problema sigue, contactanos.",
+      "action": "Cerrar sesión"
     },
     "header": {
       "title": "Perfil"

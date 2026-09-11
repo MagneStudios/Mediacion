@@ -1,16 +1,24 @@
-import { Redirect, usePathname } from 'expo-router';
+import { Redirect, usePathname, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 
 import { LoadingState } from '@/design-system';
 import type { AuthService } from '@/services/auth/auth.service';
 import { backend } from '@/services/backend-instance';
+import { toFullInvitationLink } from '@/utils/invitation-link';
 
 import { AuthSessionProvider, useAuthSession } from './auth-session';
 
 /**
  * Auth entry screens: reachable without a session, and a signed-in user is
  * bounced back home from them — there is nothing to do there with a session.
+ *
+ * Exact-match only (not the `matches()` prefix helper below): `/signup/plan`
+ * (AJUSTES-PACTUM-2026-09-10, punto #2) lives under `/signup` but is the
+ * opposite of an auth entry screen — it needs an active session to call
+ * `subscribeToPlan`, so a signed-in user must be able to stay on it instead
+ * of being bounced home, and a signed-out one must still be bounced to
+ * `/login` for it (unlike the bare `/signup`, which is public).
  */
 const authRoutes = ['/login', '/signup'];
 
@@ -29,19 +37,20 @@ const legalRoutes = [
   '/contacto',
 ];
 
-const publicRoutes = [...authRoutes, ...legalRoutes];
-
 function matches(routes: string[], pathname: string): boolean {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 function isPublic(pathname: string): boolean {
-  return matches(publicRoutes, pathname);
+  // authRoutes: exact only — see its own comment on why `/signup/plan` must
+  // NOT inherit the bare `/signup`'s public status.
+  return authRoutes.includes(pathname) || matches(legalRoutes, pathname);
 }
 
 function Gate({ children }: { children: ReactNode }) {
   const { status } = useAuthSession();
   const pathname = usePathname();
+  const { token } = useLocalSearchParams<{ token?: string }>();
   const { t } = useTranslation();
 
   // `loading` is not "signed out": Supabase restores a persisted session
@@ -52,10 +61,18 @@ function Gate({ children }: { children: ReactNode }) {
   }
 
   if (status === 'signedOut' && !isPublic(pathname)) {
+    // Punto #4 (AJUSTES-PACTUM-2026-09-10): a brand-new visitor following an
+    // invitation link before creating an account must not lose the code —
+    // send them to sign up carrying it, instead of a login screen that
+    // would silently drop it. `app/signup/plan.tsx` reads `joinToken` and
+    // hands it to `/case/join` once the account (and a plan) exist.
+    if (pathname.startsWith('/invitacion/') && token) {
+      return <Redirect href={{ pathname: '/signup', params: { joinToken: toFullInvitationLink(token) } }} />;
+    }
     return <Redirect href="/login" />;
   }
 
-  if (status === 'signedIn' && matches(authRoutes, pathname)) {
+  if (status === 'signedIn' && authRoutes.includes(pathname)) {
     return <Redirect href="/" />;
   }
 

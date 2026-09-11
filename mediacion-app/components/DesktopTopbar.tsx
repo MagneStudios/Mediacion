@@ -6,6 +6,7 @@ import { colors, semanticColors } from '../design-system/tokens/colors';
 import { radii } from '../design-system/tokens/radii';
 import { spacing } from '../design-system/tokens/spacing';
 import { typography } from '../design-system/tokens/typography';
+import { GlobalSignOutAction } from '../features/profile/components/GlobalSignOutAction';
 import { useProfile } from '../features/profile/hooks/useProfile';
 
 export function DesktopTopbar() {
@@ -39,6 +40,7 @@ export function DesktopTopbar() {
             <Icon name="user" size={18} color={semanticColors.action.primaryBg} />
           )}
         </View>
+        <GlobalSignOutAction />
       </View>
     </View>
   );

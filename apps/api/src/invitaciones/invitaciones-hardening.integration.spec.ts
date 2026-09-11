@@ -316,5 +316,63 @@ describeDb(
 
       await cleanupCase(casoId);
     });
+
+    it("R-07 · pago_a_cargo se persiste y el CHECK real rechaza cualquier otro valor", async () => {
+      const caso = await kysely
+        .insertInto("casos")
+        .values({
+          creador_id: userAId,
+          nombre: `Caso pago a cargo ${randomUUID()}`,
+          metodo: "negociacion",
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      const creada = await invitacionesRepository.createInvite(
+        caso.id,
+        "link",
+        `tok-${randomUUID()}`,
+        null,
+        "invitador",
+      );
+      expect(creada.pago_a_cargo).toBe("invitador");
+
+      const fila = await kysely
+        .selectFrom("invitaciones")
+        .select("pago_a_cargo")
+        .where("id", "=", creada.id)
+        .executeTakeFirstOrThrow();
+      expect(fila.pago_a_cargo).toBe("invitador");
+
+      const vistas = await invitacionesRepository.listByCaso(caso.id);
+      expect(vistas[0].pago_a_cargo).toBe("invitador");
+
+      // Null sigue siendo válido: `NULL IN (...)` no es FALSE, así que el
+      // CHECK lo deja pasar y una invitación sin definir quién paga es legal.
+      const sinDefinir = await invitacionesRepository.createInvite(
+        caso.id,
+        "link",
+        `tok-${randomUUID()}`,
+        null,
+        null,
+      );
+      expect(sinDefinir.pago_a_cargo).toBeNull();
+
+      // Y el CHECK de la 20260810120000 es real: lo que el servicio filtra
+      // con un 400 acá lo rechaza la base.
+      await expect(
+        kysely
+          .insertInto("invitaciones")
+          .values({
+            caso_id: caso.id,
+            tipo: "link",
+            token: `tok-${randomUUID()}`,
+            pago_a_cargo: "estudio",
+          })
+          .execute(),
+      ).rejects.toBeDefined();
+
+      await cleanupCase(caso.id);
+    });
   },
 );

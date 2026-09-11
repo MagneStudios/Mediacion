@@ -18,14 +18,62 @@ describe("toDomainError", () => {
     expect((result.cause as Error).message).toBe("QUOTA_EXCEEDED");
   });
 
-  it("keeps consume_quota's P0001 preconditions (no subscription, no period) on the generic 409", () => {
+  /**
+   * Estas dos dejaron de ser conflictos genéricos a propósito. Como
+   * `{ code: "conflict" }` la app solo podía decir "no pudimos crear el
+   * caso", que es exactamente lo que veía alguien a quien únicamente le
+   * faltaba elegir un plan. `consume_quota` las nombra con un identificador
+   * en mayúsculas y sin el prefijo `slug:`, así que el lookup acepta las dos
+   * convenciones.
+   */
+  it("maps consume_quota's NO_ACTIVE_SUBSCRIPTION to its own typed conflict code", () => {
+    const result = toDomainError({
+      code: "P0001",
+      message: "NO_ACTIVE_SUBSCRIPTION",
+    }) as ConflictError;
+
+    expect(result).toBeInstanceOf(ConflictError);
+    expect(result.getStatus()).toBe(HttpStatus.CONFLICT);
+    expect(result.getResponse()).toEqual({
+      code: "no_active_subscription",
+      message: "An active subscription is required",
+    });
+  });
+
+  it("maps consume_quota's NO_BILLING_PERIOD to its own typed conflict code", () => {
     const result = toDomainError({
       code: "P0001",
       message: "NO_BILLING_PERIOD",
     }) as ConflictError;
 
-    expect(result).toBeInstanceOf(ConflictError);
-    expect(result.getStatus()).toBe(HttpStatus.CONFLICT);
+    expect(result.getResponse()).toEqual({
+      code: "no_billing_period",
+      message: "The subscription has no billing period",
+    });
+  });
+
+  it("never leaks the raw Postgres message for a sentinel-named conflict", () => {
+    const result = toDomainError({
+      code: "P0001",
+      message: "NO_ACTIVE_SUBSCRIPTION",
+    }) as ConflictError;
+
+    expect(JSON.stringify(result.getResponse())).not.toContain(
+      "NO_ACTIVE_SUBSCRIPTION",
+    );
+    expect((result.cause as Error).message).toBe("NO_ACTIVE_SUBSCRIPTION");
+  });
+
+  it("falls back to the generic conflict for a sentinel nobody has reviewed yet", () => {
+    const result = toDomainError({
+      code: "P0001",
+      message: "INVALID_QUOTA_KIND",
+    }) as ConflictError;
+
+    expect(result.getResponse()).toEqual({
+      code: "conflict",
+      message: "Conflict",
+    });
   });
 
   it("maps a unique-violation pg error to a 409 ConflictError with no leaked db detail", () => {

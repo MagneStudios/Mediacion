@@ -21,8 +21,9 @@ export function generateMockCode(): string {
 
 /**
  * Mock invitation link using the app's own registered scheme (see app.json
- * "scheme": "mediacionapp") — not a real external domain, and not wired to
- * any deep-link handling in this phase. Clearly a dev-only placeholder.
+ * "scheme": "mediacionapp") — not a real external domain. Resolves via
+ * app/invitacion/[token].tsx, which reconstructs this exact string and
+ * redirects to /case/join?token=... (AJUSTES-PACTUM-2026-09-10, punto #4).
  */
 export function generateMockInvitationLink(): string {
   const token = randomString(10, CODE_ALPHABET).toLowerCase();
@@ -97,4 +98,9 @@ export function generateMockPaymentId(): string {
 /** Mock facturas-row identifier for the in-memory session store (R-09 checkout). */
 export function generateMockInvoiceId(): string {
   return `invoice-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}
+
+/** Mock negociación identifier for a materia created via `createNegotiation` — never for the legacy negociación, which has its own deterministic id. */
+export function generateMockNegotiationId(): string {
+  return `negotiation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }

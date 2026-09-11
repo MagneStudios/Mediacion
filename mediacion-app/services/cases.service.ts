@@ -8,6 +8,8 @@ import type {
 } from '../types/case';
 import { mockCaseDetails, mockCases } from '../mocks/cases';
 import { codeInvitationExpired } from './api/api-error';
+import { toSlaHours, toVisualStatus } from './api/case-mapper';
+import { canTerminateCase, toSemaforoFromDeadline } from '../utils/case-actions';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 import { createBackedCasesService } from './api/cases.backed-service';
 import { backend } from './backend-instance';
@@ -47,6 +49,22 @@ export type CasesService = {
    * token, no session — see CaseDetailScreen.tsx for the confirmation UI.
    */
   simulateInvitationAcceptance(caseId: string): Promise<CaseDetail>;
+  /**
+   * RN-10 — fija un plazo puntual de respuesta. `plazo` es un instante ISO
+   * estrictamente futuro; los presets de `utils/case-actions.ts` lo garantizan.
+   *
+   * No devuelve nada: la respuesta del servidor es `{ id, plazo, semaforo }` y
+   * no un caso completo, así que quien llama recarga en vez de mantener una
+   * segunda derivación de `slaHours`/`visualStatus`.
+   */
+  setCaseDeadline(caseId: string, plazo: string): Promise<void>;
+  /**
+   * RN-08 — declara el fin autónomo de la negociación. **Es irreversible**:
+   * `terminado` es absorbente en la máquina de estados de DB.
+   *
+   * Sin parámetro de estado: `PATCH /casos/:id/estado` sólo acepta `terminado`.
+   */
+  terminateCase(caseId: string): Promise<void>;
   /**
    * Redeems an invitation token as the calling user, joining them to the case
    * it belongs to. Backed by `POST /casos/unirse`.
@@ -168,7 +186,9 @@ export function createMockCasesService(): CasesService {
               : null,
         emailDestino: input.tipo === 'email' ? (input.emailDestino ?? null) : null,
         estado: 'pendiente',
-        pagoACargo: input.pagoACargo,
+        // Punto #6: el frontend ya no define quién paga — `null` es la
+        // respuesta válida documentada en `CaseInvitation.pagoACargo`.
+        pagoACargo: input.pagoACargo ?? null,
         createdAt: new Date().toISOString(),
       };
 
@@ -182,6 +202,72 @@ export function createMockCasesService(): CasesService {
     async getCaseTitle(caseId) {
       const detail = mockCaseDetails[caseId];
       return delay(detail ? detail.title : null, 150);
+    },
+
+    async setCaseDeadline(caseId, plazo) {
+      const detail = mockCaseDetails[caseId];
+      if (!detail) {
+        return rejectAfter('case_not_found', 300);
+      }
+      // El servidor rechaza un plazo que no sea estrictamente futuro
+      // (`assertValidPlazo`). El mock aplica la misma regla para que un bug de
+      // este lado se vea acá y no recién contra la API real.
+      const deadline = Date.parse(plazo);
+      if (Number.isNaN(deadline) || deadline <= Date.now()) {
+        return rejectAfter('plazo_invalid', 300);
+      }
+
+      // El semáforo lo calcula el servidor con los mismos umbrales; acá se
+      // derivan `slaHours` y `visualStatus` con los helpers del mapper para no
+      // tener una tercera copia de la regla.
+      const now = new Date();
+      const slaHours = toSlaHours(plazo, now);
+      const visualStatus = toVisualStatus(toSemaforoFromDeadline(plazo, now));
+
+      await delay(undefined, 500);
+      mockCaseDetails[caseId] = { ...detail, slaHours, visualStatus };
+      const index = mockCases.findIndex((c) => c.id === caseId);
+      if (index !== -1) {
+        mockCases[index] = { ...mockCases[index], slaHours, visualStatus };
+      }
+    },
+
+    async terminateCase(caseId) {
+      const detail = mockCaseDetails[caseId];
+      if (!detail) {
+        return rejectAfter('case_not_found', 300);
+      }
+      // Misma regla que el trigger de DB: desde un estado absorbente no se
+      // puede terminar. La pantalla ya no ofrece el botón, pero el servicio no
+      // depende de que la UI lo haya escondido — mismo criterio que las tres
+      // utils de elegibilidad.
+      if (!canTerminateCase(detail.estado)) {
+        return rejectAfter('case_not_terminable', 300);
+      }
+
+      const terminated: CaseDetail = {
+        ...detail,
+        estado: 'terminado',
+        statusLabelKey: 'terminated',
+        visualStatus: 'neutral',
+        // Un caso terminado no tiene respuesta pendiente, así que tampoco tiene
+        // reloj: dejar el SLA corriendo mostraría una cuenta regresiva hacia
+        // nada.
+        slaHours: null,
+      };
+      const committed = await delay(terminated, 700);
+
+      mockCaseDetails[caseId] = committed;
+      const index = mockCases.findIndex((c) => c.id === caseId);
+      if (index !== -1) {
+        mockCases[index] = {
+          ...mockCases[index],
+          estado: 'terminado',
+          statusLabelKey: 'terminated',
+          visualStatus: 'neutral',
+          slaHours: null,
+        };
+      }
     },
 
     async simulateInvitationAcceptance(caseId) {

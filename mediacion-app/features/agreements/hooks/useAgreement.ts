@@ -16,25 +16,32 @@ export type MutationStatus = 'idle' | 'pending' | 'error';
  * when the case has no accepted proposal yet — a calm, expected read, not
  * an error.
  */
-export function useAgreement(caseId: string) {
+export function useAgreement(caseId: string, agreementId?: string) {
+  /**
+   * Identidad de lo que esta pantalla muestra. Con `agreementId` es el
+   * acuerdo; sin él, "el acuerdo del caso" — correcto mientras haya uno. Un
+   * `agreementId` distinto con el mismo `caseId` es otro documento y no
+   * comparte estado, resultado ni mutaciones en vuelo con el anterior.
+   */
+  const key = agreementId ?? caseId;
   const [status, setStatus] = useState<FetchStatus>('loading');
   const [state, setState] = useState<AgreementState | null>(null);
   const [attempt, setAttempt] = useState(0);
   const hasLoadedOnceRef = useRef(false);
-  const activeCaseIdRef = useRef(caseId);
+  const activeKeyRef = useRef(key);
   const mountedRef = useRef(true);
   const prepareInFlightRef = useRef<object | null>(null);
   const signInFlightRef = useRef<object | null>(null);
   const breachInFlightRef = useRef<object | null>(null);
   const mutationRevisionRef = useRef(0);
-  const [resultCaseId, setResultCaseId] = useState<string | null>(null);
+  const [resultKey, setResultKey] = useState<string | null>(null);
 
   const [prepareStatus, setPrepareStatus] = useState<MutationStatus>('idle');
   const [signStatus, setSignStatus] = useState<MutationStatus>('idle');
   const [breachStatus, setBreachStatus] = useState<MutationStatus>('idle');
 
-  if (activeCaseIdRef.current !== caseId) {
-    activeCaseIdRef.current = caseId;
+  if (activeKeyRef.current !== key) {
+    activeKeyRef.current = key;
     mutationRevisionRef.current += 1;
   }
 
@@ -52,22 +59,29 @@ export function useAgreement(caseId: string) {
     setPrepareStatus('idle');
     setSignStatus('idle');
     setBreachStatus('idle');
-  }, [caseId]);
+  }, [key]);
 
   const reload = useCallback(() => {
     setStatus('loading');
     setAttempt((n) => n + 1);
   }, []);
 
+  const read = useCallback(
+    () =>
+      agreementId === undefined
+        ? agreementsService.getAgreementState(caseId)
+        : agreementsService.getAgreementStateById(agreementId),
+    [caseId, agreementId],
+  );
+
   const fetchSilently = useCallback(() => {
     let cancelled = false;
     const revision = mutationRevisionRef.current;
     if (prepareInFlightRef.current || signInFlightRef.current || breachInFlightRef.current) return;
-    agreementsService
-      .getAgreementState(caseId)
+    read()
       .then((result) => {
-        if (cancelled || activeCaseIdRef.current !== caseId || mutationRevisionRef.current !== revision) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key || mutationRevisionRef.current !== revision) return;
+        setResultKey(key);
         setState(result);
         setStatus('success');
       })
@@ -77,30 +91,29 @@ export function useAgreement(caseId: string) {
     return () => {
       cancelled = true;
     };
-  }, [caseId]);
+  }, [key, read]);
 
   useEffect(() => {
     let cancelled = false;
     setStatus('loading');
     hasLoadedOnceRef.current = false;
-    agreementsService
-      .getAgreementState(caseId)
+    read()
       .then((result) => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setState(result);
         setStatus('success');
         hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (cancelled || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        if (cancelled || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setStatus('error');
       });
     return () => {
       cancelled = true;
     };
-  }, [caseId, attempt]);
+  }, [key, read, attempt]);
 
   useFocusEffect(
     useCallback(() => {
@@ -116,38 +129,38 @@ export function useAgreement(caseId: string) {
     mutationRevisionRef.current += 1;
     setPrepareStatus('pending');
     try {
-      const result = await agreementsService.prepareSignatureDocument(caseId);
-      if (!mountedRef.current || activeCaseIdRef.current !== caseId) return;
-      setResultCaseId(caseId);
+      const result = await agreementsService.prepareSignatureDocument(caseId, agreementId);
+      if (!mountedRef.current || activeKeyRef.current !== key) return;
+      setResultKey(key);
       setState(result);
       setPrepareStatus('idle');
     } catch {
-      if (mountedRef.current && activeCaseIdRef.current === caseId) setPrepareStatus('error');
+      if (mountedRef.current && activeKeyRef.current === key) setPrepareStatus('error');
     } finally {
       if (prepareInFlightRef.current === operation) prepareInFlightRef.current = null;
     }
-  }, [caseId]);
+  }, [caseId, agreementId, key]);
 
   const submitSignature = useCallback(
-    async (agreementId: string) => {
+    async (signedAgreementId: string) => {
       if (signInFlightRef.current) return;
       const operation = {};
       signInFlightRef.current = operation;
       mutationRevisionRef.current += 1;
       setSignStatus('pending');
       try {
-        const result = await agreementsService.submitOwnMockSignature(caseId, agreementId);
-        if (!mountedRef.current || activeCaseIdRef.current !== caseId) return;
-        setResultCaseId(caseId);
+        const result = await agreementsService.submitOwnMockSignature(caseId, signedAgreementId);
+        if (!mountedRef.current || activeKeyRef.current !== key) return;
+        setResultKey(key);
         setState(result);
         setSignStatus('idle');
       } catch {
-        if (mountedRef.current && activeCaseIdRef.current === caseId) setSignStatus('error');
+        if (mountedRef.current && activeKeyRef.current === key) setSignStatus('error');
       } finally {
         if (signInFlightRef.current === operation) signInFlightRef.current = null;
       }
     },
-    [caseId],
+    [caseId, key],
   );
 
   /**
@@ -157,27 +170,27 @@ export function useAgreement(caseId: string) {
    * confirm must not register the same notice twice.
    */
   const reportBreach = useCallback(
-    async (agreementId: string, description: string) => {
+    async (breachedAgreementId: string, description: string) => {
       if (breachInFlightRef.current) return false;
       const operation = {};
       breachInFlightRef.current = operation;
       mutationRevisionRef.current += 1;
       setBreachStatus('pending');
       try {
-        const result = await agreementsService.reportBreach(caseId, agreementId, description);
-        if (!mountedRef.current || activeCaseIdRef.current !== caseId) return false;
-        setResultCaseId(caseId);
+        const result = await agreementsService.reportBreach(caseId, breachedAgreementId, description);
+        if (!mountedRef.current || activeKeyRef.current !== key) return false;
+        setResultKey(key);
         setState(result);
         setBreachStatus('idle');
         return true;
       } catch {
-        if (mountedRef.current && activeCaseIdRef.current === caseId) setBreachStatus('error');
+        if (mountedRef.current && activeKeyRef.current === key) setBreachStatus('error');
         return false;
       } finally {
         if (breachInFlightRef.current === operation) breachInFlightRef.current = null;
       }
     },
-    [caseId],
+    [caseId, key],
   );
 
   const resetBreachStatus = useCallback(() => {
@@ -189,8 +202,8 @@ export function useAgreement(caseId: string) {
   }, []);
 
   return {
-    status: resultCaseId === caseId ? status : 'loading',
-    state: resultCaseId === caseId ? state : null,
+    status: resultKey === key ? status : 'loading',
+    state: resultKey === key ? state : null,
     reload,
     prepareStatus,
     prepareDocument,

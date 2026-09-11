@@ -1,67 +1,98 @@
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { Button, Card } from '../../../design-system';
+import { semanticColors } from '../../../design-system/tokens/colors';
+import { spacing } from '../../../design-system/tokens/spacing';
+import { typography } from '../../../design-system/tokens/typography';
 import type { EstadoCaso } from '../../../types/case';
+import { canAddMateria } from '../../../utils/case-actions';
 import { AgreementSummaryCard } from '../../agreements/components/AgreementSummaryCard';
+import { useNegotiations } from '../hooks/useNegotiations';
+import { AddMateriaCard } from './AddMateriaCard';
+import { NegotiationMateriaCard } from './NegotiationMateriaCard';
 import { NegotiationSummaryCard } from './NegotiationSummaryCard';
-
-/**
- * Una negociación del caso: su tarjeta de estado y, si ya produjo uno, su
- * acuerdo.
- *
- * **Hoy siempre hay exactamente una** — `rondas` cuelga del caso, `casos.
- * ronda_actual` es un contador escalar, y `acuerdos` tiene `UNIQUE (caso_id)`
- * declarado con el comentario *"un caso solo puede tener un acuerdo"*. Por eso
- * la entrada se identifica por `caseId` y no por un id propio: **no existe un
- * identificador de negociación**, y fabricar uno para que el tipo se vea más
- * definitivo sería inventar un dato que después viaja a params de ruta.
- *
- * Cuando DB entregue el modelo (`docs/pedidos-frontend-acuerdos-modulares.md`
- * §2.3), esta entrada gana `id` y `materia`, y la pantalla que la consume no
- * se toca.
- */
-export type NegotiationListEntry = {
-  caseId: string;
-  /**
-   * Si esta negociación tiene un acuerdo que mostrar. Hoy se deriva del estado
-   * del caso, que es el único dato disponible; con N materias va a ser una
-   * propiedad de cada negociación.
-   */
-  hasAgreement: boolean;
-};
 
 export type NegotiationsListSectionProps = {
   caseId: string;
+  /** Gatea `AddMateriaCard` — nunca deriva la lista, que sale de `useNegotiations`. */
   estado: EstadoCaso;
+  /** Relee el caso. Renegociar lo devuelve de `acordado` a `en_negociacion`. */
+  onCaseChanged: () => void;
 };
 
 /**
- * Las negociaciones del caso, en lista.
+ * Las negociaciones del caso, en lista — una por materia, como las devuelve
+ * `GET /casos/:id/negociaciones`.
  *
- * Existe para que el detalle del caso deje de cablear "la negociación" y "el
- * acuerdo" en singular. Es una costura, no una feature: **con una entrada se
- * ve exactamente igual que antes**, y el día que el backend devuelva tres el
- * `.map()` ya está.
+ * **La tarjeta de resumen se dibuja una vez, arriba.** Es el estado del flujo
+ * de propuestas de la negociación legacy — la sin materia. Las rutas de
+ * propuestas por negociación ya existen (`negotiationId` llega hasta
+ * `useNegotiation`/`useRoundHistory`), pero esta tarjeta sigue siendo por
+ * caso a propósito: dibujarla una vez por materia mostraría N copias de un
+ * resumen que ya vive en la tarjeta de cada `NegotiationMateriaCard`, que es
+ * la que navega a la negociación de esa materia por su propio id.
  *
- * El gate `estado === 'acordado'` vivía suelto en `CaseDetailScreen` y es una
- * de las cosas que se rompen con materias —una sola aceptación pone el caso
- * entero en `acordado`, así que firmar tenencia apagaría alimentos—. Acá al
- * menos queda en un solo lugar, marcado, en vez de repartido por la pantalla.
+ * **El acuerdo se muestra porque existe, no porque el caso esté `acordado`.**
+ * Ese gate vivía acá y ya no alcanza: `acordado` ahora se deriva al completarse
+ * la última firma —llega al final del ciclo, no al principio— y con más de una
+ * materia, firmar tenencia no dice nada de alimentos. Lo que sí lo dice es el
+ * `acuerdo_vigente` de cada negociación, y con su id la tarjeta lee y navega
+ * por acuerdo.
+ *
+ * Una lista vacía es un caso recién creado, no un error. Un error se dice
+ * adentro de la sección, con reintento, sin que la sección desaparezca.
  */
-export function NegotiationsListSection({ caseId, estado }: NegotiationsListSectionProps) {
-  const negotiations: NegotiationListEntry[] = [
-    // La única que el modelo actual puede describir. No es un placeholder: es
-    // literalmente la negociación del caso, la misma que se venía dibujando.
-    { caseId, hasAgreement: estado === 'acordado' },
-  ];
+export function NegotiationsListSection({ caseId, estado, onCaseChanged }: NegotiationsListSectionProps) {
+  const { t } = useTranslation();
+  const result = useNegotiations(caseId);
 
   return (
     <>
-      {negotiations.map((negotiation) => (
-        <Fragment key={negotiation.caseId}>
-          <NegotiationSummaryCard caseId={negotiation.caseId} />
-          {negotiation.hasAgreement ? <AgreementSummaryCard caseId={negotiation.caseId} /> : null}
-        </Fragment>
-      ))}
+      <NegotiationSummaryCard caseId={caseId} />
+
+      {result.status === 'error' ? (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorText}>{t('negotiation.list.error.title')}</Text>
+          <Button variant="secondary" size="sm" onPress={result.reload}>
+            {t('common.retry')}
+          </Button>
+        </Card>
+      ) : null}
+
+      {result.status === 'success'
+        ? result.items.map((negotiation) => (
+            <Fragment key={negotiation.id}>
+              <NegotiationMateriaCard negotiation={negotiation} onChanged={result.reload} onCaseChanged={onCaseChanged} />
+              {negotiation.currentAgreement ? (
+                <AgreementSummaryCard caseId={caseId} agreementId={negotiation.currentAgreement.id} />
+              ) : null}
+            </Fragment>
+          ))
+        : null}
+
+      {canAddMateria(estado) ? (
+        <AddMateriaCard
+          caseId={caseId}
+          existingSubjectTypes={result.status === 'success' ? result.items.map((negotiation) => negotiation.subjectType) : []}
+          onAdded={result.reload}
+        />
+      ) : null}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  errorCard: {
+    borderRadius: 14,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  errorText: {
+    fontFamily: typography.bodySm.fontFamily,
+    fontSize: 13,
+    lineHeight: 19,
+    color: semanticColors.text.secondary,
+  },
+});

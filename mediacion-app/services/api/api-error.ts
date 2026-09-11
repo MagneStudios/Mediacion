@@ -45,6 +45,14 @@ export const codeAcuerdoNotFound = 'acuerdo_not_found';
 export const codeMediacionNotFound = 'mediacion_not_found';
 export const codeItemNotFound = 'item_not_found';
 export const codePropuestaNotReady = 'propuesta_not_ready';
+/** `POST /negociaciones/:id/renegociar` on a materia with no acuerdo in force **and signed** — twice in a row included. */
+export const codeNegociacionNotAcordada = 'negociacion_not_acordada';
+/** Unknown negociación, not a member of its caso, or the caller is the mediador — all three, on purpose. */
+export const codeNegociacionNotFound = 'negociacion_not_found';
+/** `POST /casos/:id/negociaciones` for a materia the caso already has open. */
+export const codeNegociacionMateriaAlreadyExists = 'negociacion_materia_already_exists';
+/** `POST /casos/:id/negociaciones` on a caso outside `nuevo|activo|en_negociacion|acordado` — the same states `pendiente_suscripciones` excludes on purpose (C-01). */
+export const codeCasoNoNegociable = 'caso_no_negociable';
 export const codePropuestaAlreadyExists = 'propuesta_already_exists';
 export const codeBothPartiesRequired = 'both_parties_required';
 export const codeInvalidToken = 'invalid_token';
@@ -65,6 +73,21 @@ export const codeInvitationExpired = 'invitation_expired';
  * una suscripción.
  */
 export const codeCasoBloqueadoSuscripciones = 'caso_bloqueado_suscripciones';
+/**
+ * `consume_quota` rechazó el alta porque **quien la pide** no tiene ninguna
+ * suscripción `activa` ni `vencida` (`NO_ACTIVE_SUBSCRIPTION`, tipado en
+ * `apps/api/src/common/db/pg-error.ts`).
+ *
+ * Primo de `codeCasoBloqueadoSuscripciones` pero no el mismo: aquel es el
+ * gate C-01, que mira a **las dos partes** de un caso ya existente; este es
+ * el alta, y habla solo de la propia. La distinción importa porque el consejo
+ * cambia: acá alcanza con elegir un plan.
+ *
+ * Hasta que existió este código el 409 caía en el conflicto genérico, y la
+ * pantalla de alta decía "No pudimos crear el caso" a alguien a quien solo le
+ * faltaba contratar.
+ */
+export const codeNoActiveSubscription = 'no_active_subscription';
 /**
  * No published version of a legal document (`GET /legal/documentos/:tipo`).
  * A real, calm outcome — not a failure: the legal page renders its empty
@@ -116,6 +139,14 @@ export const codeQuotaExceeded = 'quota_exceeded';
  * for both.
  */
 export const codePlanLimitExceeded = 'plan_limit_exceeded';
+/**
+ * `GET /me` (and, separately, `PATCH /me`) found no `usuarios` row for the
+ * caller's id — a real record, not a sync delay. Grouped with
+ * `codeUserNotProvisioned` by `is-unrecoverable-session-error.ts`: both mean
+ * "this signed-in identity has no account on our side", and both need the
+ * same reaction (sign out), not a retry that will fail identically forever.
+ */
+export const codeProfileNotFound = 'profile_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

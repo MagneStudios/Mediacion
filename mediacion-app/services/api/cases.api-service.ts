@@ -4,6 +4,7 @@ import type {
   CaseSummary,
   CreateCaseInput,
   CreateInvitationInput,
+  PagoACargo,
 } from '@/types/case';
 
 import { codeCasoNotFound, codeNotFound, hasCode } from './api-error';
@@ -27,15 +28,18 @@ type ApiInvitation = {
  * POST answers with, and the reason this app can finally re-show a code after
  * a reload instead of only within the session that created it.
  *
- * `pago_a_cargo` is **not** in it (see `CaseInvitation.pagoACargo`), and
- * `fecha_envio` is deliberately not mapped: nothing renders it, and a field
- * carried into the domain with no consumer only invites someone to trust it.
+ * `pago_a_cargo` viaja de verdad desde el 10/09 (antes no estaba en el
+ * select y esta app lo completaba con un merge de sesión — ver el historial
+ * de `cases.backed-service.ts`). `fecha_envio` sigue sin mapearse a
+ * propósito: nada lo renderiza, y un campo que llega al dominio sin
+ * consumidor sólo invita a que alguien confíe en él.
  */
 type ApiInvitationView = ApiInvitation & {
   caso_id: string;
   email_destino: string | null;
   fecha_envio: string | null;
   created_at: string;
+  pago_a_cargo: PagoACargo | null;
 };
 
 function toInvitation(row: ApiInvitationView): CaseInvitation {
@@ -46,7 +50,7 @@ function toInvitation(row: ApiInvitationView): CaseInvitation {
     token: row.token,
     emailDestino: row.email_destino,
     estado: row.estado,
-    pagoACargo: null,
+    pagoACargo: row.pago_a_cargo,
     createdAt: row.created_at,
   };
 }
@@ -59,6 +63,8 @@ export type ApiCasesService = {
   listInvitations(caseId: string): Promise<CaseInvitation[]>;
   getCaseTitle(caseId: string): Promise<string | null>;
   joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }>;
+  setCaseDeadline(caseId: string, plazo: string): Promise<void>;
+  terminateCase(caseId: string): Promise<void>;
 };
 
 /** A caso the caller cannot see and a caso that does not exist are the same 404. */
@@ -120,10 +126,10 @@ export function createApiCasesService(
           body: {
             tipo: input.tipo,
             ...(input.emailDestino ? { email_destino: input.emailDestino } : {}),
-            // R-07: `pago_a_cargo` is a backend TODO per the reunión plan —
-            // sent defensively so this call is already correct once the
-            // column/endpoint exist, and harmless (an unknown field) until then.
-            pago_a_cargo: input.pagoACargo,
+            // Punto #6 (AJUSTES-PACTUM-2026-09-10): el frontend ya no ofrece
+            // elegir quién paga — se manda solo si vino definido (nunca
+            // desde la UI actual), en vez de forzar un valor.
+            ...(input.pagoACargo ? { pago_a_cargo: input.pagoACargo } : {}),
           },
         },
       );
@@ -138,7 +144,7 @@ export function createApiCasesService(
         token: created.token,
         emailDestino: input.emailDestino ?? null,
         estado: created.estado,
-        pagoACargo: input.pagoACargo,
+        pagoACargo: input.pagoACargo ?? null,
         createdAt: clock().toISOString(),
       };
     },
@@ -163,6 +169,35 @@ export function createApiCasesService(
     async getCaseTitle(caseId: string): Promise<string | null> {
       const detail = await fetchDetail(caseId);
       return detail?.title ?? null;
+    },
+
+    /**
+     * RN-10, `PATCH /casos/:id/plazo`. El servidor exige un ISO **estrictamente
+     * futuro** (`casos.service.ts:69-84`); los presets de
+     * `utils/case-actions.ts` siempre lo son.
+     *
+     * Devuelve `{ id, plazo, semaforo }`, que no es un `CaseDetail`. No se mapea
+     * a dominio a propósito: `slaHours` y `visualStatus` los deriva
+     * `case-mapper` a partir del caso completo, y tener una segunda derivación
+     * acá sería tener dos fuentes para el mismo número. Quien lo llama recarga.
+     */
+    async setCaseDeadline(caseId: string, plazo: string): Promise<void> {
+      await http.request(`/casos/${caseId}/plazo`, {
+        method: 'PATCH',
+        body: { plazo },
+      });
+    },
+
+    /**
+     * RN-08, `PATCH /casos/:id/estado`. El único valor que el servidor acepta es
+     * `terminado` (`casos.service.ts:39-49`), así que no viaja como parámetro:
+     * un argumento sugeriría que esta ruta puede escribir otros estados.
+     */
+    async terminateCase(caseId: string): Promise<void> {
+      await http.request(`/casos/${caseId}/estado`, {
+        method: 'PATCH',
+        body: { estado: 'terminado' },
+      });
     },
 
     joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }> {

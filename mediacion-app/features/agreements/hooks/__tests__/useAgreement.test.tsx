@@ -3,6 +3,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react-native
 import type { AgreementState } from '@/types/agreement';
 
 const mockGetAgreementState = jest.fn();
+const mockGetAgreementStateById = jest.fn();
 const mockPrepareSignatureDocument = jest.fn();
 const mockSubmitOwnMockSignature = jest.fn();
 let focusEffect: (() => void | (() => void)) | undefined;
@@ -15,6 +16,7 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('@/services/agreements.service', () => ({
   agreementsService: {
     getAgreementState: (...args: unknown[]) => mockGetAgreementState(...args),
+    getAgreementStateById: (...args: unknown[]) => mockGetAgreementStateById(...args),
     prepareSignatureDocument: (...args: unknown[]) => mockPrepareSignatureDocument(...args),
     submitOwnMockSignature: (...args: unknown[]) => mockSubmitOwnMockSignature(...args),
   },
@@ -64,6 +66,61 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+});
+
+describe('useAgreement addressed by acuerdo', () => {
+  it('reads by id when one is given, and never by caso', async () => {
+    mockGetAgreementStateById.mockResolvedValue(makeState('case-1'));
+    const hook = await renderHook(() => useAgreement('case-1', 'agr-tenencia'));
+
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+    expect(mockGetAgreementStateById).toHaveBeenCalledWith('agr-tenencia');
+    expect(mockGetAgreementState).not.toHaveBeenCalled();
+  });
+
+  it('passes the id along when preparing, so the draft is sent as is', async () => {
+    mockGetAgreementStateById.mockResolvedValue(makeState('case-1', 'borrador'));
+    mockPrepareSignatureDocument.mockResolvedValue(makeState('case-1'));
+    const hook = await renderHook(() => useAgreement('case-1', 'agr-tenencia'));
+    await waitFor(() => expect(hook.result.current.status).toBe('success'));
+
+    await act(async () => {
+      await hook.result.current.prepareDocument();
+    });
+
+    expect(mockPrepareSignatureDocument).toHaveBeenCalledWith('case-1', 'agr-tenencia');
+  });
+
+  it('treats another acuerdo of the same caso as a different screen', async () => {
+    // Two materias share a caseId. Keeping the state keyed by caso would
+    // show tenencia's document under alimentos' id until the read lands —
+    // on the screen that signs.
+    const tenencia = deferred<AgreementState | null>();
+    const alimentos = deferred<AgreementState | null>();
+    mockGetAgreementStateById.mockImplementation((id: string) =>
+      id === 'agr-tenencia' ? tenencia.promise : alimentos.promise,
+    );
+
+    const hook = await renderHook<ReturnType<typeof useAgreement>, { agreementId: string }>(
+      ({ agreementId }) => useAgreement('case-1', agreementId),
+      { initialProps: { agreementId: 'agr-tenencia' } },
+    );
+    await act(async () => {
+      tenencia.resolve({ ...makeState('case-1'), agreement: { ...makeState('case-1').agreement, id: 'agr-tenencia' } });
+      await tenencia.promise;
+    });
+    await waitFor(() => expect(hook.result.current.state?.agreement.id).toBe('agr-tenencia'));
+
+    await hook.rerender({ agreementId: 'agr-alimentos' });
+    expect(hook.result.current.status).toBe('loading');
+    expect(hook.result.current.state).toBeNull();
+
+    await act(async () => {
+      alimentos.resolve({ ...makeState('case-1'), agreement: { ...makeState('case-1').agreement, id: 'agr-alimentos' } });
+      await alimentos.promise;
+    });
+    await waitFor(() => expect(hook.result.current.state?.agreement.id).toBe('agr-alimentos'));
+  });
 });
 
 describe('useAgreement hardening', () => {

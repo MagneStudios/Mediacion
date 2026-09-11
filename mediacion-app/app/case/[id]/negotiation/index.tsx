@@ -23,7 +23,9 @@ import { isProposalPending, type DecisionPropuesta } from '@/types/negotiation';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 export default function NegotiationDashboardScreen() {
-  const { id: caseId } = useLocalSearchParams<{ id: string }>();
+  // `negotiationId` la manda una NegotiationMateriaCard: sin ella, esta
+  // pantalla sigue siendo la de la negociación legacy (sin materia).
+  const { id: caseId, negotiationId } = useLocalSearchParams<{ id: string; negotiationId?: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   // getNegotiationState() never rejects for an unknown case (it has no
@@ -45,7 +47,7 @@ export default function NegotiationDashboardScreen() {
     respondStatus,
     submitResponse,
     resetRespondStatus,
-  } = useNegotiation(caseId);
+  } = useNegotiation(caseId, negotiationId);
 
   const [pendingResponse, setPendingResponse] = useState<{
     caseId: string;
@@ -306,7 +308,10 @@ export default function NegotiationDashboardScreen() {
         fullWidth
         onPress={() => {
           blurActiveElement();
-          router.push({ pathname: '/case/[id]/negotiation/history', params: { id: caseId } });
+          router.push({
+            pathname: '/case/[id]/negotiation/history',
+            params: negotiationId === undefined ? { id: caseId } : { id: caseId, negotiationId },
+          });
         }}
       >
         {t('negotiation.history.viewAction')}

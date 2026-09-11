@@ -192,6 +192,7 @@ describe('createApiCasesService', () => {
       estado: 'pendiente' as const,
       fecha_envio: '2026-07-30T00:00:00.000Z',
       created_at: '2026-07-30T00:00:00.000Z',
+      pago_a_cargo: 'invitador' as const,
     };
 
     it('reads the caso’s invitations and maps them to the domain shape', async () => {
@@ -210,11 +211,19 @@ describe('createApiCasesService', () => {
           token: 'ABC123',
           emailDestino: null,
           estado: 'pendiente',
-          // Not selected by `InvitacionView` — never guessed here.
-          pagoACargo: null,
+          pagoACargo: 'invitador',
           createdAt: '2026-07-30T00:00:00.000Z',
         },
       ]);
+    });
+
+    it('keeps a null pago_a_cargo as null — a real, valid server answer, not a gap', async () => {
+      const { http } = buildHttp(() => [{ ...invitationRow, pago_a_cargo: null }]);
+      const service = createApiCasesService(http, () => now);
+
+      const [invitation] = await service.listInvitations('caso-1');
+
+      expect(invitation.pagoACargo).toBeNull();
     });
 
     it('orders newest first itself, without trusting the server’s order', async () => {
@@ -253,6 +262,49 @@ describe('createApiCasesService', () => {
 
       expect(calls[0].path).toBe('/casos/unirse');
       expect(calls[0].options?.body).toEqual({ token: 'tok-123' });
+    });
+  });
+
+  describe('setCaseDeadline (RN-10)', () => {
+    it('PATCHes the plazo the caller chose', async () => {
+      const { http, calls } = buildHttp(() => ({ id: 'c1', plazo: '2026-07-25T12:00:00.000Z', semaforo: 'rojo' }));
+      const service = createApiCasesService(http, () => now);
+
+      await service.setCaseDeadline('c1', '2026-07-25T12:00:00.000Z');
+
+      expect(calls).toEqual([
+        {
+          path: '/casos/c1/plazo',
+          options: { method: 'PATCH', body: { plazo: '2026-07-25T12:00:00.000Z' } },
+        },
+      ]);
+    });
+
+    it('propagates the 400 when the server refuses the plazo', async () => {
+      // `assertValidPlazo` rechaza un plazo que no sea estrictamente futuro. La
+      // pantalla lo muestra como error recuperable en vez de tragárselo.
+      const { http } = buildHttp(() => {
+        throw new ApiError('invalid_input', 'plazo must be in the future', 400);
+      });
+      const service = createApiCasesService(http, () => now);
+
+      await expect(service.setCaseDeadline('c1', '2020-01-01T00:00:00.000Z')).rejects.toThrow();
+    });
+  });
+
+  describe('terminateCase (RN-08)', () => {
+    it('PATCHes estado terminado, the only value the route accepts', async () => {
+      // No viaja como parámetro a propósito: un argumento sugeriría que esta
+      // ruta puede escribir otros estados, y `assertValidEstadoTransition`
+      // rechaza cualquier otro con un 400.
+      const { http, calls } = buildHttp(() => ({ id: 'c1', estado: 'terminado' }));
+      const service = createApiCasesService(http, () => now);
+
+      await service.terminateCase('c1');
+
+      expect(calls).toEqual([
+        { path: '/casos/c1/estado', options: { method: 'PATCH', body: { estado: 'terminado' } } },
+      ]);
     });
   });
 

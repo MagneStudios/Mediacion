@@ -1,4 +1,5 @@
 import type { BreachNotice, EstadoAcuerdo, SignatureInboxItem } from '@/types/agreement';
+import type { MateriaAcuerdo } from '@/types/negotiation';
 
 import { toSignatureStatus, type ApiAcuerdo, type ApiFirmaStatus } from './agreement-mapper';
 import {
@@ -16,6 +17,9 @@ export type ApiSignatureInboxEntry = {
   caso_id: string;
   caso_nombre: string;
   caso_codigo: string | null;
+  /** `negociaciones.materia` via `acuerdos.negociacion_id`; `null` for the legacy model. */
+  subject_type: MateriaAcuerdo | null;
+  version: number;
   acuerdo_estado: EstadoAcuerdo;
   own_status: string;
   own_fecha_firma: string | null;
@@ -44,6 +48,12 @@ export function toBreachNotice(row: ApiIncumplimiento): BreachNotice {
 
 export type ApiAgreementsService = {
   getForCase(caseId: string): Promise<ApiAgreementBundle | null>;
+  /**
+   * Same bundle, addressed by acuerdo. A caso can hold one acuerdo per
+   * negociación, so `caso_id` no longer identifies one — this is the read the
+   * signatures inbox uses so the row tapped is the document opened.
+   */
+  getById(agreementId: string): Promise<ApiAgreementBundle | null>;
   generate(caseId: string): Promise<ApiAcuerdo>;
   sendToSignature(agreementId: string): Promise<ApiAcuerdo>;
   registerBreach(agreementId: string, description: string): Promise<BreachNotice>;
@@ -72,6 +82,18 @@ export function createApiAgreementsService(http: HttpClient): ApiAgreementsServi
     async getForCase(caseId: string): Promise<ApiAgreementBundle | null> {
       try {
         return await http.request<ApiAgreementBundle>(`/casos/${caseId}/acuerdo`);
+      } catch (error) {
+        if (isMissing(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    /** `acuerdo_not_found` covers both a missing acuerdo and one the caller may not read. */
+    async getById(agreementId: string): Promise<ApiAgreementBundle | null> {
+      try {
+        return await http.request<ApiAgreementBundle>(`/acuerdos/${agreementId}`);
       } catch (error) {
         if (isMissing(error)) {
           return null;
@@ -144,6 +166,9 @@ export function createApiAgreementsService(http: HttpClient): ApiAgreementsServi
         caseId: row.caso_id,
         caseTitle: row.caso_nombre,
         agreementTitle: row.caso_nombre,
+        // Passed through untouched: `null` is the legacy model, not 'otro'.
+        subjectType: row.subject_type,
+        version: row.version,
         estado: row.acuerdo_estado,
         ownStatus: toSignatureStatus(row.own_status),
         // Only a fully signed acuerdo with no pending signers is complete.

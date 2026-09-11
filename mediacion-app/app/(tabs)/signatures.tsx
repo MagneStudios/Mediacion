@@ -22,11 +22,10 @@ export default function SignaturesScreen() {
   const { horizontalPadding } = useResponsiveLayout();
 
   /**
-   * El `agreementId` viaja aunque la ruta siga colgando del caso: la pantalla
-   * lo usa para verificar que abrió el acuerdo que esta fila prometía. Hoy no
-   * puede fallar —hay uno solo por caso— pero cuando haya uno por materia,
-   * abrir el de tenencia desde la fila de alimentos sería indistinguible de
-   * funcionar bien.
+   * El `agreementId` es la clave de lectura de la pantalla de acuerdo, no
+   * sólo una verificación: con más de un acuerdo por caso, el caso ya no dice
+   * cuál abrir, y abrir el de tenencia desde la fila de alimentos sería
+   * indistinguible de funcionar bien.
    */
   const openAgreement = (item: { caseId: string; agreementId: string }) => {
     blurActiveElement();
@@ -58,6 +57,20 @@ export default function SignaturesScreen() {
   const completed = items.filter((item) => item.estado === 'firmado');
   const withNotice = items.filter((item) => item.estado === 'con_aviso');
 
+  /**
+   * "Tenencia · v2". Con materia, es lo único que distingue dos filas del
+   * mismo caso — y la versión va siempre, porque `/firmas` lista también los
+   * acuerdos reemplazados: v1 firmado y v2 pendiente conviven. Sin materia
+   * (modelo viejo, `null`) el título sigue siendo el del caso, como antes.
+   */
+  const titleFor = (item: SignatureInboxItem) =>
+    item.subjectType === null
+      ? item.agreementTitle
+      : t('agreement.inbox.subjectVersion', {
+          subject: t(`subjectTypes.${item.subjectType}`),
+          version: item.version,
+        });
+
   const statusLabelFor = (item: SignatureInboxItem) =>
     item.estado === 'firmado'
       ? t('agreement.status.firmado')
@@ -83,7 +96,7 @@ export default function SignaturesScreen() {
             <SignatureInboxCard
               key={item.agreementId}
               caseTitle={item.caseTitle}
-              agreementTitle={item.agreementTitle}
+              agreementTitle={titleFor(item)}
               statusLabel={statusLabelFor(item)}
               statusVisual={statusVisual}
               statusIcon={statusIcon}

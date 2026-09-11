@@ -1,11 +1,17 @@
 import type {
+  EstadoNegociacion,
   EstadoPropuesta,
   EstadoRonda,
+  MateriaAcuerdo,
   MeetingPointEntry,
+  Negotiation,
+  NegotiationAgreementRef,
   NegotiationRound,
   RoundHistoryItem,
   SharedProposal,
 } from '@/types/negotiation';
+import type { EstadoAcuerdo } from '@/types/agreement';
+import type { MetodoCaso } from '@/types/case';
 
 /** RN-05: the mediator becomes available from round 3 (negociacion.service.ts). */
 const mediatorFromRound = 3;
@@ -28,7 +34,53 @@ export type ApiPropuestaDetail = {
   ronda_numero: number;
   ronda_estado: EstadoRonda;
   own_decision: 'acepta' | 'rechaza' | null;
+  /** Ahora viaja de verdad (10/09) — ver `propuestaViewColumns` del lado de Backend. */
+  negociacion_id: string;
 };
+
+/**
+ * `NegociacionView` — `GET /casos/:casoId/negociaciones`. Three fields are
+ * aliased server-side to the names the rest of the wire already uses:
+ * `subject_type` ← `materia`, `metodo` ← `method`, `ronda_actual` ← `round`.
+ */
+export type ApiNegociacion = {
+  id: string;
+  caso_id: string;
+  subject_type: MateriaAcuerdo | null;
+  metodo: MetodoCaso;
+  estado: EstadoNegociacion;
+  ronda_actual: number;
+  acuerdo_vigente: { id: string; estado: EstadoAcuerdo; version: number } | null;
+  created_at: string;
+};
+
+/** `RenegociacionView` — `POST /negociaciones/:id/renegociar`. Only the two ids; everything else is re-read. */
+export type ApiRenegociacion = {
+  negotiation_id: string;
+  agreement_id: string;
+};
+
+/**
+ * Neither nullable is normalized. `subject_type: null` is the legacy model,
+ * not `'otro'`; `acuerdo_vigente: null` is "no acuerdo in force", and turning
+ * it into an empty object would change which button the card draws.
+ */
+export function toNegotiation(row: ApiNegociacion): Negotiation {
+  const currentAgreement: NegotiationAgreementRef | null =
+    row.acuerdo_vigente === null
+      ? null
+      : { id: row.acuerdo_vigente.id, estado: row.acuerdo_vigente.estado, version: row.acuerdo_vigente.version };
+  return {
+    id: row.id,
+    caseId: row.caso_id,
+    subjectType: row.subject_type,
+    metodo: row.metodo,
+    estado: row.estado,
+    roundNumber: row.ronda_actual,
+    currentAgreement,
+    createdAt: row.created_at,
+  };
+}
 
 /**
  * `POST /casos/:id/propuestas` and `POST /propuestas/:id/responder` answer with
@@ -58,6 +110,7 @@ export function toSharedProposal(
     ...(row.fundamentacion === null ? {} : { rationale: row.fundamentacion }),
     estado: row.estado,
     createdAt: row.fecha,
+    negotiationId: row.negociacion_id,
   };
 }
 
@@ -75,6 +128,7 @@ export function toNegotiationRound(row: ApiPropuestaDetail): NegotiationRound {
     proposalId: row.id,
     mediatorAvailable: row.ronda_numero >= mediatorFromRound,
     createdAt: row.fecha,
+    negotiationId: row.negociacion_id,
   };
 }
 
