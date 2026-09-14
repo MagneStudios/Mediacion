@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto";
 import { HttpException } from "@nestjs/common";
-import type { AppConfig } from "../../config/config";
 import { buildTestAppConfig } from "../../config/config.test-fixture";
 import { MercadoPagoWebhookController } from "./mercadopago.controller";
 import type { PaymentRouterService } from "./payment-router.service";

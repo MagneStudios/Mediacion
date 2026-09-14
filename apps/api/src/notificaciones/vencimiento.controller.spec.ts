@@ -1,5 +1,4 @@
 import { HttpException } from "@nestjs/common";
-import type { AppConfig } from "../config/config";
 import { buildTestAppConfig } from "../config/config.test-fixture";
 import { VencimientoController } from "./vencimiento.controller";
 import type { VencimientoScheduler } from "./vencimiento.scheduler";
