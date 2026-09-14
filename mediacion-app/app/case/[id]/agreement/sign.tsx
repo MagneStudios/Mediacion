@@ -1,6 +1,4 @@
-import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -9,47 +7,31 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import { MockSignatureConfirmation } from '@/features/agreements/components/MockSignatureConfirmation';
 import { SharedAgreementCard } from '@/features/agreements/components/SharedAgreementCard';
 import { SignatureEnvironmentNotice } from '@/features/agreements/components/SignatureEnvironmentNotice';
+import { SignatureProgressCard } from '@/features/agreements/components/SignatureProgressCard';
 import { useAgreement } from '@/features/agreements/hooks/useAgreement';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
+import { formatAgreementDate } from '@/utils/format-agreement-date';
 
+/**
+ * Pantalla de firma, ahora de solo-lectura.
+ *
+ * La firma real ocurre por mail en SignNow, fuera de la app: el único disparo
+ * de `POST /acuerdos/:id/firmar` es `prepareSignatureDocument`, y una segunda
+ * llamada sobre un acuerdo ya en `enviado_a_firma` es un `409
+ * acuerdo_not_borrador`. Así que acá no hay botón de "confirmar": se muestra
+ * el estado por firmante y la invitación enviada, y el refetch en foco de
+ * `useAgreement` refleja el estado cuando el webhook de SignNow lo actualice.
+ */
 export default function AgreementSignScreen() {
   // Lee por acuerdo cuando el dashboard dice cuál: es la pantalla que firma.
   const { id: caseId, agreementId: expectedAgreementId } = useLocalSearchParams<{ id: string; agreementId?: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
-  const { status, state, reload, signStatus, submitSignature, resetSignStatus } = useAgreement(caseId, expectedAgreementId);
-
-  const [confirmed, setConfirmed] = useState(false);
-  const agreementId = state?.agreement.id;
-
-  // A confirmation applies only to the exact agreement the user reviewed.
-  useEffect(() => {
-    setConfirmed(false);
-  }, [caseId, agreementId]);
-
-  // Reset when leaving the screen.
-  useFocusEffect(
-    useCallback(() => {
-      return () => setConfirmed(false);
-    }, []),
-  );
-
-  // Reset after a failed attempt, so retrying requires reconfirming.
-  useEffect(() => {
-    if (signStatus === 'error') setConfirmed(false);
-  }, [signStatus]);
-
-  const ownComplete = state?.ownSignatureComplete ?? false;
-
-  // Reset once the agreement becomes signed.
-  useEffect(() => {
-    if (ownComplete) setConfirmed(false);
-  }, [ownComplete]);
+  const { status, state, reload } = useAgreement(caseId, expectedAgreementId);
 
   if (status === 'loading') {
     return (
@@ -69,13 +51,7 @@ export default function AgreementSignScreen() {
     );
   }
 
-  const { agreement, canSign, waitingForOtherParty, allSignaturesComplete } = state;
-
-  const handleConfirmSignature = async () => {
-    if (!confirmed || signStatus === 'pending') return;
-    resetSignStatus();
-    await submitSignature(agreement.id);
-  };
+  const { agreement, signers, canSign, ownSignatureComplete, waitingForOtherParty, allSignaturesComplete } = state;
 
   return (
     <ScrollView
@@ -108,53 +84,40 @@ export default function AgreementSignScreen() {
 
       <SignatureEnvironmentNotice title={t('agreement.environment.title')} body={t('agreement.environment.body')} />
 
-      {ownComplete ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('agreement.sign.registered.title')}</Text>
-          <Text style={styles.bodyText}>{t('agreement.sign.registered.body')}</Text>
-          {allSignaturesComplete ? (
-            <Text style={styles.bodyText}>{t('agreement.response.completed')}</Text>
-          ) : waitingForOtherParty ? (
-            <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text>
-          ) : null}
-          <Button
-            variant="secondary"
-            size="lg"
-            fullWidth
-            onPress={() => {
-              blurActiveElement();
-              router.back();
-            }}
-          >
-            {t('agreement.sign.backToAgreement')}
-          </Button>
-        </View>
-      ) : canSign ? (
-        <>
-          <MockSignatureConfirmation
-            checked={confirmed}
-            onToggle={() => setConfirmed((value) => !value)}
-            label={t('agreement.sign.confirmationLabel')}
-            disabled={signStatus === 'pending'}
-          />
+      <SignatureProgressCard
+        title={t('agreement.progress.title')}
+        signers={signers}
+        ownRoleLabel={t('agreement.signer.own')}
+        otherRoleLabel={t('agreement.signer.other')}
+        signedStatusLabel={t('agreement.signer.signed')}
+        pendingStatusLabel={t('agreement.signer.pending')}
+        formatDate={formatAgreementDate}
+      />
 
-          {signStatus === 'error' ? <ErrorState title={t('agreement.sign.error.title')} /> : null}
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            onPress={handleConfirmSignature}
-            disabled={!confirmed}
-            loading={signStatus === 'pending'}
-            loadingLabel={t('common.loading')}
-            accessibilityLabel={t('agreement.sign.action')}
-          >
-            {t('agreement.sign.action')}
-          </Button>
-        </>
+      {allSignaturesComplete ? (
+        <Text style={styles.bodyText}>{t('agreement.response.completed')}</Text>
+      ) : ownSignatureComplete || waitingForOtherParty ? (
+        <Text style={styles.bodyText}>{t('agreement.response.waitingOther')}</Text>
+      ) : canSign ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('agreement.sign.invitationSent.title')}</Text>
+          <Text style={styles.bodyText}>{t('agreement.sign.invitationSent.body')}</Text>
+        </View>
       ) : (
         <Text style={styles.bodyText}>{t('agreement.sign.notReady')}</Text>
       )}
+
+      <Button
+        variant="secondary"
+        size="lg"
+        fullWidth
+        onPress={() => {
+          blurActiveElement();
+          router.back();
+        }}
+      >
+        {t('agreement.sign.backToAgreement')}
+      </Button>
     </ScrollView>
   );
 }
@@ -178,7 +141,7 @@ const styles = StyleSheet.create({
     color: semanticColors.text.secondary,
   },
   section: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   sectionTitle: {
     ...typography.cardTitle,

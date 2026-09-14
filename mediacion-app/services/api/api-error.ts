@@ -147,6 +147,12 @@ export const codePlanLimitExceeded = 'plan_limit_exceeded';
  * same reaction (sign out), not a retry that will fail identically forever.
  */
 export const codeProfileNotFound = 'profile_not_found';
+/**
+ * `GET /casos/:casoId/solicitud-abogado` on a caso with no lawyer request
+ * (`abogado.service.ts:96-98`). A calm, expected read — "this case never asked
+ * for a lawyer" — so the backed service maps it to `null`, not an error.
+ */
+export const codeSolicitudAbogadoNotFound = 'solicitud_abogado_not_found';
 
 const unknownErrorCode = 'internal_error';
 const unknownErrorMessage = 'Unexpected error';

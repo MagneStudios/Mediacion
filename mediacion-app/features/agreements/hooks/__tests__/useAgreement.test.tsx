@@ -5,7 +5,6 @@ import type { AgreementState } from '@/types/agreement';
 const mockGetAgreementState = jest.fn();
 const mockGetAgreementStateById = jest.fn();
 const mockPrepareSignatureDocument = jest.fn();
-const mockSubmitOwnMockSignature = jest.fn();
 let focusEffect: (() => void | (() => void)) | undefined;
 
 jest.mock('@react-navigation/native', () => ({
@@ -18,7 +17,6 @@ jest.mock('@/services/agreements.service', () => ({
     getAgreementState: (...args: unknown[]) => mockGetAgreementState(...args),
     getAgreementStateById: (...args: unknown[]) => mockGetAgreementStateById(...args),
     prepareSignatureDocument: (...args: unknown[]) => mockPrepareSignatureDocument(...args),
-    submitOwnMockSignature: (...args: unknown[]) => mockSubmitOwnMockSignature(...args),
   },
 }));
 
@@ -166,20 +164,6 @@ describe('useAgreement hardening', () => {
       preparation.resolve(makeState('case-1'));
       await Promise.all([firstPreparation, secondPreparation]);
     });
-
-    const signature = deferred<AgreementState>();
-    mockSubmitOwnMockSignature.mockReturnValue(signature.promise);
-    let firstSignature!: Promise<void>;
-    let secondSignature!: Promise<void>;
-    await act(() => {
-      firstSignature = hook.result.current.submitSignature(initial.agreement.id);
-      secondSignature = hook.result.current.submitSignature(initial.agreement.id);
-    });
-    expect(mockSubmitOwnMockSignature).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      signature.resolve(makeState('case-1', 'firmado'));
-      await Promise.all([firstSignature, secondSignature]);
-    });
   });
 
   it('never renders or commits a late result from the previous case', async () => {
@@ -206,30 +190,5 @@ describe('useAgreement hardening', () => {
       await caseOneRead.promise;
     });
     expect(hook.result.current.state?.agreement.caseId).toBe('case-2');
-  });
-
-  it('ignores a mutation response after navigation while allowing the domain request to finish', async () => {
-    mockGetAgreementState.mockImplementation((caseId: string) => Promise.resolve(makeState(caseId)));
-    const signature = deferred<AgreementState>();
-    mockSubmitOwnMockSignature.mockReturnValue(signature.promise);
-
-    const hook = await renderHook<ReturnType<typeof useAgreement>, { caseId: string }>(({ caseId }) => useAgreement(caseId), {
-      initialProps: { caseId: 'case-1' },
-    });
-    await waitFor(() => expect(hook.result.current.status).toBe('success'));
-    let request!: Promise<void>;
-    await act(() => {
-      request = hook.result.current.submitSignature('agreement-case-1');
-    });
-
-    await hook.rerender({ caseId: 'case-2' });
-    await waitFor(() => expect(hook.result.current.state?.agreement.caseId).toBe('case-2'));
-    await act(async () => {
-      signature.resolve(makeState('case-1', 'firmado'));
-      await request;
-    });
-
-    expect(hook.result.current.state?.agreement.caseId).toBe('case-2');
-    expect(hook.result.current.signStatus).toBe('idle');
   });
 });

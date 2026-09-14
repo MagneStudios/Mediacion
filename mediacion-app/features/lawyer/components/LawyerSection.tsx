@@ -7,6 +7,7 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { lawyerService } from '@/services/lawyer.service';
+import { isBackendLive } from '@/services/backend-instance';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 import { useLawyerRequest } from '../hooks/useLawyerRequest';
@@ -51,13 +52,12 @@ export function LawyerSection({ casoId }: { casoId: string }) {
     <View style={styles.container}>
       <LawyerRequestButton casoId={casoId} onRequested={publish} />
 
-      {request?.estado === 'pendiente_pago' ? (
+      {request?.estado === 'pendiente_pago' && !isBackendLive ? (
         /*
           Afordancia de demo, rotulada como tal — mismo criterio que
           `SimulateInvitationAcceptanceDialog` y que el bypass de
-          `payment-required.tsx`. No hay checkout de Mercado Pago ni webhook
-          (§7.4, de BE), así que sin esto la pantalla de handoff no es
-          alcanzable. Se cae junto con el mock.
+          `payment-required.tsx`. Contra backend real no tiene sentido: el pago
+          lo confirma el webhook de Mercado Pago (§7.4, de BE), no la app.
         */
         <View style={styles.demoSection}>
           <Text style={styles.demoText}>{t('lawyer.simulatePayment.hint')}</Text>

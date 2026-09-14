@@ -8,6 +8,7 @@ import { createApiAgreementsService, type ApiAgreementsService } from './agreeme
 import { createApiBillingService, type ApiBillingService } from './billing.api-service';
 import { createApiCasesService, type ApiCasesService } from './cases.api-service';
 import { createHttpClient, type HttpClient } from './http-client';
+import { createApiLawyerService, type ApiLawyerService } from './lawyer.api-service';
 import { createApiLegalService, type ApiLegalService } from './legal.api-service';
 import { createApiMediatorService, type ApiMediatorService } from './mediator.api-service';
 import { createApiNegotiationService, type ApiNegotiationService } from './negotiation.api-service';
@@ -30,6 +31,12 @@ export type Backend = {
   agreements: ApiAgreementsService;
   mediator: ApiMediatorService;
   legal: ApiLegalService;
+  /**
+   * The two abogado endpoints that exist: the vigente read and the
+   * create-or-reuse checkout. The offer (scope/responseHours) has no endpoint —
+   * see `lawyer.backed-service.ts`.
+   */
+  lawyer: ApiLawyerService;
   /**
    * Only the two subscription endpoints that exist: the vigente read and the
    * baja. There is no checkout and no factura endpoint — see
@@ -111,6 +118,7 @@ export function createBackend(
     agreements: createApiAgreementsService(http),
     mediator: createApiMediatorService(http),
     legal: createApiLegalService(http),
+    lawyer: createApiLawyerService(http),
     billing: createApiBillingService(http),
     plans: createApiPlansService(http),
     tasks: createApiTasksService(http),

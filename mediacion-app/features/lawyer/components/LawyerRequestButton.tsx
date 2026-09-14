@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ConfirmationDialog } from '@/design-system';
 import { semanticColors } from '@/design-system/tokens/colors';
@@ -69,11 +69,22 @@ export function LawyerRequestButton({
   const confirm = useCallback(async () => {
     setRequestStatus('submitting');
     try {
-      const created = await lawyerService.requestLawyer(casoId);
+      const { request, checkoutUrl } = await lawyerService.requestLawyer(casoId);
       setRequestStatus('idle');
       setDialogVisible(false);
       blurActiveElement();
-      onRequested?.(created);
+      onRequested?.(request);
+      if (checkoutUrl !== null) {
+        // Mejor esfuerzo: si no hay navegador el request ya quedó creado
+        // (`pendiente_pago`) y volver a tocar "contratar" lo reusa con un
+        // checkout nuevo (`createOrReusePendiente`). El refetch en foco de
+        // `useLawyerRequest` refleja el pago real cuando vuelva de MP.
+        try {
+          await Linking.openURL(checkoutUrl);
+        } catch {
+          // No-op: el estado pendiente es la verdad, no un error que reintentar.
+        }
+      }
     } catch {
       setRequestStatus('error');
     }

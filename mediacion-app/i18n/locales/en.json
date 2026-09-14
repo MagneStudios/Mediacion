@@ -137,7 +137,7 @@
     "status": {
       "borrador": "In preparation",
       "enviado_a_firma": "Ready to sign",
-      "firmado": "Signed (simulated)",
+      "firmado": "Signed",
       "con_aviso": "Under notice",
       "conAvisoNotice": "This agreement has a notice on record. Signature actions are no longer available for it here."
     },
@@ -147,7 +147,7 @@
     "signer": {
       "own": "You",
       "other": "The other party",
-      "signed": "Simulated signature",
+      "signed": "Signed",
       "pending": "Pending"
     },
     "prepare": {
@@ -175,25 +175,20 @@
     "sign": {
       "title": "Sign agreement",
       "goToAction": "Go to sign",
-      "confirmationLabel": "I read the shared agreement and want to register a simulated signature in this test environment.",
-      "action": "Register simulated signature",
       "notReady": "This agreement isn't ready for signature yet.",
-      "error": {
-        "title": "We couldn't register your simulated signature"
-      },
-      "registered": {
-        "title": "Simulated signature registered",
-        "body": "Your confirmation was saved in this demonstration. This does not replace a real digital signature."
+      "invitationSent": {
+        "title": "An invitation to sign was sent",
+        "body": "Each party received an email to sign the document. This screen updates on its own once all parties have signed."
       },
       "backToAgreement": "Back to agreement"
     },
     "environment": {
-      "title": "Test environment",
-      "body": "This is a simulated signature within a test environment. Real digital-signature integration will happen at a later stage."
+      "title": "Signing by email",
+      "body": "You'll receive an email to sign the document. This screen updates on its own once all parties have signed."
     },
     "response": {
       "waitingOther": "Waiting for the other party's signature",
-      "completed": "Both parties completed the simulated signature"
+      "completed": "Both parties signed"
     },
     "summary": {
       "title": "Agreement reached",
@@ -212,9 +207,9 @@
         "agreement_created": "The shared agreement was created",
         "preparation_started": "Preparation of the signature-ready version started",
         "document_ready": "The version for signature became ready",
-        "own_signature_registered": "You registered your simulated signature",
+        "own_signature_registered": "You registered your signature",
         "waiting_for_other_party": "It's waiting for the other party's signature",
-        "both_signatures_completed": "Both parties completed the simulated signature"
+        "both_signatures_completed": "Both parties completed the signature"
       }
     },
     "inbox": {
@@ -1057,7 +1052,7 @@
       },
       "signaturePending": {
         "title": "Signature pending",
-        "body": "Your mock signature was still pending on this agreement."
+        "body": "Your signature was still pending on this agreement."
       },
       "processCompleted": {
         "title": "Process completed",
@@ -1382,7 +1377,7 @@
       },
       "signatures": {
         "title": "Signatures in this environment",
-        "body": "Signatures in this demo are simulated. No legal or cryptographic signature is performed."
+        "body": "Signatures are recorded through SignNow, an electronic signature provider. The final legal wording for this flow is still pending legal team review."
       },
       "future": {
         "title": "Coming later",
@@ -1410,7 +1405,7 @@
         },
         "signatureSimulation": {
           "question": "Are the signatures legally valid?",
-          "answer": "Not yet. In this demo, signing is a simulated in-app confirmation, with no legal validity or cryptographic certification."
+          "answer": "Signatures are recorded through SignNow, a real electronic signature provider, via an emailed invitation to each party. The final legal wording on this flow's standing is still pending legal team review."
         },
         "mediator": {
           "question": "When does a mediator get involved?",
@@ -1437,8 +1432,8 @@
         "body": "Artificial intelligence suggests agreement proposals, but never decides or replaces the judgment of the parties or a mediator. This content does not constitute legal advice."
       },
       "signatureNotice": {
-        "title": "Signature simulation notice",
-        "body": "Signatures recorded in this demo are simulated: they have no legal validity and do not use a certified signature provider. This content does not constitute legal advice."
+        "title": "Electronic signature notice",
+        "body": "Signatures are recorded through an electronic signature provider (SignNow), via an emailed invitation. This content does not constitute legal advice."
       },
       "noAdvice": {
         "title": "No legal advice",

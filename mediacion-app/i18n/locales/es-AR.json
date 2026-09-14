@@ -137,7 +137,7 @@
     "status": {
       "borrador": "En preparación",
       "enviado_a_firma": "Lista para firmar",
-      "firmado": "Firmado (simulado)",
+      "firmado": "Firmado",
       "con_aviso": "Con aviso",
       "conAvisoNotice": "Este acuerdo tiene un aviso registrado. Las acciones de firma ya no están disponibles acá."
     },
@@ -147,7 +147,7 @@
     "signer": {
       "own": "Vos",
       "other": "La otra parte",
-      "signed": "Firma simulada",
+      "signed": "Firmó",
       "pending": "Pendiente"
     },
     "prepare": {
@@ -175,25 +175,20 @@
     "sign": {
       "title": "Firmar acuerdo",
       "goToAction": "Ir a firmar",
-      "confirmationLabel": "Leí el acuerdo compartido y deseo registrar una firma simulada en este entorno de prueba.",
-      "action": "Registrar firma simulada",
       "notReady": "Este acuerdo todavía no está listo para firma.",
-      "error": {
-        "title": "No pudimos registrar tu firma simulada"
-      },
-      "registered": {
-        "title": "Firma simulada registrada",
-        "body": "Tu confirmación quedó guardada en esta demostración. Esto no reemplaza una firma digital real."
+      "invitationSent": {
+        "title": "Se envió una invitación para firmar",
+        "body": "Cada parte recibió un mail para firmar el documento. Esta pantalla se actualiza sola cuando todas las partes hayan firmado."
       },
       "backToAgreement": "Volver al acuerdo"
     },
     "environment": {
-      "title": "Entorno de prueba",
-      "body": "Esta es una firma simulada dentro de un entorno de prueba. La integración de firma digital real se realizará en una etapa posterior."
+      "title": "Firma por correo electrónico",
+      "body": "Vas a recibir un mail para firmar el documento. Esta pantalla se actualiza sola cuando todas las partes hayan firmado."
     },
     "response": {
       "waitingOther": "Esperando la firma de la otra parte",
-      "completed": "Ambas partes completaron la firma simulada"
+      "completed": "Ambas partes firmaron"
     },
     "summary": {
       "title": "Acuerdo alcanzado",
@@ -212,9 +207,9 @@
         "agreement_created": "Se creó el acuerdo compartido",
         "preparation_started": "Empezó la preparación de la versión para firma",
         "document_ready": "La versión para firma quedó lista",
-        "own_signature_registered": "Registraste tu firma simulada",
+        "own_signature_registered": "Registraste tu firma",
         "waiting_for_other_party": "Quedó esperando la firma de la otra parte",
-        "both_signatures_completed": "Ambas partes completaron la firma simulada"
+        "both_signatures_completed": "Ambas partes completaron la firma"
       }
     },
     "inbox": {
@@ -1057,7 +1052,7 @@
       },
       "signaturePending": {
         "title": "Firma pendiente",
-        "body": "Todavía faltaba tu firma simulada en este acuerdo."
+        "body": "Todavía faltaba tu firma en este acuerdo."
       },
       "processCompleted": {
         "title": "Proceso completado",
@@ -1382,7 +1377,7 @@
       },
       "signatures": {
         "title": "Firmas en este entorno",
-        "body": "Las firmas de esta demostración son simuladas. No se realiza ninguna firma legal ni criptográfica."
+        "body": "Las firmas se registran mediante SignNow, un proveedor de firma electrónica. La redacción legal definitiva de este flujo sigue pendiente de revisión por el equipo legal."
       },
       "future": {
         "title": "Próximamente",
@@ -1410,7 +1405,7 @@
         },
         "signatureSimulation": {
           "question": "¿Las firmas son legalmente válidas?",
-          "answer": "Todavía no. En esta demostración, la firma es una confirmación simulada dentro de la app, sin validez legal ni certificación criptográfica."
+          "answer": "Las firmas se registran mediante SignNow, un proveedor de firma electrónica real, por invitación enviada a cada parte por correo. La redacción legal definitiva sobre el valor de este flujo sigue pendiente de revisión por el equipo legal."
         },
         "mediator": {
           "question": "¿Cuándo interviene un mediador?",
@@ -1437,8 +1432,8 @@
         "body": "La inteligencia artificial sugiere propuestas de acuerdo, pero nunca decide ni reemplaza el criterio de las partes ni de un mediador. Este contenido no constituye asesoramiento legal."
       },
       "signatureNotice": {
-        "title": "Aviso sobre firma simulada",
-        "body": "Las firmas registradas en esta demostración son simuladas: no tienen validez legal ni utilizan un proveedor de firma certificada. Este contenido no constituye asesoramiento legal."
+        "title": "Aviso sobre la firma electrónica",
+        "body": "Las firmas se registran a través de un proveedor de firma electrónica (SignNow), por invitación enviada por correo. Este contenido no constituye asesoramiento legal."
       },
       "noAdvice": {
         "title": "Sin asesoramiento legal",

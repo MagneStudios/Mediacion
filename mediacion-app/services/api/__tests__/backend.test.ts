@@ -33,6 +33,7 @@ describe('createBackend', () => {
     expect(backend?.profile.getProfile).toBeInstanceOf(Function);
     expect(backend?.plans.listPlanes).toBeInstanceOf(Function);
     expect(backend?.tasks.listTasks).toBeInstanceOf(Function);
+    expect(backend?.lawyer.getRequest).toBeInstanceOf(Function);
     expect(backend?.auth.signIn).toBeInstanceOf(Function);
   });
 

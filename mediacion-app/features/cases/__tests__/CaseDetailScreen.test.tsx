@@ -14,6 +14,14 @@ jest.mock('expo-router', () => ({
   usePathname: () => '/case/case-1',
 }));
 
+jest.mock('@react-navigation/native', () => {
+  const actual = jest.requireActual('@react-navigation/native');
+  return {
+    ...actual,
+    useFocusEffect: jest.fn(),
+  };
+});
+
 let mockIsWide = false;
 let mockHorizontalPadding = 16;
 

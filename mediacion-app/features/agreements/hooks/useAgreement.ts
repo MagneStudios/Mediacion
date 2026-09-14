@@ -8,10 +8,12 @@ export type FetchStatus = 'loading' | 'error' | 'success';
 export type MutationStatus = 'idle' | 'pending' | 'error';
 
 /**
- * Agreement state for one case, plus the three mutations that replace it:
- * preparing the document, signing, and registering a breach notice — the last
- * one because the server moves the acuerdo to `con_aviso` in the same
- * transaction, so it returns a new state just like the other two.
+ * Agreement state for one case, plus the two mutations that replace it:
+ * preparing the document and registering a breach notice — the latter because
+ * the server moves the acuerdo to `con_aviso` in the same transaction, so it
+ * returns a new state just like the other. There is no "sign" mutation: signing
+ * happens by email in SignNow, outside the app, and the only thing this hook
+ * can do about a signature is re-read the state (on focus).
  * Mirrors useNegotiation()'s fetch/focus-refresh shape. `state` is `null`
  * when the case has no accepted proposal yet — a calm, expected read, not
  * an error.
@@ -31,13 +33,11 @@ export function useAgreement(caseId: string, agreementId?: string) {
   const activeKeyRef = useRef(key);
   const mountedRef = useRef(true);
   const prepareInFlightRef = useRef<object | null>(null);
-  const signInFlightRef = useRef<object | null>(null);
   const breachInFlightRef = useRef<object | null>(null);
   const mutationRevisionRef = useRef(0);
   const [resultKey, setResultKey] = useState<string | null>(null);
 
   const [prepareStatus, setPrepareStatus] = useState<MutationStatus>('idle');
-  const [signStatus, setSignStatus] = useState<MutationStatus>('idle');
   const [breachStatus, setBreachStatus] = useState<MutationStatus>('idle');
 
   if (activeKeyRef.current !== key) {
@@ -54,10 +54,8 @@ export function useAgreement(caseId: string, agreementId?: string) {
 
   useEffect(() => {
     prepareInFlightRef.current = null;
-    signInFlightRef.current = null;
     breachInFlightRef.current = null;
     setPrepareStatus('idle');
-    setSignStatus('idle');
     setBreachStatus('idle');
   }, [key]);
 
@@ -77,7 +75,7 @@ export function useAgreement(caseId: string, agreementId?: string) {
   const fetchSilently = useCallback(() => {
     let cancelled = false;
     const revision = mutationRevisionRef.current;
-    if (prepareInFlightRef.current || signInFlightRef.current || breachInFlightRef.current) return;
+    if (prepareInFlightRef.current || breachInFlightRef.current) return;
     read()
       .then((result) => {
         if (cancelled || activeKeyRef.current !== key || mutationRevisionRef.current !== revision) return;
@@ -141,28 +139,6 @@ export function useAgreement(caseId: string, agreementId?: string) {
     }
   }, [caseId, agreementId, key]);
 
-  const submitSignature = useCallback(
-    async (signedAgreementId: string) => {
-      if (signInFlightRef.current) return;
-      const operation = {};
-      signInFlightRef.current = operation;
-      mutationRevisionRef.current += 1;
-      setSignStatus('pending');
-      try {
-        const result = await agreementsService.submitOwnMockSignature(caseId, signedAgreementId);
-        if (!mountedRef.current || activeKeyRef.current !== key) return;
-        setResultKey(key);
-        setState(result);
-        setSignStatus('idle');
-      } catch {
-        if (mountedRef.current && activeKeyRef.current === key) setSignStatus('error');
-      } finally {
-        if (signInFlightRef.current === operation) signInFlightRef.current = null;
-      }
-    },
-    [caseId, key],
-  );
-
   /**
    * Registering a breach also moves the agreement to `con_aviso` server-side,
    * so the service answers with the state afterwards and it replaces the one
@@ -197,19 +173,12 @@ export function useAgreement(caseId: string, agreementId?: string) {
     setBreachStatus('idle');
   }, []);
 
-  const resetSignStatus = useCallback(() => {
-    setSignStatus('idle');
-  }, []);
-
   return {
     status: resultKey === key ? status : 'loading',
     state: resultKey === key ? state : null,
     reload,
     prepareStatus,
     prepareDocument,
-    signStatus,
-    submitSignature,
-    resetSignStatus,
     breachStatus,
     reportBreach,
     resetBreachStatus,

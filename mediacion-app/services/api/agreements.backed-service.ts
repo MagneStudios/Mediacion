@@ -32,11 +32,12 @@ export type AgreementsDeps = {
  *   returned; nothing else is invented. The list is therefore shorter than the
  *   mock's.
  *
- * - **`submitOwnMockSignature` maps to `POST /acuerdos/:id/firmar`**, which
- *   sends the whole acuerdo to signature rather than registering one party's
- *   signature — real signing happens in DocuSign, outside this app. The state
- *   is re-read afterwards so what the screen shows is the server's, not an
- *   optimistic guess.
+ * - **There is no "sign now" action.** The only signature write is
+ *   `POST /acuerdos/:id/firmar`, which sends the whole acuerdo to signature
+ *   once — it is fired by `prepareSignatureDocument` and never again (a second
+ *   call on a non-`borrador` acuerdo is a `409 acuerdo_not_borrador`). Real
+ *   signing happens in SignNow by email, outside the app; the screen reads
+ *   state, it never submits a signature.
  */
 export function createBackedAgreementsService(
   api: ApiAgreementsService,
@@ -129,14 +130,6 @@ export function createBackedAgreementsService(
         await api.sendToSignature(acuerdo.id);
       }
       return reloadById(acuerdo.id);
-    },
-
-    async submitOwnMockSignature(
-      caseId: string,
-      agreementId: string,
-    ): Promise<AgreementState> {
-      await api.sendToSignature(agreementId);
-      return reloadById(agreementId);
     },
 
     /**

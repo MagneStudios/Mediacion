@@ -1,20 +1,18 @@
-import type { LawyerRequest, LawyerServiceOffer } from '../types/lawyer';
+import type { LawyerFee, LawyerRequest, LawyerRequestCheckout, LawyerServiceOffer } from '../types/lawyer';
 
+import { createBackedLawyerService } from './api/lawyer.backed-service';
+import { backend } from './backend-instance';
 import { createFailureController, delay, rejectAfter } from './mock-utils';
 
 /**
  * Escalamiento a abogado (spec de monetización §7).
  *
- * **Mock puro, y va a seguir siéndolo un rato.** El endpoint del spec
- * (`POST /casos/:id/solicitud-abogado` → `{ init_point }`) no existe en
- * `apps/api`: DB entregó la tabla `lawyer_requests` en la Fase 1 y dejó
- * escrito que los endpoints son ticket aparte. Cuando exista, se cambia el
- * singleton del final del archivo, como en `legal.service.ts`.
- *
- * La ficha del endpoint **todavía no está congelada** a propósito: el alcance
- * del servicio (decisión #1, Solmi) cambia qué campos necesita la pantalla, y
- * congelar un shape antes de saberlo es cómo se arma un contrato que hay que
- * renegociar. Está anotado en `docs/plan-frontend-monetizacion.md` §4.4.
+ * Contra backend real el contrato lo implementa `createBackedLawyerService`
+ * sobre `POST/GET /casos/:id/solicitud-abogado` (`apps/api/src/abogado`); el
+ * singleton del final elige uno u otro, como `cases.service.ts`. Lo que no
+ * tiene contraparte de backend —`scope`/`responseHours` del offer, y el
+ * handoff con el número del estudio— se mantiene en su estado honesto (`null`)
+ * porque son decisiones del estudio/Administración, no del frontend.
  */
 export type LawyerService = {
   /** Qué se ofrece y a qué precio. Lo lee el modal antes de dejar contratar. */
@@ -27,28 +25,33 @@ export type LawyerService = {
    * `pendiente_pago`** en vez de crear otra.
    */
   getRequest(casoId: string): Promise<LawyerRequest | null>;
-  requestLawyer(casoId: string): Promise<LawyerRequest>;
+  /**
+   * Crea (o reusa) la solicitud y devuelve el checkout para pagarla. Contra el
+   * mock `checkoutUrl` es `null` y el pago se completa con la afordancia de
+   * demo; contra backend real siempre trae la URL de Mercado Pago.
+   */
+  requestLawyer(casoId: string): Promise<LawyerRequestCheckout>;
   /**
    * Afordancia de demo, sólo front — igual que
    * `casesService.simulateInvitationAcceptance`.
    *
    * En producción **esto no lo dispara nadie desde la app**: el pago se
-   * confirma en el webhook de Mercado Pago (§7.4), que es de BE. Acá existe
-   * únicamente para poder llegar a la pantalla de handoff sin checkout, que
-   * tampoco está construido. Cuando el webhook exista, este método se cae con
-   * el resto del mock.
+   * confirma en el webhook de Mercado Pago (§7.4), que es de BE. El backed
+   * service lo implementa como un re-read no-op; la UI lo esconde con
+   * `isBackendLive`.
    */
   simulatePaymentConfirmation(casoId: string): Promise<LawyerRequest>;
 };
 
 /**
- * El precio del spec §7.3, en unidades mínimas. En producción viene de config
- * (`LAWYER_FEE_ARS_MINOR`), nunca hardcodeado — acá es el fixture del mock.
+ * El precio del spec §7.3, en unidades mínimas. En producción lo congela el
+ * backend desde config (`LAWYER_FEE_ARS_MINOR`) al crear la solicitud — acá es
+ * el fixture que comparten mock y backed service, y coincide con ese valor.
  *
  * El precio se congela al crear la solicitud: si el usuario paga dos horas
  * después, paga el que vio.
  */
-const mockFee = { currency: 'ARS' as const, amountMinor: 5_000_000 };
+export const lawyerFeeFixture: LawyerFee = { currency: 'ARS', amountMinor: 5_000_000 };
 
 /**
  * El número del estudio, que **todavía no llegó** (respuestas del cliente del
@@ -84,7 +87,7 @@ export function createMockLawyerService(): LawyerService {
     async getOffer() {
       return delay(
         {
-          fee: mockFee,
+          fee: lawyerFeeFixture,
           // Null, no un texto de relleno. Ver `types/lawyer.ts`: el alcance lo
           // debe Solmi y el spec lo marca como bloqueante para publicar. Un
           // placeholder convincente acá es exactamente cómo se termina
@@ -109,7 +112,8 @@ export function createMockLawyerService(): LawyerService {
       // único sobre `external_reference`, que es de la base.
       const existing = requestsByCase[casoId];
       if (existing && existing.estado === 'pendiente_pago') {
-        return delay(existing, 400);
+        const reused = await delay(existing, 400);
+        return { request: reused, checkoutUrl: null };
       }
 
       requestCounter += 1;
@@ -117,7 +121,7 @@ export function createMockLawyerService(): LawyerService {
         id: `lawreq-${String(requestCounter).padStart(4, '0')}`,
         casoId,
         estado: 'pendiente_pago',
-        fee: mockFee,
+        fee: lawyerFeeFixture,
         createdAt: new Date().toISOString(),
         // Sin pago no hay handoff: el mensaje que se le manda al estudio es
         // de "pago confirmado", y mandarlo antes es avisar de algo que no pasó.
@@ -125,7 +129,9 @@ export function createMockLawyerService(): LawyerService {
       };
       const committed = await delay(created, 700);
       requestsByCase[casoId] = committed;
-      return committed;
+      // El mock no abre Mercado Pago: el pago se completa con la afordancia de
+      // demo (`simulatePaymentConfirmation`), no con un checkout real.
+      return { request: committed, checkoutUrl: null };
     },
 
     async simulatePaymentConfirmation(casoId) {
@@ -149,8 +155,9 @@ export function createMockLawyerService(): LawyerService {
 }
 
 /**
- * Default instance. Sin variante backed todavía: no hay endpoint que consumir,
- * y escribir el cliente contra un shape que aún no está acordado sería
- * adelantarse al contrato.
+ * Default instance. Con backend configurado usa el cliente real; sin él, el
+ * mock. El mismo patrón que `cases.service.ts`.
  */
-export const lawyerService: LawyerService = createMockLawyerService();
+export const lawyerService: LawyerService = backend
+  ? createBackedLawyerService(backend.lawyer)
+  : createMockLawyerService();

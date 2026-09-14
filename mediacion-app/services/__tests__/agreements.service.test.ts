@@ -211,7 +211,6 @@ describe('agreement mutation concurrency', () => {
 
   it.each([
     ['prepareSignatureDocument', () => agreementsService.prepareSignatureDocument('case-concurrent')],
-    ['submitOwnMockSignature', () => agreementsService.submitOwnMockSignature('case-concurrent', 'agreement-concurrent')],
   ] as const)('shares one in-flight %s operation between concurrent callers', async (operation, invoke) => {
     jest.useFakeTimers();
     __mockForceAgreementFailure(operation);
@@ -223,8 +222,8 @@ describe('agreement mutation concurrency', () => {
     expect(results).toHaveLength(2);
     expect(results.every((result) => result.status === 'rejected')).toBe(true);
     expect(results.map((result) => (result.status === 'rejected' ? result.reason.message : null))).toEqual([
-      `agreement_${operation === 'prepareSignatureDocument' ? 'preparation' : 'signature'}_failed`,
-      `agreement_${operation === 'prepareSignatureDocument' ? 'preparation' : 'signature'}_failed`,
+      `agreement_preparation_failed`,
+      `agreement_preparation_failed`,
     ]);
   });
 });

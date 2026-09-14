@@ -6,7 +6,17 @@
  * inventan paralelos.
  */
 
-/** Matches `estado_solicitud_abogado` exactly. */
+/**
+ * Matches `estado_solicitud_abogado` exactly — the seven values of the DB enum
+ * (`20260821120000_monetizacion_fase1.sql`).
+ *
+ * The backend only ever **emits** three of them today: `pendiente_pago`,
+ * `pagada` and `fallida` (the repository's `createOrReusePendiente` and
+ * `settleByReference` are the only transitions). The other four are in the
+ * schema but nothing sets them yet, so the mapper passes the wire `status`
+ * through without trying to derive them — inventing a `notificada` out of a
+ * row that never carries it would be fabricating state.
+ */
 export type EstadoSolicitudAbogado =
   | 'pendiente_pago'
   | 'pagada'
@@ -85,4 +95,25 @@ export type LawyerRequest = {
   createdAt: string;
   /** Disponible recién con el pago confirmado; `null` mientras esté `pendiente_pago`. */
   handoff: LawyerHandoff | null;
+};
+
+/**
+ * Lo que devuelve `requestLawyer`: la solicitud creada (o reusada) y, contra
+ * backend real, el checkout de Mercado Pago para pagarla.
+ *
+ * **`checkoutUrl: null` es el mock**, no "no hay checkout": el mock no abre
+ * Mercado Pago y su pago se completa con la afordancia de demo
+ * (`simulatePaymentConfirmation`). El backend real lo devuelve siempre, incluso
+ * reusando una solicitud `pendiente_pago` existente — `abogado.service.ts` arma
+ * una preferencia nueva en cada llamada.
+ *
+ * Shape plano, no una unión discriminada como `CheckoutStart` (types/billing):
+ * el asesoramiento no tiene un caso "gratis ya activo" que distinguir, así que
+ * forzar esa maquinaria sería sobre-ingeniería. El vocabulario es el del
+ * dominio (`checkoutUrl`), no el del proveedor (`init_point` de Mercado Pago) —
+ * la traducción vive en `lawyer.api-service.ts`.
+ */
+export type LawyerRequestCheckout = {
+  request: LawyerRequest;
+  checkoutUrl: string | null;
 };

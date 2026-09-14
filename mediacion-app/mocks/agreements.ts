@@ -1,28 +1,4 @@
-import type { AgreementHistoryItem, MockSignatureStatus, SharedAgreement, SharedSignerStatus } from '../types/agreement';
-
-/**
- * Deterministic simulated other-party signature behavior, by caseId. `null`
- * means the simulated party never signs in this session — a genuine,
- * reachable "waiting" demo, not a placeholder. Anything not listed falls
- * through to a resolvable default so further cases (beyond the three demo
- * cases) stay playable instead of becoming new dead ends.
- *
- * No randomness, no timers, no private data — a signature outcome only.
- */
-const OTHER_PARTY_SIGNATURE_MATRIX: Record<string, MockSignatureStatus | null> = {
-  // Completion path: signs as soon as the authenticated party signs.
-  'case-1': 'firmado',
-  // Waiting path: never signs in this session.
-  'case-2': null,
-  // case-3 doesn't go through this matrix at all — it's pre-seeded already
-  // fully signed below, never materialized through the live flow.
-};
-const DEFAULT_OTHER_PARTY_SIGNATURE: MockSignatureStatus = 'firmado';
-
-export function simulatedOtherPartySignature(caseId: string): MockSignatureStatus | null {
-  if (caseId in OTHER_PARTY_SIGNATURE_MATRIX) return OTHER_PARTY_SIGNATURE_MATRIX[caseId];
-  return DEFAULT_OTHER_PARTY_SIGNATURE;
-}
+import type { AgreementHistoryItem, SharedAgreement, SharedSignerStatus } from '../types/agreement';
 
 /**
  * Pre-seeded, already-fully-signed agreement — case-3's historical

@@ -1,14 +1,12 @@
 import { I18nextProvider } from 'react-i18next';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
+import type { AgreementState } from '@/types/agreement';
 
-const mockSubmitSignature = jest.fn();
-const mockResetSignStatus = jest.fn();
-
-const mockAgreementHook = {
-  status: 'success' as const,
-  state: {
+function makeState(estado: AgreementState['agreement']['estado'] = 'enviado_a_firma'): AgreementState {
+  const signed = estado === 'firmado' || estado === 'con_aviso';
+  return {
     agreement: {
       id: 'agreement-1',
       caseId: 'case-1',
@@ -17,24 +15,26 @@ const mockAgreementHook = {
       title: 'Agreement',
       summary: '',
       terms: [],
-      estado: 'enviado_a_firma' as const,
+      estado,
       createdAt: '2026-01-01T00:00:00.000Z',
     },
     signers: [
-      { role: 'authenticated_party' as const, status: 'pendiente' as const },
-      { role: 'other_party' as const, status: 'pendiente' as const },
+      { role: 'authenticated_party', status: signed ? 'firmado' : 'pendiente' },
+      { role: 'other_party', status: signed ? 'firmado' : 'pendiente' },
     ],
-    ownSignatureComplete: false,
+    ownSignatureComplete: signed,
     waitingForOtherParty: false,
-    allSignaturesComplete: false,
-    canPrepareDocument: false,
-    canSign: true,
-    readOnly: false,
-  },
+    allSignaturesComplete: signed,
+    canPrepareDocument: estado === 'borrador',
+    canSign: estado === 'enviado_a_firma',
+    readOnly: estado === 'firmado' || estado === 'con_aviso',
+  };
+}
+
+const mockAgreementHook = {
+  status: 'success' as const,
+  state: makeState(),
   reload: jest.fn(),
-  signStatus: 'error' as 'idle' | 'pending' | 'error',
-  submitSignature: mockSubmitSignature,
-  resetSignStatus: mockResetSignStatus,
 };
 
 jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
@@ -53,28 +53,52 @@ jest.mock('@/features/agreements/hooks/useAgreement', () => ({
 // eslint-disable-next-line import/first
 import AgreementSignScreen from '../sign';
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  mockAgreementHook.signStatus = 'error';
-});
+describe('AgreementSignScreen — estado por firmante (sin acción de firmar)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAgreementHook.state = makeState();
+  });
 
-describe('AgreementSignScreen failure recovery', () => {
-  it('requires a fresh confirmation and never exposes a retry that silently does nothing', async () => {
+  it('muestra la invitación enviada y no ofrece confirmar la firma', async () => {
     await render(
       <I18nextProvider i18n={i18n}>
         <AgreementSignScreen />
       </I18nextProvider>,
     );
 
-    expect(screen.getByText(i18n.t('agreement.sign.error.title'))).toBeTruthy();
-    expect(screen.queryByRole('button', { name: i18n.t('common.retry') })).toBeNull();
+    // La invitación por mail, no un botón de "confirmar": la firma ocurre
+    // fuera de la app (SignNow), y un segundo POST /acuerdos/:id/firmar sería
+    // un 409. Esta pantalla no debe exponer ninguna acción que lo dispare.
+    expect(screen.getByText(i18n.t('agreement.sign.invitationSent.title'))).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
 
-    const submit = screen.getByRole('button', { name: i18n.t('agreement.sign.action') });
-    expect(submit.props.accessibilityState.disabled).toBe(true);
-    await fireEvent.press(screen.getByRole('checkbox', { name: i18n.t('agreement.sign.confirmationLabel') }));
-    await fireEvent.press(screen.getByRole('button', { name: i18n.t('agreement.sign.action') }));
+    // El estado por firmante se muestra con los rótulos de rol, sin nombres.
+    expect(screen.getByText(i18n.t('agreement.progress.title'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('agreement.signer.own'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('agreement.signer.other'))).toBeTruthy();
+  });
 
-    expect(mockResetSignStatus).toHaveBeenCalledTimes(1);
-    expect(mockSubmitSignature).toHaveBeenCalledWith('agreement-1');
+  it('con el acuerdo ya firmado muestra el estado completo, no la invitación', async () => {
+    mockAgreementHook.state = makeState('firmado');
+    await render(
+      <I18nextProvider i18n={i18n}>
+        <AgreementSignScreen />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText(i18n.t('agreement.response.completed'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('agreement.sign.invitationSent.title'))).toBeNull();
+  });
+
+  it('sin documento listo muestra el estado "no listo", nunca un botón de firmar', async () => {
+    mockAgreementHook.state = makeState('borrador');
+    await render(
+      <I18nextProvider i18n={i18n}>
+        <AgreementSignScreen />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText(i18n.t('agreement.sign.notReady'))).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
   });
 });

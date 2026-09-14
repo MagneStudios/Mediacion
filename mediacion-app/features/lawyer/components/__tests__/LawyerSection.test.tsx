@@ -40,6 +40,26 @@ jest.mock('@/services/lawyer.service', () => ({
   },
 }));
 
+jest.mock('@react-navigation/native', () => {
+  const actual = jest.requireActual('@react-navigation/native');
+  return {
+    ...actual,
+    useFocusEffect: jest.fn(),
+  };
+});
+
+/**
+ * El atajo de demo solo tiene sentido contra los mocks: con backend real el
+ * pago lo confirma el webhook de Mercado Pago. Se mockea el flag para ejercitar
+ * las dos ramas desde un solo archivo.
+ */
+let mockBackendLive = false;
+jest.mock('@/services/backend-instance', () => ({
+  get isBackendLive() {
+    return mockBackendLive;
+  },
+}));
+
 // eslint-disable-next-line import/first
 import { LawyerSection } from '../LawyerSection';
 
@@ -65,6 +85,7 @@ async function renderSection() {
 describe('LawyerSection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBackendLive = false;
     mockGetOffer.mockResolvedValue({
       fee: { currency: 'ARS', amountMinor: 5_000_000 },
       scope: null,
@@ -103,6 +124,17 @@ describe('LawyerSection', () => {
 
   it('no ofrece el atajo de demo sin una solicitud pendiente', async () => {
     mockGetRequest.mockResolvedValue(null);
+    await renderSection();
+
+    await screen.findByText(i18n.t('lawyer.action'));
+    expect(screen.queryByText(i18n.t('lawyer.simulatePayment.action'))).toBeNull();
+  });
+
+  it('no ofrece el atajo de demo contra backend real, aunque haya una solicitud pendiente', async () => {
+    // Con backend real el pago lo confirma el webhook de Mercado Pago; la
+    // afordancia de "simular" no puede convivir con ese flujo.
+    mockBackendLive = true;
+    mockGetRequest.mockResolvedValue(request('pendiente_pago'));
     await renderSection();
 
     await screen.findByText(i18n.t('lawyer.action'));

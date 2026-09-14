@@ -111,15 +111,17 @@ describe('agreements.backed-service — addressed by acuerdo', () => {
     await expect(createBackedAgreementsService(api, deps).getAgreementStateById('acu-9')).resolves.toBeNull();
   });
 
-  it('re-reads by id after signing, never by caso', async () => {
-    const getForCase = jest.fn();
-    const api = fakeApi({ getForCase });
+  it('never sends to signature an acuerdo that already left borrador', async () => {
+    // The bug this guards against: a second POST /acuerdos/:id/firmar on an
+    // `enviado_a_firma` acuerdo is a 409 `acuerdo_not_borrador`. The only
+    // transition that sends is borrador → enviado_a_firma, exactly once.
+    const getById = jest.fn().mockResolvedValue({ acuerdo: acuerdo('enviado_a_firma'), firmas: [] });
+    const api = fakeApi({ getById });
 
-    await createBackedAgreementsService(api, deps).submitOwnMockSignature('caso-1', 'acu-1');
+    await createBackedAgreementsService(api, deps).prepareSignatureDocument('caso-1', 'acu-1');
 
-    expect(api.sendToSignature).toHaveBeenCalledWith('acu-1');
-    expect(api.getById).toHaveBeenCalledWith('acu-1');
-    expect(getForCase).not.toHaveBeenCalled();
+    expect(api.sendToSignature).not.toHaveBeenCalled();
+    expect(getById).toHaveBeenCalledWith('acu-1');
   });
 
   it('sends a known draft to signature as it is — it never regenerates it', async () => {
