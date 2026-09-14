@@ -12,6 +12,7 @@ import { InvitacionesRepository } from "./invitaciones.repository";
 import type {
   CreateInvitacionDto,
   InvitacionCreated,
+  InvitacionRefreshed,
   InvitacionView,
   JoinedCaso,
   TipoInvitacion,
@@ -93,16 +94,7 @@ export class InvitacionesService {
     assertValidTipo(dto.tipo);
     assertValidEmailDestino(dto);
     assertValidPagoACargo(dto);
-    const parte = await this.membershipService.assertMembership(
-      casoId,
-      callerId,
-    );
-    if (parte.rol_en_caso !== "parte_a") {
-      throw new HttpException(
-        { code: "forbidden", message: "Only the case creator can invite" },
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    await this.assertCallerCanInvite(casoId, callerId);
     const token = generateToken();
     const invitation = await this.invitacionesRepository.createInvite(
       casoId,
@@ -120,6 +112,69 @@ export class InvitacionesService {
       );
     }
     return invitation;
+  }
+
+  reenviarInvitation(
+    casoId: string,
+    invitacionId: string,
+    callerId: string,
+  ): Promise<InvitacionRefreshed> {
+    return this.refreshInvitation(casoId, invitacionId, callerId, null);
+  }
+
+  regenerarInvitation(
+    casoId: string,
+    invitacionId: string,
+    callerId: string,
+  ): Promise<InvitacionRefreshed> {
+    return this.refreshInvitation(
+      casoId,
+      invitacionId,
+      callerId,
+      generateToken(),
+    );
+  }
+
+  private async refreshInvitation(
+    casoId: string,
+    invitacionId: string,
+    callerId: string,
+    nuevoToken: string | null,
+  ): Promise<InvitacionRefreshed> {
+    await this.assertCallerCanInvite(casoId, callerId);
+    const invitation = await this.invitacionesRepository.refreshInvite(
+      invitacionId,
+      casoId,
+      nuevoToken,
+    );
+    try {
+      await this.notifyInvitedUsuario(
+        casoId,
+        invitation.email_destino ?? undefined,
+      );
+    } catch (error) {
+      this.logger.error(
+        `invitacion notification failed after invite refreshed for caso ${casoId}`,
+        error,
+      );
+    }
+    return invitation;
+  }
+
+  private async assertCallerCanInvite(
+    casoId: string,
+    callerId: string,
+  ): Promise<void> {
+    const parte = await this.membershipService.assertMembership(
+      casoId,
+      callerId,
+    );
+    if (parte.rol_en_caso !== "parte_a") {
+      throw new HttpException(
+        { code: "forbidden", message: "Only the case creator can invite" },
+        HttpStatus.FORBIDDEN,
+      );
+    }
   }
 
   private async notifyInvitedUsuario(

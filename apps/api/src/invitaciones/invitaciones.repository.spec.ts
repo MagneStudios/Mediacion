@@ -309,6 +309,9 @@ describe("InvitacionesRepository", () => {
 
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invalid_token" }),
+      );
       expect(fakeKysely.insertInto).not.toHaveBeenCalled();
     });
 
@@ -500,7 +503,7 @@ describe("InvitacionesRepository", () => {
       expect(thrown).toBeInstanceOf(ConflictError);
     });
 
-    it("rejects a token sent beyond the default 72-hour TTL with a uniform 404, marking it expirada, creating no rows", async () => {
+    it("rejects a token sent beyond the default 72-hour TTL as invitation_expired, marking it expirada, creating no rows", async () => {
       const eightDaysAgo = new Date(
         Date.now() - 8 * 24 * 60 * 60 * 1000,
       ).toISOString();
@@ -531,6 +534,9 @@ describe("InvitacionesRepository", () => {
 
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitation_expired" }),
+      );
       expect(fakeKysely.updateTable).toHaveBeenCalledWith("invitaciones");
       expect(fakeKysely.invitacionUpdateSet).toHaveBeenCalledWith({
         estado: "expirada",
@@ -634,6 +640,9 @@ describe("InvitacionesRepository", () => {
 
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitation_expired" }),
+      );
       expect(fakeKysely.invitacionUpdateSet).toHaveBeenCalledWith({
         estado: "expirada",
       });
@@ -759,6 +768,149 @@ describe("InvitacionesRepository", () => {
       const result = await repository.findUsuarioIdByEmail("unknown@test.com");
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("refreshInvite", () => {
+    function createFakeTrx(options: {
+      invitacion: { id: string; estado: string } | undefined;
+      updated?: unknown;
+    }) {
+      const lockExecuteTakeFirst = jest
+        .fn()
+        .mockResolvedValue(options.invitacion);
+      const lockForUpdate = jest
+        .fn()
+        .mockReturnValue({ executeTakeFirst: lockExecuteTakeFirst });
+      const lockWhere2 = jest
+        .fn()
+        .mockReturnValue({ forUpdate: lockForUpdate });
+      const lockWhere1 = jest.fn().mockReturnValue({ where: lockWhere2 });
+      const lockSelect = jest.fn().mockReturnValue({ where: lockWhere1 });
+      const selectFrom = jest.fn().mockReturnValue({ select: lockSelect });
+
+      const updateExecuteTakeFirstOrThrow = jest
+        .fn()
+        .mockResolvedValue(options.updated);
+      const updateReturning = jest.fn().mockReturnValue({
+        executeTakeFirstOrThrow: updateExecuteTakeFirstOrThrow,
+      });
+      const updateWhere = jest
+        .fn()
+        .mockReturnValue({ returning: updateReturning });
+      const updateSet = jest.fn().mockReturnValue({ where: updateWhere });
+      const updateTable = jest.fn().mockReturnValue({ set: updateSet });
+
+      const trx = { selectFrom, updateTable };
+      const execute = jest.fn((callback: (trx: unknown) => unknown) =>
+        callback(trx),
+      );
+      const transaction = jest.fn().mockReturnValue({ execute });
+
+      return {
+        transaction,
+        selectFrom,
+        lockSelect,
+        lockWhere1,
+        lockWhere2,
+        updateTable,
+        updateSet,
+        updateWhere,
+      };
+    }
+
+    function buildRepository(fakeKysely: unknown) {
+      const casosRepository = {
+        activateOrHoldForSuscripciones: jest.fn(),
+      } as unknown as CasosRepository;
+      return new InvitacionesRepository(fakeKysely as never, casosRepository);
+    }
+
+    it("locks the invitation scoped by id and caso_id before touching it", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: { id: "inv-1", estado: "pendiente" },
+        updated: { id: "inv-1", token: "tok-abc", estado: "pendiente" },
+      });
+      const repository = buildRepository(fakeKysely);
+
+      await repository.refreshInvite("inv-1", "caso-1", null);
+
+      expect(fakeKysely.selectFrom).toHaveBeenCalledWith("invitaciones");
+      expect(fakeKysely.lockWhere1).toHaveBeenCalledWith("id", "=", "inv-1");
+      expect(fakeKysely.lockWhere2).toHaveBeenCalledWith(
+        "caso_id",
+        "=",
+        "caso-1",
+      );
+    });
+
+    it("bumps fecha_envio and returns estado to pendiente, leaving the token alone when nuevoToken is null", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: { id: "inv-1", estado: "expirada" },
+        updated: { id: "inv-1", token: "tok-viejo", estado: "pendiente" },
+      });
+      const repository = buildRepository(fakeKysely);
+
+      await repository.refreshInvite("inv-1", "caso-1", null);
+
+      const patch = fakeKysely.updateSet.mock.calls[0]?.[0];
+      expect(patch).toEqual(expect.objectContaining({ estado: "pendiente" }));
+      expect(patch).toHaveProperty("fecha_envio");
+      expect(patch).not.toHaveProperty("token");
+    });
+
+    it("writes the rotated token when nuevoToken is given", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: { id: "inv-1", estado: "pendiente" },
+        updated: { id: "inv-1", token: "tok-nuevo", estado: "pendiente" },
+      });
+      const repository = buildRepository(fakeKysely);
+
+      await repository.refreshInvite("inv-1", "caso-1", "tok-nuevo");
+
+      expect(fakeKysely.updateSet.mock.calls[0]?.[0]).toEqual(
+        expect.objectContaining({ token: "tok-nuevo" }),
+      );
+    });
+
+    it("rejects an unknown invitation with a 404, writing nothing", async () => {
+      const fakeKysely = createFakeTrx({ invitacion: undefined });
+      const repository = buildRepository(fakeKysely);
+
+      let thrown: unknown;
+      try {
+        await repository.refreshInvite("inv-1", "caso-1", null);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitacion_not_found" }),
+      );
+      expect(fakeKysely.updateTable).not.toHaveBeenCalled();
+    });
+
+    it("rejects an already accepted invitation with a 409, writing nothing", async () => {
+      const fakeKysely = createFakeTrx({
+        invitacion: { id: "inv-1", estado: "aceptada" },
+      });
+      const repository = buildRepository(fakeKysely);
+
+      let thrown: unknown;
+      try {
+        await repository.refreshInvite("inv-1", "caso-1", null);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitacion_no_reenviable" }),
+      );
+      expect(fakeKysely.updateTable).not.toHaveBeenCalled();
     });
   });
 });

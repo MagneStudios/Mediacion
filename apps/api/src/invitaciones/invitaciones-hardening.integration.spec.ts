@@ -162,7 +162,7 @@ describeDb(
       tipo: "link" | "email";
       emailDestino?: string;
       fechaEnvio: Date;
-    }): Promise<{ casoId: string; token: string }> {
+    }): Promise<{ casoId: string; token: string; invitacionId: string }> {
       const caso = await kysely
         .insertInto("casos")
         .values({
@@ -185,7 +185,7 @@ describeDb(
         .execute();
 
       const token = randomUUID();
-      await kysely
+      const invitacion = await kysely
         .insertInto("invitaciones")
         .values({
           caso_id: caso.id,
@@ -195,9 +195,10 @@ describeDb(
           estado: "pendiente",
           fecha_envio: options.fechaEnvio.toISOString(),
         })
-        .execute();
+        .returning("id")
+        .executeTakeFirstOrThrow();
 
-      return { casoId: caso.id, token };
+      return { casoId: caso.id, token, invitacionId: invitacion.id };
     }
 
     async function cleanupCase(casoId: string): Promise<void> {
@@ -227,7 +228,7 @@ describeDb(
       }
     }
 
-    it("rejects a token sent 8 days ago with a real 404, marking it expirada", async () => {
+    it("rejects a token sent 8 days ago as invitation_expired, committing the expirada mark", async () => {
       const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
       const { casoId, token } = await createCaseWithInvitation({
         tipo: "link",
@@ -243,6 +244,9 @@ describeDb(
 
       expect(thrown).toBeInstanceOf(HttpException);
       expect((thrown as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitation_expired" }),
+      );
 
       const invitacion = await kysely
         .selectFrom("invitaciones")
@@ -250,6 +254,93 @@ describeDb(
         .where("caso_id", "=", casoId)
         .executeTakeFirstOrThrow();
       expect(invitacion.estado).toBe("expirada");
+
+      await cleanupCase(casoId);
+    });
+
+    it("reenviar revives an expired invitation: the same token joins again", async () => {
+      const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      const { casoId, token, invitacionId } = await createCaseWithInvitation({
+        tipo: "link",
+        fechaEnvio: eightDaysAgo,
+      });
+
+      await expect(
+        invitacionesRepository.joinCase(token, userBId, userBEmail),
+      ).rejects.toBeInstanceOf(HttpException);
+
+      const refreshed = await invitacionesRepository.refreshInvite(
+        invitacionId,
+        casoId,
+        null,
+      );
+      expect(refreshed.token).toBe(token);
+      expect(refreshed.estado).toBe("pendiente");
+
+      const result = await invitacionesRepository.joinCase(
+        token,
+        userBId,
+        userBEmail,
+      );
+      expect(result.estado).toBe("activo");
+
+      await cleanupCase(casoId);
+    });
+
+    it("regenerar invalidates the old token and the new one joins", async () => {
+      const { casoId, token, invitacionId } = await createCaseWithInvitation({
+        tipo: "link",
+        fechaEnvio: new Date(),
+      });
+
+      const refreshed = await invitacionesRepository.refreshInvite(
+        invitacionId,
+        casoId,
+        randomUUID(),
+      );
+      expect(refreshed.token).not.toBe(token);
+      expect(typeof refreshed.token).toBe("string");
+
+      let thrown: unknown;
+      try {
+        await invitacionesRepository.joinCase(token, userBId, userBEmail);
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invalid_token" }),
+      );
+
+      const result = await invitacionesRepository.joinCase(
+        refreshed.token as string,
+        userBId,
+        userBEmail,
+      );
+      expect(result.estado).toBe("activo");
+
+      await cleanupCase(casoId);
+    });
+
+    it("refuses to refresh an already accepted invitation with a real 409", async () => {
+      const { casoId, token, invitacionId } = await createCaseWithInvitation({
+        tipo: "link",
+        fechaEnvio: new Date(),
+      });
+      await invitacionesRepository.joinCase(token, userBId, userBEmail);
+
+      let thrown: unknown;
+      try {
+        await invitacionesRepository.refreshInvite(invitacionId, casoId, null);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect((thrown as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+      expect((thrown as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: "invitacion_no_reenviable" }),
+      );
 
       await cleanupCase(casoId);
     });

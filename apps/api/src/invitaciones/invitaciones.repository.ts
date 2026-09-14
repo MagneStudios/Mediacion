@@ -8,8 +8,10 @@ import { ConflictError } from "../common/errors/domain-errors";
 import { KYSELY } from "../database/database.tokens";
 import { buildCasoLockQuery } from "./caso-lock-query";
 import { emailsMatch } from "./email-match";
+import { buildInvitacionLockQuery } from "./invitacion-lock-query";
 import type {
   InvitacionCreated,
+  InvitacionRefreshed,
   InvitacionView,
   JoinedCaso,
   PagoACargo,
@@ -22,13 +24,43 @@ import {
 
 const estadoInvitacionPendiente = "pendiente" as const;
 const estadoInvitacionExpirada = "expirada" as const;
+const estadosInvitacionReenviable: string[] = [
+  estadoInvitacionPendiente,
+  estadoInvitacionExpirada,
+];
 const tipoInvitacionEmail = "email" as const;
 const configKeyInvitacionTtlHoras = "invitacion_ttl_horas" as const;
+
+const invitationExpiredOutcome = { expired: true } as const;
 
 function invalidTokenError(): HttpException {
   return new HttpException(
     { code: "invalid_token", message: "Invalid or used token" },
     HttpStatus.NOT_FOUND,
+  );
+}
+
+function invitationExpiredError(): HttpException {
+  return new HttpException(
+    { code: "invitation_expired", message: "Invitation expired" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
+function invitacionNotFoundError(): HttpException {
+  return new HttpException(
+    { code: "invitacion_not_found", message: "Invitation not found" },
+    HttpStatus.NOT_FOUND,
+  );
+}
+
+function invitacionNoReenviableError(estado: string): HttpException {
+  return new HttpException(
+    {
+      code: "invitacion_no_reenviable",
+      message: `An invitation in estado ${estado} cannot be resent`,
+    },
+    HttpStatus.CONFLICT,
   );
 }
 
@@ -102,7 +134,7 @@ export class InvitacionesRepository {
             .set({ estado: estadoInvitacionExpirada })
             .where("id", "=", invitacion.id)
             .execute();
-          return null;
+          return invitationExpiredOutcome;
         }
 
         if (
@@ -175,6 +207,9 @@ export class InvitacionesRepository {
         if (!result) {
           throw invalidTokenError();
         }
+        if ("expired" in result) {
+          throw invitationExpiredError();
+        }
         return result;
       })
       .catch((error: unknown) => {
@@ -185,9 +220,53 @@ export class InvitacionesRepository {
       });
   }
 
-  private async invitationTtlHoras(
-    db: Kysely<Database>,
-  ): Promise<number> {
+  refreshInvite(
+    invitacionId: string,
+    casoId: string,
+    nuevoToken: string | null,
+  ): Promise<InvitacionRefreshed> {
+    return this.kysely
+      .transaction()
+      .execute(async (trx) => {
+        const invitacion = await buildInvitacionLockQuery(
+          trx,
+          invitacionId,
+          casoId,
+        ).executeTakeFirst();
+        if (!invitacion) {
+          throw invitacionNotFoundError();
+        }
+        if (!estadosInvitacionReenviable.includes(invitacion.estado)) {
+          throw invitacionNoReenviableError(invitacion.estado);
+        }
+        return trx
+          .updateTable("invitaciones")
+          .set({
+            estado: estadoInvitacionPendiente,
+            fecha_envio: new Date().toISOString(),
+            ...(nuevoToken === null ? {} : { token: nuevoToken }),
+          })
+          .where("id", "=", invitacionId)
+          .returning([
+            "id",
+            "tipo",
+            "token",
+            "estado",
+            "email_destino",
+            "pago_a_cargo",
+          ])
+          .executeTakeFirstOrThrow();
+      })
+      .then((row) => row as InvitacionRefreshed)
+      .catch((error: unknown) => {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        throw toDomainError(error);
+      });
+  }
+
+  private async invitationTtlHoras(db: Kysely<Database>): Promise<number> {
     const row = await db
       .selectFrom("configuracion")
       .select("valor")

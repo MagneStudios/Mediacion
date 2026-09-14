@@ -14,12 +14,14 @@ describe("InvitacionesService", () => {
     joinCase?: jest.Mock;
     assertMembership?: jest.Mock;
     findUsuarioIdByEmail?: jest.Mock;
+    refreshInvite?: jest.Mock;
     emit?: jest.Mock;
   }) {
     const invitacionesRepository = {
       createInvite: overrides?.createInvite ?? jest.fn(),
       joinCase: overrides?.joinCase ?? jest.fn(),
       findUsuarioIdByEmail: overrides?.findUsuarioIdByEmail ?? jest.fn(),
+      refreshInvite: overrides?.refreshInvite ?? jest.fn(),
     } as unknown as InvitacionesRepository;
     const membershipService = {
       assertMembership: overrides?.assertMembership ?? jest.fn(),
@@ -417,6 +419,155 @@ describe("InvitacionesService", () => {
         "user-b@test.com",
       );
       expect(result).toEqual({ id: "caso-1", estado: "activo" });
+    });
+  });
+
+  describe("reenviarInvitation", () => {
+    function parteA() {
+      return jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+    }
+
+    it("keeps the token: refreshInvite is called with a null nuevoToken", async () => {
+      const refreshInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "link",
+        token: "tok-abc",
+        estado: "pendiente",
+        email_destino: null,
+        pago_a_cargo: null,
+      });
+      const { service } = buildService({
+        assertMembership: parteA(),
+        refreshInvite,
+      });
+
+      const result = await service.reenviarInvitation(
+        "caso-1",
+        "inv-1",
+        "user-a",
+      );
+
+      expect(refreshInvite).toHaveBeenCalledWith("inv-1", "caso-1", null);
+      expect(result.token).toBe("tok-abc");
+    });
+
+    it("rejects a caller who is not parte_a with a 403, touching no rows", async () => {
+      const refreshInvite = jest.fn();
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-2",
+        caso_id: "caso-1",
+        usuario_id: "user-b",
+        rol_en_caso: "parte_b",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const { service } = buildService({ assertMembership, refreshInvite });
+
+      let thrown: unknown;
+      try {
+        await service.reenviarInvitation("caso-1", "inv-1", "user-b");
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      expect(refreshInvite).not.toHaveBeenCalled();
+    });
+
+    it("re-emits the notification to a registered email destino", async () => {
+      const refreshInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+        email_destino: "user-b@test.com",
+        pago_a_cargo: null,
+      });
+      const findUsuarioIdByEmail = jest.fn().mockResolvedValue("user-b");
+      const emit = jest.fn();
+      const { service } = buildService({
+        assertMembership: parteA(),
+        refreshInvite,
+        findUsuarioIdByEmail,
+        emit,
+      });
+
+      await service.reenviarInvitation("caso-1", "inv-1", "user-a");
+
+      expect(findUsuarioIdByEmail).toHaveBeenCalledWith("user-b@test.com");
+      expect(emit).toHaveBeenCalledWith({
+        usuarioId: "user-b",
+        casoId: "caso-1",
+        canal: "email",
+        evento: "invitacion_enviada",
+      });
+    });
+
+    it("returns the refreshed invitation even when the notification throws", async () => {
+      const refreshInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "email",
+        token: "tok-abc",
+        estado: "pendiente",
+        email_destino: "user-b@test.com",
+        pago_a_cargo: null,
+      });
+      const findUsuarioIdByEmail = jest
+        .fn()
+        .mockRejectedValue(new Error("connection lost"));
+      const { service } = buildService({
+        assertMembership: parteA(),
+        refreshInvite,
+        findUsuarioIdByEmail,
+      });
+
+      const result = await service.reenviarInvitation(
+        "caso-1",
+        "inv-1",
+        "user-a",
+      );
+
+      expect(result.id).toBe("inv-1");
+    });
+  });
+
+  describe("regenerarInvitation", () => {
+    it("rotates the token: refreshInvite is called with a freshly generated one", async () => {
+      (generateToken as jest.Mock).mockReturnValue("tok-nuevo");
+      const refreshInvite = jest.fn().mockResolvedValue({
+        id: "inv-1",
+        tipo: "codigo",
+        token: "tok-nuevo",
+        estado: "pendiente",
+        email_destino: null,
+        pago_a_cargo: null,
+      });
+      const assertMembership = jest.fn().mockResolvedValue({
+        id: "parte-1",
+        caso_id: "caso-1",
+        usuario_id: "user-a",
+        rol_en_caso: "parte_a",
+        estado_invitacion: estadoInvitacionAceptada,
+      });
+      const { service } = buildService({ assertMembership, refreshInvite });
+
+      const result = await service.regenerarInvitation(
+        "caso-1",
+        "inv-1",
+        "user-a",
+      );
+
+      expect(refreshInvite).toHaveBeenCalledWith(
+        "inv-1",
+        "caso-1",
+        "tok-nuevo",
+      );
+      expect(result.token).toBe("tok-nuevo");
     });
   });
 });

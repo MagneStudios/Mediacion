@@ -13,6 +13,7 @@ import { InvitacionesService } from "./invitaciones.service";
 import type {
   CreateInvitacionDto,
   InvitacionCreated,
+  InvitacionRefreshed,
   InvitacionView,
   JoinCasoDto,
   JoinedCaso,
@@ -43,6 +44,32 @@ export class InvitacionesController {
       body.token,
       caller.id,
       caller.email,
+    );
+  }
+
+  @Post(":id/invitaciones/:invitacionId/reenviar")
+  reenviarInvitation(
+    @Param("id", ParseUUIDPipe) casoId: string,
+    @Param("invitacionId", ParseUUIDPipe) invitacionId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<InvitacionRefreshed> {
+    return this.invitacionesService.reenviarInvitation(
+      casoId,
+      invitacionId,
+      caller.id,
+    );
+  }
+
+  @Post(":id/invitaciones/:invitacionId/regenerar")
+  regenerarInvitation(
+    @Param("id", ParseUUIDPipe) casoId: string,
+    @Param("invitacionId", ParseUUIDPipe) invitacionId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<InvitacionRefreshed> {
+    return this.invitacionesService.regenerarInvitation(
+      casoId,
+      invitacionId,
+      caller.id,
     );
   }
 
