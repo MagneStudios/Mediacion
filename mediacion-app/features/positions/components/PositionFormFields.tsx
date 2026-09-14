@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Input, SelectableCard, type IconName } from '../../../design-system';
+import { Input, InlineWarning, SelectableCard, type IconName } from '../../../design-system';
 import { semanticColors } from '../../../design-system/tokens/colors';
 import { spacing } from '../../../design-system/tokens/spacing';
 import { typography } from '../../../design-system/tokens/typography';
 import type { CategoriaPosicion } from '../../../types/position';
+import { useLanguageModeration } from '../../moderation/hooks/useLanguageModeration';
 import { PositionRangeFields } from './PositionRangeFields';
 
 const CATEGORIES: CategoriaPosicion[] = ['cuidado_ninos', 'cronogramas', 'bienes', 'economico', 'personalizado'];
@@ -75,6 +76,9 @@ export function PositionFormFields({
   const { t } = useTranslation();
   const isEconomic = category === 'economico';
 
+  const descriptionModeration = useLanguageModeration(description);
+  const conditionsModeration = useLanguageModeration(concessionConditions);
+
   return (
     <View style={styles.form}>
       <View style={styles.section}>
@@ -122,6 +126,9 @@ export function PositionFormFields({
           numberOfLines={3}
           editable={!disabled}
         />
+        {descriptionModeration.result.flagged ? (
+          <InlineWarning>{t('moderation.warning')}</InlineWarning>
+        ) : null}
       </View>
 
       {category ? (
@@ -184,6 +191,9 @@ export function PositionFormFields({
             numberOfLines={3}
             editable={!disabled}
           />
+        ) : null}
+        {canConcede === true && conditionsModeration.result.flagged ? (
+          <InlineWarning>{t('moderation.warning')}</InlineWarning>
         ) : null}
       </View>
     </View>

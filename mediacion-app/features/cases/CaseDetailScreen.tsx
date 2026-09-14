@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, Card, ConfirmationDialog, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
+import { Button, Card, ConfirmationDialog, ErrorState, Icon, LoadingState, ResponsiveColumns } from '../../design-system';
 import { semanticColors } from '../../design-system/tokens/colors';
 import { contentWidths, getResponsiveContentStyle } from '../../design-system/tokens/layout';
 import { radii } from '../../design-system/tokens/radii';
@@ -14,16 +14,16 @@ import { appendCaseActivity } from '../../services/activity.service';
 import { isBackendLive } from '../../services/backend-instance';
 import { casesService } from '../../services/cases.service';
 import { appendCaseNotice } from '../../services/notices.service';
-import type { CaseInvitation } from '../../types/case';
 import { blurActiveElement } from '../../utils/blur-active-element';
-import { canSetCaseDeadline, canTerminateCase } from '../../utils/case-actions';
+import { canInviteCounterparty, canSetCaseDeadline, canShowCaseContext, canTerminateCase } from '../../utils/case-actions';
 import { getPositionEligibility } from '../../utils/position-eligibility';
 import { LawyerSection } from '../lawyer/components/LawyerSection';
 import { MediatorSummaryCard } from '../mediator/components/MediatorSummaryCard';
 import { NegotiationsListSection } from '../negotiation/components/NegotiationsListSection';
 import { CaseDeadlineCard } from './components/CaseDeadlineCard';
+import { CaseContextCard } from './components/CaseContextCard';
 import { CaseDetailHeader } from './components/CaseDetailHeader';
-import { InvitationResultCard } from './components/InvitationResultCard';
+import { InvitationSection } from './components/InvitationSection';
 import { SimulateInvitationAcceptanceDialog } from './components/SimulateInvitationAcceptanceDialog';
 import { useCaseDetail } from './hooks/useCaseDetail';
 
@@ -38,9 +38,6 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
   const router = useRouter();
   const { status, detail, reload } = useCaseDetail(caseId);
   const { horizontalPadding, isWide } = useResponsiveLayout();
-
-  const [invitation, setInvitation] = useState<CaseInvitation | null>(null);
-  const [invitationStatus, setInvitationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
   const [simulateDialogVisible, setSimulateDialogVisible] = useState(false);
   const [simulateStatus, setSimulateStatus] = useState<MutationStatus>('idle');
@@ -63,17 +60,6 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
       reload();
     } catch {
       setTerminateStatus('error');
-    }
-  };
-
-  const handleViewInvitation = async () => {
-    setInvitationStatus('loading');
-    try {
-      const result = await casesService.getInvitation(caseId);
-      setInvitation(result);
-      setInvitationStatus('idle');
-    } catch {
-      setInvitationStatus('error');
     }
   };
 
@@ -230,47 +216,7 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
             </View>
           </Card>
 
-          <Card style={styles.awaitingInvitationCard}>
-            {invitation ? (
-              <>
-                {/*
-                  Punto #5: "mostrar el estado de la invitación... para que
-                  se entienda por qué el caso todavía no avanza" — el tipo
-                  ya distingue pendiente/aceptada/rechazada/expirada
-                  (`EstadoInvitacion`), solo faltaba mostrarlo.
-                */}
-                <Badge variant={invitation.estado === 'aceptada' ? 'solid' : 'neutral'}>
-                  {t(`caseDetail.awaitingCounterparty.invitationStatus.${invitation.estado}`)}
-                </Badge>
-                <InvitationResultCard
-                  label={
-                    invitation.tipo === 'link'
-                      ? t('caseCreation.invite.linkLabel')
-                      : invitation.tipo === 'codigo'
-                        ? t('caseCreation.invite.codeLabel')
-                        : t('caseCreation.invite.emailLabel')
-                  }
-                  value={invitation.token ?? invitation.emailDestino ?? ''}
-                  monospace={invitation.tipo === 'codigo'}
-                  copyLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.copy.${invitation.tipo}`) : undefined}
-                  copiedLabel={t('caseCreation.invite.copied')}
-                  shareLabel={invitation.tipo !== 'email' ? t(`caseCreation.invite.share.${invitation.tipo}`) : undefined}
-                />
-              </>
-            ) : invitationStatus === 'error' ? (
-              <ErrorState
-                title={t('caseDetail.awaitingCounterparty.invitationError')}
-                retryLabel={t('common.retry')}
-                onRetry={handleViewInvitation}
-              />
-            ) : (
-              <Button variant="primary" fullWidth onPress={handleViewInvitation} disabled={invitationStatus === 'loading'}>
-                {invitationStatus === 'loading'
-                  ? t('common.loading')
-                  : t('caseDetail.awaitingCounterparty.viewInvitation')}
-              </Button>
-            )}
-          </Card>
+          <InvitationSection caseId={caseId} estado={detail.estado} />
 
           {/*
             La simulación sólo existe contra los mocks. Con backend real,
@@ -317,6 +263,12 @@ export function CaseDetailScreen({ caseId }: CaseDetailScreenProps) {
           secondary={
             <>
               <NegotiationsListSection caseId={caseId} estado={detail.estado} onCaseChanged={reload} />
+              {canInviteCounterparty(detail.estado) ? (
+                <InvitationSection caseId={caseId} estado={detail.estado} />
+              ) : null}
+              {canShowCaseContext(detail.estado) ? (
+                <CaseContextCard caseId={caseId} />
+              ) : null}
               {/*
                 RN-10. Sólo donde hay alguien que pueda responder: `nuevo` no
                 tiene contraparte y `pendiente_suscripciones` la tiene impedida
@@ -497,18 +449,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     letterSpacing: -0.2,
     color: semanticColors.text.primary,
-  },
-  awaitingInvitationCard: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  awaitingInvitationEyebrow: {
-    fontFamily: typography.eyebrow.fontFamily,
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: semanticColors.text.secondary,
   },
   awaitingDemoSection: {
     gap: spacing.xs,

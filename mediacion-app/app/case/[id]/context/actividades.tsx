@@ -1,0 +1,102 @@
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { Button } from '@/design-system';
+import { semanticColors } from '@/design-system/tokens/colors';
+import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens/layout';
+import { spacing } from '@/design-system/tokens/spacing';
+import { typography } from '@/design-system/tokens/typography';
+import { ActivitiesSectionFields } from '@/features/case-context/components/ActivitiesSectionFields';
+import { PrivacyNotice } from '@/features/case-context/components/PrivacyNotice';
+import { useCaseContextDraft } from '@/features/case-context/hooks/useCaseContextDraft';
+import { useSectionSaveQueue } from '@/features/case-context/hooks/useSectionSaveQueue';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { blurActiveElement } from '@/utils/blur-active-element';
+import type { CaseContextEntry, ChildActivity } from '@/types/case-context';
+
+export default function ActividadesScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const caseId = id as string;
+  const { draft } = useCaseContextDraft();
+  const { queueSave, flush } = useSectionSaveQueue();
+  const { horizontalPadding } = useResponsiveLayout();
+  const [saving, setSaving] = useState(false);
+
+  const items = draft?.actividades ?? [];
+  const childIds = (draft?.integrantes ?? []).map((e) => e.data.id);
+
+  const handleChange = (newItems: CaseContextEntry<ChildActivity>[]) => {
+    void queueSave(caseId, 'actividades', newItems);
+  };
+
+  const handleConfirm = async () => {
+    setSaving(true);
+    try {
+      await flush();
+      blurActiveElement();
+      router.back();
+    } catch {
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, getResponsiveContentStyle({ maxWidth: contentWidths.form, horizontalPadding })]}
+    >
+      <Stack.Screen options={{ title: '' }} />
+
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('caseContext.sections.actividades.title')}
+        </Text>
+        <Text style={styles.subtitle}>{t('caseContext.sections.actividades.description')}</Text>
+      </View>
+
+      <PrivacyNotice />
+
+      <ActivitiesSectionFields items={items} onChange={handleChange} childIds={childIds} />
+
+      <View style={styles.actions}>
+        <Button variant="primary" fullWidth onPress={handleConfirm} disabled={saving}>
+          {saving ? t('common.loading') : t('common.confirm')}
+        </Button>
+        <Button variant="tertiary" fullWidth onPress={() => router.back()}>
+          {t('common.cancel')}
+        </Button>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: semanticColors.surface.canvas,
+  },
+  content: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
+  },
+  header: {
+    gap: spacing.xs,
+  },
+  title: {
+    ...typography.headline,
+    color: semanticColors.text.primary,
+  },
+  subtitle: {
+    ...typography.body,
+    color: semanticColors.text.secondary,
+  },
+  actions: {
+    gap: spacing.xs,
+  },
+});

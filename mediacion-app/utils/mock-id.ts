@@ -104,3 +104,8 @@ export function generateMockInvoiceId(): string {
 export function generateMockNegotiationId(): string {
   return `negotiation-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
 }
+
+/** Mock case-context entry identifier for the in-memory session store. */
+export function generateMockContextEntryId(): string {
+  return `ctx-${Date.now()}-${randomString(4, CODE_ALPHABET).toLowerCase()}`;
+}

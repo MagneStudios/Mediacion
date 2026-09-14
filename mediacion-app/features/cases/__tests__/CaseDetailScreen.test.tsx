@@ -111,6 +111,21 @@ jest.mock('@/services/notices.service', () => ({
   appendCaseNotice: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@/services/case-context.service', () => ({
+  caseContextService: {
+    getContext: jest.fn().mockResolvedValue({
+      caseId: 'case-1',
+      integrantes: [],
+      actividades: [],
+      colegio: null,
+      cronograma: [],
+      domicilios: [],
+      restricciones: [],
+      completedSections: [],
+    }),
+  },
+}));
+
 jest.mock('expo-clipboard', () => ({
   setStringAsync: jest.fn().mockResolvedValue(undefined),
 }));
@@ -262,8 +277,8 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
       });
       await renderScreen();
 
-      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
-
+      // InvitationSection auto-fetches on mount: the badge appears sin
+      // necesidad de pulsar "Ver invitación".
       await waitFor(() =>
         expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.pendiente'))).toBeTruthy(),
       );
@@ -282,8 +297,7 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
       });
       await renderScreen();
 
-      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
-
+      // InvitationSection auto-fetches on mount.
       await waitFor(() =>
         expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.aceptada'))).toBeTruthy(),
       );
@@ -302,8 +316,8 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
       });
       await renderScreen();
 
-      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
-
+      // InvitationSection auto-fetches on mount: copiar/compartir aparecen
+      // junto al badge, sin pulsar "Ver invitación".
       await waitFor(() => expect(screen.getByText(t('caseCreation.invite.copy.codigo'))).toBeTruthy());
       expect(screen.getByText(t('caseCreation.invite.share.codigo'))).toBeTruthy();
     });
@@ -814,4 +828,102 @@ describe('CaseDetailScreen — terminar y plazo', () => {
     // alguien que no quiere esperar a que la otra parte pague.
     expect(screen.getByText(t('caseDetail.terminate.action'))).toBeTruthy();
   });
+});
+
+// ---------------------------------------------------------------------------
+// Item 1 — invitación fuera del estado "nuevo"
+// ---------------------------------------------------------------------------
+describe('CaseDetailScreen — invitación fuera de nuevo (Item 1)', () => {
+  beforeEach(() => {
+    mockDetail = buildDetail();
+    mockStatus = 'success';
+  });
+
+  it('shows the invitation section (with a pending badge) in secondary for an in-progress case', async () => {
+    (casesService.getInvitation as jest.Mock).mockResolvedValue({
+      id: 'inv-1',
+      caseId: 'case-1',
+      tipo: 'link',
+      token: 'mediacionapp://invitacion/mock-abc',
+      emailDestino: null,
+      estado: 'pendiente',
+      pagoACargo: null,
+      createdAt: '2026-09-10T00:00:00.000Z',
+    });
+    await renderScreen();
+
+    await waitFor(() =>
+      expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.pendiente'))).toBeTruthy(),
+    );
+    // Los botones de reenviar/regenerar quedan deshabilitados hasta que el
+    // backend exponga los endpoints (§2.6).
+    expect(screen.getByText(t('caseDetail.invitation.resend'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.invitation.regenerateCode'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.invitation.disabledReason'))).toBeTruthy();
+  });
+
+  it('shows "no pending" (never a fake pending badge) for an acordado case whose invitation was accepted', async () => {
+    mockDetail = buildDetail({ estado: 'acordado', visualStatus: 'success', statusLabelKey: 'signed' });
+    // Tras el fix del mock, getInvitation filtra por `pendiente` y devuelve
+    // null para una invitación ya aceptada.
+    (casesService.getInvitation as jest.Mock).mockResolvedValue(null);
+    await renderScreen();
+
+    await waitFor(() => expect(screen.getByText(t('caseDetail.invitation.noPending'))).toBeTruthy());
+    expect(screen.queryByText(t('caseDetail.awaitingCounterparty.invitationStatus.aceptada'))).toBeNull();
+    expect(screen.queryByText(t('caseDetail.awaitingCounterparty.invitationStatus.pendiente'))).toBeNull();
+  });
+
+  it.each(['expirado', 'terminado', 'cerrado', 'vencido'] as const)(
+    'does not render the invitation section for a %s case',
+    async (estado) => {
+      mockDetail = buildDetail({ estado });
+      await renderScreen();
+      expect(screen.queryByText(t('caseDetail.invitation.noPending'))).toBeNull();
+      expect(screen.queryByText(t('caseDetail.awaitingCounterparty.viewInvitation'))).toBeNull();
+      expect(screen.queryByText(t('caseDetail.invitation.resend'))).toBeNull();
+    },
+  );
+
+  it('on nuevo keeps the view-invitation affordance and the disabled reenviar/regenerar buttons', async () => {
+    mockDetail = buildDetail({
+      estado: 'nuevo',
+      visualStatus: 'info',
+      statusLabelKey: 'awaitingCounterparty',
+      counterpartyName: null,
+      roundNumber: null,
+    });
+    await renderScreen();
+    expect(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.invitation.resend'))).toBeTruthy();
+    expect(screen.getByText(t('caseDetail.invitation.regenerateCode'))).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Item 2 — ficha de contexto del caso (tarjeta condicional)
+// ---------------------------------------------------------------------------
+describe('CaseDetailScreen — ficha de contexto del caso (Item 2)', () => {
+  beforeEach(() => {
+    mockDetail = buildDetail();
+    mockStatus = 'success';
+  });
+
+  it.each(['activo', 'en_negociacion', 'acordado', 'pendiente_suscripciones'] as const)(
+    'shows the case context card for estado %s',
+    async (estado) => {
+      mockDetail = buildDetail({ estado });
+      await renderScreen();
+      expect(screen.getByText(t('caseContext.card.title'))).toBeTruthy();
+    },
+  );
+
+  it.each(['nuevo', 'expirado', 'terminado', 'cerrado', 'vencido'] as const)(
+    'does not show the case context card for estado %s',
+    async (estado) => {
+      mockDetail = buildDetail({ estado });
+      await renderScreen();
+      expect(screen.queryByText(t('caseContext.card.title'))).toBeNull();
+    },
+  );
 });
