@@ -1,4 +1,28 @@
-import { toNegotiation, type ApiNegociacion } from '../negotiation-mapper';
+import {
+  toNegotiation,
+  toNegotiationRound,
+  toSharedProposal,
+  type ApiNegociacion,
+  type ApiPropuestaDetail,
+} from '../negotiation-mapper';
+
+function propuestaRow(overrides: Partial<ApiPropuestaDetail> = {}): ApiPropuestaDetail {
+  return {
+    id: 'prop-1',
+    caso_id: 'caso-1',
+    ronda_id: 'ronda-1',
+    contenido: { meetingPoint: [], narrative: 'texto' },
+    fundamentacion: null,
+    estado: 'pendiente',
+    modelo_ia: null,
+    fecha: '2026-09-01T00:00:00.000Z',
+    ronda_numero: 1,
+    ronda_estado: 'activa',
+    own_decision: null,
+    negociacion_id: 'neg-tenencia',
+    ...overrides,
+  };
+}
 
 function row(overrides: Partial<ApiNegociacion> = {}): ApiNegociacion {
   return {
@@ -41,5 +65,15 @@ describe('toNegotiation', () => {
   it('does not carry anything the wire did not send', () => {
     expect(toNegotiation(row())).not.toHaveProperty('materia');
     expect(toNegotiation(row())).not.toHaveProperty('round');
+  });
+});
+
+describe('toNegotiationRound / toSharedProposal — negociacion_id', () => {
+  it('carries negociacion_id through as negotiationId on the round', () => {
+    expect(toNegotiationRound(propuestaRow()).negotiationId).toBe('neg-tenencia');
+  });
+
+  it('carries negociacion_id through as negotiationId on the proposal', () => {
+    expect(toSharedProposal(propuestaRow(), 1).negotiationId).toBe('neg-tenencia');
   });
 });

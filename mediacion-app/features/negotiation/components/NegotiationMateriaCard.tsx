@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ import { negotiationService } from '../../../services/negotiation.service';
 import type { EstadoNegociacion, Negotiation } from '../../../types/negotiation';
 import { blurActiveElement } from '../../../utils/blur-active-element';
 import { isNegotiationNotAcordadaError } from '../../../utils/is-negotiation-not-acordada-error';
+import { isSubscriptionRequiredError } from '../../../utils/is-subscription-required-error';
 
 export type NegotiationMateriaCardProps = {
   negotiation: Negotiation;
@@ -21,7 +23,7 @@ export type NegotiationMateriaCardProps = {
   onCaseChanged: () => void;
 };
 
-type RenegotiateStatus = 'idle' | 'pending' | 'error' | 'notAcordada';
+type RenegotiateStatus = 'idle' | 'pending' | 'error' | 'notAcordada' | 'subscriptionRequired';
 
 const estadoVisual: Record<EstadoNegociacion, StatusPillStatus> = {
   borrador: 'neutral',
@@ -45,9 +47,14 @@ const estadoVisual: Record<EstadoNegociacion, StatusPillStatus> = {
  * que es exactamente el gate del servidor (`409 negociacion_not_acordada` en
  * cualquier otro caso, `con_aviso` incluido). Mismo criterio que
  * `utils/case-actions.ts`: no ofrecer lo que devolvería un 409 genérico.
+ *
+ * "Ver negociación" sólo aparece con `subjectType !== null`: la legacy sigue
+ * entrando por `NegotiationSummaryCard`, que ya resuelve bien "la negociación
+ * sin materia" — duplicar la entrada ahí sería confuso, no una mejora.
  */
 export function NegotiationMateriaCard({ negotiation, onChanged, onCaseChanged }: NegotiationMateriaCardProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [dialogVisible, setDialogVisible] = useState(false);
   const [status, setStatus] = useState<RenegotiateStatus>('idle');
 
@@ -73,6 +80,15 @@ export function NegotiationMateriaCard({ negotiation, onChanged, onCaseChanged }
         setStatus('notAcordada');
         setDialogVisible(false);
         onChanged();
+        return;
+      }
+      if (isSubscriptionRequiredError(error)) {
+        // El gate C-01 también corre sobre el `reopen` de renegociar: si
+        // alguna parte no tiene suscripción activa, el servidor rechaza la
+        // transacción entera. A diferencia de `notAcordada`, acá no cambió
+        // nada — no hay nada que releer.
+        setStatus('subscriptionRequired');
+        setDialogVisible(false);
         return;
       }
       setStatus('error');
@@ -103,24 +119,45 @@ export function NegotiationMateriaCard({ negotiation, onChanged, onCaseChanged }
         ) : null}
       </View>
 
-      {canRenegotiate ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          onPress={() => {
-            setStatus('idle');
-            setDialogVisible(true);
-          }}
-        >
-          {t('negotiation.renegotiate.action')}
-        </Button>
-      ) : null}
+      <View style={styles.actions}>
+        {negotiation.subjectType !== null ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onPress={() => {
+              blurActiveElement();
+              router.push({
+                pathname: '/case/[id]/negotiation',
+                params: { id: negotiation.caseId, negotiationId: negotiation.id },
+              });
+            }}
+          >
+            {t('negotiation.summary.viewAction')}
+          </Button>
+        ) : null}
+
+        {canRenegotiate ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onPress={() => {
+              setStatus('idle');
+              setDialogVisible(true);
+            }}
+          >
+            {t('negotiation.renegotiate.action')}
+          </Button>
+        ) : null}
+      </View>
 
       {/*
         Se dice acá y no reemplaza la tarjeta: la materia sigue siendo
         información útil aunque el último intento haya fallado.
       */}
       {status === 'notAcordada' ? <Text style={styles.error}>{t('negotiation.renegotiate.error.notAcordada')}</Text> : null}
+      {status === 'subscriptionRequired' ? (
+        <Text style={styles.error}>{t('negotiation.renegotiate.error.subscriptionRequired')}</Text>
+      ) : null}
 
       <ConfirmationDialog
         visible={dialogVisible}
@@ -172,6 +209,11 @@ const styles = StyleSheet.create({
   metaText: {
     ...typography.caption,
     color: semanticColors.text.secondary,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
   error: {
     ...typography.caption,

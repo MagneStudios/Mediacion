@@ -7,6 +7,12 @@ import type { Negotiation } from '@/types/negotiation';
 
 const t = i18n.t.bind(i18n);
 
+const mockRoutePush = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockRoutePush, replace: jest.fn(), back: jest.fn() }),
+  usePathname: () => '/case/case-1',
+}));
+
 const mockRenegotiate = jest.fn();
 jest.mock('@/services/negotiation.service', () => ({
   negotiationService: {
@@ -48,9 +54,28 @@ async function openDialogAndConfirm() {
 }
 
 beforeEach(() => {
+  mockRoutePush.mockClear();
   mockRenegotiate.mockReset();
   onChanged.mockClear();
   onCaseChanged.mockClear();
+});
+
+describe('NegotiationMateriaCard — ver negociación', () => {
+  it('navega a la negociación de esta materia por su propio id', async () => {
+    await renderCard(negotiation({ id: 'neg-tenencia', caseId: 'case-1', subjectType: 'tenencia' }));
+
+    await fireEvent.press(screen.getByText(t('negotiation.summary.viewAction')));
+
+    expect(mockRoutePush).toHaveBeenCalledWith({
+      pathname: '/case/[id]/negotiation',
+      params: { id: 'case-1', negotiationId: 'neg-tenencia' },
+    });
+  });
+
+  it('no la ofrece para la legacy — esa entra por NegotiationSummaryCard', async () => {
+    await renderCard(negotiation({ subjectType: null }));
+    expect(screen.queryByText(t('negotiation.summary.viewAction'))).toBeNull();
+  });
 });
 
 describe('NegotiationMateriaCard — lo que muestra', () => {
@@ -124,6 +149,20 @@ describe('NegotiationMateriaCard — renegociar', () => {
     await openDialogAndConfirm();
 
     await waitFor(() => expect(screen.getByText(t('negotiation.renegotiate.error.title'))).toBeTruthy());
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(onCaseChanged).not.toHaveBeenCalled();
+  });
+
+  it('con 409 caso_bloqueado_suscripciones muestra su copy, sin relectura: la transaccion entera hizo rollback', async () => {
+    // A diferencia de notAcordada, acá nada cambió del lado del servidor —no
+    // hay lista ni caso que releer.
+    mockRenegotiate.mockRejectedValue(new ApiError('caso_bloqueado_suscripciones', 'no', 409));
+    await renderCard(negotiation());
+
+    await openDialogAndConfirm();
+
+    await waitFor(() => expect(screen.getByText(t('negotiation.renegotiate.error.subscriptionRequired'))).toBeTruthy());
+    expect(screen.queryByText(t('negotiation.renegotiate.error.title'))).toBeNull();
     expect(onChanged).not.toHaveBeenCalled();
     expect(onCaseChanged).not.toHaveBeenCalled();
   });

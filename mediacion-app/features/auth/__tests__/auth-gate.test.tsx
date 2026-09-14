@@ -7,15 +7,19 @@ import type { AuthService } from '@/services/auth/auth.service';
 import { AuthGate } from '../AuthGate';
 
 let mockPathname = '/';
+let mockSearchParams: { token?: string } = {};
 
 // `Redirect` renders its destination instead of navigating, so a test can
 // assert *where* the gate sends someone rather than only that it stopped
-// rendering the children.
+// rendering the children. `href` is a plain string for most routes, but the
+// invitación→signup bounce (punto #4) hands an object `{pathname, params}` —
+// serialized so a single assertion helper covers both shapes.
 jest.mock('expo-router', () => ({
   usePathname: () => mockPathname,
-  Redirect: ({ href }: { href: string }) => {
+  useLocalSearchParams: () => mockSearchParams,
+  Redirect: ({ href }: { href: string | { pathname: string; params?: Record<string, string> } }) => {
     const { Text: RNText } = jest.requireActual('react-native');
-    return <RNText testID="redirect">{href}</RNText>;
+    return <RNText testID="redirect">{typeof href === 'string' ? href : JSON.stringify(href)}</RNText>;
   },
 }));
 
@@ -33,8 +37,9 @@ function buildAuthService(overrides: Partial<AuthService> = {}): AuthService {
   };
 }
 
-function renderGate(authService: AuthService | null, pathname: string) {
+function renderGate(authService: AuthService | null, pathname: string, searchParams: { token?: string } = {}) {
   mockPathname = pathname;
+  mockSearchParams = searchParams;
   return render(
     <AuthGate authService={authService}>
       <Text testID="app">app</Text>
@@ -107,5 +112,32 @@ describe('AuthGate with a backend', () => {
   it('bounces a signed-in visitor away from the auth routes', async () => {
     renderGate(buildAuthService({ getSession: jest.fn().mockResolvedValue(session) }), '/login');
     await expectRedirectTo('/');
+  });
+
+  describe('punto #2 (AJUSTES-PACTUM-2026-09-10): /signup/plan no es un auth route', () => {
+    it('bounces a signed-out visitor to login, unlike the bare /signup', async () => {
+      renderGate(buildAuthService(), '/signup/plan');
+      await expectRedirectTo('/login');
+    });
+
+    it('lets a signed-in visitor stay on it — the opposite of /login or /signup', async () => {
+      renderGate(buildAuthService({ getSession: jest.fn().mockResolvedValue(session) }), '/signup/plan');
+      await expectAppRendered();
+      expect(screen.queryByTestId('redirect')).toBeNull();
+    });
+  });
+
+  describe('punto #4: un link de invitación sin cuenta', () => {
+    it('manda a /signup con el joinToken reconstruido, no a /login', async () => {
+      renderGate(buildAuthService(), '/invitacion/mock-abc123', { token: 'mock-abc123' });
+      await expectRedirectTo(
+        JSON.stringify({ pathname: '/signup', params: { joinToken: 'mediacionapp://invitacion/mock-abc123' } }),
+      );
+    });
+
+    it('sin token cae al /login genérico en vez de romper', async () => {
+      renderGate(buildAuthService(), '/invitacion/mock-abc123', {});
+      await expectRedirectTo('/login');
+    });
   });
 });

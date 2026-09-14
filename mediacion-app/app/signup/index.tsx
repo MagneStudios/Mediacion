@@ -1,5 +1,5 @@
-import { Link, Stack, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 
@@ -21,6 +21,11 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
   const { signUp, status } = useAuthSession();
+  // Punto #4: si llegamos acá con un código pendiente (AuthGate redirigió un
+  // link de invitación sin sesión), lo llevamos al paso 2 para que, una vez
+  // asignado un plan, termine directo en /case/join con el código precargado
+  // en vez de perderlo en el camino.
+  const { joinToken } = useLocalSearchParams<{ joinToken?: string }>();
 
   const [submitted, setSubmitted] = useState(false);
   // nombre/apellido are not decoration: signUp puts them in the user metadata
@@ -36,15 +41,29 @@ export default function SignUpScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [marketingAccepted, setMarketingAccepted] = useState(false);
 
+  // `onSuccess` is handed to `useAuthForm` once per render and invoked later,
+  // from inside `submitFn(...).then(...)` — by the time that runs, `signUp`
+  // has already updated `status` via real React state, but THIS closure was
+  // fixed at the render where the button was pressed (still 'signedOut',
+  // before signUp ran) and is never recreated for an already-in-flight call.
+  // A ref sidesteps that: reading `.current` always sees the latest value,
+  // regardless of which render's closure is executing.
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
   const onSuccess = useCallback(() => {
     setSubmitted(true);
-    // A signup that produced a session can go straight in. One that did not is
-    // waiting on email confirmation, and the notice below says so rather than
-    // dropping the user on a login screen with no explanation.
-    if (status === 'signedIn') {
-      router.replace('/');
+    // A signup that produced a session moves on to picking a plan — punto #2:
+    // no account may finish the wizard without one, free included. One that
+    // did not produce a session is waiting on email confirmation, and the
+    // notice below says so rather than dropping the user on a login screen
+    // with no explanation.
+    if (statusRef.current === 'signedIn') {
+      router.replace({ pathname: '/signup/plan', params: joinToken ? { joinToken } : undefined });
     }
-  }, [router, status]);
+  }, [router, joinToken]);
 
   const submitFn = useCallback(
     async ({ email, password }: { email: string; password: string }) => {

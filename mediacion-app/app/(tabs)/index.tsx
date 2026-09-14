@@ -16,6 +16,10 @@ export default function CasesScreen() {
         blurActiveElement();
         router.push('/case/create');
       }}
+      onJoinCase={() => {
+        blurActiveElement();
+        router.push('/case/join');
+      }}
     />
   );
 }

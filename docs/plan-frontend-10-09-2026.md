@@ -1,0 +1,87 @@
+# Plan de Frontend — Ajustes de prueba (reunión del 10/09/2026)
+
+**Fecha:** 10/09/2026 · **Autor:** Frontend
+**Fuente:** `AJUSTES-PACTUM-2026-09-10.md` (ronda de prueba del cliente sobre la app funcionando).
+**Rama:** `feat/ajustes-prueba-10-09`
+
+---
+
+## 0 · Resumen
+
+Seis puntos, uno bloqueante (#4). Dos de ellos **ya existen parcialmente en el código** y son mucho más baratos de lo que parecía en la lectura del pedido: la pantalla de "unirse con código" ya está construida pero sin ningún link que lleve a ella, y la sección de invitar desde el detalle del caso ya existe para el estado `nuevo`, solo falta ampliarla a otros estados.
+
+| # | Cambio | Estado |
+|---|--------|--------|
+| 1 | TyC dentro del alta | ✅ Hecho — se sacó el duplicado del checkout |
+| 2 | Elección de plan (incl. free) dentro del alta | ✅ Hecho — wizard de 2 pasos (`app/signup/{index,plan}.tsx`) |
+| 3 | Botón de cerrar sesión global | ✅ Hecho — `GlobalSignOutAction` en topbar (desktop) y flotante (mobile) |
+| 4 | Pantalla para ingresar código y unirse | ✅ Hecho — CTAs agregados + deep link `app/invitacion/[token].tsx` |
+| 5 | Invitar/reinvitar en cualquier momento | ✅ Hecho (alcance revisado) — badge de estado + compartir |
+| 6 | Sacar el pago 50/50 → suscripción individual | ✅ Hecho (alcance cosmético) — selector sacado, enforcement real sigue siendo de backend |
+
+**Los 6 puntos del checklist quedaron implementados y verificados (10/09).** Suite completa verde (150 suites / 1356 tests), `pnpm tsc -b` sin errores. Quedan documentados más abajo los gaps conocidos que dependen de backend o de trabajo fuera de alcance de esta tanda.
+
+**Importante para la demo:** el punto 6 no puede quedar 100% resuelto desde frontend — el gate real de "cada parte paga la suya" es un trigger de backend (`trg_casos_gate_suscripciones`). Esta tanda solo saca el selector "quién paga" de la UI y ajusta el copy. Comunicar esto explícitamente al cliente, no presentarlo como cerrado end-to-end.
+
+---
+
+## 1 · Estado por punto
+
+### #1 — TyC dentro del alta ✅ (10/09)
+- [x] Se sacó `AcceptanceCheckboxes`, el estado `termsAccepted`/`marketingAccepted` y la llamada a `legalService.registerAcceptance()` de `app/profile/plan/checkout.tsx`. El botón de pago ya no depende de aceptar nada — la aceptación quedó una sola vez, en el signup.
+- [x] `app/profile/plan/__tests__/checkout.test.tsx` reescrito sin los asserts de checkbox/gate.
+- No se tocó `ReacceptanceGate` (mecanismo distinto: reaceptación de nuevas versiones de TyC).
+- Suite completa verde (148/148), `tsc --noEmit` sin errores.
+
+### #2 — Elección de plan dentro del alta ✅ (10/09)
+- [x] `app/signup/_layout.tsx`, `app/signup/index.tsx` (paso 1, ex `app/signup.tsx`), `app/signup/plan.tsx` (paso 2). Eliminado `app/signup.tsx`.
+- [x] **Simplificación respecto al plan original:** en vez de un Context Provider (`useSignupFlow`), el único dato que viaja entre pasos (`joinToken`, punto #4) se pasa como query param entre rutas (`/signup?joinToken=` → `/signup/plan?joinToken=`), igual que ya hace `/case/join?token=`. El paso 1 completa el registro por sí mismo (`signUp` + `registerAcceptance`); no hace falta un draft compartido de campos como en el wizard de casos.
+- [x] Plan free = específicamente `plan.nombre === 'base'`, **no** `precio === 0` — `mocks/plans.ts` documenta que `plan-corporativo` también tiene precio 0 pero significa "a consultar", no gratis (decisión de producto abierta, `docs/plan-frontend-monetizacion.md` §1.2–§1.3). Gatillar por nombre evita que el wizard suscriba gratis a un plan pensado para venta negociada.
+- [x] `billingService.subscribeToPlan(planId)` ya existía y sirve tal cual para el plan free (mock, un solo paso, sin checkout). Contra backend real queda **pendiente de confirmar** si `POST /suscripciones` short-circuitea igual para precio 0 — no bloquea, documentado.
+- [x] **Bug real encontrado y arreglado** (no introducido por esta tanda): `onSuccess` en el signup leía `status` de `useAuthSession()` por closure, que queda obsoleto porque la promesa de `submitFn` resuelve después de que el componente ya re-renderizó con el nuevo status — la navegación post-signup nunca disparaba cuando la sesión se activaba sin confirmación de email. Arreglado con un `ref` que siempre lee el valor más reciente.
+- [x] `AuthGate.tsx` ajustado: `/signup/plan` ya no hereda el status "público"/"auth route" del `/signup` bare (necesita sesión); y un visitante sin cuenta que abre un link de invitación (`/invitacion/*`) ahora es mandado a `/signup?joinToken=...` en vez de perder el código en `/login`.
+- [ ] **Gap conocido (fuera de alcance de mañana):** el `joinToken` solo se propaga completo si el usuario elige el plan **free**. Si elige un plan pago, el wizard navega a `/profile/plan/checkout` sin forwardear el token — retomar el hilo tras un checkout (simulado o Mercado Pago real) requeriría tocar `checkout.tsx`, `receipt.tsx` y `billing/callback.tsx`, que no se justificaba para la prueba de aceptación de mañana (solo pide el camino free).
+
+### #3 — Botón de cerrar sesión ✅ (10/09)
+- [x] `features/profile/components/GlobalSignOutAction.tsx` (nuevo) — reusa `useAccountActions`/`SignOutDialog`, mismo wiring que `/profile/account` (sin duplicar lógica).
+- [x] Montado en `components/DesktopTopbar.tsx` (desktop, junto al avatar).
+- [x] Montado globalmente para mobile/compact en `app/_layout.tsx` (`CompactGlobalSignOut`, botón flotante arriba a la derecha, ya que en compact no hay un único punto de montaje como el topbar — cada sección fuera de `(tabs)` tiene su propio header nativo).
+- [x] `app/profile/account.tsx` se dejó como está (su propia card con descripción es más apropiada ahí); no se duplicó lógica, solo hay dos presentaciones de UI sobre el mismo hook.
+- [x] Tests: `features/profile/components/__tests__/GlobalSignOutAction.test.tsx` (nuevo), `components/__tests__/DesktopTopbar.test.tsx` (actualizado). Suite completa de `features/profile` + `components/__tests__` + `app/(tabs)/profile` verde (457 tests).
+
+### #4 — Unirse a un caso con código (bloqueante) ✅ (10/09, parcial — falta la pata de #2)
+- [x] CTA en `features/cases/CasesDashboardScreen.tsx`: botón "Unirme a un caso" en el header (junto a "Crear un caso") + acción en el `EmptyState`.
+- [x] `app/case/join.tsx`: lee `?token=` de `useLocalSearchParams` y precarga el input.
+- [x] `app/invitacion/[token].tsx` (nuevo): el link `mediacionapp://invitacion/mock-...` no resolvía a ninguna pantalla — esta ruta lo intercepta, reconstruye el string completo (necesario porque `CaseInvitation.token` para tipo "link" es la URL entera, no solo el segmento) y redirige a `/case/join?token=...`.
+- [x] Nuevo ícono `user-plus` agregado al registro de `design-system/components/Icon.tsx` (no había ninguno adecuado para "unirse").
+- [x] **Cerrado con #2:** un usuario sin cuenta que abre el link ahora llega a `/signup?joinToken=...` (ajuste en `AuthGate.tsx`) en vez de perder el código en `/login`; el wizard de signup lo propaga y redirige a `/case/join?token=...` al terminar (plan free) o lo mantiene pendiente si eligió pago (ver nota en #2 sobre el alcance limitado ahí).
+- [x] Tests: `app/case/__tests__/join.test.tsx` (prefill), `app/invitacion/__tests__/[token].test.tsx` (nuevo), `features/cases/__tests__/CasesDashboardScreen.test.tsx` (CTA + empty state). Suite completa verde.
+
+### #5 — Invitar en cualquier momento ✅ (10/09, alcance revisado)
+- [x] **Revisión del alcance:** el plan original suponía ampliar a más estados de `EstadoCaso`, pero cruzando contra la máquina de estados (`types/case.ts`) eso no aplica — un caso solo permanece sin contraparte en `nuevo` (o pasa a `expirado` a las 72h); en `pendiente_suscripciones`/`activo`/etc. la contraparte YA se unió. Es decir, "cualquier momento antes de que se una" ya estaba cubierto por la sección existente para `estado === 'nuevo'`, sin límite de tiempo artificial. Lo que realmente faltaba era más chico:
+- [x] Badge de estado de la invitación (pendiente/aceptada/rechazada/expirada) en `features/cases/CaseDetailScreen.tsx` — el tipo `EstadoInvitacion` ya existía, solo faltaba mostrarlo ("para que se entienda por qué el caso todavía no avanza").
+- [x] Botón "compartir" en `InvitationResultCard` (usa `Share` de `react-native`, sin dependencias nuevas), junto al de copiar.
+- Fuera de alcance (decisión de producto ya documentada en el código, confirmado con el usuario): reenviar/regenerar invitación.
+- Tests: `features/cases/components/__tests__/InvitationResultCard.test.tsx` (nuevo), casos nuevos en `features/cases/__tests__/CaseDetailScreen.test.tsx`. Suite completa verde (150/150, 1356 tests), `tsc -b` sin errores.
+
+### #6 — Sacar el pago 50/50 ✅ (10/09, alcance cosmético acordado)
+- [x] Quitado el selector "quién paga" de `app/case/create/invite.tsx` — ya no se pregunta ni se envía `pagoACargo` al crear una invitación.
+- [x] `CreateInvitationInput.pagoACargo` (`types/case.ts`) pasó a opcional — `CaseInvitation.pagoACargo` ya documentaba que `null` es una respuesta válida del servidor, así que el frontend simplemente nunca lo define. Ajustado también `services/cases.service.ts` (mock) y `services/api/cases.api-service.ts` (solo se manda el campo si viene definido, igual que `emailDestino`).
+- [x] Copy de `app/case/[id]/payment-required.tsx` actualizado: de "quien te invitó eligió que vos pagues" a "cada parte paga su propia suscripción".
+- [x] i18n: eliminadas las keys `caseCreation.invite.pagoACargo.*` (quedaban sin uso) en ambos locales.
+- **Efecto secundario esperado, no un bug:** contra el mock, `requiresPayment` en `joinCase` se calcula como `pagoACargo === 'invitado'` (`services/cases.service.ts`) — como el frontend ya nunca setea `pagoACargo`, esa rama del mock (pantalla `payment-required` alcanzada vía el flujo normal de invitación) queda efectivamente inalcanzable en modo mock. Es exactamente lo esperado: esa lógica demostraba el modelo viejo. El gate real (C-01, suscripción por parte) es un mecanismo de backend completamente aparte (`pendiente_suscripciones`) y no se tocó.
+- **No implementable end-to-end sin backend** (confirmado con el usuario antes de implementar): el enforcement real de "cada parte paga la suya" sigue siendo el trigger `trg_casos_gate_suscripciones`. Esta tanda es solo UI/copy — no presentar como resuelto en la demo.
+- Tests: `app/case/create/__tests__/invite-screen.test.tsx` reescrito (sin el selector). Suite completa verde (150/150, 1356 tests), `tsc -b` sin errores.
+
+---
+
+## 2 · Verificación / E2E de aceptación
+
+1. Crear cuenta nueva → aceptar TyC en el signup → elegir plan free en el wizard → termina sin pasar por checkout.
+2. Crear un caso.
+3. Invitar a la contraparte desde el detalle del caso (no solo desde el wizard de creación).
+4. Desde otra cuenta: entrar por el botón "Unirme a un caso" del dashboard, o por el link con el token precargado.
+5. Cerrar sesión desde ambas cuentas, probando el botón de logout desde una pantalla que no sea `/profile/account`.
+6. Verificar que el checkout de un plan pago ya no vuelve a pedir aceptación de TyC.
+
+Plan de implementación completo (contratos de componentes, snippets, riesgos) en la conversación de Claude Code del 10/09 — ver historial de la sesión si hace falta el detalle técnico.

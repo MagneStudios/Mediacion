@@ -4,12 +4,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import i18n from '@/i18n';
 
 const mockReplace = jest.fn();
+let mockSearchParams: { joinToken?: string } = {};
 jest.mock('expo-router', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text } = require('react-native');
   return {
     Stack: { Screen: () => null },
     useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: jest.fn() }),
+    useLocalSearchParams: () => mockSearchParams,
     Link: ({ children }: { children?: React.ReactNode }) => <Text>{children}</Text>,
   };
 });
@@ -18,10 +20,35 @@ jest.mock('@/hooks/use-responsive-layout', () => ({
   useResponsiveLayout: () => ({ horizontalPadding: 16, isWide: false }),
 }));
 
+let mockAuthSessionStatus: 'signedOut' | 'signedIn' = 'signedOut';
+const mockAuthSessionListeners = new Set<() => void>();
+function setMockAuthSessionStatus(next: 'signedOut' | 'signedIn') {
+  mockAuthSessionStatus = next;
+  mockAuthSessionListeners.forEach((listener) => listener());
+}
 const mockSignUp = jest.fn();
-jest.mock('@/features/auth/auth-session', () => ({
-  useAuthSession: () => ({ signUp: mockSignUp, status: 'signedOut' }),
-}));
+jest.mock('@/features/auth/auth-session', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useEffect, useState } = require('react');
+  return {
+    // A plain `{ status: mockAuthSessionStatus }` object would never re-render
+    // SignUpScreen when the mock mutates that variable — the real
+    // AuthSessionProvider is a Context whose consumers DO re-render on
+    // `setStatus`. This subscribes like a real consumer so `onSuccess`'s
+    // `status` check sees the same value a real signUp() flow would.
+    useAuthSession: () => {
+      const [, forceRender] = useState(0);
+      useEffect(() => {
+        const listener = () => forceRender((n: number) => n + 1);
+        mockAuthSessionListeners.add(listener);
+        return () => {
+          mockAuthSessionListeners.delete(listener);
+        };
+      }, []);
+      return { signUp: mockSignUp, status: mockAuthSessionStatus };
+    },
+  };
+});
 
 const mockRegisterAcceptance = jest.fn();
 jest.mock('@/services/legal.service', () => ({
@@ -29,7 +56,7 @@ jest.mock('@/services/legal.service', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import SignUpScreen from '../signup';
+import SignUpScreen from '../index';
 
 async function renderScreen() {
   await render(
@@ -58,6 +85,8 @@ describe('SignUpScreen — TyC acceptance gate (instructivo §2)', () => {
     mockSignUp.mockReset();
     mockRegisterAcceptance.mockReset();
     mockRegisterAcceptance.mockResolvedValue(undefined);
+    mockAuthSessionStatus = 'signedOut';
+    mockSearchParams = {};
   });
 
   it('both checkboxes start unchecked — never pre-ticked', async () => {
@@ -104,5 +133,51 @@ describe('SignUpScreen — TyC acceptance gate (instructivo §2)', () => {
 
     // The flow completes (awaiting-confirmation notice), not an error screen.
     await waitFor(() => expect(screen.getByText(i18n.t('auth.signUp.checkEmail.title'))).toBeTruthy());
+  });
+
+  describe('punto #2 (AJUSTES-PACTUM-2026-09-10): el alta ya no termina acá — sigue a elegir plan', () => {
+    it('con sesión creada, navega al paso de plan en vez de al dashboard', async () => {
+      mockSignUp.mockImplementation(async () => {
+        setMockAuthSessionStatus('signedIn');
+      });
+      await renderScreen();
+      await fillRequiredFields();
+
+      await tick(i18n.t('legal.acceptance.requiredA11yLabel'));
+      await fireEvent.press(screen.getByRole('button', { name: i18n.t('auth.signUp.submitAction') }));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: '/signup/plan', params: undefined }));
+    });
+
+    it('propaga el joinToken pendiente (punto #4) al paso de plan', async () => {
+      mockSearchParams = { joinToken: 'mediacionapp://invitacion/mock-abc123' };
+      mockSignUp.mockImplementation(async () => {
+        setMockAuthSessionStatus('signedIn');
+      });
+      await renderScreen();
+      await fillRequiredFields();
+
+      await tick(i18n.t('legal.acceptance.requiredA11yLabel'));
+      await fireEvent.press(screen.getByRole('button', { name: i18n.t('auth.signUp.submitAction') }));
+
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith({
+          pathname: '/signup/plan',
+          params: { joinToken: 'mediacionapp://invitacion/mock-abc123' },
+        }),
+      );
+    });
+
+    it('sin sesión (falta confirmar email), no navega — se queda en el aviso', async () => {
+      mockSignUp.mockResolvedValue(undefined);
+      await renderScreen();
+      await fillRequiredFields();
+
+      await tick(i18n.t('legal.acceptance.requiredA11yLabel'));
+      await fireEvent.press(screen.getByRole('button', { name: i18n.t('auth.signUp.submitAction') }));
+
+      await waitFor(() => expect(screen.getByText(i18n.t('auth.signUp.checkEmail.title'))).toBeTruthy());
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
   });
 });

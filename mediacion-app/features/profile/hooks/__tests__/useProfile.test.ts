@@ -76,4 +76,34 @@ describe('useProfile', () => {
       process.off('unhandledRejection', onUnhandled);
     }
   });
+
+  it('flags an unprovisioned account as sessionBroken instead of the generic error', async () => {
+    const { ApiError, codeUserNotProvisioned } = jest.requireActual('@/services/api/api-error');
+    service.getProfile.mockRejectedValueOnce(
+      new ApiError(codeUserNotProvisioned, 'User is not provisioned', 401),
+    );
+
+    const { result } = await renderHook(() => useProfile());
+
+    await waitFor(() => expect(result.current.status).toBe('sessionBroken'));
+  });
+
+  it('flags a missing profile record as sessionBroken instead of the generic error', async () => {
+    const { ApiError, codeProfileNotFound } = jest.requireActual('@/services/api/api-error');
+    service.getProfile.mockRejectedValueOnce(
+      new ApiError(codeProfileNotFound, 'Profile not found', 404),
+    );
+
+    const { result } = await renderHook(() => useProfile());
+
+    await waitFor(() => expect(result.current.status).toBe('sessionBroken'));
+  });
+
+  it('still uses the generic error status for an unrelated failure', async () => {
+    service.getProfile.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => useProfile());
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+  });
 });

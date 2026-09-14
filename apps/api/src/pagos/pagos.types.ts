@@ -22,6 +22,10 @@ export type Suscripcion = Selectable<Database["suscripciones"]>;
 
 export const estadoSuscripcionActiva: Suscripcion["estado"] = "activa";
 
+/** El estado con el que nace toda suscripción: la columna lo tiene por default. */
+export const estadoSuscripcionPendientePago: Suscripcion["estado"] =
+  "pendiente_pago";
+
 export type CreateSuscripcionDto = {
   plan_id: string;
   estudio_id?: string | null;
@@ -85,8 +89,19 @@ export type SuscripcionOwnerFilter = {
   estudioId: string | null;
 };
 
+/**
+ * El resultado de `POST /suscripciones/:id/pago`.
+ *
+ * `init_point` es la URL de checkout de Mercado Pago, y es `null` en el único
+ * caso en que no hay nada que cobrar: un plan de precio 0. Ahí la suscripción
+ * ya quedó `activa` del lado del servidor y `estado` lo dice, para que el
+ * llamador distinga "no hay que pagar" de "la preferencia no se pudo armar".
+ * Mercado Pago rechaza con 400 toda preferencia de monto cero, así que sin
+ * este atajo el plan gratuito es inalcanzable.
+ */
 export type PreferenceResult = {
-  init_point: string;
+  init_point: string | null;
+  estado?: Suscripcion["estado"];
 };
 
 export type ApplyPagoInput = {

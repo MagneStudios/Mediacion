@@ -12,11 +12,19 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { blurActiveElement } from '@/utils/blur-active-element';
 
 /**
- * R-07: shown right after joining a case whose invitation set
- * `pagoACargo: 'invitado'` — the invitador chose "paga la otra parte", so
- * this joined party owes the subscription before the case itself opens.
- * Mirrors the backend's planned gate on `POST /casos/unirse`
- * (`docs/plan-implementacion-07-08-2026.md`, Fase 3) on the frontend side.
+ * Shown right after joining a case when this party still needs their own
+ * active subscription to operate on it — the gate is C-01 ("cada parte
+ * paga la suya"), not whoever invited whom. Mirrors the backend's planned
+ * gate on `POST /casos/unirse` (`docs/plan-implementacion-07-08-2026.md`,
+ * Fase 3) on the frontend side.
+ *
+ * Punto #6 (AJUSTES-PACTUM-2026-09-10): hasta acá el copy y el campo
+ * `requiresPayment` estaban atados a `pagoACargo` (quién de las dos partes
+ * "elegía" pagar). Ese selector se sacó de la UI de invitar
+ * (`app/case/create/invite.tsx`) — el modelo real es suscripción individual
+ * por parte, sin importar quién invitó. `requiresPayment` como señal de
+ * "a esta parte le falta suscripción" sigue siendo válida sin cambios de
+ * backend; lo que cambió es que ya no se presenta como una decisión ajena.
  *
  * No real enforcement exists anywhere in this mock — `casesService.joinCase`
  * already transitioned the case and returned `requiresPayment`, there's no

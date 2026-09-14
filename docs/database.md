@@ -69,7 +69,8 @@ supabase/migrations/
 ├── 20260906120000_acuerdos_recolocar.sql  # Parte 4 (breaking): rondas/propuestas/acuerdos cuelgan de negociacion_id (backfill NULL para casos sin materia), se caen ronda_actual, sync_ronda_actual() y 3 uniques
 ├── 20260906130000_acuerdos_versionado.sql  # Parte 5: version/vigente/valid_from/supersedes_agreement_id en acuerdos + idx_acuerdos_negociacion_vigente
 ├── 20260909120000_renegociacion_reabre_caso.sql  # Renegociación reabre el caso: acordado → en_negociacion
-└── 20260909130000_casos_estado_insert_guard.sql  # Máquina de estados de casos también corre en INSERT (no solo UPDATE)
+├── 20260909130000_casos_estado_insert_guard.sql  # Máquina de estados de casos también corre en INSERT (no solo UPDATE)
+└── 20260910120000_planes_is_self_serve.sql  # is_self_serve en planes (corporativo = false "a consultar"; resto true)
 ```
 
 ## Modelo de datos (34 tablas)
@@ -101,7 +102,7 @@ supabase/migrations/
 - `incumplimientos` — avisos de incumplimiento
 
 ### Monetización
-- `planes` — catálogo público (base, simple, plus, estudio, particular, corporativo; `limite_casos` NULL = ilimitado). Pactum Fase 1: `max_negotiations_per_period` (particular=3, estudio=3/cliente, corporativo=NULL) y `max_clients_per_period` (estudio=20, corporativo=NULL), NULL = ilimitado
+- `planes` — catálogo público (base, simple, plus, estudio, particular, corporativo; `limite_casos` NULL = ilimitado). Pactum Fase 1: `max_negotiations_per_period` (particular=3, estudio=3/cliente, corporativo=NULL) y `max_clients_per_period` (estudio=20, corporativo=NULL), NULL = ilimitado. **`is_self_serve`** (09-10): `true` = el alta lo contrata solo (incluye `base` gratis, precio 0.00, y los de pago; `precio` sigue `NOT NULL`); `false` = "a consultar" — solo `corporativo` (0.00), se contrata por ventas, no por el wizard del alta
 - `suscripciones` — FK XOR (usuario_id ↔ estudio_id). Pactum Fase 1: `current_period_start/end` (período anclado al alta), `cancel_at_period_end`, `mp_preapproval_id` (UNIQUE), `mp_payer_email`; estado `pausada` agregado al enum
 - `pagos` — confirmados por webhook de Mercado Pago
 - `facturas` — facturación por pago (neto, IVA, impuestos, CAE, URL PDF)

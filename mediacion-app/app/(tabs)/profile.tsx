@@ -9,6 +9,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
+import { useAuthSession } from '@/features/auth/auth-session';
 import { DemoEnvironmentNotice } from '@/features/profile/components/DemoEnvironmentNotice';
 import { PreferenceRow } from '@/features/profile/components/PreferenceRow';
 import { ProfileMenuItem } from '@/features/profile/components/ProfileMenuItem';
@@ -23,11 +24,28 @@ export default function ProfileScreen() {
   const { status, profile, reload } = useProfile();
   const notifications = useNotificationPreferences();
   const { horizontalPadding, isWide, isCompact } = useResponsiveLayout();
+  const { signOut } = useAuthSession();
 
   if (status === 'loading') {
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.loadingContent}>
         <LoadingState label={t('common.loading')} />
+      </ScrollView>
+    );
+  }
+
+  if (status === 'sessionBroken') {
+    // Not transient: the account has no record on our side, so retrying
+    // sends the exact same request into the exact same rejection. The one
+    // action that can actually help is signing out and back in.
+    return (
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.loadingContent}>
+        <ErrorState
+          title={t('profile.sessionBroken.title')}
+          description={t('profile.sessionBroken.description')}
+          retryLabel={t('profile.sessionBroken.action')}
+          onRetry={signOut}
+        />
       </ScrollView>
     );
   }

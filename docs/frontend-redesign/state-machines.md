@@ -204,7 +204,7 @@ stateDiagram-v2
     [*] --> pendiente: createInvitation()
     pendiente --> aceptada: joinCase() exitoso
     pendiente --> rechazada: (no implementado en mock)
-    pendiente --> expirada: TTL de 7 días (backend)
+    pendiente --> expirada: TTL configuracion.invitacion_ttl_horas (72 h; BE lee la fila desde 09-09)
     aceptada --> [*]
     rechazada --> [*]
     expirada --> [*]

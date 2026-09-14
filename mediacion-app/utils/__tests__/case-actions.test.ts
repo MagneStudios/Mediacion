@@ -1,5 +1,6 @@
 import type { EstadoCaso } from '../../types/case';
 import {
+  canAddMateria,
   canSetCaseDeadline,
   canTerminateCase,
   deadlinePresetHours,
@@ -43,6 +44,24 @@ describe('canSetCaseDeadline', () => {
   it('refuses every terminal state', () => {
     for (const estado of ['acordado', 'cerrado', 'terminado', 'vencido', 'expirado'] as EstadoCaso[]) {
       expect(canSetCaseDeadline(estado)).toBe(false);
+    }
+  });
+});
+
+describe('canAddMateria', () => {
+  it('allows exactly the states the server accepts for POST /casos/:id/negociaciones', () => {
+    for (const estado of ['nuevo', 'activo', 'en_negociacion', 'acordado'] as EstadoCaso[]) {
+      expect(canAddMateria(estado)).toBe(true);
+    }
+  });
+
+  it('excludes pendiente_suscripciones on purpose — the gate C-01, the other party cannot act yet', () => {
+    expect(canAddMateria('pendiente_suscripciones')).toBe(false);
+  });
+
+  it('excludes every terminal estado', () => {
+    for (const estado of ['cerrado', 'terminado', 'vencido', 'expirado'] as EstadoCaso[]) {
+      expect(canAddMateria(estado)).toBe(false);
     }
   });
 });

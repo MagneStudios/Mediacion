@@ -254,11 +254,11 @@ describeDb(
       await cleanupCase(casoId);
     });
 
-    it("accepts a token sent 6 days ago, still within the 7-day TTL", async () => {
-      const sixDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+    it("accepts a token sent 2 days ago, still within the 72-hour TTL", async () => {
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       const { casoId, token } = await createCaseWithInvitation({
         tipo: "link",
-        fechaEnvio: sixDaysAgo,
+        fechaEnvio: twoDaysAgo,
       });
 
       const result = await invitacionesRepository.joinCase(

@@ -1,4 +1,4 @@
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
@@ -15,8 +15,13 @@ import { isSubscriptionRequiredError } from '@/utils/is-subscription-required-er
 export default function CaseJoinScreen() {
   const { t } = useTranslation();
   const { horizontalPadding } = useResponsiveLayout();
+  // Punto #4 (AJUSTES-PACTUM-2026-09-10): el link de invitación
+  // (`mediacionapp://invitacion/...`) resuelve a `app/invitacion/[token].tsx`,
+  // que redirige acá con el token reconstruido en `?token=` — así el código
+  // llega precargado en vez de que la persona tenga que copiarlo a mano.
+  const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
 
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(tokenParam ?? '');
   const [status, setStatus] = useState<JoinCaseFormStatus>('idle');
 
   const handleSubmit = useCallback(async () => {

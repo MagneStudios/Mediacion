@@ -18,9 +18,15 @@ import { useCases } from './hooks/useCases';
 export type CasesDashboardScreenProps = {
   onOpenCase: (caseSummary: CaseSummary) => void;
   onCreateCase: () => void;
+  /**
+   * Punto #4 (AJUSTES-PACTUM-2026-09-10): antes de esto, `/case/join` no
+   * tenía ningún link que llevara ahí. Este es uno de los dos entry points
+   * agregados (el otro es la acción del `EmptyState`, más abajo).
+   */
+  onJoinCase: () => void;
 };
 
-export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboardScreenProps) {
+export function CasesDashboardScreen({ onOpenCase, onCreateCase, onJoinCase }: CasesDashboardScreenProps) {
   const { t } = useTranslation();
   const result = useCases();
   const { isWide, isExtraWide, horizontalPadding } = useResponsiveLayout();
@@ -68,7 +74,16 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
                   {t('cases.description')}
                 </Text>
               </View>
-              <View style={[styles.headerAction, isWide && styles.headerActionWide]}>
+              <View style={[styles.headerAction, isWide && styles.headerActionWide, styles.headerActions, isWide && styles.headerActionsWide]}>
+                <Button
+                  variant="secondary"
+                  fullWidth={!isWide}
+                  size="lg"
+                  iconLeft={<Icon name="user-plus" size={16} color={semanticColors.text.secondary} />}
+                  onPress={onJoinCase}
+                >
+                  {t('cases.joinCase')}
+                </Button>
                 <Button
                   variant="primary"
                   fullWidth={!isWide}
@@ -126,6 +141,11 @@ export function CasesDashboardScreen({ onOpenCase, onCreateCase }: CasesDashboar
               icon={<Icon name="folder-open" size={28} color={semanticColors.text.tertiary} />}
               title={t('cases.empty.title')}
               description={t('cases.empty.description')}
+              action={
+                <Button variant="secondary" size="md" onPress={onJoinCase}>
+                  {t('cases.empty.joinAction')}
+                </Button>
+              }
             />
           ) : null
         }
@@ -204,6 +224,13 @@ const styles = StyleSheet.create({
   headerActionWide: {
     width: 'auto',
     flexShrink: 0,
+  },
+  headerActions: {
+    flexDirection: 'column',
+    gap: spacing.sm,
+  },
+  headerActionsWide: {
+    flexDirection: 'row',
   },
   dashboardTools: {
     gap: spacing.md,

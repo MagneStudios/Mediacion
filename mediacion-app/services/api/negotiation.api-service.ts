@@ -1,4 +1,4 @@
-import type { DecisionPropuesta } from '@/types/negotiation';
+import type { DecisionPropuesta, MateriaAcuerdo } from '@/types/negotiation';
 
 import type { HttpClient } from './http-client';
 import type { ApiNegociacion, ApiPropuestaDetail, ApiPropuestaView, ApiRenegociacion } from './negotiation-mapper';
@@ -6,6 +6,10 @@ import type { ApiNegociacion, ApiPropuestaDetail, ApiPropuestaView, ApiRenegocia
 export type ApiNegotiationService = {
   listPropuestas(caseId: string): Promise<ApiPropuestaDetail[]>;
   generatePropuesta(caseId: string): Promise<ApiPropuestaView>;
+  /** Gemela de `listPropuestas`, por negociación — cada materia tiene su propia ronda/propuesta. */
+  listPropuestasForNegociacion(negotiationId: string): Promise<ApiPropuestaDetail[]>;
+  /** Gemela de `generatePropuesta`, por negociación. */
+  generatePropuestaForNegociacion(negotiationId: string): Promise<ApiPropuestaView>;
   responder(proposalId: string, decision: DecisionPropuesta): Promise<ApiPropuestaView>;
   /** A caso with no negociaciones answers `[]`, not 404 — nothing to swallow here. */
   listNegociaciones(caseId: string): Promise<ApiNegociacion[]>;
@@ -14,6 +18,14 @@ export type ApiNegotiationService = {
    * `409 negociacion_not_acordada` otherwise — including twice in a row.
    */
   renegociar(negotiationId: string): Promise<ApiRenegociacion>;
+  /**
+   * Opens a new negociación over another materia of the same caso. `metodo`
+   * is not sent — the server inherits it from the caso, never from the
+   * client. `409 negociacion_materia_already_exists` if that materia is
+   * already open; `409 caso_no_negociable` outside `nuevo|activo|
+   * en_negociacion|acordado`.
+   */
+  crearNegociacion(caseId: string, subjectType: MateriaAcuerdo): Promise<ApiNegociacion>;
 };
 
 export function createApiNegotiationService(http: HttpClient): ApiNegotiationService {
@@ -33,6 +45,16 @@ export function createApiNegotiationService(http: HttpClient): ApiNegotiationSer
       });
     },
 
+    listPropuestasForNegociacion(negotiationId: string): Promise<ApiPropuestaDetail[]> {
+      return http.request<ApiPropuestaDetail[]>(`/negociaciones/${negotiationId}/propuestas`);
+    },
+
+    generatePropuestaForNegociacion(negotiationId: string): Promise<ApiPropuestaView> {
+      return http.request<ApiPropuestaView>(`/negociaciones/${negotiationId}/propuestas`, {
+        method: 'POST',
+      });
+    },
+
     responder(proposalId: string, decision: DecisionPropuesta): Promise<ApiPropuestaView> {
       return http.request<ApiPropuestaView>(`/propuestas/${proposalId}/responder`, {
         method: 'POST',
@@ -47,6 +69,13 @@ export function createApiNegotiationService(http: HttpClient): ApiNegotiationSer
     renegociar(negotiationId: string): Promise<ApiRenegociacion> {
       return http.request<ApiRenegociacion>(`/negociaciones/${negotiationId}/renegociar`, {
         method: 'POST',
+      });
+    },
+
+    crearNegociacion(caseId: string, subjectType: MateriaAcuerdo): Promise<ApiNegociacion> {
+      return http.request<ApiNegociacion>(`/casos/${caseId}/negociaciones`, {
+        method: 'POST',
+        body: { subject_type: subjectType },
       });
     },
   };

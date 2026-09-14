@@ -134,6 +134,32 @@ describe('billing.backed-service', () => {
       expect(start).not.toHaveProperty('invoice');
     });
 
+    it('reports a zero-price plan as already activated, with no checkout to open', async () => {
+      // Mercado Pago rechaza toda preferencia de monto cero, así que BE activa
+      // el plan gratuito del lado del servidor y no devuelve init_point. Sin
+      // este camino la pantalla trata el caso como error y el plan gratis
+      // queda inalcanzable.
+      const api = fakeApi({
+        startPayment: jest.fn().mockResolvedValue({ init_point: null, estado: 'activa' }),
+      });
+
+      const start = await createBackedBillingService(api, fakeMock()).startCheckout('plan-free');
+
+      expect(start).toEqual({ kind: 'activated', subscriptionId: 'sus-new' });
+    });
+
+    it('still refuses a missing init_point when the subscription did not come back active', async () => {
+      // Un init_point ausente sin `estado: activa` no es un plan gratuito: es
+      // una preferencia que no se pudo armar, y sigue siendo un error.
+      const api = fakeApi({
+        startPayment: jest.fn().mockResolvedValue({ init_point: null }),
+      });
+
+      await expect(
+        createBackedBillingService(api, fakeMock()).startCheckout('plan-1'),
+      ).rejects.toThrow(errorCheckoutUrlUnusable);
+    });
+
     it('refuses an init_point that did not pass validation, rather than opening it', async () => {
       const api = fakeApi({
         startPayment: jest.fn().mockResolvedValue({ init_point: 'http://evil.example/checkout' }),

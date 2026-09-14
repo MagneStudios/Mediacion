@@ -1,5 +1,5 @@
 import { I18nextProvider } from 'react-i18next';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 import ProfileScreen from '../profile';
@@ -35,7 +35,7 @@ jest.mock('@/utils/blur-active-element', () => ({
 }));
 
 const mockProfileHook: {
-  status: 'loading' | 'error' | 'success';
+  status: 'loading' | 'error' | 'sessionBroken' | 'success';
   profile: { nombre: string; apellido: string; rol: string; idioma: string; activo: boolean; communicationPreference: string; accessibilityPreference: string } | null;
   reload: jest.Mock;
   updateStatus: string;
@@ -60,6 +60,11 @@ const mockProfileHook: {
 
 jest.mock('@/features/profile/hooks/useProfile', () => ({
   useProfile: () => mockProfileHook,
+}));
+
+const mockSignOut = jest.fn();
+jest.mock('@/features/auth/auth-session', () => ({
+  useAuthSession: () => ({ signOut: mockSignOut }),
 }));
 
 jest.mock('@/features/profile/hooks/useNotificationPreferences', () => ({
@@ -92,6 +97,7 @@ async function renderScreen() {
 
 beforeEach(() => {
   mockRoutePush.mockClear();
+  mockSignOut.mockClear();
   mockIsCompact = false;
   mockIsWide = false;
   mockHorizontalPadding = 16;
@@ -122,6 +128,22 @@ describe('ProfileScreen — loading, error', () => {
     await renderScreen();
     expect(screen.getByText(t('states.error.title'))).toBeTruthy();
     expect(screen.getByText(t('states.error.retry'))).toBeTruthy();
+  });
+
+  it('shows the sign-out action, not a retry, when the account is not provisioned', async () => {
+    mockProfileHook.status = 'sessionBroken';
+    await renderScreen();
+    expect(screen.getByText(t('profile.sessionBroken.title'))).toBeTruthy();
+    expect(screen.getByText(t('profile.sessionBroken.description'))).toBeTruthy();
+    expect(screen.getByRole('button', { name: t('profile.sessionBroken.action') })).toBeTruthy();
+    expect(screen.queryByText(t('states.error.retry'))).toBeNull();
+  });
+
+  it('calls signOut when the sessionBroken action is pressed', async () => {
+    mockProfileHook.status = 'sessionBroken';
+    await renderScreen();
+    await fireEvent.press(screen.getByRole('button', { name: t('profile.sessionBroken.action') }));
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 });
 

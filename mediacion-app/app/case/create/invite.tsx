@@ -13,12 +13,11 @@ import { InvitationResultCard } from '@/features/cases/components/InvitationResu
 import { useCaseCreationFlow } from '@/features/cases/hooks/useCaseCreationFlow';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { casesService } from '@/services/cases.service';
-import type { PagoACargo, TipoInvitacion } from '@/types/case';
+import type { TipoInvitacion } from '@/types/case';
 import { blurActiveElement } from '@/utils/blur-active-element';
 import { isValidEmail } from '@/utils/validate-email';
 
 const TIPOS: TipoInvitacion[] = ['link', 'codigo', 'email'];
-const PAGO_A_CARGO_OPTIONS: PagoACargo[] = ['invitador', 'invitado'];
 
 type InviteStatus = 'idle' | 'submitting' | 'error';
 
@@ -29,7 +28,6 @@ export default function CaseCreateInviteScreen() {
   const { horizontalPadding } = useResponsiveLayout();
 
   const [tipo, setTipo] = useState<TipoInvitacion | null>(null);
-  const [pagoACargo, setPagoACargo] = useState<PagoACargo | null>(null);
   const [email, setEmail] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
   const [status, setStatus] = useState<InviteStatus>('idle');
@@ -37,7 +35,7 @@ export default function CaseCreateInviteScreen() {
   const emailError = emailTouched && tipo === 'email' && !isValidEmail(email) ? t('caseCreation.invite.emailError') : undefined;
 
   const handlePrepare = async () => {
-    if (status === 'submitting' || !tipo || !pagoACargo || !draft.caseId) return;
+    if (status === 'submitting' || !tipo || !draft.caseId) return;
 
     if (tipo === 'email') {
       setEmailTouched(true);
@@ -50,7 +48,9 @@ export default function CaseCreateInviteScreen() {
         casoId: draft.caseId,
         tipo,
         emailDestino: tipo === 'email' ? email.trim() : undefined,
-        pagoACargo,
+        // Punto #6 (AJUSTES-PACTUM-2026-09-10): se saca "quién paga" de la
+        // UI — el modelo pasa a ser suscripción individual por parte, no
+        // una elección entre las partes al invitar.
       });
       setInvitationResult(invitation);
       setStatus('idle');
@@ -93,23 +93,6 @@ export default function CaseCreateInviteScreen() {
             {t('caseCreation.invite.title')}
           </Text>
           <Text style={styles.subtitle}>{t('caseCreation.invite.subtitle')}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t('caseCreation.invite.pagoACargo.sectionTitle')}</Text>
-          <View style={styles.options} accessibilityRole="radiogroup">
-            {PAGO_A_CARGO_OPTIONS.map((option) => (
-              <SelectableCard
-                key={option}
-                icon={option === 'invitador' ? 'wallet' : 'send'}
-                title={t(`caseCreation.invite.pagoACargo.${option}.title`)}
-                description={t(`caseCreation.invite.pagoACargo.${option}.description`)}
-                selected={pagoACargo === option}
-                selectedLabel={t('caseCreation.method.selected')}
-                onPress={() => setPagoACargo(option)}
-              />
-            ))}
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -186,7 +169,7 @@ export default function CaseCreateInviteScreen() {
             onRetry={handlePrepare}
           />
         ) : (
-          <Button variant="primary" size="lg" fullWidth disabled={!tipo || !pagoACargo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
+          <Button variant="primary" size="lg" fullWidth disabled={!tipo} loading={status === 'submitting'} loadingLabel={t('common.loading')} onPress={handlePrepare}>
             {t('caseCreation.invite.sendInvitation')}
           </Button>
         )}

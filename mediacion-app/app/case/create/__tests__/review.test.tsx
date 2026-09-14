@@ -75,6 +75,23 @@ describe('CaseCreateReviewScreen', () => {
     expect(screen.queryByText(i18n.t('billing.quotaLimit.upgradeAction'))).toBeNull();
   });
 
+  it('points at choosing a plan when the caller has no active subscription', async () => {
+    // El error vivo hasta que `no_active_subscription` existió: `consume_quota`
+    // rechazaba el alta con un 409 genérico y la pantalla ofrecía reintentar,
+    // que no lo arregla nunca — no hay nada roto, falta contratar.
+    mockCreateCase.mockRejectedValue(
+      new ApiError('no_active_subscription', 'An active subscription is required', 409),
+    );
+    await renderScreen();
+
+    await create();
+
+    expect(
+      await screen.findByText(i18n.t('caseCreation.review.subscriptionRequired.title')),
+    ).toBeTruthy();
+    expect(screen.queryByText(i18n.t('caseCreation.review.error.retry'))).toBeNull();
+  });
+
   describe('when the plan says no', () => {
     it('shows the limit dialog instead of a retry the plan cannot satisfy', async () => {
       // The live error today: `PlanLimitService` answers 403 with no numbers.

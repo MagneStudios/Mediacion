@@ -7,14 +7,27 @@ import type {
 } from "./mercadopago/mercado-pago-client";
 import { MERCADO_PAGO_CLIENT } from "./mercadopago/mercado-pago-client";
 import { PagosRepository } from "./pagos.repository";
-import type {
-  EstadoPago,
-  PreferenceResult,
-  SuscripcionOwnerFilter,
+import {
+  type EstadoPago,
+  estadoSuscripcionActiva,
+  type PreferenceResult,
+  type SuscripcionOwnerFilter,
 } from "./pagos.types";
 
 const approvedStatus = "approved";
 const rejectedStatus = "rejected";
+
+/**
+ * `planes.precio` es NUMERIC, y el driver lo entrega como string: "0.00".
+ * Compararlo contra "0" o apoyarse en falsy da falso negativo, así que se
+ * parsea. Un precio ilegible se trata como pago, que es el lado seguro: peor
+ * que mandar a Mercado Pago un plan gratis es saltear el cobro de uno que no
+ * lo es.
+ */
+function isFreePlan(precio: string | number): boolean {
+  const parsed = typeof precio === "number" ? precio : Number(precio);
+  return Number.isFinite(parsed) && parsed === 0;
+}
 
 function suscripcionNotFound(): HttpException {
   return new HttpException(
@@ -53,6 +66,21 @@ export class PagosService {
     );
     if (!suscripcion) {
       throw suscripcionNotFound();
+    }
+    /**
+     * Un plan de precio 0 no pasa por Mercado Pago: rechaza con 400 toda
+     * preferencia de monto cero, y como la única vía a `activa` es el webhook
+     * de un pago aprobado, el plan gratuito quedaba inalcanzable — la
+     * suscripción nacía en `pendiente_pago` y ahí se quedaba, con
+     * `consume_quota` negando cada alta de caso.
+     *
+     * Se compara sobre el precio parseado y no sobre el texto de la columna
+     * porque `planes.precio` es NUMERIC y llega como string: "0.00" no es
+     * igual a "0", y ninguno de los dos es falsy.
+     */
+    if (isFreePlan(suscripcion.plan_precio)) {
+      await this.pagosRepository.activateFreeSuscripcion(suscripcion.id);
+      return { init_point: null, estado: estadoSuscripcionActiva };
     }
     const preference = await this.mercadoPagoClient.createPreference({
       suscripcionId: suscripcion.id,

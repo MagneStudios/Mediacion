@@ -8,6 +8,7 @@ import {
   type ApplyPagoInput,
   type ApplyPagoResult,
   estadoSuscripcionActiva,
+  estadoSuscripcionPendientePago,
   type SuscripcionForPreference,
   type SuscripcionOwnerFilter,
 } from "./pagos.types";
@@ -44,6 +45,35 @@ export class PagosRepository {
         return eb.or(conditions);
       })
       .executeTakeFirst();
+  }
+
+  /**
+   * Activa una suscripción que no tiene nada que cobrar (plan de precio 0).
+   *
+   * Escribe exactamente los mismos cuatro campos que `applyPayment` cuando el
+   * pago queda aprobado, y por la misma razón: `consume_quota` exige estado
+   * `activa` **y** un período no nulo, así que activar sin fechas cambia el
+   * error de `NO_ACTIVE_SUBSCRIPTION` a `NO_BILLING_PERIOD` sin desbloquear
+   * nada. No inserta en `pagos`: no hubo pago, y una fila de importe cero ahí
+   * mentiría sobre una transacción que nunca existió.
+   *
+   * El `where` sobre `pendiente_pago` es lo que hace idempotente un reintento:
+   * una suscripción ya activa no vuelve a mover su período, que es lo que
+   * pasaría si alguien toca "pagar" dos veces.
+   */
+  async activateFreeSuscripcion(suscripcionId: string): Promise<void> {
+    const period = billingPeriodStartingAt(new Date());
+    await this.kysely
+      .updateTable("suscripciones")
+      .set({
+        estado: estadoSuscripcionActiva,
+        fecha_inicio: period.period_start,
+        current_period_start: period.period_start,
+        current_period_end: period.period_end,
+      })
+      .where("id", "=", suscripcionId)
+      .where("estado", "=", estadoSuscripcionPendientePago)
+      .execute();
   }
 
   applyPayment(input: ApplyPagoInput): Promise<ApplyPagoResult> {

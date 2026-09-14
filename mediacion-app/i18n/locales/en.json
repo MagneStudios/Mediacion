@@ -292,6 +292,20 @@
       "checkEmail": {
         "title": "Check your email",
         "description": "We sent you a link to confirm your account. Once confirmed, you'll be able to sign in."
+      },
+      "plan": {
+        "title": "Choose your plan",
+        "description": "Start for free or pick a paid plan — your account is ready as soon as you choose one.",
+        "loading": "Looking for the available plans…",
+        "error": {
+          "title": "We couldn't load the plans",
+          "retry": "Retry"
+        },
+        "subscribing": "Activating your plan…",
+        "subscribeError": {
+          "title": "We couldn't activate the free plan",
+          "retry": "Retry"
+        }
       }
     }
   },
@@ -333,7 +347,7 @@
     },
     "paymentRequired": {
       "title": "You need an active subscription",
-      "body": "Whoever invited you chose for you to cover the subscription to access this case.",
+      "body": "Each party pays for their own subscription to operate on the case — activate yours to continue.",
       "viewPlansAction": "View plans",
       "demoBypass": {
         "description": "Only in this demonstration can you continue without paying.",
@@ -464,22 +478,15 @@
       "error": {
         "title": "We couldn't create the case",
         "retry": "Try again"
+      },
+      "subscriptionRequired": {
+        "title": "You need an active plan to create cases",
+        "action": "Choose a plan"
       }
     },
     "invite": {
       "title": "Invite the other party",
       "subtitle": "Choose how you'd like to share access to this case.",
-      "pagoACargo": {
-        "sectionTitle": "Who pays for the subscription?",
-        "invitador": {
-          "title": "I pay",
-          "description": "The subscription stays on you."
-        },
-        "invitado": {
-          "title": "The other party pays",
-          "description": "The other party will need to subscribe to access the case."
-        }
-      },
       "method": {
         "sectionTitle": "How do you want to invite?",
         "link": {
@@ -505,6 +512,10 @@
         "codigo": "Copy code"
       },
       "copied": "Copied",
+      "share": {
+        "link": "Share link",
+        "codigo": "Share code"
+      },
       "sendInvitation": "Prepare invitation",
       "preparedMessage": "The invitation is ready.",
       "sandboxMessage": "The invitation was recorded in the test environment.",
@@ -549,6 +560,12 @@
       "description": "Once the other party joins the case, you'll be able to move forward with the negotiation.",
       "viewInvitation": "View invitation",
       "invitationError": "We couldn't load the invitation",
+      "invitationStatus": {
+        "pendiente": "Invitation pending",
+        "aceptada": "Invitation accepted",
+        "rechazada": "Invitation declined",
+        "expirada": "Invitation expired"
+      },
       "simulateAcceptance": {
         "description": "You can simulate the other party accepting the invitation to continue the demonstration.",
         "action": "Simulate invitation acceptance",
@@ -605,10 +622,12 @@
     "eyebrow": "Case dashboard",
     "description": "Review your cases and next steps.",
     "createCase": "Start a case",
+    "joinCase": "Join a case",
     "loading": "Looking for your cases…",
     "empty": {
       "title": "No cases yet",
-      "description": "Once you start or join a case, it will show up in this list."
+      "description": "Once you start or join a case, it will show up in this list.",
+      "joinAction": "Join with a code"
     },
     "error": {
       "title": "We couldn't load your cases",
@@ -655,7 +674,8 @@
     "back": "Back",
     "retry": "Try again",
     "loading": "Loading…",
-    "mainNavigation": "Main navigation"
+    "mainNavigation": "Main navigation",
+    "signOut": "Sign out"
   },
   "mediator": {
     "sectionTitle": "Mediator support",
@@ -846,6 +866,10 @@
     "materia": {
       "none": "No subject assigned"
     },
+    "addMateria": {
+      "title": "Add subject",
+      "error": "We couldn't add the subject. Try again."
+    },
     "estado": {
       "borrador": "Draft",
       "activa": "Active",
@@ -864,7 +888,8 @@
       },
       "error": {
         "title": "We couldn't open the new round",
-        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list."
+        "notAcordada": "This subject no longer has a signed agreement in force. We refreshed the list.",
+        "subscriptionRequired": "To renegotiate, both parties need an active subscription. Check yours and let the other party know."
       }
     },
     "dashboard": {
@@ -1210,6 +1235,11 @@
       "overview": "This section uses simulated data. No account or session action affects a real system yet.",
       "notifications": "The alerts you enable here aren't connected to real notifications yet: no emails or push notifications are sent in this demo.",
       "account": "The actions on this screen are demonstration-only. There is no real authentication and no data is deleted."
+    },
+    "sessionBroken": {
+      "title": "Your account isn't ready yet",
+      "description": "There was a problem loading your profile. Sign out and back in; contact us if the problem continues.",
+      "action": "Sign out"
     },
     "header": {
       "title": "Profile"

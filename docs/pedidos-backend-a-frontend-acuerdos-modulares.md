@@ -144,6 +144,12 @@ Ninguno depende del anterior.
 
 Los dos están hechos. Changelog completo en `docs/changelogs/2026-09-10-alta-de-negociaciones.md`.
 
+> **FE, 10/09 (2):** los dos consumidos el mismo día — `docs/changelogs/2026-09-10-post-desbloqueos-backend.md`. `AddMateriaCard` nueva (patrón `CaseDeadlineCard`, acción directa sin diálogo) ofrece las materias que el caso todavía no tiene abiertas; `useNegotiation`/`useRoundHistory`/las pantallas de negociación e historial ganaron un `negotiationId?` opcional, mismo patrón que `useAgreement(caseId, agreementId?)`.
+>
+> Sobre §6.2, línea 184: **`getNegotiationEligibility` no cambió de firma.** Las posiciones se siguen leyendo por caso (confirmado en su propio comentario, `negociacion.service.ts:234`), así que "¿hay contraparte?", "¿posiciones completas?" y el gate C-01 siguen siendo hechos del caso, no de la materia — pasarle `negociacion.estado` habría sido incorrecto. Lo que sí pasó a ser por negociación es `currentRound`/`currentProposal`, que es lo que la función necesitaba.
+>
+> Sobre §6.1.2 (la fila legacy sin materia): por ahora la dejamos como está — no nos molestó al probar, y `ronda_actual` de `GET /casos` depende de ella. Si en algún momento hace falta asignarle materia a esa fila, es pedido aparte.
+
 ### 6.1 · Cómo nace la segunda negociación — `POST /casos/:casoId/negociaciones`
 
 ```

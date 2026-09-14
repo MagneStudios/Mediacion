@@ -114,6 +114,8 @@ jest.mock('@/features/cases/hooks/useCaseDetail', () => ({
   useCaseDetail: () => ({ status: mockStatus, detail: mockDetail, reload: mockReload }),
 }));
 
+import { casesService } from '@/services/cases.service';
+
 import { CaseDetailScreen } from '../CaseDetailScreen';
 
 function buildDetail(overrides: Record<string, unknown> = {}) {
@@ -234,6 +236,69 @@ describe('CaseDetailScreen — awaiting counterparty', () => {
   it('does not show positions section when awaiting counterparty', async () => {
     await renderScreen();
     expect(screen.queryByText(t('caseDetail.positions.title'))).toBeNull();
+  });
+
+  // Punto #5 (AJUSTES-PACTUM-2026-09-10): "mostrar el estado de la
+  // invitación (pendiente / aceptada)" y "copiar/compartir link".
+  describe('punto #5: estado de la invitación y compartir', () => {
+    it('once loaded, shows the invitation status badge (pendiente)', async () => {
+      (casesService.getInvitation as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        caseId: 'case-1',
+        tipo: 'link',
+        token: 'mediacionapp://invitacion/mock-abc',
+        emailDestino: null,
+        estado: 'pendiente',
+        pagoACargo: null,
+        createdAt: '2026-09-10T00:00:00.000Z',
+      });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
+
+      await waitFor(() =>
+        expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.pendiente'))).toBeTruthy(),
+      );
+    });
+
+    it('shows "aceptada" once the invitation is accepted', async () => {
+      (casesService.getInvitation as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        caseId: 'case-1',
+        tipo: 'codigo',
+        token: 'ABC123',
+        emailDestino: null,
+        estado: 'aceptada',
+        pagoACargo: null,
+        createdAt: '2026-09-10T00:00:00.000Z',
+      });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
+
+      await waitFor(() =>
+        expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.aceptada'))).toBeTruthy(),
+      );
+    });
+
+    it('offers a share action alongside copy for a link/code invitation', async () => {
+      (casesService.getInvitation as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        caseId: 'case-1',
+        tipo: 'codigo',
+        token: 'ABC123',
+        emailDestino: null,
+        estado: 'pendiente',
+        pagoACargo: null,
+        createdAt: '2026-09-10T00:00:00.000Z',
+      });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation')));
+
+      await waitFor(() => expect(screen.getByText(t('caseCreation.invite.copy.codigo'))).toBeTruthy());
+      expect(screen.getByText(t('caseCreation.invite.share.codigo'))).toBeTruthy();
+    });
   });
 });
 

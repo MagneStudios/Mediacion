@@ -41,12 +41,13 @@ const threeCases: CaseSummary[] = [
   buildCase({ id: 'case-3', title: 'Pensión de alimentos', metodo: 'conciliacion', statusLabelKey: 'signed', visualStatus: 'success', roundNumber: null, slaHours: null }),
 ];
 
-function renderScreen(props: Partial<{ onOpenCase: jest.Mock; onCreateCase: jest.Mock }> = {}) {
+function renderScreen(props: Partial<{ onOpenCase: jest.Mock; onCreateCase: jest.Mock; onJoinCase: jest.Mock }> = {}) {
   const onOpenCase = props.onOpenCase ?? jest.fn();
   const onCreateCase = props.onCreateCase ?? jest.fn();
+  const onJoinCase = props.onJoinCase ?? jest.fn();
   return render(
     <I18nextProvider i18n={i18n}>
-      <CasesDashboardScreen onOpenCase={onOpenCase} onCreateCase={onCreateCase} />
+      <CasesDashboardScreen onOpenCase={onOpenCase} onCreateCase={onCreateCase} onJoinCase={onJoinCase} />
     </I18nextProvider>,
   );
 }
@@ -89,6 +90,14 @@ describe('CasesDashboardScreen', () => {
       await renderScreen();
       expect(screen.getByText(t('cases.createCase'))).toBeTruthy();
     });
+
+    it('punto #4: exposes a join-case action in the empty state, wired to the real callback', async () => {
+      mockUseCasesResult = { status: 'empty', cases: [] };
+      const onJoinCase = jest.fn();
+      await renderScreen({ onJoinCase });
+      await fireEvent.press(screen.getByText(t('cases.empty.joinAction')));
+      expect(onJoinCase).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('success — single case', () => {
@@ -129,6 +138,13 @@ describe('CasesDashboardScreen', () => {
       await renderScreen({ onCreateCase });
       await fireEvent.press(screen.getByText(t('cases.createCase')));
       expect(onCreateCase).toHaveBeenCalledTimes(1);
+    });
+
+    it('punto #4: calls the real onJoinCase callback from the header join-case button', async () => {
+      const onJoinCase = jest.fn();
+      await renderScreen({ onJoinCase });
+      await fireEvent.press(screen.getByText(t('cases.joinCase')));
+      expect(onJoinCase).toHaveBeenCalledTimes(1);
     });
 
     it('filters by method client-side without changing the underlying data source', async () => {

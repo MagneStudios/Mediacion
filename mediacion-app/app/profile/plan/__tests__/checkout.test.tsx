@@ -12,24 +12,18 @@ const mockBack = jest.fn();
 // §10.5) could never fail a test. Capturing every title the screen sets is
 // what makes the header assertable.
 const mockCapturedTitles: string[] = [];
-jest.mock('expo-router', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Text } = require('react-native');
-  return {
-    Stack: {
-      Screen: ({ options }: { options?: { title?: string } }) => {
-        if (options?.title !== undefined) {
-          mockCapturedTitles.push(options.title);
-        }
-        return null;
-      },
+jest.mock('expo-router', () => ({
+  Stack: {
+    Screen: ({ options }: { options?: { title?: string } }) => {
+      if (options?.title !== undefined) {
+        mockCapturedTitles.push(options.title);
+      }
+      return null;
     },
-    useRouter: () => ({ replace: mockReplace, back: mockBack }),
-    useLocalSearchParams: () => ({ planId: 'plan-estudio' }),
-    // AcceptanceCheckboxes embeds legal links in the checkbox labels.
-    Link: ({ children }: { children?: React.ReactNode }) => <Text>{children}</Text>,
-  };
-});
+  },
+  useRouter: () => ({ replace: mockReplace, back: mockBack }),
+  useLocalSearchParams: () => ({ planId: 'plan-estudio' }),
+}));
 
 jest.mock('@/hooks/use-responsive-layout', () => ({
   useResponsiveLayout: () => ({ horizontalPadding: 16, isWide: false }),
@@ -43,11 +37,6 @@ jest.mock('@/services/plans.service', () => ({
 const mockStartCheckout = jest.fn();
 jest.mock('@/services/billing.service', () => ({
   billingService: { startCheckout: (...args: unknown[]) => mockStartCheckout(...args) },
-}));
-
-const mockRegisterAcceptance = jest.fn();
-jest.mock('@/services/legal.service', () => ({
-  legalService: { registerAcceptance: (...args: unknown[]) => mockRegisterAcceptance(...args) },
 }));
 
 // eslint-disable-next-line import/first
@@ -80,22 +69,8 @@ describe('PlanCheckoutScreen', () => {
     mockBack.mockReset();
     mockGetPlan.mockReset();
     mockStartCheckout.mockReset();
-    mockRegisterAcceptance.mockReset();
-    mockRegisterAcceptance.mockResolvedValue(undefined);
     mockCapturedTitles.length = 0;
   });
-
-  /**
-   * Ticks the mandatory TyC+Privacidad checkbox — the checkout is a
-   * contracting point (instructivo §2). Awaits the re-render: state updates
-   * flush asynchronously under concurrent rendering, and pressing "pay"
-   * before the flush would hit the still-disabled button.
-   */
-  async function acceptTerms() {
-    const label = i18n.t('legal.acceptance.requiredA11yLabel');
-    fireEvent.press(screen.getByLabelText(label));
-    await waitFor(() => expect(screen.getByLabelText(label)).toBeChecked());
-  }
 
   it('shows the not-found error when the plan does not exist', async () => {
     mockGetPlan.mockResolvedValue(undefined);
@@ -110,9 +85,9 @@ describe('PlanCheckoutScreen', () => {
     // 25 net, 21% IVA → 5.25 IVA, 30.25 total (see utils/compute-tax-breakdown.test.ts),
     // formatted with the plan's own moneda (ARS) — the jest runtime language is 'en',
     // and Intl renders en-US + ARS as "ARS<nbsp>25.00" (verified empirically, punto #24).
-    expect(screen.getByText('ARS\u00a025.00')).toBeTruthy();
-    expect(screen.getByText('ARS\u00a05.25')).toBeTruthy();
-    expect(screen.getByText('ARS\u00a030.25')).toBeTruthy();
+    expect(screen.getByText('ARS 25.00')).toBeTruthy();
+    expect(screen.getByText('ARS 5.25')).toBeTruthy();
+    expect(screen.getByText('ARS 30.25')).toBeTruthy();
   });
 
   it('interpolates the plan name into the header — the raw {{nombre}} placeholder never renders', async () => {
@@ -159,6 +134,25 @@ describe('PlanCheckoutScreen', () => {
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.sandboxNotice'))).toBeTruthy());
   });
 
+  // Punto #1 (AJUSTES-PACTUM-2026-09-10): la aceptación de TyC ya se pide una
+  // sola vez, en el signup — el checkbox duplicado en el checkout se sacó.
+  it('never shows a TyC acceptance checkbox — that already happened at signup', async () => {
+    mockGetPlan.mockResolvedValue(estudioPlan);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
+
+    expect(screen.queryByLabelText(i18n.t('legal.acceptance.requiredA11yLabel'))).toBeNull();
+    expect(screen.queryByLabelText(i18n.t('legal.acceptance.marketingA11yLabel'))).toBeNull();
+  });
+
+  it('the pay button starts enabled — nothing left to accept before contracting', async () => {
+    mockGetPlan.mockResolvedValue(estudioPlan);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
+
+    expect(screen.getByText(i18n.t('billing.checkout.payAction')).props.accessibilityState?.disabled).toBeFalsy();
+  });
+
   it('pays, then replaces the route with the receipt screen for the new subscription', async () => {
     mockGetPlan.mockResolvedValue(estudioPlan);
     mockStartCheckout.mockResolvedValue({
@@ -169,18 +163,11 @@ describe('PlanCheckoutScreen', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 
-    await acceptTerms();
     fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
 
     await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('plan-estudio'));
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith({ pathname: '/profile/plan/receipt', params: { subscriptionId: 'sub-1' } }),
-    );
-    // The acceptance is registered before contracting, and the body only
-    // carries the marketing opt-in — never IP/UA/version (instructivo error #3).
-    expect(mockRegisterAcceptance).toHaveBeenCalledWith({ marketing: false });
-    expect(mockRegisterAcceptance.mock.invocationCallOrder[0]).toBeLessThan(
-      mockStartCheckout.mock.invocationCallOrder[0],
     );
   });
 
@@ -199,7 +186,6 @@ describe('PlanCheckoutScreen', () => {
       await renderScreen();
       await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 
-      await acceptTerms();
       fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
 
       await waitFor(() => expect(openURL).toHaveBeenCalledWith(redirect.checkoutUrl));
@@ -220,7 +206,6 @@ describe('PlanCheckoutScreen', () => {
       await renderScreen();
       await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 
-      await acceptTerms();
       fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
 
       await waitFor(() =>
@@ -239,7 +224,6 @@ describe('PlanCheckoutScreen', () => {
       await renderScreen();
       await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 
-      await acceptTerms();
       fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
       await waitFor(() =>
         expect(screen.getByText(i18n.t('billing.checkout.checkoutPending.title'))).toBeTruthy(),
@@ -254,34 +238,12 @@ describe('PlanCheckoutScreen', () => {
     });
   });
 
-  it('keeps the pay button disabled until the mandatory checkbox is ticked — marketing alone never enables it', async () => {
-    mockGetPlan.mockResolvedValue(estudioPlan);
-    await renderScreen();
-    await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
-
-    // Untouched: both boxes start unchecked (never pre-ticked) and pay is inert.
-    fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
-    // Ticking only the optional marketing box must not enable contracting.
-    fireEvent.press(screen.getByLabelText(i18n.t('legal.acceptance.marketingA11yLabel')));
-    await waitFor(() => expect(screen.getByLabelText(i18n.t('legal.acceptance.marketingA11yLabel'))).toBeChecked());
-    fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
-    expect(mockStartCheckout).not.toHaveBeenCalled();
-    expect(mockRegisterAcceptance).not.toHaveBeenCalled();
-
-    await acceptTerms();
-    fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
-    await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('plan-estudio'));
-    // The marketing "yes" ticked above travels with the acceptance.
-    expect(mockRegisterAcceptance).toHaveBeenCalledWith({ marketing: true });
-  });
-
   it('shows a recoverable error when the payment fails, without navigating', async () => {
     mockGetPlan.mockResolvedValue(estudioPlan);
     mockStartCheckout.mockRejectedValue(new Error('mock_subscribe_failed'));
     await renderScreen();
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.payAction'))).toBeTruthy());
 
-    await acceptTerms();
     fireEvent.press(screen.getByText(i18n.t('billing.checkout.payAction')));
 
     await waitFor(() => expect(screen.getByText(i18n.t('billing.checkout.error.title'))).toBeTruthy());

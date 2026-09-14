@@ -109,7 +109,14 @@ export type ApiSuscripcionCreated = {
  * it is validated by `utils/checkout-url.ts` before anything opens it.
  */
 export type ApiPreference = {
-  init_point: string;
+  /**
+   * `null` en el único caso sin nada que cobrar: un plan de precio 0, que BE
+   * activa sin pasar por Mercado Pago porque rechaza con 400 toda preferencia
+   * de monto cero. Ahí viene `estado: 'activa'`, que es lo que distingue "no
+   * hay que pagar" de "la preferencia no se pudo armar".
+   */
+  init_point: string | null;
+  estado?: MockSubscription['estado'];
 };
 
 export type ApiBillingService = {

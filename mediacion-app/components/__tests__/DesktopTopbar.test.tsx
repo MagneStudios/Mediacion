@@ -14,6 +14,22 @@ jest.mock('@/features/profile/hooks/useProfile', () => ({
   useProfile: () => mockProfileResult,
 }));
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ dismissAll: jest.fn(), replace: jest.fn() }),
+}));
+
+jest.mock('@/hooks/use-responsive-layout', () => ({
+  useResponsiveLayout: () => ({ isWide: false, isCompact: true, showDesktopSidebar: true, horizontalPadding: 16 }),
+}));
+
+jest.mock('@/features/profile/hooks/useAccountActions', () => ({
+  useAccountActions: () => ({
+    signOutStatus: 'idle',
+    signOut: jest.fn(),
+    resetSignOutStatus: jest.fn(),
+  }),
+}));
+
 function renderTopbar() {
   return render(
     <I18nextProvider i18n={i18n}>
@@ -44,5 +60,11 @@ describe('DesktopTopbar', () => {
     expect(screen.getByText('Julieta Fernández')).toBeTruthy();
     expect(screen.getByText('JF')).toBeTruthy();
     expect(screen.getByText(i18n.t('profile.role.parte'))).toBeTruthy();
+  });
+
+  it('always renders a sign-out action, reachable regardless of the profile fetch', async () => {
+    await renderTopbar();
+
+    expect(screen.getByLabelText(i18n.t('common.signOut'))).toBeTruthy();
   });
 });

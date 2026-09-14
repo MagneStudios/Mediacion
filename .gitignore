@@ -87,3 +87,5 @@ temp/
 * 2.*
 * 3.*
 .github/hooks/impeccable.json
+
+/public
