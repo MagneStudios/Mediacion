@@ -185,9 +185,7 @@ export class InvitacionesRepository {
       });
   }
 
-  private async invitationTtlHoras(
-    db: Kysely<Database>,
-  ): Promise<number> {
+  private async invitationTtlHoras(db: Kysely<Database>): Promise<number> {
     const row = await db
       .selectFrom("configuracion")
       .select("valor")
