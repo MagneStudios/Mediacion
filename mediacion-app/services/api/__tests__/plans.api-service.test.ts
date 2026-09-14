@@ -33,6 +33,7 @@ function row(overrides: Partial<ApiPlan> = {}): ApiPlan {
     moneda: 'ARS',
     max_negotiations_per_period: null,
     max_clients_per_period: null,
+    is_self_serve: true,
     ...overrides,
   };
 }
@@ -49,7 +50,12 @@ describe('plans.api-service', () => {
       moneda: 'ARS',
       maxNegotiationsPerPeriod: null,
       maxClientsPerPeriod: null,
+      isSelfServe: true,
     });
+  });
+
+  it('maps is_self_serve false straight through — corporativo, "a consultar"', () => {
+    expect(toPlan(row({ is_self_serve: false })).isSelfServe).toBe(false);
   });
 
   it('carries the two period quotas through, unlimited included', () => {

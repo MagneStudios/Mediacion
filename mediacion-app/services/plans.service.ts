@@ -94,12 +94,19 @@ export function createMockPlansService(): PlansService {
       // (`20260821120000_monetizacion_fase1.sql:48-49`), so an INSERT that
       // omits them — which is every INSERT this ABM can express, since
       // `PlanInput` has no field for them — lands `NULL` on the real table too.
+      //
+      // `isSelfServe` mirrors `planes.is_self_serve`'s own default (`true`,
+      // migración 45): the ABM has no toggle for it either, and a plan an
+      // admin creates by hand through this form is exactly the self-serve
+      // case — a "consultar por ventas" plan like `corporativo` is set up
+      // directly against the table, not through this ABM.
       const created: Plan = {
         id: generateMockPlanId(),
         ...input,
         moneda: input.moneda ?? 'ARS',
         maxNegotiationsPerPeriod: null,
         maxClientsPerPeriod: null,
+        isSelfServe: true,
       };
       const committed = await delay(created, 700);
       plans = [...plans, committed];

@@ -45,6 +45,17 @@ export type Plan = {
    */
   maxNegotiationsPerPeriod: number | null;
   maxClientsPerPeriod: number | null;
+  /**
+   * `planes.is_self_serve` (migración 45, `20260910120000_planes_is_self_serve.sql`).
+   * `true` = el alta puede contratarlo por su cuenta (incluye `base`, gratis, y
+   * los planes pagos que van a Mercado Pago). `false` = "a consultar"
+   * (`corporativo`): se contrata por ventas, no por el wizard del alta.
+   *
+   * Resuelve el problema que `mocks/plans.ts` documentaba como abierto:
+   * `corporativo` comparte `precio 0.00` con `base` en el catálogo, y antes de
+   * esta columna nada distinguía "gratis, self-serve" de "a consultar".
+   */
+  isSelfServe: boolean;
 };
 
 /**

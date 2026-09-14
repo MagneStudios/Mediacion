@@ -18,16 +18,21 @@ import { blurActiveElement } from '@/utils/blur-active-element';
 type SubscribeStatus = 'idle' | 'submitting' | 'error';
 
 /**
- * `base` is the one plan actually meant to be picked up for free, self-serve,
- * no checkout — `corporativo` shares `precio === 0` in the catalog too, but
- * that zero means "a consultar", not "gratis" (see the extensive comment in
- * `mocks/plans.ts` — it is a known, still-open product/DB decision,
- * `docs/plan-frontend-monetizacion.md` §1.2–§1.3). Gating on the name instead
- * of `precio === 0` keeps this wizard from accidentally treating a
- * to-be-quoted enterprise plan as self-serve-free.
+ * A plan skips checkout in this wizard only if it is both self-serve
+ * (`is_self_serve`, migración 45 — the alta can contract it on its own,
+ * unlike `corporativo`, which is "a consultar" and goes through ventas) AND
+ * priced at zero. Checking only one of the two would get either case wrong:
+ * `corporativo` shares `precio === 0` with `base` in the catalog, so a
+ * price-only check would activate it for free; and a self-serve-only check
+ * would skip checkout for a paid self-serve plan (`simple`, `plus`,
+ * `particular`), which still needs to go through Mercado Pago.
+ *
+ * Before `is_self_serve` existed, this gated on `plan.nombre === 'base'` — a
+ * literal that worked only because `base` happened to be the one free
+ * self-serve plan in the seed, not because it encoded the actual rule.
  */
 function isSelfServeFree(plan: Plan): boolean {
-  return plan.nombre === 'base';
+  return plan.isSelfServe && plan.precio === 0;
 }
 
 export default function SignupPlanScreen() {

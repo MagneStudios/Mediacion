@@ -41,6 +41,7 @@ describe("PagosRepository", () => {
         plan_nombre: "plus",
         plan_precio: 19.99,
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       };
       const fake = buildFakeSelectKysely(row);
       const repository = new PagosRepository(fake.kysely as never);
@@ -61,6 +62,7 @@ describe("PagosRepository", () => {
         "planes.nombre as plan_nombre",
         "planes.precio as plan_precio",
         "planes.moneda as plan_moneda",
+        "planes.is_self_serve as plan_is_self_serve",
       ]);
       expect(fake.idWhere).toHaveBeenCalledWith(
         "suscripciones.id",

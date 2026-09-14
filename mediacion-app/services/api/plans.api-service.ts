@@ -35,6 +35,12 @@ export type ApiPlan = {
    */
   max_negotiations_per_period: number | null;
   max_clients_per_period: number | null;
+  /**
+   * Added to `planColumns` for `is_self_serve` (migración 45). `boolean` on
+   * the table with a `NOT NULL DEFAULT true`, so unlike `precio` there is no
+   * driver-string ambiguity to defend against here.
+   */
+  is_self_serve: boolean;
 };
 
 /** Thrown when a row cannot be read as a plan — see `toPrice`. */
@@ -87,6 +93,7 @@ export function toPlan(row: ApiPlan): Plan {
     // unlimited plan into a plan capped at zero.
     maxNegotiationsPerPeriod: row.max_negotiations_per_period,
     maxClientsPerPeriod: row.max_clients_per_period,
+    isSelfServe: row.is_self_serve,
   };
 }
 

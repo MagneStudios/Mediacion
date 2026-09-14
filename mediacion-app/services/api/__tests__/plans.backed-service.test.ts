@@ -17,6 +17,7 @@ const base: Plan = {
   moneda: 'ARS',
   maxNegotiationsPerPeriod: null,
   maxClientsPerPeriod: null,
+  isSelfServe: true,
 };
 
 const simple: Plan = {
@@ -29,6 +30,7 @@ const simple: Plan = {
   moneda: 'ARS',
   maxNegotiationsPerPeriod: null,
   maxClientsPerPeriod: null,
+  isSelfServe: true,
 };
 
 function fakeApi(overrides: Partial<ApiPlansService> = {}): ApiPlansService {

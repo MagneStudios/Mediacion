@@ -33,9 +33,9 @@ jest.mock('@/features/plans/hooks/usePlans', () => ({
 // eslint-disable-next-line import/first
 import MyPlanScreen from '../index';
 
-const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 };
-const simplePlan: Plan = { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 5, limiteCasos: 3, limiteIteracionesIa: 10, precio: 9.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
+const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20, isSelfServe: true };
+const simplePlan: Plan = { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 5, limiteCasos: 3, limiteIteracionesIa: 10, precio: 9.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true };
 
 async function renderScreen() {
   await render(

@@ -11,6 +11,7 @@ export const planColumns = [
   "moneda",
   "max_negotiations_per_period",
   "max_clients_per_period",
+  "is_self_serve",
 ] as const;
 
 export type Plan = Pick<
@@ -82,6 +83,7 @@ export type SuscripcionForPreference = {
   plan_nombre: Plan["nombre"];
   plan_precio: Plan["precio"];
   plan_moneda: Plan["moneda"];
+  plan_is_self_serve: Plan["is_self_serve"];
 };
 
 export type SuscripcionOwnerFilter = {

@@ -17,17 +17,18 @@ import type { Plan } from '../types/plan';
  * 2. **Six plans, three of them from a pricing model that no longer exists.**
  *    DB's decision on 21/08 was "aditivo puro": the legacy rows stayed. There is
  *    no `activo` column and `GET /planes` takes no filter, so Mi plan lists all
- *    six — and `corporativo`, which is meant to read "a consultar", is
- *    indistinguishable from the free `base` because its `precio` is also
- *    `0.00`. Those are §1.2 and §1.3 of `docs/plan-frontend-monetizacion.md`,
- *    both open on the DB/Producto side. Keeping the mock honest is what makes
- *    them visible here instead of only against a live database.
+ *    six. `corporativo` still shares `precio 0.00` with the free `base` — but
+ *    `is_self_serve` (migración 45, `20260910120000_planes_is_self_serve.sql`)
+ *    now distinguishes them: `false` on `corporativo` alone, `true` on the
+ *    other five. That closes §1.3 of `docs/plan-frontend-monetizacion.md`;
+ *    §1.2 (whether Mi plan should even list the three legacy rows) is still
+ *    open on the Producto side.
  */
 export const mockPlans: Plan[] = [
-  { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null },
-  { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 10, limiteCasos: 5, limiteIteracionesIa: 15, precio: 9.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null },
-  { id: 'plan-plus', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null },
-  { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25.0, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 },
-  { id: 'plan-particular', nombre: 'particular', limiteCarpetas: 1, limiteCasos: null, limiteIteracionesIa: 5, precio: 19.9, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: null },
-  { id: 'plan-corporativo', nombre: 'corporativo', limiteCarpetas: -1, limiteCasos: null, limiteIteracionesIa: -1, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null },
+  { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true },
+  { id: 'plan-simple', nombre: 'simple', limiteCarpetas: 10, limiteCasos: 5, limiteIteracionesIa: 15, precio: 9.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true },
+  { id: 'plan-plus', nombre: 'plus', limiteCarpetas: -1, limiteCasos: -1, limiteIteracionesIa: -1, precio: 19.99, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true },
+  { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25.0, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20, isSelfServe: true },
+  { id: 'plan-particular', nombre: 'particular', limiteCarpetas: 1, limiteCasos: null, limiteIteracionesIa: 5, precio: 19.9, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: null, isSelfServe: true },
+  { id: 'plan-corporativo', nombre: 'corporativo', limiteCarpetas: -1, limiteCasos: null, limiteIteracionesIa: -1, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: false },
 ];

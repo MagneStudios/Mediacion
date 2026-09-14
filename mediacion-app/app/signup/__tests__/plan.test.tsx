@@ -30,9 +30,9 @@ jest.mock('@/services/billing.service', () => ({
 // eslint-disable-next-line import/first
 import SignupPlanScreen from '../plan';
 
-const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
-const corporativoPlan: Plan = { id: 'plan-corporativo', nombre: 'corporativo', limiteCarpetas: -1, limiteCasos: null, limiteIteracionesIa: -1, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null };
-const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20 };
+const basePlan: Plan = { id: 'plan-base', nombre: 'base', limiteCarpetas: 3, limiteCasos: 2, limiteIteracionesIa: 5, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: true };
+const corporativoPlan: Plan = { id: 'plan-corporativo', nombre: 'corporativo', limiteCarpetas: -1, limiteCasos: null, limiteIteracionesIa: -1, precio: 0, moneda: 'ARS', maxNegotiationsPerPeriod: null, maxClientsPerPeriod: null, isSelfServe: false };
+const estudioPlan: Plan = { id: 'plan-estudio', nombre: 'estudio', limiteCarpetas: 0, limiteCasos: null, limiteIteracionesIa: 0, precio: 25, moneda: 'ARS', maxNegotiationsPerPeriod: 3, maxClientsPerPeriod: 20, isSelfServe: true };
 
 async function renderScreen() {
   await render(
@@ -156,10 +156,10 @@ describe('SignupPlanScreen (punto #2)', () => {
     });
   });
 
-  describe('plan-corporativo: precio 0 pero NO es el plan gratis self-serve', () => {
-    // mocks/plans.ts documenta esto explícitamente: corporativo comparte
-    // precio 0 con base, pero significa "a consultar", no "gratis". Si el
-    // wizard gatillara por precio en vez de por el plan, un usuario nuevo
+  describe('plan-corporativo: precio 0 pero NO es self-serve (is_self_serve: false)', () => {
+    // corporativo comparte precio 0 con base en el catálogo, pero significa
+    // "a consultar", no "gratis" — is_self_serve (migración 45) es lo que los
+    // distingue. Si el wizard gatillara solo por precio, un usuario nuevo
     // terminaría "suscripto" gratis a un plan pensado para venta negociada.
     it('también va a checkout, no se suscribe inline pese a precio 0', async () => {
       mockPlansResult = { status: 'success', plans: [corporativoPlan], refresh: jest.fn() };

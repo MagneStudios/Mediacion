@@ -23,10 +23,17 @@ const rejectedStatus = "rejected";
  * parsea. Un precio ilegible se trata como pago, que es el lado seguro: peor
  * que mandar a Mercado Pago un plan gratis es saltear el cobro de uno que no
  * lo es.
+ *
+ * `precio === 0` no alcanza solo: `corporativo` también tiene `precio 0.00`
+ * en el catálogo, pero ese cero significa "a consultar" (se contrata por
+ * ventas), no "gratis" — `planes.is_self_serve` (migración 45) es la columna
+ * que distingue los dos casos. Sin este segundo chequeo, activar la
+ * suscripción acá mismo activaría gratis un plan pensado para venta
+ * negociada.
  */
-function isFreePlan(precio: string | number): boolean {
+function isFreePlan(precio: string | number, isSelfServe: boolean): boolean {
   const parsed = typeof precio === "number" ? precio : Number(precio);
-  return Number.isFinite(parsed) && parsed === 0;
+  return isSelfServe && Number.isFinite(parsed) && parsed === 0;
 }
 
 function suscripcionNotFound(): HttpException {
@@ -78,7 +85,7 @@ export class PagosService {
      * porque `planes.precio` es NUMERIC y llega como string: "0.00" no es
      * igual a "0", y ninguno de los dos es falsy.
      */
-    if (isFreePlan(suscripcion.plan_precio)) {
+    if (isFreePlan(suscripcion.plan_precio, suscripcion.plan_is_self_serve)) {
       await this.pagosRepository.activateFreeSuscripcion(suscripcion.id);
       return { init_point: null, estado: estadoSuscripcionActiva };
     }

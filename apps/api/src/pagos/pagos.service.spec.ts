@@ -48,6 +48,7 @@ describe("PagosService", () => {
         plan_nombre: "plus",
         plan_precio: 19.99,
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       });
       const createPreference = jest.fn().mockResolvedValue({
         id: "pref-1",
@@ -89,6 +90,7 @@ describe("PagosService", () => {
         plan_nombre: "base",
         plan_precio: "0.00",
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       });
       const activateFreeSuscripcion = jest.fn().mockResolvedValue(undefined);
       const createPreference = jest.fn();
@@ -106,6 +108,38 @@ describe("PagosService", () => {
     });
 
     /**
+     * `corporativo` comparte `precio 0.00` con `base` en el catálogo, pero ese
+     * cero significa "a consultar" (se contrata por ventas), no "gratis"
+     * (migración 45, `planes.is_self_serve`). Sin el segundo chequeo, este
+     * mismo atajo activaría gratis una suscripción pensada para venta
+     * negociada.
+     */
+    it("does not auto-activate a zero-price plan that is not self-serve", async () => {
+      const findSuscripcionForPreference = jest.fn().mockResolvedValue({
+        id: "sus-corporativo",
+        plan_nombre: "corporativo",
+        plan_precio: "0.00",
+        plan_moneda: "ARS",
+        plan_is_self_serve: false,
+      });
+      const activateFreeSuscripcion = jest.fn();
+      const createPreference = jest.fn().mockResolvedValue({
+        id: "pref-1",
+        initPoint: "https://mp.example.com/checkout/pref-1",
+      });
+      const { service } = buildService({
+        findSuscripcionForPreference,
+        activateFreeSuscripcion,
+        createPreference,
+      });
+
+      await service.createPreference("sus-corporativo", "user-a");
+
+      expect(activateFreeSuscripcion).not.toHaveBeenCalled();
+      expect(createPreference).toHaveBeenCalled();
+    });
+
+    /**
      * `planes.precio` es NUMERIC y el driver lo entrega como string, así que
      * el precio de un plan pago nunca debe caer en la rama gratuita por una
      * comparación floja.
@@ -116,6 +150,7 @@ describe("PagosService", () => {
         plan_nombre: "simple",
         plan_precio: "9.99",
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       });
       const activateFreeSuscripcion = jest.fn();
       const createPreference = jest.fn().mockResolvedValue({
@@ -147,6 +182,7 @@ describe("PagosService", () => {
         plan_nombre: "roto",
         plan_precio: "no-es-un-numero",
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       });
       const activateFreeSuscripcion = jest.fn();
       const createPreference = jest.fn().mockResolvedValue({
@@ -171,6 +207,7 @@ describe("PagosService", () => {
         plan_nombre: "plus",
         plan_precio: 19.99,
         plan_moneda: "ARS",
+        plan_is_self_serve: true,
       });
       const findProfileById = jest
         .fn()
