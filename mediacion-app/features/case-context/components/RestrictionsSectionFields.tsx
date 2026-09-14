@@ -7,13 +7,12 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import type { CaseContextVisibility, Restriction } from '@/types/case-context';
+import type { CaseContextEntry, Restriction } from '@/types/case-context';
 import { generateMockContextEntryId } from '@/utils/mock-id';
-import { PrivacyToggle } from './PrivacyToggle';
 
 export type RestrictionsSectionFieldsProps = {
-  items: Array<{ data: Restriction; visibility: CaseContextVisibility; ownerId: string }>;
-  onChange: (items: Array<{ data: Restriction; visibility: CaseContextVisibility; ownerId: string }>) => void;
+  items: CaseContextEntry<Restriction>[];
+  onChange: (items: CaseContextEntry<Restriction>[]) => void;
 };
 
 const TIPOS = ['viajes', 'trabajo_por_turnos', 'distancia', 'otro'] as const;
@@ -45,7 +44,7 @@ export function RestrictionsSectionFields({ items, onChange }: RestrictionsSecti
         tipo,
         descripcion: descripcion.trim(),
       };
-      onChange([...items, { data: newRestriction, visibility: 'private', ownerId: 'party-self' }]);
+      onChange([...items, { data: newRestriction, ownerId: 'party-self' }]);
     } else {
       onChange(
         items.map((item) =>
@@ -67,16 +66,6 @@ export function RestrictionsSectionFields({ items, onChange }: RestrictionsSecti
 
   const remove = (id: string) => {
     onChange(items.filter((item) => item.data.id !== id));
-  };
-
-  const toggleVisibility = (id: string) => {
-    onChange(
-      items.map((item) =>
-        item.data.id === id
-          ? { ...item, visibility: item.visibility === 'shared' ? 'private' : 'shared' }
-          : item,
-      ),
-    );
   };
 
   const isEditing = editingId !== null;
@@ -128,7 +117,6 @@ export function RestrictionsSectionFields({ items, onChange }: RestrictionsSecti
                 <Text style={styles.itemDetail}>{item.data.descripcion}</Text>
               </View>
               <View style={styles.itemActions}>
-                <PrivacyToggle visibility={item.visibility} onToggle={() => toggleVisibility(item.data.id)} />
                 <Button variant="tertiary" size="sm" onPress={() => startEdit(item)}>
                   {t('common.edit')}
                 </Button>

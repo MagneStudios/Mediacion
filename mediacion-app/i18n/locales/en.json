@@ -1676,7 +1676,7 @@
   },
   "caseContext": {
     "title": "Case context form",
-    "subtitle": "Fill in the information to coordinate with the other party.",
+    "subtitle": "Fill in context information for your case. It is private.",
     "progress": {
       "label": "{{completed}} of {{total}} sections completed"
     },
@@ -1721,9 +1721,7 @@
       "domingo": "Sun"
     },
     "privacy": {
-      "toggle": "Change visibility",
-      "private": "Private — only you can see it",
-      "shared": "Shared — both parties can see it"
+      "notice": "Private — only you can see this information. The other party and the mediator cannot access it."
     },
     "integrantes": {
       "nombreLabel": "Name",
@@ -1732,13 +1730,15 @@
       "parentescoPlaceholder": "E.g.: son, daughter, partner",
       "fechaNacimientoLabel": "Date of birth",
       "fechaNacimientoPlaceholder": "Select date",
+      "notasLabel": "Notes",
+      "notasPlaceholder": "Additional observations",
       "add": "Add member"
     },
     "actividades": {
-      "ninoLabel": "Child",
-      "ninoPlaceholder": "Child ID",
-      "nombreLabel": "Activity",
-      "nombrePlaceholder": "E.g.: Soccer, English",
+      "integranteLabel": "Member",
+      "integrantePlaceholder": "Select member",
+      "actividadLabel": "Activity",
+      "actividadPlaceholder": "E.g.: Soccer, English",
       "diaLabel": "Day",
       "horaInicioLabel": "Start time",
       "horaFinLabel": "End time",
@@ -1752,6 +1752,10 @@
       "nombrePlaceholder": "E.g.: School No. 5",
       "direccionLabel": "Address",
       "direccionPlaceholder": "Street and number",
+      "cursoLabel": "Grade/Year",
+      "cursoPlaceholder": "E.g.: 5th grade",
+      "notasLabel": "Notes",
+      "notasPlaceholder": "Additional observations",
       "turnoLabel": "Shift",
       "turnos": {
         "manana": "Morning",
@@ -1763,16 +1767,25 @@
       "descripcionLabel": "Description",
       "descripcionPlaceholder": "E.g.: Pick up children from school",
       "diaLabel": "Day",
-      "horaInicioLabel": "Start time",
-      "horaFinLabel": "End time",
-      "timePlaceholder": "Select time",
+      "franjaHorariaLabel": "Time slot",
+      "franjaHorariaPlaceholder": "E.g.: 8:00-10:00",
       "add": "Add entry"
     },
     "domicilios": {
-      "etiquetaLabel": "Label",
-      "etiquetaPlaceholder": "E.g.: Own house, Work",
-      "direccionLabel": "Address",
-      "direccionPlaceholder": "Street, number, city",
+      "tipoLabel": "Type",
+      "tipoPlaceholder": "E.g.: Own house, Work",
+      "calleLabel": "Street",
+      "callePlaceholder": "Street name",
+      "numeroLabel": "Number",
+      "numeroPlaceholder": "Door number",
+      "localidadLabel": "City",
+      "localidadPlaceholder": "City or locality",
+      "provinciaLabel": "Province/State",
+      "provinciaPlaceholder": "Province or state",
+      "cpLabel": "Postal code",
+      "cpPlaceholder": "E.g.: 1425",
+      "notasLabel": "Notes",
+      "notasPlaceholder": "Additional observations",
       "add": "Add address"
     },
     "restricciones": {

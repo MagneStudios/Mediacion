@@ -28,7 +28,7 @@ Cierre de revisión sobre este plan: aprobable y ejecutable, con 6 ajustes concr
 2. **Ítem 1 — `InvitationSection` autónomo.** El componente posee su propio `invitation`/`invitationStatus` y llama `casesService.getInvitation` él mismo, en vez de recibirlos por props. Se elimina ese estado de `CaseDetailScreen.tsx` (hoy en líneas ~42-43 y ~69-78). Necesario porque el componente ahora se renderiza en dos lugares (flujo `nuevo` y card en `secondary`) — que se autogestione evita duplicar el fetch en los dos call sites.
 3. **Ítem 1 — `canInviteCounterparty` incluye `acordado` tal como está definido.** Confirmado sin cambios: tras el fix #1, un caso `acordado` va a mostrar "No hay invitación pendiente para este caso" (la invitación ya fue aceptada), que es el comportamiento correcto.
 4. **Ítem 2 — `canShowCaseContext(estado) = canInviteCounterparty(estado)` menos `nuevo`, explícito.** Reemplaza la ambigüedad "probablemente no en `nuevo`, a confirmar" del borrador original — queda como una sola fuente de verdad derivada (misma noción de "el caso ya tiene contraparte enganchada"), no una condición paralela.
-5. **Ítem 2 — defaults de `visibility` documentados por sección**, no decididos ad-hoc durante la implementación: `domicilios` y `restricciones` = `private` por defecto (información sensible, el propio doc del cliente menciona casos de riesgo/seguridad); `integrantes`, `actividades`, `colegio`, `cronograma` = `shared` por defecto (necesitan ser vistos por ambas partes para que la ficha cumpla su propósito de coordinación). Editable campo a campo por el usuario desde el default, no fijo.
+5. **Ítem 2 — defaults de `visibility` documentados por sección** — **SUPERADO el 14/09 por la decisión real de DB** (`docs/decisiones-db/2026-09-14-ficha-contexto-caso.md`, ver `docs/plan-alineacion-db-ficha-contexto-14-09.md`): no existe "compartido", todo es privado por parte. Se dejó el punto original acá solo como registro histórico de la hipótesis previa; el modelo vigente es el de la sección "Privacidad" más abajo, sin campo `visibility`.
 6. **Ítem 3 — corrección de ubicación.** `ProposalOutcomeNotice.tsx` vive en `features/negotiation/components/`, no en `design-system/` — es solo la referencia de forma a imitar. `InlineWarning.tsx` sí se crea nuevo en `design-system/components/`, con `accessibilityRole="alert"`.
 
 No se toca el contrato `CasesService` en esta rama (confirmado). Orden 3→1→2, todo en `feat/frontend-pendientes-14-09`, una sola PR.
@@ -36,8 +36,8 @@ No se toca el contrato `CasesService` en esta rama (confirmado). Orden 3→1→2
 ## Riesgos — `@react-native-community/datetimepicker`
 
 - **Validar versión compatible con Expo SDK 54 / RN 0.81.5** antes de `expo install` — revisar la matriz de compatibilidad en docs.expo.dev/versions/v54.0.0 (`AGENTS.md` lo pide explícitamente). Un mismatch de versión rompe el build nativo, a veces sin error claro en JS.
-- **iOS renderiza el picker como spinner inline** (no se autocierra) — necesita un patrón explícito de Confirmar/Descartar envolviéndolo en un sheet/modal. **Android usa diálogo nativo** que se cierra solo al confirmar. Los dos componentes que usan fecha/hora (`ScheduleSectionFields.tsx`, el campo `fechaNacimiento` de `FamilyMember`) necesitan manejar ambos comportamientos por plataforma.
-- **`jest-expo` va a requerir mockear el módulo nativo** en los tests de `ScheduleSectionFields`/`FamilyMember` — sin el mock, esos tests fallan o cuelgan al intentar montar el picker real.
+- **iOS renderiza el picker como spinner inline** (no se autocierra) — necesita un patrón explícito de Confirmar/Descartar envolviéndolo en un sheet/modal. **Android usa diálogo nativo** que se cierra solo al confirmar. Los dos componentes que usan fecha/hora (`ActivitiesSectionFields.tsx` — `horaInicio`/`horaFin`, coincide con columnas `TIME` reales —, y el campo `fechaNacimiento` de `FamilyMember` en `IntegrantesSectionFields.tsx`) necesitan manejar ambos comportamientos por plataforma. **Actualizado el 14/09:** el picker se sacó de `ScheduleSectionFields.tsx` — la tabla real `contexto_cronograma` usa `franja_horaria TEXT`, no columnas de hora, ver `docs/plan-alineacion-db-ficha-contexto-14-09.md`.
+- **`jest-expo` va a requerir mockear el módulo nativo** en los tests de `ActivitiesSectionFields`/`IntegrantesSectionFields` — sin el mock, esos tests fallan o cuelgan al intentar montar el picker real.
 
 ---
 
@@ -85,49 +85,40 @@ En `CaseDetailScreen.test.tsx`, nuevo `describe`: caso `activo` con invitación 
 
 ## Ítem 2 — Ficha de contexto del caso (mock, incremental)
 
-**Confirmado:** ruta nueva tipo wizard bajo `/case/[id]/context/`, consistente con los wizards existentes (`app/case/create/`, posiciones). **Confirmado:** horarios exactos (no franjas) — se agrega `@react-native-community/datetimepicker` (compatible con Expo vía `expo install`) para los campos de horario en `ScheduleSectionFields.tsx` y `FamilyMember.fechaNacimiento`. Es la única dependencia nueva de todo el plan — ver riesgos de esta librería en la sección al principio del documento (versión vs. Expo SDK 54, spinner iOS vs. diálogo Android, mock en jest-expo) antes de instalarla.
+**Confirmado:** ruta nueva tipo wizard bajo `/case/[id]/context/`, consistente con los wizards existentes (`app/case/create/`, posiciones). **Confirmado:** horarios exactos (no franjas) para actividades — se agrega `@react-native-community/datetimepicker` (compatible con Expo vía `expo install`) para `ActivitiesSectionFields.tsx` (`horaInicio`/`horaFin`) y `FamilyMember.fechaNacimiento`. Es la única dependencia nueva de todo el plan — ver riesgos de esta librería en la sección al principio del documento (versión vs. Expo SDK 54, spinner iOS vs. diálogo Android, mock en jest-expo) antes de instalarla. **Actualizado el 14/09:** el cronograma semanal (`ScheduleSectionFields.tsx`) **no** usa el picker — la tabla real `contexto_cronograma` modela un único campo `franja_horaria TEXT`, no un par de horas exactas; ver `docs/plan-alineacion-db-ficha-contexto-14-09.md`.
 
 **Visibilidad:** ¿qué se muestra en la card condicional del detalle de caso? — `canShowCaseContext(estado) = canInviteCounterparty(estado)` **menos** `'nuevo'` (ver `utils/case-actions.ts`). Es decir: `pendiente_suscripciones`, `activo`, `en_negociacion`, `acordado`; nunca en `nuevo` (no tiene sentido cargar horarios de los chicos antes de que el caso tenga contraparte) ni en los estados terminales que ya excluye `canInviteCounterparty`.
 
 **Persistencia:** el `Context`/`Provider` (`useCaseContextDraft`) maneja el estado de edición en curso; cada sección se autoguarda en `case-context.service.ts` al confirmar el paso (no solo al final), igual que el patrón mock de posiciones — sobrevive a salir/entrar del flujo dentro de la misma sesión de la app (no hay storage persistente en disco en todo el repo hoy; consistente con eso).
 
-**Privacidad:** modelo `CaseContextEntry<T>` con `visibility: 'shared' | 'private'` **por entrada** (no por sección entera) — permite que, por ejemplo, un domicilio sea privado mientras otros son compartidos. Defaults por sección, documentados (no ad-hoc):
-
-| Sección | Default | Motivo |
-|---|---|---|
-| `integrantes` | `shared` | ambas partes necesitan saber quién compone el grupo familiar |
-| `actividades` | `shared` | coordinación de horarios de los chicos requiere que ambas partes lo vean |
-| `colegio` | `shared` | idem — dato operativo, no sensible |
-| `cronograma` | `shared` | es el propósito central de la ficha: coordinar |
-| `domicilios` | `private` | puede involucrar información sensible (seguridad, casos de riesgo — mencionado explícitamente en el doc del cliente) |
-| `restricciones` | `private` | mismo motivo — viajes/turnos/distancias pueden revelar información que una parte no quiere compartir de entrada |
-
-Editable campo a campo por el usuario desde el default (no fijo) — reusa el banner de privacidad (`styles.privacyBanner`, ícono `lock`) y el hint ya usados en `PositionFormFields.tsx`.
+**Privacidad:** todo privado por parte, sin toggle ni opción de compartir. Alineado con la decisión de DB (`docs/decisiones-db/2026-09-14-ficha-contexto-caso.md`): cada fila es visible solo para su `parte_id`, nunca para la contraparte ni el mediador. El modelo `CaseContextEntry<T>` ya no tiene campo `visibility` — queda `{ data: T; ownerId: string }`. Se reemplazó el `PrivacyToggle` interactivo por un `PrivacyNotice` estático (banner informativo, ícono `lock` fijo, sin `Pressable`), reusando el patrón de `CaseDetailScreen.tsx` (`privacyBanner`) y `PositionFormFields.tsx` (`sectionHint`). Se renderiza una vez por pantalla de sección (debajo del header), no por ítem.
 
 ### Tipos nuevos (`mediacion-app/types/case-context.ts`)
 ```ts
-export type CaseContextVisibility = 'shared' | 'private';
-
 export type FamilyMember = {
-  id: string; nombre: string; parentesco: string; fechaNacimiento?: string;
+  id: string; nombre: string; parentesco: string; fechaNacimiento?: string; notas?: string;
 };
 export type ChildActivity = {
-  id: string; ninoId: string; nombre: string;
-  diaSemana: 'lunes'|'martes'|'miercoles'|'jueves'|'viernes'|'sabado'|'domingo';
-  horaInicio: string; horaFin: string; lugar?: string; // horarios exactos (HH:mm)
+  id: string; integranteId?: string; actividad: string;
+  dia: 'lunes'|'martes'|'miercoles'|'jueves'|'viernes'|'sabado'|'domingo';
+  horaInicio: string; horaFin: string; lugar?: string;
 };
-export type SchoolInfo = { nombre: string; direccion?: string; turno: 'manana'|'tarde'|'doble' };
+export type SchoolInfo = {
+  nombre: string; direccion?: string; curso?: string; notas?: string; turno: 'manana'|'tarde'|'doble';
+};
 export type WeeklyScheduleEntry = {
-  id: string; diaSemana: ChildActivity['diaSemana'];
-  horaInicio: string; horaFin: string; descripcion: string;
+  id: string; dia: ChildActivity['dia']; franjaHoraria: string; descripcion: string;
 };
-export type Address = { id: string; etiqueta: string; direccion: string };
+export type Address = {
+  id: string; tipo: string; calle: string; numero?: string; localidad?: string;
+  provincia?: string; cp?: string; notas?: string;
+};
 export type Restriction = { id: string; tipo: 'viajes'|'trabajo_por_turnos'|'distancia'|'otro'; descripcion: string };
 
 export type CaseContextSectionId =
   'integrantes'|'actividades'|'colegio'|'cronograma'|'domicilios'|'restricciones';
 
-export type CaseContextEntry<T> = { data: T; visibility: CaseContextVisibility; ownerId: string };
+export type CaseContextEntry<T> = { data: T; ownerId: string };
 
 export type CaseContext = {
   caseId: string;
@@ -149,8 +140,8 @@ mediacion-app/mocks/case-context.ts                    (datos mock por caseId, a
 mediacion-app/features/case-context/hooks/useCaseContextDraft.tsx
 mediacion-app/features/case-context/components/CaseContextProgress.tsx
 mediacion-app/features/case-context/components/DynamicList.tsx        (agregar/editar/eliminar ítems repetibles, genérico)
-mediacion-app/features/case-context/components/PrivacyToggle.tsx
-mediacion-app/features/case-context/components/{FamilyMembers,Activities,School,Schedule,Addresses,Restrictions}SectionFields.tsx
+mediacion-app/features/case-context/components/PrivacyNotice.tsx      (banner estático informativo, sin toggle)
+mediacion-app/features/case-context/components/{Integrantes,Activities,School,Schedule,Addresses,Restrictions}SectionFields.tsx
 mediacion-app/app/case/[id]/context/_layout.tsx        (monta el Provider, análogo a app/case/create/_layout.tsx)
 mediacion-app/app/case/[id]/context/index.tsx           (resumen: secciones completas/faltantes)
 mediacion-app/app/case/[id]/context/{integrantes,actividades,colegio,cronograma,domicilios,restricciones}.tsx

@@ -21,7 +21,6 @@ describe('case-context.service (mock)', () => {
     const entries = [
       {
         data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' },
-        visibility: 'shared' as const,
         ownerId: 'party-self',
       },
     ];
@@ -33,7 +32,7 @@ describe('case-context.service (mock)', () => {
   it('isolates contexts by caseId', async () => {
     const service = createMockCaseContextService();
     await service.saveSection('case-1', 'integrantes', [
-      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, visibility: 'shared', ownerId: 'party-self' },
+      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, ownerId: 'party-self' },
     ]);
     const ctx2 = await service.getContext('case-2');
     expect(ctx2.integrantes).toHaveLength(0);
@@ -42,7 +41,7 @@ describe('case-context.service (mock)', () => {
   it('removes a section from completedSections when emptied', async () => {
     const service = createMockCaseContextService();
     await service.saveSection('case-1', 'integrantes', [
-      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, visibility: 'shared', ownerId: 'party-self' },
+      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, ownerId: 'party-self' },
     ]);
     const updated = await service.saveSection('case-1', 'integrantes', []);
     expect(updated.completedSections).not.toContain('integrantes');
@@ -52,7 +51,6 @@ describe('case-context.service (mock)', () => {
     const service = createMockCaseContextService();
     const entry = {
       data: { nombre: 'Escuela 5', turno: 'manana' as const },
-      visibility: 'shared' as const,
       ownerId: 'party-self',
     };
     const updated = await service.saveSection('case-1', 'colegio', entry as any);

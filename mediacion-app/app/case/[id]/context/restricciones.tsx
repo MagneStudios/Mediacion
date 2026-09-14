@@ -9,6 +9,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { RestrictionsSectionFields } from '@/features/case-context/components/RestrictionsSectionFields';
+import { PrivacyNotice } from '@/features/case-context/components/PrivacyNotice';
 import { useCaseContextDraft } from '@/features/case-context/hooks/useCaseContextDraft';
 import { useSectionSaveQueue } from '@/features/case-context/hooks/useSectionSaveQueue';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -56,6 +57,8 @@ export default function RestriccionesScreen() {
         </Text>
         <Text style={styles.subtitle}>{t('caseContext.sections.restricciones.description')}</Text>
       </View>
+
+      <PrivacyNotice />
 
       <RestrictionsSectionFields items={items} onChange={handleChange} />
 

@@ -9,6 +9,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { ActivitiesSectionFields } from '@/features/case-context/components/ActivitiesSectionFields';
+import { PrivacyNotice } from '@/features/case-context/components/PrivacyNotice';
 import { useCaseContextDraft } from '@/features/case-context/hooks/useCaseContextDraft';
 import { useSectionSaveQueue } from '@/features/case-context/hooks/useSectionSaveQueue';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -57,6 +58,8 @@ export default function ActividadesScreen() {
         </Text>
         <Text style={styles.subtitle}>{t('caseContext.sections.actividades.description')}</Text>
       </View>
+
+      <PrivacyNotice />
 
       <ActivitiesSectionFields items={items} onChange={handleChange} childIds={childIds} />
 

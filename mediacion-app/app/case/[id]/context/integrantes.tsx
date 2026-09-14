@@ -9,6 +9,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { IntegrantesSectionFields } from '@/features/case-context/components/IntegrantesSectionFields';
+import { PrivacyNotice } from '@/features/case-context/components/PrivacyNotice';
 import { useCaseContextDraft } from '@/features/case-context/hooks/useCaseContextDraft';
 import { useSectionSaveQueue } from '@/features/case-context/hooks/useSectionSaveQueue';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -57,6 +58,8 @@ export default function IntegrantesScreen() {
         </Text>
         <Text style={styles.subtitle}>{t('caseContext.sections.integrantes.description')}</Text>
       </View>
+
+      <PrivacyNotice />
 
       <IntegrantesSectionFields items={items} onChange={handleChange} />
 

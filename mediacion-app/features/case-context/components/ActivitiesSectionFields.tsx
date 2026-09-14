@@ -8,13 +8,12 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import type { CaseContextVisibility, ChildActivity } from '@/types/case-context';
+import type { CaseContextEntry, ChildActivity } from '@/types/case-context';
 import { generateMockContextEntryId } from '@/utils/mock-id';
-import { PrivacyToggle } from './PrivacyToggle';
 
 export type ActivitiesSectionFieldsProps = {
-  items: Array<{ data: ChildActivity; visibility: CaseContextVisibility; ownerId: string }>;
-  onChange: (items: Array<{ data: ChildActivity; visibility: CaseContextVisibility; ownerId: string }>) => void;
+  items: CaseContextEntry<ChildActivity>[];
+  onChange: (items: CaseContextEntry<ChildActivity>[]) => void;
   childIds: string[];
 };
 
@@ -38,9 +37,9 @@ function dateToTime(d: Date): string {
 export function ActivitiesSectionFields({ items, onChange, childIds }: ActivitiesSectionFieldsProps) {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [ninoId, setNinoId] = useState('');
-  const [nombre, setNombre] = useState('');
-  const [diaSemana, setDiaSemana] = useState<typeof DAYS[number]>('lunes');
+  const [integranteId, setIntegranteId] = useState('');
+  const [actividad, setActividad] = useState('');
+  const [dia, setDia] = useState<typeof DAYS[number]>('lunes');
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFin, setHoraFin] = useState('');
   const [lugar, setLugar] = useState('');
@@ -49,9 +48,9 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
 
   const startAdd = () => {
     setEditingId('new');
-    setNinoId(childIds[0] ?? '');
-    setNombre('');
-    setDiaSemana('lunes');
+    setIntegranteId(childIds[0] ?? '');
+    setActividad('');
+    setDia('lunes');
     setHoraInicio('');
     setHoraFin('');
     setLugar('');
@@ -59,28 +58,28 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
 
   const startEdit = (item: typeof items[number]) => {
     setEditingId(item.data.id);
-    setNinoId(item.data.ninoId);
-    setNombre(item.data.nombre);
-    setDiaSemana(item.data.diaSemana);
+    setIntegranteId(item.data.integranteId ?? '');
+    setActividad(item.data.actividad);
+    setDia(item.data.dia);
     setHoraInicio(item.data.horaInicio);
     setHoraFin(item.data.horaFin);
     setLugar(item.data.lugar ?? '');
   };
 
   const confirm = () => {
-    if (!nombre.trim() || !ninoId || !horaInicio || !horaFin) return;
+    if (!actividad.trim() || !horaInicio || !horaFin) return;
 
     if (editingId === 'new') {
       const newActivity: ChildActivity = {
         id: generateMockContextEntryId(),
-        ninoId,
-        nombre: nombre.trim(),
-        diaSemana,
+        integranteId: integranteId || undefined,
+        actividad: actividad.trim(),
+        dia,
         horaInicio,
         horaFin,
         lugar: lugar.trim() || undefined,
       };
-      onChange([...items, { data: newActivity, visibility: 'shared', ownerId: 'party-self' }]);
+      onChange([...items, { data: newActivity, ownerId: 'party-self' }]);
     } else {
       onChange(
         items.map((item) =>
@@ -89,9 +88,9 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
                 ...item,
                 data: {
                   ...item.data,
-                  ninoId,
-                  nombre: nombre.trim(),
-                  diaSemana,
+                  integranteId: integranteId || undefined,
+                  actividad: actividad.trim(),
+                  dia,
                   horaInicio,
                   horaFin,
                   lugar: lugar.trim() || undefined,
@@ -108,16 +107,6 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
     onChange(items.filter((item) => item.data.id !== id));
   };
 
-  const toggleVisibility = (id: string) => {
-    onChange(
-      items.map((item) =>
-        item.data.id === id
-          ? { ...item, visibility: item.visibility === 'shared' ? 'private' : 'shared' }
-          : item,
-      ),
-    );
-  };
-
   const isEditing = editingId !== null;
 
   return (
@@ -126,17 +115,17 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
         <View style={styles.form}>
           {childIds.length > 0 && (
             <Input
-              label={t('caseContext.actividades.ninoLabel')}
-              value={ninoId}
-              onChangeText={setNinoId}
-              placeholder={t('caseContext.actividades.ninoPlaceholder')}
+              label={t('caseContext.actividades.integranteLabel')}
+              value={integranteId}
+              onChangeText={setIntegranteId}
+              placeholder={t('caseContext.actividades.integrantePlaceholder')}
             />
           )}
           <Input
-            label={t('caseContext.actividades.nombreLabel')}
-            value={nombre}
-            onChangeText={setNombre}
-            placeholder={t('caseContext.actividades.nombrePlaceholder')}
+            label={t('caseContext.actividades.actividadLabel')}
+            value={actividad}
+            onChangeText={setActividad}
+            placeholder={t('caseContext.actividades.actividadPlaceholder')}
           />
           <View>
             <Text style={styles.fieldLabel}>{t('caseContext.actividades.diaLabel')}</Text>
@@ -144,9 +133,9 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
               {DAYS.map((d) => (
                 <Button
                   key={d}
-                  variant={diaSemana === d ? 'primary' : 'secondary'}
+                  variant={dia === d ? 'primary' : 'secondary'}
                   size="sm"
-                  onPress={() => setDiaSemana(d)}
+                  onPress={() => setDia(d)}
                 >
                   {t(`caseContext.days.${d}`)}
                 </Button>
@@ -211,14 +200,13 @@ export function ActivitiesSectionFields({ items, onChange, childIds }: Activitie
           {items.map((item) => (
             <View key={item.data.id} style={styles.itemRow}>
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.data.nombre}</Text>
+                <Text style={styles.itemName}>{item.data.actividad}</Text>
                 <Text style={styles.itemDetail}>
-                  {t(`caseContext.days.${item.data.diaSemana}`)} {formatTime(item.data.horaInicio)}–{formatTime(item.data.horaFin)}
+                  {t(`caseContext.days.${item.data.dia}`)} {formatTime(item.data.horaInicio)}–{formatTime(item.data.horaFin)}
                 </Text>
                 {item.data.lugar ? <Text style={styles.itemDetail}>{item.data.lugar}</Text> : null}
               </View>
               <View style={styles.itemActions}>
-                <PrivacyToggle visibility={item.visibility} onToggle={() => toggleVisibility(item.data.id)} />
                 <Button variant="tertiary" size="sm" onPress={() => startEdit(item)}>
                   {t('common.edit')}
                 </Button>

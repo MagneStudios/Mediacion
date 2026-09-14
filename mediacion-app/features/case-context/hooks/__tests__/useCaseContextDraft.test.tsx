@@ -55,7 +55,7 @@ describe('useCaseContextDraft', () => {
     });
 
     const entries = [
-      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, visibility: 'shared' as const, ownerId: 'party-self' },
+      { data: { id: 'm1', nombre: 'Ana', parentesco: 'hija' }, ownerId: 'party-self' },
     ];
 
     await act(async () => {

@@ -1676,7 +1676,7 @@
   },
   "caseContext": {
     "title": "Ficha de contexto del caso",
-    "subtitle": "Completá la información para coordinar con la otra parte.",
+    "subtitle": "Cargá información de contexto para tu caso. Es privada.",
     "progress": {
       "label": "{{completed}} de {{total}} secciones completadas"
     },
@@ -1721,9 +1721,7 @@
       "domingo": "Dom"
     },
     "privacy": {
-      "toggle": "Cambiar visibilidad",
-      "private": "Privado — solo vos lo ves",
-      "shared": "Compartido — ambas partes lo ven"
+      "notice": "Privado — solo vos ves esta información. La otra parte y el mediador no acceden a ella."
     },
     "integrantes": {
       "nombreLabel": "Nombre",
@@ -1732,13 +1730,15 @@
       "parentescoPlaceholder": "Ej: hijo, hija, conviviente",
       "fechaNacimientoLabel": "Fecha de nacimiento",
       "fechaNacimientoPlaceholder": "Seleccionar fecha",
+      "notasLabel": "Notas",
+      "notasPlaceholder": "Observaciones adicionales",
       "add": "Agregar integrante"
     },
     "actividades": {
-      "ninoLabel": "Niño/a",
-      "ninoPlaceholder": "ID del niño/a",
-      "nombreLabel": "Actividad",
-      "nombrePlaceholder": "Ej: Fútbol, Inglés",
+      "integranteLabel": "Integrante",
+      "integrantePlaceholder": "Seleccionar integrante",
+      "actividadLabel": "Actividad",
+      "actividadPlaceholder": "Ej: Fútbol, Inglés",
       "diaLabel": "Día",
       "horaInicioLabel": "Hora inicio",
       "horaFinLabel": "Hora fin",
@@ -1752,6 +1752,10 @@
       "nombrePlaceholder": "Ej: Escuela N° 5",
       "direccionLabel": "Dirección",
       "direccionPlaceholder": "Calle y número",
+      "cursoLabel": "Curso/Año",
+      "cursoPlaceholder": "Ej: 5to grado",
+      "notasLabel": "Notas",
+      "notasPlaceholder": "Observaciones adicionales",
       "turnoLabel": "Turno",
       "turnos": {
         "manana": "Mañana",
@@ -1763,16 +1767,25 @@
       "descripcionLabel": "Descripción",
       "descripcionPlaceholder": "Ej: Buscar niños del colegio",
       "diaLabel": "Día",
-      "horaInicioLabel": "Hora inicio",
-      "horaFinLabel": "Hora fin",
-      "timePlaceholder": "Seleccionar hora",
+      "franjaHorariaLabel": "Franja horaria",
+      "franjaHorariaPlaceholder": "Ej: 8:00-10:00",
       "add": "Agregar entrada"
     },
     "domicilios": {
-      "etiquetaLabel": "Etiqueta",
-      "etiquetaPlaceholder": "Ej: Casa propia, Trabajo",
-      "direccionLabel": "Dirección",
-      "direccionPlaceholder": "Calle, número, localidad",
+      "tipoLabel": "Tipo",
+      "tipoPlaceholder": "Ej: Casa propia, Trabajo",
+      "calleLabel": "Calle",
+      "callePlaceholder": "Nombre de la calle",
+      "numeroLabel": "Número",
+      "numeroPlaceholder": "Número de puerta",
+      "localidadLabel": "Localidad",
+      "localidadPlaceholder": "Ciudad o localidad",
+      "provinciaLabel": "Provincia",
+      "provinciaPlaceholder": "Provincia",
+      "cpLabel": "Código postal",
+      "cpPlaceholder": "Ej: 1425",
+      "notasLabel": "Notas",
+      "notasPlaceholder": "Observaciones adicionales",
       "add": "Agregar domicilio"
     },
     "restricciones": {

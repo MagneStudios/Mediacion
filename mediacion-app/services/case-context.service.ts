@@ -25,15 +25,6 @@ export function __mockForceCaseContextFailure(
   failures.force(operation);
 }
 
-const SECTION_DEFAULT_VISIBILITY: Record<CaseContextSectionId, 'shared' | 'private'> = {
-  integrantes: 'shared',
-  actividades: 'shared',
-  colegio: 'shared',
-  cronograma: 'shared',
-  domicilios: 'private',
-  restricciones: 'private',
-};
-
 function computeCompletedSections(ctx: CaseContext): CaseContextSectionId[] {
   const completed: CaseContextSectionId[] = [];
   if (ctx.integrantes.length > 0) completed.push('integrantes');
@@ -67,16 +58,12 @@ export function createMockCaseContextService(): CaseContextService {
         if (entry && !entry.ownerId) {
           (entry as any).ownerId = MOCK_OWNER_ID;
         }
-        if (entry && !entry.visibility) {
-          (entry as any).visibility = SECTION_DEFAULT_VISIBILITY[sectionId];
-        }
         ctx.colegio = entry;
       } else {
-        const arr = entries as Array<{ ownerId?: string; visibility?: 'shared' | 'private'; [key: string]: unknown }>;
+        const arr = entries as Array<{ ownerId?: string; [key: string]: unknown }>;
         const normalized = arr.map((entry) => ({
           ...entry,
           ownerId: entry.ownerId ?? MOCK_OWNER_ID,
-          visibility: entry.visibility ?? SECTION_DEFAULT_VISIBILITY[sectionId],
         }));
         (ctx as any)[sectionId] = normalized;
       }

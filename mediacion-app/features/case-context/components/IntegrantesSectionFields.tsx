@@ -8,14 +8,12 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import type { FamilyMember } from '@/types/case-context';
+import type { CaseContextEntry, FamilyMember } from '@/types/case-context';
 import { generateMockContextEntryId } from '@/utils/mock-id';
-import { PrivacyToggle } from './PrivacyToggle';
-import type { CaseContextVisibility } from '@/types/case-context';
 
 export type IntegrantesSectionFieldsProps = {
-  items: Array<{ data: FamilyMember; visibility: CaseContextVisibility; ownerId: string }>;
-  onChange: (items: Array<{ data: FamilyMember; visibility: CaseContextVisibility; ownerId: string }>) => void;
+  items: CaseContextEntry<FamilyMember>[];
+  onChange: (items: CaseContextEntry<FamilyMember>[]) => void;
 };
 
 const DAYS_OF_WEEK = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const;
@@ -36,6 +34,7 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
   const [nombre, setNombre] = useState('');
   const [parentesco, setParentesco] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState<Date | null>(null);
+  const [notas, setNotas] = useState('');
   const [showPicker, setShowPicker] = useState(false);
 
   const startAdd = () => {
@@ -43,6 +42,7 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
     setNombre('');
     setParentesco('');
     setFechaNacimiento(null);
+    setNotas('');
   };
 
   const startEdit = (item: typeof items[number]) => {
@@ -50,6 +50,7 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
     setNombre(item.data.nombre);
     setParentesco(item.data.parentesco);
     setFechaNacimiento(item.data.fechaNacimiento ? new Date(item.data.fechaNacimiento) : null);
+    setNotas(item.data.notas ?? '');
   };
 
   const confirm = () => {
@@ -61,8 +62,9 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
         nombre: nombre.trim(),
         parentesco: parentesco.trim(),
         fechaNacimiento: fechaNacimiento?.toISOString(),
+        notas: notas.trim() || undefined,
       };
-      onChange([...items, { data: newMember, visibility: 'shared', ownerId: 'party-self' }]);
+      onChange([...items, { data: newMember, ownerId: 'party-self' }]);
     } else {
       onChange(
         items.map((item) =>
@@ -74,6 +76,7 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
                   nombre: nombre.trim(),
                   parentesco: parentesco.trim(),
                   fechaNacimiento: fechaNacimiento?.toISOString(),
+                  notas: notas.trim() || undefined,
                 },
               }
             : item,
@@ -85,16 +88,6 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
 
   const remove = (id: string) => {
     onChange(items.filter((item) => item.data.id !== id));
-  };
-
-  const toggleVisibility = (id: string) => {
-    onChange(
-      items.map((item) =>
-        item.data.id === id
-          ? { ...item, visibility: item.visibility === 'shared' ? 'private' : 'shared' }
-          : item,
-      ),
-    );
   };
 
   const isEditing = editingId !== null;
@@ -136,6 +129,14 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
               />
             )}
           </View>
+          <Input
+            label={t('caseContext.integrantes.notasLabel')}
+            value={notas}
+            onChangeText={setNotas}
+            placeholder={t('caseContext.integrantes.notasPlaceholder')}
+            multiline
+            numberOfLines={3}
+          />
           <View style={styles.formActions}>
             <Button variant="primary" onPress={confirm}>
               {t('common.confirm')}
@@ -159,7 +160,6 @@ export function IntegrantesSectionFields({ items, onChange }: IntegrantesSection
                 ) : null}
               </View>
               <View style={styles.itemActions}>
-                <PrivacyToggle visibility={item.visibility} onToggle={() => toggleVisibility(item.data.id)} />
                 <Button variant="tertiary" size="sm" onPress={() => startEdit(item)}>
                   {t('common.edit')}
                 </Button>

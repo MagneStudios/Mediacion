@@ -9,6 +9,7 @@ import { contentWidths, getResponsiveContentStyle } from '@/design-system/tokens
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
 import { AddressesSectionFields } from '@/features/case-context/components/AddressesSectionFields';
+import { PrivacyNotice } from '@/features/case-context/components/PrivacyNotice';
 import { useCaseContextDraft } from '@/features/case-context/hooks/useCaseContextDraft';
 import { useSectionSaveQueue } from '@/features/case-context/hooks/useSectionSaveQueue';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -56,6 +57,8 @@ export default function DomiciliosScreen() {
         </Text>
         <Text style={styles.subtitle}>{t('caseContext.sections.domicilios.description')}</Text>
       </View>
+
+      <PrivacyNotice />
 
       <AddressesSectionFields items={items} onChange={handleChange} />
 

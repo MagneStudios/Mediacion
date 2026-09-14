@@ -1,17 +1,16 @@
-export type CaseContextVisibility = 'shared' | 'private';
-
 export type FamilyMember = {
   id: string;
   nombre: string;
   parentesco: string;
   fechaNacimiento?: string;
+  notas?: string;
 };
 
 export type ChildActivity = {
   id: string;
-  ninoId: string;
-  nombre: string;
-  diaSemana: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+  integranteId?: string;
+  actividad: string;
+  dia: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
   horaInicio: string;
   horaFin: string;
   lugar?: string;
@@ -20,21 +19,27 @@ export type ChildActivity = {
 export type SchoolInfo = {
   nombre: string;
   direccion?: string;
+  curso?: string;
+  notas?: string;
   turno: 'manana' | 'tarde' | 'doble';
 };
 
 export type WeeklyScheduleEntry = {
   id: string;
-  diaSemana: ChildActivity['diaSemana'];
-  horaInicio: string;
-  horaFin: string;
+  dia: ChildActivity['dia'];
+  franjaHoraria: string;
   descripcion: string;
 };
 
 export type Address = {
   id: string;
-  etiqueta: string;
-  direccion: string;
+  tipo: string;
+  calle: string;
+  numero?: string;
+  localidad?: string;
+  provincia?: string;
+  cp?: string;
+  notas?: string;
 };
 
 export type Restriction = {
@@ -53,7 +58,6 @@ export type CaseContextSectionId =
 
 export type CaseContextEntry<T> = {
   data: T;
-  visibility: CaseContextVisibility;
   ownerId: string;
 };
 

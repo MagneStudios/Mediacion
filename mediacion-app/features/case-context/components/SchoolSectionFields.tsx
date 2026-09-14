@@ -7,12 +7,11 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import type { CaseContextVisibility, SchoolInfo } from '@/types/case-context';
-import { PrivacyToggle } from './PrivacyToggle';
+import type { CaseContextEntry, SchoolInfo } from '@/types/case-context';
 
 export type SchoolSectionFieldsProps = {
-  item: { data: SchoolInfo; visibility: CaseContextVisibility; ownerId: string } | null;
-  onChange: (item: { data: SchoolInfo; visibility: CaseContextVisibility; ownerId: string } | null) => void;
+  item: CaseContextEntry<SchoolInfo> | null;
+  onChange: (item: CaseContextEntry<SchoolInfo> | null) => void;
 };
 
 const TURNOS = ['manana', 'tarde', 'doble'] as const;
@@ -22,13 +21,14 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
   const [isEditing, setIsEditing] = useState(!item);
   const [nombre, setNombre] = useState(item?.data.nombre ?? '');
   const [direccion, setDireccion] = useState(item?.data.direccion ?? '');
+  const [curso, setCurso] = useState(item?.data.curso ?? '');
+  const [notas, setNotas] = useState(item?.data.notas ?? '');
   const [turno, setTurno] = useState<typeof TURNOS[number]>(item?.data.turno ?? 'manana');
 
   const confirm = () => {
     if (!nombre.trim()) return;
     onChange({
-      data: { nombre: nombre.trim(), direccion: direccion.trim() || undefined, turno },
-      visibility: item?.visibility ?? 'shared',
+      data: { nombre: nombre.trim(), direccion: direccion.trim() || undefined, curso: curso.trim() || undefined, notas: notas.trim() || undefined, turno },
       ownerId: item?.ownerId ?? 'party-self',
     });
     setIsEditing(false);
@@ -38,6 +38,8 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
     if (item) {
       setNombre(item.data.nombre);
       setDireccion(item.data.direccion ?? '');
+      setCurso(item.data.curso ?? '');
+      setNotas(item.data.notas ?? '');
       setTurno(item.data.turno);
     }
     setIsEditing(true);
@@ -47,6 +49,8 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
     onChange(null);
     setNombre('');
     setDireccion('');
+    setCurso('');
+    setNotas('');
     setTurno('manana');
     setIsEditing(true);
   };
@@ -66,6 +70,12 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
           onChangeText={setDireccion}
           placeholder={t('caseContext.colegio.direccionPlaceholder')}
         />
+        <Input
+          label={t('caseContext.colegio.cursoLabel')}
+          value={curso}
+          onChangeText={setCurso}
+          placeholder={t('caseContext.colegio.cursoPlaceholder')}
+        />
         <View>
           <Text style={styles.fieldLabel}>{t('caseContext.colegio.turnoLabel')}</Text>
           <View style={styles.turnoRow}>
@@ -81,6 +91,14 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
             ))}
           </View>
         </View>
+        <Input
+          label={t('caseContext.colegio.notasLabel')}
+          value={notas}
+          onChangeText={setNotas}
+          placeholder={t('caseContext.colegio.notasPlaceholder')}
+          multiline
+          numberOfLines={3}
+        />
         <View style={styles.formActions}>
           <Button variant="primary" onPress={confirm}>
             {t('common.confirm')}
@@ -101,13 +119,11 @@ export function SchoolSectionFields({ item, onChange }: SchoolSectionFieldsProps
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item!.data.nombre}</Text>
           {item!.data.direccion ? <Text style={styles.itemDetail}>{item!.data.direccion}</Text> : null}
+          {item!.data.curso ? <Text style={styles.itemDetail}>{item!.data.curso}</Text> : null}
           <Text style={styles.itemDetail}>{t(`caseContext.colegio.turnos.${item!.data.turno}`)}</Text>
+          {item!.data.notas ? <Text style={styles.itemDetail}>{item!.data.notas}</Text> : null}
         </View>
         <View style={styles.itemActions}>
-          <PrivacyToggle
-            visibility={item!.visibility}
-            onToggle={(v) => onChange({ ...item!, visibility: v })}
-          />
           <Button variant="tertiary" size="sm" onPress={startEdit}>
             {t('common.edit')}
           </Button>

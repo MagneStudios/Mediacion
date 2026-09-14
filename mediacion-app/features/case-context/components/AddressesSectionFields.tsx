@@ -7,43 +7,62 @@ import { semanticColors } from '@/design-system/tokens/colors';
 import { radii } from '@/design-system/tokens/radii';
 import { spacing } from '@/design-system/tokens/spacing';
 import { typography } from '@/design-system/tokens/typography';
-import type { Address, CaseContextVisibility } from '@/types/case-context';
+import type { Address, CaseContextEntry } from '@/types/case-context';
 import { generateMockContextEntryId } from '@/utils/mock-id';
-import { PrivacyToggle } from './PrivacyToggle';
 
 export type AddressesSectionFieldsProps = {
-  items: Array<{ data: Address; visibility: CaseContextVisibility; ownerId: string }>;
-  onChange: (items: Array<{ data: Address; visibility: CaseContextVisibility; ownerId: string }>) => void;
+  items: CaseContextEntry<Address>[];
+  onChange: (items: CaseContextEntry<Address>[]) => void;
 };
 
 export function AddressesSectionFields({ items, onChange }: AddressesSectionFieldsProps) {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [etiqueta, setEtiqueta] = useState('');
-  const [direccion, setDireccion] = useState('');
+  const [tipo, setTipo] = useState('');
+  const [calle, setCalle] = useState('');
+  const [numero, setNumero] = useState('');
+  const [localidad, setLocalidad] = useState('');
+  const [provincia, setProvincia] = useState('');
+  const [cp, setCp] = useState('');
+  const [notas, setNotas] = useState('');
 
   const startAdd = () => {
     setEditingId('new');
-    setEtiqueta('');
-    setDireccion('');
+    setTipo('');
+    setCalle('');
+    setNumero('');
+    setLocalidad('');
+    setProvincia('');
+    setCp('');
+    setNotas('');
   };
 
   const startEdit = (item: typeof items[number]) => {
     setEditingId(item.data.id);
-    setEtiqueta(item.data.etiqueta);
-    setDireccion(item.data.direccion);
+    setTipo(item.data.tipo);
+    setCalle(item.data.calle);
+    setNumero(item.data.numero ?? '');
+    setLocalidad(item.data.localidad ?? '');
+    setProvincia(item.data.provincia ?? '');
+    setCp(item.data.cp ?? '');
+    setNotas(item.data.notas ?? '');
   };
 
   const confirm = () => {
-    if (!etiqueta.trim() || !direccion.trim()) return;
+    if (!tipo.trim() || !calle.trim()) return;
 
     if (editingId === 'new') {
       const newAddress: Address = {
         id: generateMockContextEntryId(),
-        etiqueta: etiqueta.trim(),
-        direccion: direccion.trim(),
+        tipo: tipo.trim(),
+        calle: calle.trim(),
+        numero: numero.trim() || undefined,
+        localidad: localidad.trim() || undefined,
+        provincia: provincia.trim() || undefined,
+        cp: cp.trim() || undefined,
+        notas: notas.trim() || undefined,
       };
-      onChange([...items, { data: newAddress, visibility: 'private', ownerId: 'party-self' }]);
+      onChange([...items, { data: newAddress, ownerId: 'party-self' }]);
     } else {
       onChange(
         items.map((item) =>
@@ -52,8 +71,13 @@ export function AddressesSectionFields({ items, onChange }: AddressesSectionFiel
                 ...item,
                 data: {
                   ...item.data,
-                  etiqueta: etiqueta.trim(),
-                  direccion: direccion.trim(),
+                  tipo: tipo.trim(),
+                  calle: calle.trim(),
+                  numero: numero.trim() || undefined,
+                  localidad: localidad.trim() || undefined,
+                  provincia: provincia.trim() || undefined,
+                  cp: cp.trim() || undefined,
+                  notas: notas.trim() || undefined,
                 },
               }
             : item,
@@ -67,16 +91,6 @@ export function AddressesSectionFields({ items, onChange }: AddressesSectionFiel
     onChange(items.filter((item) => item.data.id !== id));
   };
 
-  const toggleVisibility = (id: string) => {
-    onChange(
-      items.map((item) =>
-        item.data.id === id
-          ? { ...item, visibility: item.visibility === 'shared' ? 'private' : 'shared' }
-          : item,
-      ),
-    );
-  };
-
   const isEditing = editingId !== null;
 
   return (
@@ -84,16 +98,48 @@ export function AddressesSectionFields({ items, onChange }: AddressesSectionFiel
       {isEditing ? (
         <View style={styles.form}>
           <Input
-            label={t('caseContext.domicilios.etiquetaLabel')}
-            value={etiqueta}
-            onChangeText={setEtiqueta}
-            placeholder={t('caseContext.domicilios.etiquetaPlaceholder')}
+            label={t('caseContext.domicilios.tipoLabel')}
+            value={tipo}
+            onChangeText={setTipo}
+            placeholder={t('caseContext.domicilios.tipoPlaceholder')}
           />
           <Input
-            label={t('caseContext.domicilios.direccionLabel')}
-            value={direccion}
-            onChangeText={setDireccion}
-            placeholder={t('caseContext.domicilios.direccionPlaceholder')}
+            label={t('caseContext.domicilios.calleLabel')}
+            value={calle}
+            onChangeText={setCalle}
+            placeholder={t('caseContext.domicilios.callePlaceholder')}
+          />
+          <Input
+            label={t('caseContext.domicilios.numeroLabel')}
+            value={numero}
+            onChangeText={setNumero}
+            placeholder={t('caseContext.domicilios.numeroPlaceholder')}
+          />
+          <Input
+            label={t('caseContext.domicilios.localidadLabel')}
+            value={localidad}
+            onChangeText={setLocalidad}
+            placeholder={t('caseContext.domicilios.localidadPlaceholder')}
+          />
+          <Input
+            label={t('caseContext.domicilios.provinciaLabel')}
+            value={provincia}
+            onChangeText={setProvincia}
+            placeholder={t('caseContext.domicilios.provinciaPlaceholder')}
+          />
+          <Input
+            label={t('caseContext.domicilios.cpLabel')}
+            value={cp}
+            onChangeText={setCp}
+            placeholder={t('caseContext.domicilios.cpPlaceholder')}
+          />
+          <Input
+            label={t('caseContext.domicilios.notasLabel')}
+            value={notas}
+            onChangeText={setNotas}
+            placeholder={t('caseContext.domicilios.notasPlaceholder')}
+            multiline
+            numberOfLines={3}
           />
           <View style={styles.formActions}>
             <Button variant="primary" onPress={confirm}>
@@ -111,11 +157,19 @@ export function AddressesSectionFields({ items, onChange }: AddressesSectionFiel
           {items.map((item) => (
             <View key={item.data.id} style={styles.itemRow}>
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.data.etiqueta}</Text>
-                <Text style={styles.itemDetail}>{item.data.direccion}</Text>
+                <Text style={styles.itemName}>{item.data.tipo}</Text>
+                <Text style={styles.itemDetail}>
+                  {item.data.calle}{item.data.numero ? ` ${item.data.numero}` : ''}
+                </Text>
+                {item.data.localidad || item.data.provincia ? (
+                  <Text style={styles.itemDetail}>
+                    {[item.data.localidad, item.data.provincia].filter(Boolean).join(', ')}
+                  </Text>
+                ) : null}
+                {item.data.cp ? <Text style={styles.itemDetail}>{item.data.cp}</Text> : null}
+                {item.data.notas ? <Text style={styles.itemDetail}>{item.data.notas}</Text> : null}
               </View>
               <View style={styles.itemActions}>
-                <PrivacyToggle visibility={item.visibility} onToggle={() => toggleVisibility(item.data.id)} />
                 <Button variant="tertiary" size="sm" onPress={() => startEdit(item)}>
                   {t('common.edit')}
                 </Button>
