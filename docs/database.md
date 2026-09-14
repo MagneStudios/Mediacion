@@ -18,7 +18,7 @@ Diseñar e implementar la capa de datos de **Proyecto Mediación** en PostgreSQL
 |------|-----------|
 | Base de datos | PostgreSQL 17 (Supabase local) |
 | Auth | Supabase Auth nativo (`auth.uid()`) |
-| RLS | Habilitado en las 34 tablas |
+| RLS | Habilitado en las 42 tablas |
 | Migraciones | Supabase CLI (`supabase/migrations/`) |
 | Config local | `supabase/config.toml` (puertos: API 57001, DB 57002, Studio 57003) |
 
@@ -70,10 +70,13 @@ supabase/migrations/
 ├── 20260906130000_acuerdos_versionado.sql  # Parte 5: version/vigente/valid_from/supersedes_agreement_id en acuerdos + idx_acuerdos_negociacion_vigente
 ├── 20260909120000_renegociacion_reabre_caso.sql  # Renegociación reabre el caso: acordado → en_negociacion
 ├── 20260909130000_casos_estado_insert_guard.sql  # Máquina de estados de casos también corre en INSERT (no solo UPDATE)
-└── 20260910120000_planes_is_self_serve.sql  # is_self_serve en planes (corporativo = false "a consultar"; resto true)
+├── 20260910120000_planes_is_self_serve.sql  # is_self_serve en planes (corporativo = false "a consultar"; resto true)
+├── 20260914120000_caso_contexto.sql  # Ficha de contexto del caso: 7 tablas, privacidad por parte (estilo items/CA-02)
+├── 20260914130000_moderation_events.sql  # Trazabilidad de moderación de lenguaje (server-only: service_role escribe, is_admin() lee)
+└── 20260914140000_casos_arbitraje_bienes_flag.sql  # casos.arbitraje_bienes_habilitado (flag por caso, FEATURE_ARBITRAJE_BIENES)
 ```
 
-## Modelo de datos (34 tablas)
+## Modelo de datos (42 tablas)
 
 ### Identidad
 - `usuarios` — id FK → auth.users(id), roles, documento (nullable en signup)
@@ -81,9 +84,24 @@ supabase/migrations/
 - `carpetas` — organización de casos por estudio
 
 ### Casos y vinculación
-- `casos` — sala de mediación, estado, SLA. Gate C-01: el trigger `trg_casos_gate_suscripciones` impide pasar a `activo`/`en_negociacion` si alguna de las dos partes en disputa no tiene suscripción activa (ver función `caso_ambas_partes_suscripciones_activas` y sección *Gate de suscripciones (C-01)*). Parte 4: se eliminó `ronda_actual` (la ronda vigente pasa a `negociaciones.round`)
+- `casos` — sala de mediación, estado, SLA. Gate C-01: el trigger `trg_casos_gate_suscripciones` impide pasar a `activo`/`en_negociacion` si alguna de las dos partes en disputa no tiene suscripción activa (ver función `caso_ambas_partes_suscripciones_activas` y sección *Gate de suscripciones (C-01)*). Parte 4: se eliminó `ronda_actual` (la ronda vigente pasa a `negociaciones.round`). **Columna `arbitraje_bienes_habilitado`** — `BOOLEAN NOT NULL DEFAULT false`, flag por caso (granularidad de la materia del caso) para habilitar arbitraje (FEATURE_ARBITRAJE_BIENES, 09-14). False por defecto; solo `true` para materia "bienes", NUNCA familia (TYC H.5/H.6 lo prohíbe y el enum `metodo_caso` no incluye arbitraje); la validación "solo bienes" es de Backend
 - `caso_partes` — relación caso-usuario (parte_a, parte_b, mediador)
 - `invitaciones` — link/código/correo para unir contraparte
+
+#### Ficha de contexto del caso (09-14) — privacidad por parte
+La ficha es un ancla neutra por caso + tablas hijas privadas: cada hija solo es visible/escribible por la parte a la que pertenece (`parte_id` = `auth.uid()`, estilo `items`/CA-02) y legible por admin (`public.is_admin()`). Ninguna parte ve la ficha de la contraparte. Todas llevan `set_updated_at` y grants explícitos a `authenticated, anon, service_role, postgres` (RLS hace cumplir el aislamiento).
+- `caso_contexto` — ancla por caso: `UNIQUE (caso_id)`, FK `casos(id)` ON DELETE CASCADE. Policy `caso_contexto_select` (neutra: cualquier parte del caso o admin). El alta del ancla queda a cargo de Backend/service_role (no hay policies de INSERT/UPDATE/DELETE para clientes, a propósito)
+- `contexto_integrantes` — integrantes del grupo familiar (nombre, parentesco, fecha_nacimiento, notas)
+- `contexto_actividades` — actividades/horarios de los chicos; `integrante_id` opcional → `contexto_integrantes(id)` ON DELETE SET NULL
+- `contexto_colegio` — datos de colegio (nombre, dirección, curso, turno, notas)
+- `contexto_cronograma` — cronograma semanal (día, franja horaria, descripción)
+- `contexto_domicilios` — domicilios (tipo, calle, número, localidad, provincia, cp, notas)
+- `contexto_restricciones` — restricciones (tipo, descripción)
+
+Regla: cada hija tiene policies `_select/_insert/_update/_delete` con `parte_id = (SELECT auth.uid())` (a excepción de `_select`, que también da acceso a admin). Índices FK por `caso_contexto_id` y por `parte_id`. Migración: `20260914120000_caso_contexto.sql`.
+
+#### Moderación de lenguaje (trazabilidad) (09-14)
+- `moderation_events` — traza de detección de lenguaje ofensivo. **Server-only**: solo `service_role`/`postgres` escriben (INSERT); solo `is_admin()` puede leer (policy `moderation_events_admin_select`), `anon`/`authenticated` no leen (RLS deniega por defecto). FKs: `usuario_id → usuarios(id)` ON DELETE SET NULL, `caso_id → casos(id)` ON DELETE CASCADE. No tiene `updated_at` (es err-only con `created_at`). `texto_detectado` se guarda completo (PII ofensivo, no expuesto a partes ni mediadores); `accion` ∈ `bloqueado | avisado | permitido`; `scores` = salida del modelo (`{"toxic":0.9}`). GRANTs: SELECT a `authenticated, service_role, postgres` (RLS restringe), INSERT solo `service_role, postgres`. Índices `idx_moderation_usuario` y `idx_moderation_caso`. Migración: `20260914130000_moderation_events.sql`.
 
 ### Negociación (acuerdos modulares, P3/P4)
 - `negociaciones` — una por `(caso_id, materia)`; define la materia del acuerdo (`materia_acuerdo`), estado propio, `ronda` vigente y `round_negotiating`. UNIQUE `(caso_id, materia)`. Policy `negociaciones_all` (FOR ALL: parte del caso **o** admin). Materias: `tenencia`, `alimentos`, `bienes`, `otro` (valor explícito no clasificado); el modelo viejo se representa con `materia = NULL` (backfill de P4), nunca con `'otro'`.
@@ -302,7 +320,7 @@ Get-Content tmp/test_01_setup.sql -Raw | docker exec -i supabase_db_Mediacion ps
 ### Resultados de testing
 
 **Schema validation (smoke_migrations.py):** 92/92 PASS
-- 34 tablas, 16 funciones (incluye `consume_quota`, `caso_ambas_partes_suscripciones_activas`), 23 enums, 34 RLS, 6 planes, 7 configs, 2 legal docs, 22 updated_at triggers, 12 audit triggers + trigger gate C-01, 5 uniques nuevos (caso_partes, negociaciones, respuestas_propuesta, rondas_negociacion_numero, propuestas_negociacion_ronda) + chequeo columnas versionado de acuerdos
+- 42 tablas, 16 funciones (incluye `consume_quota`, `caso_ambas_partes_suscripciones_activas`), 23 enums, 42 RLS, 6 planes, 7 configs, 2 legal docs, 29 updated_at triggers, 12 audit triggers + trigger gate C-01, 5 uniques nuevos (caso_partes, negociaciones, respuestas_propuesta, rondas_negociacion_numero, propuestas_negociacion_ronda) + chequeo columnas versionado de acuerdos
 
 **RLS validation (validate_rls.py):** 61/61 PASS
 - Parte ve solo sus items, mediator ve ambos, admin ve todo, non-member no ve nada
