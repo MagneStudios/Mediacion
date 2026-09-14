@@ -16,26 +16,38 @@ Los dos documentos de arriba juntan 18 pedidos del cliente (12 de la reunión de
 
 ## 1 · DB — 3 ítems
 
-### 1.1 Ficha de contexto del caso — no implementado
+### 1.1 Ficha de contexto del caso — DB ✅ resuelto · falta BE + FE
 
 > "¿cuáles son las tareas de los nenes? Los lunes a las 2 va a X, a las 4 inglés, a las 6 el colegio." Ficha de contexto por caso, cargable por las partes: integrantes del grupo familiar, actividades y horarios de los chicos, colegio, cronograma semanal, domicilios, restricciones. Cargable de forma incremental.
 > — `CAMBIOS-PACTUM-v2` §9
 
 Falta un modelo de datos nuevo (integrantes, horarios, colegio, cronograma semanal, domicilios, restricciones), con definición de qué campos son privados por parte y cuáles compartidos. Hoy solo existen categorías genéricas de ítems (`cuidado_ninos`, `cronogramas`) en `apps/api/src/casos/categorias.ts`, sin estructura real detrás. Alimenta también a Backend (endpoints CRUD) y Frontend (formulario incremental).
 
-### 1.2 Trazabilidad de moderación de lenguaje — no implementado
+**DB ✅ resuelto** (`20260914120000_caso_contexto.sql`, mig 46): 7 tablas (`caso_contexto` + 6 hijas `contexto_*`) con privacidad por parte (RLS estilo `items`/CA-02; cada hija visible/escribible solo por su `parte_id` + admin; el ancla `caso_contexto` lo crea Backend vía `service_role`, no hay policy de INSERT cliente en el padre).
+**Siguiente — Backend:** CRUD incremental por sección sobre las 6 hijas; el alta del ancla `caso_contexto` la hace Backend. Validar `parte_id = usuario_actual`. Alimentar el prompt del motor de propuestas.
+**Siguiente — Frontend:** formulario incremental por secciones (§3.2), guardado contra los endpoints BE.
+
+### 1.2 Trazabilidad de moderación de lenguaje — DB ✅ resuelto · falta BE + FE
 
 > "no está previsto qué pasa si hay insultos [...]. Hay que implementar moderación de lenguaje ofensivo en todo texto libre que cargue una parte: detección antes de que el texto se procese o se muestre, aviso al usuario para que reformule, registro del evento para trazabilidad."
 > — `CAMBIOS-PACTUM-v2` §7
 
 Falta la tabla de registro de eventos de moderación (texto detectado, usuario, timestamp, acción tomada). Búsqueda de `moderat|profan|ofensiv|insult|toxic` en todo el repo: cero resultados de lógica de negocio.
 
-### 1.3 Arbitraje — flag explícito por materia — parcial
+**DB ✅ resuelto** (`20260914130000_moderation_events.sql`, mig 47): tabla server-only `moderation_events` (`usuario_id`, `caso_id`, `texto_detectado`, `accion`, `scores`). RLS: solo `service_role` escribe, solo `is_admin()` lee; `anon`/`authenticated` no tienen SELECT.
+**Siguiente — Backend:** servicio de moderación que, antes de procesar/mostrar texto libre de una parte, corre detección y escribe en `moderation_events` vía `service_role`; devuelve señal de aviso al FE.
+**Siguiente — Frontend:** componente de aviso (§3.3) conectado al endpoint de detección.
+
+### 1.3 Arbitraje — flag explícito por materia — DB ✅ resuelto (flag por caso) · falta BE
 
 > "en cuestiones de familia el arbitraje está expresamente prohibido [...] no se activa nunca para materias de familia. Si a futuro se habilita, es exclusivamente para la materia 'bienes'. Dejar el flag a nivel de materia, no global: `FEATURE_ARBITRAJE_BIENES`."
 > — `CAMBIOS-PACTUM-v2` §5
 
 Ya está excluido "por diseño": el enum `metodo_caso` (`supabase/migrations/20260721191644_enums.sql:18-20`) solo admite `negociacion/conciliacion/mediacion`. No existe el flag con ese nombre ni a nivel de materia. Si se quiere modelar literalmente como pidió el cliente, hace falta una columna/config a nivel de materia — opcional, depende de cómo lo resuelva Backend.
+
+**DB ✅ resuelto** (`20260914140000_casos_arbitraje_bienes_flag.sql`, mig 48): `casos.arbitraje_bienes_habilitado BOOLEAN NOT NULL DEFAULT false`. Flag por caso (granularidad de la materia del caso), no global; el TYC H.5/H.6 ya prohíbe familia y el enum `metodo_caso` no incluye arbitraje.
+**Siguiente — Backend:** consumir el flag; habilitar arbitraje solo para materia `bienes` (validar en BE, no en DB).
+**Siguiente — Frontend:** (opcional a futuro) toggle por caso, habilitado solo si flag=true y materia=bienes.
 
 ---
 
@@ -114,9 +126,9 @@ El componente de aviso (toast/inline) se puede construir y dejar listo para cone
 
 | # | Ítem | Capas | Estado |
 |---|------|-------|--------|
-| 1 | Ficha de contexto del caso | DB · Backend · Frontend | No implementado |
-| 2 | Moderación de lenguaje ofensivo | DB · Backend · Frontend | No implementado |
-| 3 | Arbitraje — flag por materia | DB (opcional) · Backend | Parcial |
+| 1 | Ficha de contexto del caso | DB · Backend · Frontend | DB ✅ · falta BE + FE |
+| 2 | Moderación de lenguaje ofensivo | DB · Backend · Frontend | DB ✅ · falta BE + FE |
+| 3 | Arbitraje — flag por materia | DB (opcional) · Backend | DB ✅ (flag por caso) · falta BE |
 | 4 | Cronograma embebido en el PDF del acuerdo | Backend | No implementado |
 | 5 | Prompt de IA por método | Backend | No implementado |
 | 6 | Mitigación de sesgo del motor de IA | Backend | Parcial |
