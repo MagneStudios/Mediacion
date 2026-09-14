@@ -17,6 +17,7 @@ import { PlanLimitService } from "./plan-limit.service";
 import { SuscripcionesRepository } from "./suscripciones.repository";
 import { SuscripcionesService } from "./suscripciones.service";
 import { UsageRepository } from "./usage.repository";
+import type { ModeracionService } from "../moderacion/moderacion.service";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -132,6 +133,9 @@ describeDb("uso y cuota against a real database", () => {
       new PlanLimitService(kysely, usersRepository),
       usageRepository,
       suscripcionesService,
+      {
+        assertTextoAceptable: () => Promise.resolve(undefined),
+      } as unknown as ModeracionService,
     );
 
     for (const id of userIds) {

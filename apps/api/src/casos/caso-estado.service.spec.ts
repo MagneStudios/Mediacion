@@ -26,6 +26,7 @@ function createService(deps = createDeps()) {
       deps.planLimitService as never,
       deps.usageRepository as never,
       deps.suscripcionesService as never,
+      { assertTextoAceptable: jest.fn() } as never,
     ),
   };
 }

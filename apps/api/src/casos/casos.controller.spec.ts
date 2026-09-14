@@ -17,6 +17,7 @@ import { CasosRepository } from "./casos.repository";
 import { CasosService } from "./casos.service";
 import { MembershipService } from "./membership.service";
 import { computeSemaforo } from "./semaforo";
+import { ModeracionService } from "../moderacion/moderacion.service";
 
 function allowAllPlanLimit() {
   return { assertCanCreateCase: () => Promise.resolve(undefined) };
@@ -103,6 +104,10 @@ describe("POST/GET /casos end-to-end isolation", () => {
         CasosService,
         { provide: CasosRepository, useValue: casosRepository },
         {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
+        {
           provide: MembershipService,
           useValue: {
             assertMembership: (casoId: string, callerId: string) => {
@@ -122,6 +127,10 @@ describe("POST/GET /casos end-to-end isolation", () => {
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         { provide: UsageRepository, useValue: unlimitedUsage() },
         { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         {
           provide: TOKEN_VERIFIER,
           useValue: {
@@ -302,6 +311,10 @@ describe("POST /casos pg-error mapping end-to-end", () => {
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         { provide: UsageRepository, useValue: unlimitedUsage() },
         { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         {
           provide: TOKEN_VERIFIER,
           useValue: {

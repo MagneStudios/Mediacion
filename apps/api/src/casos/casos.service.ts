@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { QuotaExceededError } from "../common/errors/domain-errors";
 import type { CategoriaItem } from "../items/items.types";
+import { ModeracionService } from "../moderacion/moderacion.service";
 import type { UsoView } from "../pagos/pagos.types";
 import { PlanLimitService } from "../pagos/plan-limit.service";
 import { SuscripcionesService } from "../pagos/suscripciones.service";
@@ -125,6 +126,8 @@ export class CasosService {
     private readonly usageRepository: UsageRepository,
     @Inject(SuscripcionesService)
     private readonly suscripcionesService: SuscripcionesService,
+    @Inject(ModeracionService)
+    private readonly moderacionService: ModeracionService,
   ) {}
 
   async createCase(
@@ -132,6 +135,10 @@ export class CasosService {
     input: CreateCasoDto,
   ): Promise<CaseCreated> {
     assertValidCreateInput(input);
+    await this.moderacionService.assertTextoAceptable(callerId, [
+      { campo: "nombre", valor: input.nombre },
+      { campo: "descripcion", valor: input.descripcion },
+    ]);
     await this.planLimitService.assertCanCreateCase(callerId);
     await this.suscripcionesService.ensureBillingPeriod(callerId);
     try {

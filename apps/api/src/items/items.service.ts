@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { MembershipService } from "../casos/membership.service";
+import { ModeracionService } from "../moderacion/moderacion.service";
 import { ItemsRepository } from "./items.repository";
 import type {
   CategoriaItem,
@@ -79,6 +80,8 @@ export class ItemsService {
     @Inject(ItemsRepository) private readonly itemsRepository: ItemsRepository,
     @Inject(MembershipService)
     private readonly membershipService: MembershipService,
+    @Inject(ModeracionService)
+    private readonly moderacionService: ModeracionService,
   ) {}
 
   async createOwnItem(
@@ -88,6 +91,10 @@ export class ItemsService {
   ): Promise<OwnItem> {
     await this.membershipService.assertMembership(casoId, callerId);
     assertValidCreateInput(dto);
+    await this.moderacionService.assertTextoAceptable(callerId, [
+      { campo: "nombre", valor: dto.nombre },
+      { campo: "descripcion", valor: dto.descripcion },
+    ]);
     return this.itemsRepository.createOwn(dto, casoId, callerId);
   }
 
@@ -122,6 +129,10 @@ export class ItemsService {
   ): Promise<OwnItem> {
     assertHasUpdatableFields(pickUpdatableFields(patch));
     assertValidUpdateInput(patch);
+    await this.moderacionService.assertTextoAceptable(callerId, [
+      { campo: "nombre", valor: patch.nombre },
+      { campo: "descripcion", valor: patch.descripcion },
+    ]);
     const updated = await this.itemsRepository.updateOwnWithLock(
       itemId,
       callerId,

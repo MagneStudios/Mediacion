@@ -5,9 +5,10 @@ import { DatabaseModule } from "../database/database.module";
 import { ItemsController } from "./items.controller";
 import { ItemsRepository } from "./items.repository";
 import { ItemsService } from "./items.service";
+import { ModeracionModule } from "../moderacion/moderacion.module";
 
 @Module({
-  imports: [AuthModule, DatabaseModule, CasosModule],
+  imports: [AuthModule, DatabaseModule, CasosModule, ModeracionModule],
   controllers: [ItemsController],
   providers: [ItemsService, ItemsRepository],
 })

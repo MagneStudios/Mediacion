@@ -13,6 +13,7 @@ import { ItemsController } from "./items.controller";
 import { ItemsRepository } from "./items.repository";
 import { ItemsService } from "./items.service";
 import type { CreateItemDto, Item, UpdateItemDto } from "./items.types";
+import { ModeracionService } from "../moderacion/moderacion.service";
 
 const parteA: AuthenticatedUser = {
   id: "ba513e5d-1619-4430-8d09-0b44b34598d5",
@@ -130,6 +131,10 @@ describe("/casos/:id/items and /items/:id end-to-end — RN-01 adversarial matri
         ItemsService,
         { provide: ItemsRepository, useValue: itemsRepository },
         { provide: MembershipService, useValue: { assertMembership } },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         { provide: UsersRepository, useValue: usersRepository },
         {
           provide: TOKEN_VERIFIER,
