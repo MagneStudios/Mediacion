@@ -1,5 +1,6 @@
-import { HttpException } from "@nestjs/common";
+import { HttpException, HttpStatus } from "@nestjs/common";
 import type { UsersRepository } from "../auth/users.repository";
+import { toDomainError } from "../common/db/pg-error";
 import { PlanLimitService } from "./plan-limit.service";
 
 describe("PlanLimitService", () => {
@@ -100,13 +101,46 @@ describe("PlanLimitService", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("does not block when the caller has no active suscripcion at all (personal or estudio)", async () => {
+  it("blocks with no_active_subscription when the caller has no active suscripcion at all (personal or estudio)", async () => {
     const executeTakeFirst = jest.fn().mockResolvedValue(undefined);
     const findProfileById = jest.fn().mockResolvedValue(undefined);
     const { service } = buildService({ executeTakeFirst, findProfileById });
 
-    await expect(
-      service.assertCanCreateCase("user-1"),
-    ).resolves.toBeUndefined();
+    let thrown: unknown;
+    try {
+      await service.assertCanCreateCase("user-1");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
+    expect((thrown as HttpException).getResponse()).toEqual(
+      expect.objectContaining({ code: "no_active_subscription" }),
+    );
+  });
+
+  it("agrees with consume_quota: raises the same code the trigger would have raised later", async () => {
+    const fromTrigger = toDomainError({
+      code: "P0001",
+      message: "NO_ACTIVE_SUBSCRIPTION",
+    }) as HttpException;
+    const executeTakeFirst = jest.fn().mockResolvedValue(undefined);
+    const findProfileById = jest.fn().mockResolvedValue(undefined);
+    const { service } = buildService({ executeTakeFirst, findProfileById });
+
+    let thrown: unknown;
+    try {
+      await service.assertCanCreateCase("user-1");
+    } catch (error) {
+      thrown = error;
+    }
+
+    const fromTriggerCode = (fromTrigger.getResponse() as { code: string })
+      .code;
+    const fromServiceCode = (
+      (thrown as HttpException).getResponse() as { code: string }
+    ).code;
+    expect(fromServiceCode).toBe(fromTriggerCode);
   });
 });

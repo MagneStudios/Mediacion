@@ -18,6 +18,23 @@ type ActiveCaseLimit = {
 
 const recursoCasos = "casos";
 
+/**
+ * El mismo código que `consume_quota` levanta como `NO_ACTIVE_SUBSCRIPTION`
+ * más adentro, en la misma transacción del alta. Sin esto los dos chequeos
+ * discrepaban: acá "sin suscripción" se leía como "sin límite configurado" y
+ * dejaba pasar, y recién el trigger cortaba. El usuario veía el mismo error,
+ * pero después de abrir una transacción que nunca podía terminar bien.
+ */
+function noActiveSubscription(): HttpException {
+  return new HttpException(
+    {
+      code: "no_active_subscription",
+      message: "An active subscription is required",
+    },
+    HttpStatus.FORBIDDEN,
+  );
+}
+
 function planLimitExceeded(usado: number, limite: number): HttpException {
   return new HttpException(
     {
@@ -40,8 +57,10 @@ export class PlanLimitService {
 
   async assertCanCreateCase(callerId: string): Promise<void> {
     const activeLimit = await this.resolveActiveCaseLimit(callerId);
+    if (!activeLimit) {
+      throw noActiveSubscription();
+    }
     if (
-      !activeLimit ||
       activeLimit.limiteCasos === unlimitedLimit ||
       activeLimit.limiteCasos === null
     ) {

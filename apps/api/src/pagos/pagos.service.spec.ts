@@ -18,7 +18,8 @@ describe("PagosService", () => {
         overrides?.findSuscripcionForPreference ?? jest.fn(),
       applyPayment: overrides?.applyPayment ?? jest.fn(),
       activateFreeSuscripcion:
-        overrides?.activateFreeSuscripcion ?? jest.fn().mockResolvedValue(undefined),
+        overrides?.activateFreeSuscripcion ??
+        jest.fn().mockResolvedValue(undefined),
     } as unknown as PagosRepository;
     const mercadoPagoClient = {
       createPreference: overrides?.createPreference ?? jest.fn(),
