@@ -45,7 +45,7 @@ describe("buildActiveNegociacionQuery", () => {
     const compiled = buildActiveNegociacionQuery(db, "caso-1").compile();
 
     expect(compiled.sql).toMatch(
-      /^select\s+"id",\s*"round"\s+from\s+"negociaciones"/i,
+      /^select\s+"id",\s*"round",\s*"method"\s+from\s+"negociaciones"/i,
     );
     expect(compiled.sql).toMatch(/where\s+.*"caso_id"\s*=\s*\$\d/i);
     expect(compiled.sql).toMatch(/"materia"\s+is\s+null/i);
