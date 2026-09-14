@@ -33,7 +33,9 @@ EXPECTED_TABLES = [
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
     "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
     "usage_counters", "lawyer_requests", "payment_events",
-    "negociaciones",
+    "negociaciones", "caso_contexto", "contexto_integrantes",
+    "contexto_actividades", "contexto_colegio", "contexto_cronograma",
+    "contexto_domicilios", "contexto_restricciones", "moderation_events",
 ]
 
 EXPECTED_FUNCTIONS = [
@@ -75,7 +77,9 @@ RLS_TABLES = [
     "legal_documents", "user_agreements", "solicitudes_arrepentimiento",
     "avisos_version_legal", "solicitudes_contacto", "rate_limit_counters",
     "usage_counters", "lawyer_requests", "payment_events",
-    "negociaciones",
+    "negociaciones", "caso_contexto", "contexto_integrantes",
+    "contexto_actividades", "contexto_colegio", "contexto_cronograma",
+    "contexto_domicilios", "contexto_restricciones", "moderation_events",
 ]
 
 RESULTS = []
@@ -181,7 +185,7 @@ def main():
         """)
         check("updated_at triggers installed", cur,
               "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name='set_updated_at'",
-              22, "22 tables have set_updated_at")
+              29, "29 tables have set_updated_at")
 
         check("Audit triggers installed", cur,
               "SELECT COUNT(DISTINCT trigger_name) FROM information_schema.triggers WHERE trigger_schema='public' AND trigger_name LIKE 'audit_%'",

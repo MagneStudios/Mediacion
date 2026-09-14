@@ -1,7 +1,9 @@
 import type { EstadoCaso } from '../../types/case';
 import {
   canAddMateria,
+  canInviteCounterparty,
   canSetCaseDeadline,
+  canShowCaseContext,
   canTerminateCase,
   deadlinePresetHours,
   toDeadlineIso,
@@ -66,6 +68,20 @@ describe('canAddMateria', () => {
   });
 });
 
+describe('canInviteCounterparty', () => {
+  it('allows inviting from any non-terminal state once the case exists', () => {
+    for (const estado of ['nuevo', 'pendiente_suscripciones', 'activo', 'en_negociacion', 'acordado'] as EstadoCaso[]) {
+      expect(canInviteCounterparty(estado)).toBe(true);
+    }
+  });
+
+  it('refuses expired and terminal states — inviting there makes no sense', () => {
+    for (const estado of ['expirado', 'terminado', 'cerrado', 'vencido'] as EstadoCaso[]) {
+      expect(canInviteCounterparty(estado)).toBe(false);
+    }
+  });
+});
+
 describe('toDeadlineIso', () => {
   const now = new Date('2026-09-09T12:00:00.000Z');
 
@@ -88,5 +104,24 @@ describe('toDeadlineIso', () => {
     // `<=` en los dos umbrales), así que elegir tiene una consecuencia visible.
     // Si alguien cambia los presets, esto avisa antes que el usuario.
     expect(deadlinePresetHours).toEqual([24, 72, 168]);
+  });
+});
+
+describe('canShowCaseContext', () => {
+  it('allows the same states as canInviteCounterparty minus nuevo', () => {
+    expect(canShowCaseContext('pendiente_suscripciones')).toBe(true);
+    expect(canShowCaseContext('activo')).toBe(true);
+    expect(canShowCaseContext('en_negociacion')).toBe(true);
+    expect(canShowCaseContext('acordado')).toBe(true);
+  });
+
+  it('refuses nuevo — there is no counterparty yet to coordinate with', () => {
+    expect(canShowCaseContext('nuevo')).toBe(false);
+  });
+
+  it('refuses every terminal estado', () => {
+    for (const estado of ['expirado', 'terminado', 'cerrado', 'vencido'] as EstadoCaso[]) {
+      expect(canShowCaseContext(estado)).toBe(false);
+    }
   });
 });

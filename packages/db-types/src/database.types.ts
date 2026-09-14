@@ -255,8 +255,38 @@ export type Database = {
           },
         ];
       };
+      caso_contexto: {
+        Row: {
+          caso_id: string;
+          created_at: string;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          caso_id: string;
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          caso_id?: string;
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "caso_contexto_caso_id_fkey";
+            columns: ["caso_id"];
+            isOneToOne: false;
+            referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       casos: {
         Row: {
+          arbitraje_bienes_habilitado: boolean;
           carpeta_id: string | null;
           creador_id: string;
           codigo: string | null;
@@ -272,6 +302,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          arbitraje_bienes_habilitado?: boolean;
           carpeta_id?: string | null;
           creador_id: string;
           codigo?: string | null;
@@ -287,6 +318,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          arbitraje_bienes_habilitado?: boolean;
           carpeta_id?: string | null;
           creador_id?: string;
           codigo?: string | null;
@@ -351,6 +383,328 @@ export type Database = {
           valor?: Json;
         };
         Relationships: [];
+      };
+      contexto_actividades: {
+        Row: {
+          actividad: string | null;
+          caso_contexto_id: string;
+          created_at: string;
+          dia: string | null;
+          hora_fin: string | null;
+          hora_inicio: string | null;
+          id: string;
+          integrante_id: string | null;
+          lugar: string | null;
+          parte_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          actividad?: string | null;
+          caso_contexto_id: string;
+          created_at?: string;
+          dia?: string | null;
+          hora_fin?: string | null;
+          hora_inicio?: string | null;
+          id?: string;
+          integrante_id?: string | null;
+          lugar?: string | null;
+          parte_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          actividad?: string | null;
+          caso_contexto_id?: string;
+          created_at?: string;
+          dia?: string | null;
+          hora_fin?: string | null;
+          hora_inicio?: string | null;
+          id?: string;
+          integrante_id?: string | null;
+          lugar?: string | null;
+          parte_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_actividades_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_actividades_integrante_id_fkey";
+            columns: ["integrante_id"];
+            isOneToOne: false;
+            referencedRelation: "contexto_integrantes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_actividades_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contexto_colegio: {
+        Row: {
+          caso_contexto_id: string;
+          created_at: string;
+          curso: string | null;
+          direccion: string | null;
+          id: string;
+          nombre: string | null;
+          notas: string | null;
+          parte_id: string;
+          turno: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          caso_contexto_id: string;
+          created_at?: string;
+          curso?: string | null;
+          direccion?: string | null;
+          id?: string;
+          nombre?: string | null;
+          notas?: string | null;
+          parte_id: string;
+          turno?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          caso_contexto_id?: string;
+          created_at?: string;
+          curso?: string | null;
+          direccion?: string | null;
+          id?: string;
+          nombre?: string | null;
+          notas?: string | null;
+          parte_id?: string;
+          turno?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_colegio_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_colegio_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contexto_cronograma: {
+        Row: {
+          caso_contexto_id: string;
+          created_at: string;
+          descripcion: string | null;
+          dia: string | null;
+          franja_horaria: string | null;
+          id: string;
+          parte_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          caso_contexto_id: string;
+          created_at?: string;
+          descripcion?: string | null;
+          dia?: string | null;
+          franja_horaria?: string | null;
+          id?: string;
+          parte_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          caso_contexto_id?: string;
+          created_at?: string;
+          descripcion?: string | null;
+          dia?: string | null;
+          franja_horaria?: string | null;
+          id?: string;
+          parte_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_cronograma_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_cronograma_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contexto_domicilios: {
+        Row: {
+          calle: string | null;
+          caso_contexto_id: string;
+          cp: string | null;
+          created_at: string;
+          id: string;
+          localidad: string | null;
+          notas: string | null;
+          numero: string | null;
+          parte_id: string;
+          provincia: string | null;
+          tipo: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          calle?: string | null;
+          caso_contexto_id: string;
+          cp?: string | null;
+          created_at?: string;
+          id?: string;
+          localidad?: string | null;
+          notas?: string | null;
+          numero?: string | null;
+          parte_id: string;
+          provincia?: string | null;
+          tipo?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          calle?: string | null;
+          caso_contexto_id?: string;
+          cp?: string | null;
+          created_at?: string;
+          id?: string;
+          localidad?: string | null;
+          notas?: string | null;
+          numero?: string | null;
+          parte_id?: string;
+          provincia?: string | null;
+          tipo?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_domicilios_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_domicilios_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contexto_integrantes: {
+        Row: {
+          caso_contexto_id: string;
+          created_at: string;
+          fecha_nacimiento: string | null;
+          id: string;
+          nombre: string;
+          notas: string | null;
+          parentesco: string | null;
+          parte_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          caso_contexto_id: string;
+          created_at?: string;
+          fecha_nacimiento?: string | null;
+          id?: string;
+          nombre: string;
+          notas?: string | null;
+          parentesco?: string | null;
+          parte_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          caso_contexto_id?: string;
+          created_at?: string;
+          fecha_nacimiento?: string | null;
+          id?: string;
+          nombre?: string;
+          notas?: string | null;
+          parentesco?: string | null;
+          parte_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_integrantes_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_integrantes_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contexto_restricciones: {
+        Row: {
+          caso_contexto_id: string;
+          created_at: string;
+          descripcion: string | null;
+          id: string;
+          parte_id: string;
+          tipo: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          caso_contexto_id: string;
+          created_at?: string;
+          descripcion?: string | null;
+          id?: string;
+          parte_id: string;
+          tipo?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          caso_contexto_id?: string;
+          created_at?: string;
+          descripcion?: string | null;
+          id?: string;
+          parte_id?: string;
+          tipo?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contexto_restricciones_caso_contexto_id_fkey";
+            columns: ["caso_contexto_id"];
+            isOneToOne: false;
+            referencedRelation: "caso_contexto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contexto_restricciones_parte_id_fkey";
+            columns: ["parte_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       estudios: {
         Row: {
@@ -859,6 +1213,51 @@ export type Database = {
           {
             foreignKeyName: "mediaciones_mediador_id_fkey";
             columns: ["mediador_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moderation_events: {
+        Row: {
+          accion: string;
+          caso_id: string | null;
+          created_at: string;
+          id: string;
+          scores: Json | null;
+          texto_detectado: string | null;
+          usuario_id: string | null;
+        };
+        Insert: {
+          accion: string;
+          caso_id?: string | null;
+          created_at?: string;
+          id?: string;
+          scores?: Json | null;
+          texto_detectado?: string | null;
+          usuario_id?: string | null;
+        };
+        Update: {
+          accion?: string;
+          caso_id?: string | null;
+          created_at?: string;
+          id?: string;
+          scores?: Json | null;
+          texto_detectado?: string | null;
+          usuario_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moderation_events_caso_id_fkey";
+            columns: ["caso_id"];
+            isOneToOne: false;
+            referencedRelation: "casos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moderation_events_usuario_id_fkey";
+            columns: ["usuario_id"];
             isOneToOne: false;
             referencedRelation: "usuarios";
             referencedColumns: ["id"];

@@ -197,7 +197,12 @@ export function createMockCasesService(): CasesService {
       return created;
     },
     async getInvitation(caseId) {
-      return delay(mockInvitations[caseId] ?? null, 300);
+      // Sólo una invitación todavía `pendiente` se puede re-mostrar: una
+      // aceptada/rechazada/expirada no sirve para que la contraparte se una,
+      // y presentarla como "tu invitación" la mandaría a un callejón sin
+      // salida. Espeja el criterio de `cases.backed-service.ts`.
+      const invitation = mockInvitations[caseId] ?? null;
+      return delay(invitation && invitation.estado === 'pendiente' ? invitation : null, 300);
     },
     async getCaseTitle(caseId) {
       const detail = mockCaseDetails[caseId];
@@ -292,6 +297,14 @@ export function createMockCasesService(): CasesService {
       // Only mutate after the mock "request" resolves — a forced failure
       // above never leaves the case partially transitioned.
       mockCaseDetails[caseId] = committed;
+      // La invitación mock también pasa a `aceptada` junto con el caso, para
+      // que `getInvitation` (que filtra por `pendiente`) deje de devolverla:
+      // si no, un caso `activo` mostraría un badge de invitación `pendiente`
+      // falso. Mismo momento que la transición del caso, nunca en un fallo.
+      const pendingInvitation = mockInvitations[caseId];
+      if (pendingInvitation) {
+        mockInvitations[caseId] = { ...pendingInvitation, estado: 'aceptada' };
+      }
       const summaryIndex = mockCases.findIndex((c) => c.id === caseId);
       if (summaryIndex !== -1) {
         mockCases[summaryIndex] = { ...mockCases[summaryIndex], estado: 'activo', statusLabelKey: 'inReview', visualStatus: 'info' };

@@ -71,6 +71,45 @@ export function canAddMateria(estado: EstadoCaso): boolean {
 }
 
 /**
+ * RN del pedido de cliente (`AJUSTES-PACTUM-2026-09-10` §5): *"poder invitar a
+ * la contraparte en cualquier momento después de creado el caso"*. El backend
+ * hoy solo expone crear/leer invitación mientras el caso está `nuevo`; el
+ * resto de los estados —y los endpoints de reenviar/regenerar— todavía no
+ * existen (`docs/pedidos-post-auditoria-14-09.md` §2.6).
+ *
+ * Por eso el FE habilita la sección de invitación en estos estados aunque el
+ * reenvío/regeneración real todavía no estén disponibles: en todos ellos salvo
+ * `nuevo` el caso ya tiene contraparte enganchada. `acordado` entra en la lista
+ * a propósito —la invitación ya fue aceptada, así que `InvitationSection` muestra
+ * "No hay una invitación pendiente" en vez de un badge `pendiente` falso—.
+ *
+ * `expirado`/`terminado`/`cerrado`/`vencido` quedan afuera: un caso expirado
+ * requiere crear caso nuevo, y los terminales no admiten invitación.
+ */
+const estadosInvitables: EstadoCaso[] = [
+  'nuevo',
+  'pendiente_suscripciones',
+  'activo',
+  'en_negociacion',
+  'acordado',
+];
+
+export function canInviteCounterparty(estado: EstadoCaso): boolean {
+  return estadosInvitables.includes(estado);
+}
+
+/**
+ * La ficha de contexto del caso solo tiene sentido cuando ya hay contraparte
+ * enganchada — no antes. Es `canInviteCounterparty` menos `nuevo`: en `nuevo`
+ * no tiene sentido cargar horarios de los chicos antes de que el caso tenga
+ * contraparte. Los estados terminales quedan afuera por la misma razón que en
+ * `canInviteCounterparty`.
+ */
+export function canShowCaseContext(estado: EstadoCaso): boolean {
+  return estado !== 'nuevo' && canInviteCounterparty(estado);
+}
+
+/**
  * Las opciones de plazo que ofrecemos, en horas.
  *
  * **Son duraciones y no una fecha de calendario, y es una decisión, no una
