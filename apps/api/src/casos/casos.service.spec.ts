@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { QuotaExceededError } from "../common/errors/domain-errors";
+import type { ModeracionService } from "../moderacion/moderacion.service";
 import type { PlanLimitService } from "../pagos/plan-limit.service";
 import type { SuscripcionesService } from "../pagos/suscripciones.service";
 import type { UsageRepository } from "../pagos/usage.repository";
@@ -22,6 +23,7 @@ describe("CasosService", () => {
     consumeNegotiation?: jest.Mock;
     ensureBillingPeriod?: jest.Mock;
     getUso?: jest.Mock;
+    assertTextoAceptable?: jest.Mock;
   }) {
     const casosRepository = {
       createCaseWithParteA: overrides?.createCaseWithParteA ?? jest.fn(),
@@ -50,6 +52,11 @@ describe("CasosService", () => {
         jest.fn().mockResolvedValue(undefined),
       getUso: overrides?.getUso ?? jest.fn(),
     } as unknown as SuscripcionesService;
+    const moderacionService = {
+      assertTextoAceptable:
+        overrides?.assertTextoAceptable ??
+        jest.fn().mockResolvedValue(undefined),
+    } as unknown as ModeracionService;
     return {
       service: new CasosService(
         casosRepository,
@@ -57,6 +64,7 @@ describe("CasosService", () => {
         planLimitService,
         usageRepository,
         suscripcionesService,
+        moderacionService,
       ),
       casosRepository,
       membershipService,
@@ -67,6 +75,34 @@ describe("CasosService", () => {
   }
 
   describe("createCase", () => {
+    it("moderates the free text before writing anything, and before spending quota", async () => {
+      const createCaseWithParteA = jest.fn();
+      const assertCanCreateCase = jest.fn();
+      const assertTextoAceptable = jest
+        .fn()
+        .mockRejectedValue(new Error("texto_ofensivo"));
+      const { service } = buildService({
+        createCaseWithParteA,
+        assertCanCreateCase,
+        assertTextoAceptable,
+      });
+
+      await expect(
+        service.createCase("user-1", {
+          nombre: "Divorcio",
+          descripcion: "texto ofensivo",
+          metodo: "negociacion",
+        }),
+      ).rejects.toThrow("texto_ofensivo");
+
+      expect(assertTextoAceptable).toHaveBeenCalledWith("user-1", [
+        { campo: "nombre", valor: "Divorcio" },
+        { campo: "descripcion", valor: "texto ofensivo" },
+      ]);
+      expect(assertCanCreateCase).not.toHaveBeenCalled();
+      expect(createCaseWithParteA).not.toHaveBeenCalled();
+    });
+
     it("creates the case and returns only id and estado", async () => {
       const createCaseWithParteA = jest.fn().mockResolvedValue({
         id: "caso-1",

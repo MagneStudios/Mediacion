@@ -330,14 +330,14 @@ describe("buildReactivarNegociacionQuery", () => {
 });
 
 describe("buildFindNegociacionByIdQuery", () => {
-  it("reads the caso and the round of one negociacion, read-only", () => {
+  it("reads the caso, the round and the method of one negociacion, read-only", () => {
     const compiled = buildFindNegociacionByIdQuery(
       createCompileOnlyKysely(),
       "negociacion-1",
     ).compile();
 
     expect(compiled.sql).toMatch(
-      /^select\s+"caso_id",\s*"round"\s+from\s+"negociaciones"/i,
+      /^select\s+"caso_id",\s*"round",\s*"method"\s+from\s+"negociaciones"/i,
     );
     expect(compiled.sql).toMatch(/where\s+"id"\s*=\s*\$\d/i);
     expect(compiled.sql).not.toMatch(/insert|update|delete/i);

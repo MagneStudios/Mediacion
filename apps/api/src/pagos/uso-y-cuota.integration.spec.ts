@@ -9,6 +9,7 @@ import { CasosService } from "../casos/casos.service";
 import type { MembershipService } from "../casos/membership.service";
 import { QuotaExceededError } from "../common/errors/domain-errors";
 import { LegalRepository } from "../legal/legal.repository";
+import type { ModeracionService } from "../moderacion/moderacion.service";
 import type { EmailProvider } from "../notificaciones/notificaciones.types";
 import { billingPeriodMs } from "./billing-period";
 import type { MercadoPagoClient } from "./mercadopago/mercado-pago-client";
@@ -132,6 +133,9 @@ describeDb("uso y cuota against a real database", () => {
       new PlanLimitService(kysely, usersRepository),
       usageRepository,
       suscripcionesService,
+      {
+        assertTextoAceptable: () => Promise.resolve(undefined),
+      } as unknown as ModeracionService,
     );
 
     for (const id of userIds) {

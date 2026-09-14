@@ -30,6 +30,7 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
     assertMembership: jest.Mock;
     createInvite?: jest.Mock;
     joinCase?: jest.Mock;
+    refreshInvite?: jest.Mock;
   }): Promise<INestApplication> {
     const usersRepository = {
       findAuthById: (id: string) =>
@@ -46,6 +47,7 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
             createInvite: overrides.createInvite ?? jest.fn(),
             joinCase: overrides.joinCase ?? jest.fn(),
             findUsuarioIdByEmail: jest.fn(),
+            refreshInvite: overrides.refreshInvite ?? jest.fn(),
           },
         },
         {
@@ -221,6 +223,78 @@ describe("POST /casos/unirse and /casos/:id/invitaciones end-to-end", () => {
       "2549140f-3853-4bd8-8593-0f68ab627390",
       "b@b.com",
     );
+    await app.close();
+  });
+
+  const casoId = "7a2d7f52-1d44-4a53-9f66-2c4b8b0a6a11";
+  const invitacionId = "3c0f9a1e-5f2b-4f8e-9a77-6d9f1c2b3a44";
+
+  it("resends an invitation for the case creator, keeping the token", async () => {
+    const assertMembership = jest.fn().mockResolvedValue({
+      rol_en_caso: "parte_a",
+    });
+    const refreshInvite = jest.fn().mockResolvedValue({
+      id: invitacionId,
+      tipo: "codigo",
+      token: "tok-abc",
+      estado: "pendiente",
+      email_destino: null,
+      pago_a_cargo: null,
+    });
+    const app = await bootstrapApp({ assertMembership, refreshInvite });
+
+    const response = await request(app.getHttpServer())
+      .post(`/casos/${casoId}/invitaciones/${invitacionId}/reenviar`)
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
+      .send();
+
+    expect(response.status).toBe(201);
+    expect(response.body.token).toBe("tok-abc");
+    expect(refreshInvite).toHaveBeenCalledWith(invitacionId, casoId, null);
+    await app.close();
+  });
+
+  it("regenerates the code for the case creator with a fresh token", async () => {
+    const assertMembership = jest.fn().mockResolvedValue({
+      rol_en_caso: "parte_a",
+    });
+    const refreshInvite = jest.fn().mockResolvedValue({
+      id: invitacionId,
+      tipo: "codigo",
+      token: "tok-nuevo",
+      estado: "pendiente",
+      email_destino: null,
+      pago_a_cargo: null,
+    });
+    const app = await bootstrapApp({ assertMembership, refreshInvite });
+
+    const response = await request(app.getHttpServer())
+      .post(`/casos/${casoId}/invitaciones/${invitacionId}/regenerar`)
+      .set("Authorization", "Bearer ba513e5d-1619-4430-8d09-0b44b34598d5")
+      .send();
+
+    expect(response.status).toBe(201);
+    expect(response.body.token).toBe("tok-nuevo");
+    const [, , nuevoToken] = refreshInvite.mock.calls[0] ?? [];
+    expect(typeof nuevoToken).toBe("string");
+    expect(nuevoToken).not.toBeNull();
+    await app.close();
+  });
+
+  it("refuses to resend for parte_b with a 403, touching no rows", async () => {
+    const assertMembership = jest.fn().mockResolvedValue({
+      rol_en_caso: "parte_b",
+    });
+    const refreshInvite = jest.fn();
+    const app = await bootstrapApp({ assertMembership, refreshInvite });
+
+    const response = await request(app.getHttpServer())
+      .post(`/casos/${casoId}/invitaciones/${invitacionId}/reenviar`)
+      .set("Authorization", "Bearer 2549140f-3853-4bd8-8593-0f68ab627390")
+      .send();
+
+    expect(response.status).toBe(403);
+    expect(refreshInvite).not.toHaveBeenCalled();
     await app.close();
   });
 });

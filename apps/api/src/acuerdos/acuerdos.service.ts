@@ -12,10 +12,8 @@ import { MembershipService } from "../casos/membership.service";
 import { normalizeTimestamp } from "../common/db/timestamp";
 import { KYSELY } from "../database/database.tokens";
 import { AcuerdoAccessService } from "./acuerdo-access.service";
-import {
-  agreementDocumentFilename,
-  buildAgreementDocument,
-} from "./acuerdo-export";
+import { agreementDocumentFilename } from "./acuerdo-export";
+import { buildAgreementPdf } from "./acuerdo-pdf";
 import {
   AcuerdosRepository,
   acuerdoAlreadyExists,
@@ -146,7 +144,7 @@ export class AcuerdosService {
     await this.assertAcuerdoReadAccess(acuerdo.caso_id, callerId);
     return {
       filename: agreementDocumentFilename(acuerdo.id),
-      document: buildAgreementDocument(acuerdo),
+      document: buildAgreementPdf(acuerdo),
     };
   }
 
@@ -199,7 +197,7 @@ export class AcuerdosService {
       }));
       const envelope = await this.docusignClient.createEnvelope({
         acuerdoId,
-        documentText: buildAgreementDocument(acuerdo),
+        documentBytes: buildAgreementPdf(acuerdo),
         signers,
       });
       envelopeId = envelope.envelopeId;

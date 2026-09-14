@@ -9,6 +9,7 @@ function createService(overrides: {
   findOwnById?: jest.Mock;
   updateOwnWithLock?: jest.Mock;
   deleteOwn?: jest.Mock;
+  assertTextoAceptable?: jest.Mock;
 }) {
   const itemsRepository = {
     createOwn: overrides.createOwn ?? jest.fn(),
@@ -20,7 +21,15 @@ function createService(overrides: {
   const membershipService = {
     assertMembership: overrides.assertMembership ?? jest.fn(),
   };
-  return new ItemsService(itemsRepository as never, membershipService as never);
+  const moderacionService = {
+    assertTextoAceptable:
+      overrides.assertTextoAceptable ?? jest.fn().mockResolvedValue(undefined),
+  };
+  return new ItemsService(
+    itemsRepository as never,
+    membershipService as never,
+    moderacionService as never,
+  );
 }
 
 describe("ItemsService", () => {

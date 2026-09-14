@@ -9,6 +9,7 @@ import { TOKEN_VERIFIER } from "../auth/token-verifier";
 import { UsersRepository } from "../auth/users.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
+import { ModeracionService } from "../moderacion/moderacion.service";
 import { ItemsController } from "./items.controller";
 import { ItemsRepository } from "./items.repository";
 import { ItemsService } from "./items.service";
@@ -130,6 +131,10 @@ describe("/casos/:id/items and /items/:id end-to-end — RN-01 adversarial matri
         ItemsService,
         { provide: ItemsRepository, useValue: itemsRepository },
         { provide: MembershipService, useValue: { assertMembership } },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         { provide: UsersRepository, useValue: usersRepository },
         {
           provide: TOKEN_VERIFIER,

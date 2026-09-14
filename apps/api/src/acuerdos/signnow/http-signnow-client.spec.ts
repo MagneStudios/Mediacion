@@ -40,7 +40,7 @@ function okJson(body: unknown): {
 
 const envelopeInput = {
   acuerdoId: "acuerdo-1",
-  documentText: "ACUERDO DE MEDIACIÓN\n\nIdentificador: acuerdo-1\n",
+  documentBytes: Buffer.from("%PDF-1.4 fake"),
   signers: [
     { usuarioId: "user-a", email: "a@example.com", name: "Parte A" },
     { usuarioId: "user-b", email: "b@example.com", name: "Parte B" },
@@ -77,8 +77,10 @@ describe("HttpSignnowClient", () => {
     const formData = uploadInit.body as FormData;
     expect(formData).toBeInstanceOf(FormData);
     const file = formData.get("file") as File;
-    expect(file.name).toBe("acuerdo-acuerdo-1.txt");
-    expect(await file.text()).toBe(envelopeInput.documentText);
+    expect(file.name).toBe("acuerdo-acuerdo-1.pdf");
+    expect(Buffer.from(await file.arrayBuffer())).toEqual(
+      envelopeInput.documentBytes,
+    );
 
     const [inviteUrlA, inviteInitA] = fetchMock.mock.calls[1];
     expect(inviteUrlA).toBe(`${basePath}/document/document-1/invite`);

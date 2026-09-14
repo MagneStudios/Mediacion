@@ -3,7 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { Kysely } from "kysely";
 import { toDomainError } from "../common/db/pg-error";
 import { KYSELY } from "../database/database.tokens";
-import type { Ronda } from "./negociacion.types";
+import type { MetodoCaso, Ronda } from "./negociacion.types";
 
 export function buildInsertNextRondaQuery(
   db: Kysely<Database>,
@@ -23,7 +23,7 @@ export function buildActiveNegociacionQuery(
 ) {
   return db
     .selectFrom("negociaciones")
-    .select(["id", "round"])
+    .select(["id", "round", "method"])
     .where("caso_id", "=", casoId)
     .where("materia", "is", null);
 }
@@ -95,7 +95,7 @@ export class RondasRepository {
 
   resolveActiveNegociacion(
     casoId: string,
-  ): Promise<{ id: string; round: number } | undefined> {
+  ): Promise<{ id: string; round: number; method: MetodoCaso } | undefined> {
     return buildActiveNegociacionQuery(this.kysely, casoId).executeTakeFirst();
   }
 

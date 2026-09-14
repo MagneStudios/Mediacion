@@ -75,7 +75,11 @@ function buildService(overrides?: {
   const rondasRepository = {
     resolveActiveNegociacion:
       overrides?.resolveActiveNegociacion ??
-      jest.fn().mockResolvedValue({ id: "negociacion-1", round: 1 }),
+      jest.fn().mockResolvedValue({
+        id: "negociacion-1",
+        round: 1,
+        method: "mediacion",
+      }),
     findByNumero:
       overrides?.findByNumero ??
       jest
@@ -107,7 +111,11 @@ function buildService(overrides?: {
     listByCaso: overrides?.listByCaso ?? jest.fn().mockResolvedValue([]),
     findById:
       overrides?.findNegociacionById ??
-      jest.fn().mockResolvedValue({ caso_id: "caso-1", round: 1 }),
+      jest.fn().mockResolvedValue({
+        caso_id: "caso-1",
+        round: 1,
+        method: "mediacion",
+      }),
     activar: overrides?.activar ?? jest.fn().mockResolvedValue(undefined),
     crear:
       overrides?.crear ??
@@ -321,6 +329,36 @@ describe("NegociacionService.generatePropuesta", () => {
     ]) {
       expect(serialized).not.toContain(raw);
     }
+  });
+
+  it("sends the prompt of the negociacion's own method, not one fixed prompt for the three", async () => {
+    async function promptForMethod(method: string): Promise<string> {
+      const generateProposal = jest.fn().mockResolvedValue({ text: "ok" });
+      const { service } = buildService({
+        readBothPartyPositionsForEngine: jest
+          .fn()
+          .mockResolvedValue(bothPartyPositions),
+        createPending: jest.fn().mockResolvedValue({ id: "prop-1" }),
+        patchGenerated: jest.fn(),
+        generateProposal,
+        resolveActiveNegociacion: jest
+          .fn()
+          .mockResolvedValue({ id: "negociacion-1", round: 1, method }),
+      });
+
+      await service.generatePropuesta("caso-1", "user-a");
+      await flushMicrotasks();
+
+      return generateProposal.mock.calls[0][0].prompt as string;
+    }
+
+    const negociacion = await promptForMethod("negociacion");
+    const conciliacion = await promptForMethod("conciliacion");
+    const mediacion = await promptForMethod("mediacion");
+
+    expect(new Set([negociacion, conciliacion, mediacion]).size).toBe(3);
+    expect(negociacion).toContain("No sugieras soluciones");
+    expect(mediacion).toContain("proponé una o dos alternativas");
   });
 
   it("generation failure leaves the propuesta pendiente with narrative still null, without patching bad state", async () => {

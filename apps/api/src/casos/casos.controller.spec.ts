@@ -9,6 +9,7 @@ import { TOKEN_VERIFIER } from "../auth/token-verifier";
 import { UsersRepository } from "../auth/users.repository";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
 import { KYSELY } from "../database/database.tokens";
+import { ModeracionService } from "../moderacion/moderacion.service";
 import { PlanLimitService } from "../pagos/plan-limit.service";
 import { SuscripcionesService } from "../pagos/suscripciones.service";
 import { UsageRepository } from "../pagos/usage.repository";
@@ -122,6 +123,10 @@ describe("POST/GET /casos end-to-end isolation", () => {
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         { provide: UsageRepository, useValue: unlimitedUsage() },
         { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         {
           provide: TOKEN_VERIFIER,
           useValue: {
@@ -302,6 +307,10 @@ describe("POST /casos pg-error mapping end-to-end", () => {
         { provide: PlanLimitService, useValue: allowAllPlanLimit() },
         { provide: UsageRepository, useValue: unlimitedUsage() },
         { provide: SuscripcionesService, useValue: suscripcionesWithPeriod() },
+        {
+          provide: ModeracionService,
+          useValue: { assertTextoAceptable: () => Promise.resolve(undefined) },
+        },
         {
           provide: TOKEN_VERIFIER,
           useValue: {

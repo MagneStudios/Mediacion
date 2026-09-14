@@ -11,7 +11,7 @@ import { SignnowTokenClient } from "./signnow-token-client";
 
 const signnowRequestTimeoutMs = 30_000;
 const unauthorizedStatus = 401;
-const documentTextMimeType = "text/plain";
+const documentMimeType = "application/pdf";
 const webhookAction = "callback";
 const webhookEvents = ["document.complete", "document.update"] as const;
 
@@ -117,7 +117,9 @@ export class HttpSignnowClient implements DocusignClient {
       const formData = new FormData();
       formData.append(
         "file",
-        new Blob([input.documentText], { type: documentTextMimeType }),
+        new Blob([new Uint8Array(input.documentBytes)], {
+          type: documentMimeType,
+        }),
         agreementDocumentFilename(input.acuerdoId),
       );
       return { method: "POST", headers: {}, body: formData };

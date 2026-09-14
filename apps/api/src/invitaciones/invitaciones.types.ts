@@ -32,6 +32,14 @@ export type InvitacionCreated = Pick<
   "id" | "tipo" | "token" | "estado"
 > & { pago_a_cargo: PagoACargo | null };
 
+/**
+ * Lo que devuelven reenviar y regenerar. Trae el token porque regenerar lo
+ * rota: quien invita necesita el nuevo para volver a compartirlo, y el viejo
+ * dejó de servir en la misma transacción.
+ */
+export type InvitacionRefreshed = InvitacionCreated &
+  Pick<Invitacion, "email_destino">;
+
 export type JoinCasoDto = {
   token: string;
 };

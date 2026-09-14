@@ -272,7 +272,7 @@ export function buildFindNegociacionByIdQuery(
 ) {
   return db
     .selectFrom("negociaciones")
-    .select(["caso_id", "round"])
+    .select(["caso_id", "round", "method"])
     .where("id", "=", negociacionId);
 }
 
@@ -334,7 +334,9 @@ export class NegociacionesRepository {
 
   findById(
     negociacionId: string,
-  ): Promise<{ caso_id: string; round: number } | undefined> {
+  ): Promise<
+    { caso_id: string; round: number; method: MetodoCaso } | undefined
+  > {
     return buildFindNegociacionByIdQuery(
       this.kysely,
       negociacionId,

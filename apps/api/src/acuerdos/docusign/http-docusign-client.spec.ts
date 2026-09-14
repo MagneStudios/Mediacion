@@ -38,7 +38,7 @@ describe("HttpDocusignClient", () => {
 
     const result = await client.createEnvelope({
       acuerdoId: "acuerdo-1",
-      documentText: "ACUERDO DE MEDIACIÓN",
+      documentBytes: Buffer.from("%PDF-1.4 fake"),
       signers: [
         { usuarioId: "user-a", email: "a@example.com", name: "Parte A" },
         { usuarioId: "user-b", email: "b@example.com", name: "Parte B" },
@@ -97,7 +97,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("DocuSign envelope creation failed with status 502");
@@ -120,7 +120,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("DocuSign response did not include an envelopeId");
@@ -143,7 +143,7 @@ describe("HttpDocusignClient", () => {
 
     await client.createEnvelope({
       acuerdoId: "acuerdo-1",
-      documentText: "ACUERDO DE MEDIACIÓN",
+      documentBytes: Buffer.from("%PDF-1.4 fake"),
       signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
     });
 
@@ -172,7 +172,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("aborted");
@@ -194,7 +194,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("fetch failed");
@@ -217,7 +217,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("Unexpected token");
@@ -251,7 +251,7 @@ describe("HttpDocusignClient", () => {
 
     const result = await client.createEnvelope({
       acuerdoId: "acuerdo-1",
-      documentText: "ACUERDO DE MEDIACIÓN",
+      documentBytes: Buffer.from("%PDF-1.4 fake"),
       signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
     });
 
@@ -287,7 +287,7 @@ describe("HttpDocusignClient", () => {
     await expect(
       client.createEnvelope({
         acuerdoId: "acuerdo-1",
-        documentText: "ACUERDO DE MEDIACIÓN",
+        documentBytes: Buffer.from("%PDF-1.4 fake"),
         signers: [{ usuarioId: "user-a", email: "a@example.com", name: "A" }],
       }),
     ).rejects.toThrow("DocuSign envelope creation failed with status 401");

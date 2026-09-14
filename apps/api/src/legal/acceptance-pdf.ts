@@ -1,9 +1,8 @@
 import { normalizeTimestamp } from "../common/db/timestamp";
+import { escapePdfTextLiteral, renderPdfPages } from "../common/pdf/pdf-writer";
 import type { AcceptanceExportRow } from "./legal.types";
 import { acceptanceExportColumns } from "./legal.types";
 
-const pdfVersionHeader = "%PDF-1.4";
-const pdfTrailerMarker = "%%EOF";
 const pageWidth = 842;
 const pageHeight = 595;
 const pageMargin = 28;
@@ -24,39 +23,7 @@ const userAgentLabel = "    user_agent: ";
 const userAgentContinuation = "                ";
 const emptyLogNotice = "Sin aceptaciones para los filtros aplicados.";
 
-const catalogObjectId = 1;
-const pagesObjectId = 2;
-const fontObjectId = 3;
-const firstPageObjectId = 4;
-const objectsPerPage = 2;
-
-const xrefEntryWidth = 10;
-const xrefGenerationWidth = 5;
-const freeObjectGeneration = 65535;
-
-const latin1MaxCodePoint = 0xff;
-const controlCharMaxCodePoint = 0x1f;
-const replacementChar = "?";
-
-function toWinAnsiSafe(value: string): string {
-  let safe = "";
-  for (const char of value) {
-    const codePoint = char.codePointAt(0) ?? 0;
-    if (codePoint <= controlCharMaxCodePoint) {
-      safe += " ";
-      continue;
-    }
-    safe += codePoint > latin1MaxCodePoint ? replacementChar : char;
-  }
-  return safe;
-}
-
-function escapeTextLiteral(value: string): string {
-  return toWinAnsiSafe(value)
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)");
-}
+const escapeTextLiteral = escapePdfTextLiteral;
 
 // ASCII on purpose: anything outside WinAnsi would itself be replaced by "?".
 const truncationMarker = "~";
@@ -183,30 +150,6 @@ function paginate(groups: string[][], linesPerPage: number): string[][] {
   return pages;
 }
 
-function buildContentStream(
-  headerLines: string[],
-  bodyLines: string[],
-): string {
-  const lines = [...headerLines, ...bodyLines];
-  const startY = pageHeight - pageMargin - fontSize;
-  const drawn = lines
-    .map((line, index) => {
-      const command = `(${escapeTextLiteral(line)}) Tj`;
-      return index === 0 ? command : `T*\n${command}`;
-    })
-    .join("\n");
-  return `BT\n/F1 ${fontSize} Tf\n${lineLeading} TL\n${pageMargin} ${startY} Td\n${drawn}\nET\n`;
-}
-
-function buildXref(offsets: number[]): string {
-  const freeEntry = `${"0".repeat(xrefEntryWidth)} ${String(freeObjectGeneration).padStart(xrefGenerationWidth, "0")} f \n`;
-  const entries = offsets.map(
-    (offset) =>
-      `${String(offset).padStart(xrefEntryWidth, "0")} ${"0".repeat(xrefGenerationWidth)} n \n`,
-  );
-  return `xref\n0 ${offsets.length + 1}\n${freeEntry}${entries.join("")}`;
-}
-
 export function buildAcceptancesPdf(rows: AcceptanceExportRow[]): Buffer {
   const headerLines = buildHeaderLines();
   const linesPerPage =
@@ -216,35 +159,8 @@ export function buildAcceptancesPdf(rows: AcceptanceExportRow[]): Buffer {
     rows.length === 0 ? [[emptyLogNotice]] : rows.map(buildRowLines);
   const pages = paginate(groups, linesPerPage);
 
-  const pageObjectIds = pages.map(
-    (_page, index) => firstPageObjectId + index * objectsPerPage,
+  return renderPdfPages(
+    pages.map((bodyLines) => [...headerLines, ...bodyLines]),
+    { pageWidth, pageHeight, pageMargin, fontSize, lineLeading },
   );
-  const bodies = [
-    `<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`,
-    `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
-  ];
-  pages.forEach((bodyLines, index) => {
-    const pageObjectId = pageObjectIds[index];
-    const contentObjectId = pageObjectId + 1;
-    const stream = buildContentStream(headerLines, bodyLines);
-    bodies.push(
-      `<< /Type /Page /Parent ${pagesObjectId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`,
-    );
-    bodies.push(
-      `<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}endstream`,
-    );
-  });
-
-  let document = `${pdfVersionHeader}\n`;
-  const offsets: number[] = [];
-  bodies.forEach((body, index) => {
-    offsets.push(document.length);
-    document += `${index + 1} 0 obj\n${body}\nendobj\n`;
-  });
-  const xrefOffset = document.length;
-  document += buildXref(offsets);
-  document += `trailer\n<< /Size ${bodies.length + 1} /Root ${catalogObjectId} 0 R >>\nstartxref\n${xrefOffset}\n${pdfTrailerMarker}\n`;
-
-  return Buffer.from(document, "latin1");
 }

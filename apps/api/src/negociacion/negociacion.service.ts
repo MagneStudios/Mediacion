@@ -6,13 +6,14 @@ import {
   Logger,
 } from "@nestjs/common";
 import { CasosRepository } from "../casos/casos.repository";
-import type { EstadoCaso } from "../casos/casos.types";
+import type { EstadoCaso, MetodoCaso } from "../casos/casos.types";
 import { MembershipService } from "../casos/membership.service";
 import type { AiProposalGenerator } from "./ai/ai-proposal-generator";
 import { AI_PROPOSAL_GENERATOR } from "./ai/ai-proposal-generator";
 import { ConfiguracionRepository } from "./configuracion.repository";
 import type { MeetingPointEntry, PositionInput } from "./meeting-point";
 import { computeMeetingPoints } from "./meeting-point";
+import { buildMethodPrompt } from "./method-prompt";
 import type {
   CreateNegociacionDto,
   DecisionPropuesta,
@@ -150,18 +151,6 @@ function assertBothPartiesSubmitted(
   return groupPositionsByParty(positions, firstPartyId, secondPartyId);
 }
 
-function buildPrompt(meetingPoint: MeetingPointEntry[]): string {
-  const lines = meetingPoint.map(
-    (entry) =>
-      `${entry.categoria}: ${entry.punto === null ? "sin punto numérico" : entry.punto} (${entry.estado})`,
-  );
-  return [
-    "Redactá una narrativa breve y neutral para una propuesta de mediación",
-    "basada exclusivamente en los siguientes puntos de encuentro calculados:",
-    ...lines,
-  ].join("\n");
-}
-
 @Injectable()
 export class NegociacionService {
   private readonly logger = new Logger(NegociacionService.name);
@@ -200,7 +189,13 @@ export class NegociacionService {
         `Caso ${casoId} not found while resolving ronda_actual after membership was already asserted`,
       );
     }
-    return this.createPropuestaFor(casoId, activa.id, activa.round, positions);
+    return this.createPropuestaFor(
+      casoId,
+      activa.id,
+      activa.round,
+      activa.method,
+      positions,
+    );
   }
 
   /**
@@ -226,6 +221,7 @@ export class NegociacionService {
       negociacion.caso_id,
       negociacionId,
       negociacion.round,
+      negociacion.method,
       positions,
     );
   }
@@ -252,6 +248,7 @@ export class NegociacionService {
     casoId: string,
     negociacionId: string,
     round: number,
+    metodo: MetodoCaso,
     [positionsA, positionsB]: [PositionInput[], PositionInput[]],
   ): Promise<PropuestaView> {
     await this.casosRepository.activateNegotiation(casoId);
@@ -277,14 +274,18 @@ export class NegociacionService {
       contenido,
       iaConfig.modelo,
     );
-    this.completeGeneration(casoId, pending.id, meetingPoint, iaConfig).catch(
-      (error: unknown) => {
-        this.logger.error(
-          `negociacion.completeGeneration failed propuestaId=${pending.id} casoId=${casoId} rondaId=${rondaId}`,
-          error,
-        );
-      },
-    );
+    this.completeGeneration(
+      casoId,
+      pending.id,
+      metodo,
+      meetingPoint,
+      iaConfig,
+    ).catch((error: unknown) => {
+      this.logger.error(
+        `negociacion.completeGeneration failed propuestaId=${pending.id} casoId=${casoId} rondaId=${rondaId}`,
+        error,
+      );
+    });
     return pending;
   }
 
@@ -467,11 +468,12 @@ export class NegociacionService {
   private async completeGeneration(
     casoId: string,
     propuestaId: string,
+    metodo: MetodoCaso,
     meetingPoint: MeetingPointEntry[],
     iaConfig: IaConfig,
   ): Promise<void> {
     const generated = await this.aiProposalGenerator.generateProposal({
-      prompt: buildPrompt(meetingPoint),
+      prompt: buildMethodPrompt(metodo, meetingPoint),
       model: iaConfig.modelo,
       temperature: iaConfig.temperature,
       maxTokens: iaConfig.maxTokens,

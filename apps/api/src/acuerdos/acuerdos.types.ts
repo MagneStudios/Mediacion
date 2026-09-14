@@ -24,7 +24,7 @@ export const estadoPropuestaAceptada: Propuesta["estado"] = "aceptada";
 
 export type AcuerdoExport = {
   filename: string;
-  document: string;
+  document: Buffer;
 };
 
 export type PropuestaConRespuestas = {
