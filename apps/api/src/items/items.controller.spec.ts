@@ -9,11 +9,11 @@ import { TOKEN_VERIFIER } from "../auth/token-verifier";
 import { UsersRepository } from "../auth/users.repository";
 import { MembershipService } from "../casos/membership.service";
 import { AllExceptionsFilter } from "../common/filters/all-exceptions.filter";
+import { ModeracionService } from "../moderacion/moderacion.service";
 import { ItemsController } from "./items.controller";
 import { ItemsRepository } from "./items.repository";
 import { ItemsService } from "./items.service";
 import type { CreateItemDto, Item, UpdateItemDto } from "./items.types";
-import { ModeracionService } from "../moderacion/moderacion.service";
 
 const parteA: AuthenticatedUser = {
   id: "ba513e5d-1619-4430-8d09-0b44b34598d5",

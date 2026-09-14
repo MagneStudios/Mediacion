@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { QuotaExceededError } from "../common/errors/domain-errors";
+import type { ModeracionService } from "../moderacion/moderacion.service";
 import type { PlanLimitService } from "../pagos/plan-limit.service";
 import type { SuscripcionesService } from "../pagos/suscripciones.service";
 import type { UsageRepository } from "../pagos/usage.repository";
@@ -8,7 +9,6 @@ import { CasosService } from "./casos.service";
 import type { CreateCasoDto } from "./casos.types";
 import { estadoInvitacionAceptada } from "./casos.types";
 import type { MembershipService } from "./membership.service";
-import type { ModeracionService } from "../moderacion/moderacion.service";
 
 describe("CasosService", () => {
   function buildService(overrides?: {
