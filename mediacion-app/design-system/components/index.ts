@@ -18,6 +18,8 @@ export { ConfirmationDialog } from './ConfirmationDialog';
 export type { ConfirmationDialogProps } from './ConfirmationDialog';
 export { Icon } from './Icon';
 export type { IconProps, IconName } from './Icon';
+export { InlineWarning } from './InlineWarning';
+export type { InlineWarningProps } from './InlineWarning';
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
 export { LoadingState } from './LoadingState';

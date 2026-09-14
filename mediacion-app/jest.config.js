@@ -6,6 +6,7 @@ const config = {
     '^@/(.*)$': '<rootDir>/$1',
     '^lucide-react-native$': '<rootDir>/test-helpers/mocks/lucide-react-native.ts',
     '^react-native-svg$': '<rootDir>/test-helpers/mocks/svg-mock.ts',
+    '^@react-native-community/datetimepicker$': '<rootDir>/test-helpers/mocks/datetimepicker.ts',
   },
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',

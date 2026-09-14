@@ -580,6 +580,12 @@
         }
       }
     },
+    "invitation": {
+      "noPending": "There is no pending invitation for this case",
+      "resend": "Resend invitation",
+      "regenerateCode": "Regenerate code",
+      "disabledReason": "Coming soon"
+    },
     "expired": {
       "title": "The invitation expired",
       "description": "72 hours passed and the other party never joined, so this case is now closed. Start a new case to try again.",
@@ -788,6 +794,9 @@
         "body": "No mediator was assigned to your request in this demonstration."
       }
     }
+  },
+  "moderation": {
+    "warning": "This text may not be appropriate to share with the other party. We suggest rephrasing it."
   },
   "methods": {
     "negociacion": "Negotiation",
@@ -1663,6 +1672,120 @@
     "rateLimited": {
       "title": "Please wait a moment",
       "description": "We received several submissions from this connection in a short time. Try again in a few minutes. If it is urgent, email us."
+    }
+  },
+  "caseContext": {
+    "title": "Case context form",
+    "subtitle": "Fill in the information to coordinate with the other party.",
+    "progress": {
+      "label": "{{completed}} of {{total}} sections completed"
+    },
+    "card": {
+      "title": "Case context form",
+      "progress": "{{completed}} of {{total}} sections",
+      "action": "Complete form"
+    },
+    "sections": {
+      "integrantes": {
+        "title": "Family members",
+        "description": "Who makes up the family group."
+      },
+      "actividades": {
+        "title": "Children's activities",
+        "description": "Extracurricular activities and schedules."
+      },
+      "colegio": {
+        "title": "School information",
+        "description": "School details and shift."
+      },
+      "cronograma": {
+        "title": "Weekly schedule",
+        "description": "Weekly organization of care and activities."
+      },
+      "domicilios": {
+        "title": "Addresses",
+        "description": "Relevant addresses for the case."
+      },
+      "restricciones": {
+        "title": "Restrictions and considerations",
+        "description": "Travel limitations, shift work, distance, etc."
+      }
+    },
+    "days": {
+      "lunes": "Mon",
+      "martes": "Tue",
+      "miercoles": "Wed",
+      "jueves": "Thu",
+      "viernes": "Fri",
+      "sabado": "Sat",
+      "domingo": "Sun"
+    },
+    "privacy": {
+      "toggle": "Change visibility",
+      "private": "Private — only you can see it",
+      "shared": "Shared — both parties can see it"
+    },
+    "integrantes": {
+      "nombreLabel": "Name",
+      "nombrePlaceholder": "Full name",
+      "parentescoLabel": "Relationship",
+      "parentescoPlaceholder": "E.g.: son, daughter, partner",
+      "fechaNacimientoLabel": "Date of birth",
+      "fechaNacimientoPlaceholder": "Select date",
+      "add": "Add member"
+    },
+    "actividades": {
+      "ninoLabel": "Child",
+      "ninoPlaceholder": "Child ID",
+      "nombreLabel": "Activity",
+      "nombrePlaceholder": "E.g.: Soccer, English",
+      "diaLabel": "Day",
+      "horaInicioLabel": "Start time",
+      "horaFinLabel": "End time",
+      "timePlaceholder": "Select time",
+      "lugarLabel": "Place",
+      "lugarPlaceholder": "E.g.: Sports club",
+      "add": "Add activity"
+    },
+    "colegio": {
+      "nombreLabel": "School name",
+      "nombrePlaceholder": "E.g.: School No. 5",
+      "direccionLabel": "Address",
+      "direccionPlaceholder": "Street and number",
+      "turnoLabel": "Shift",
+      "turnos": {
+        "manana": "Morning",
+        "tarde": "Afternoon",
+        "doble": "Double"
+      }
+    },
+    "cronograma": {
+      "descripcionLabel": "Description",
+      "descripcionPlaceholder": "E.g.: Pick up children from school",
+      "diaLabel": "Day",
+      "horaInicioLabel": "Start time",
+      "horaFinLabel": "End time",
+      "timePlaceholder": "Select time",
+      "add": "Add entry"
+    },
+    "domicilios": {
+      "etiquetaLabel": "Label",
+      "etiquetaPlaceholder": "E.g.: Own house, Work",
+      "direccionLabel": "Address",
+      "direccionPlaceholder": "Street, number, city",
+      "add": "Add address"
+    },
+    "restricciones": {
+      "tipoLabel": "Type",
+      "descripcionLabel": "Description",
+      "descripcionPlaceholder": "Detail the restriction",
+      "tipos": {
+        "viajes": "Travel",
+        "trabajo_por_turnos": "Shift work",
+        "distancia": "Distance",
+        "otro": "Other"
+      },
+      "add": "Add restriction"
     }
   }
 }
