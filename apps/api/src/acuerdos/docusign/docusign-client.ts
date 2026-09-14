@@ -6,7 +6,7 @@ export type DocusignSigner = {
 
 export type CreateEnvelopeInput = {
   acuerdoId: string;
-  documentText: string;
+  documentBytes: Buffer;
   signers: DocusignSigner[];
 };
 

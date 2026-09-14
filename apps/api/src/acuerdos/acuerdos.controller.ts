@@ -57,12 +57,12 @@ export class AcuerdosController {
   }
 
   @Get("acuerdos/:id/exportar")
-  @Header("Content-Type", "text/plain; charset=utf-8")
+  @Header("Content-Type", "application/pdf")
   async exportAgreement(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() caller: AuthenticatedUser,
     @Res({ passthrough: true }) response: ExportResponse,
-  ): Promise<string> {
+  ): Promise<Buffer> {
     const exported = await this.acuerdosService.exportAgreement(id, caller.id);
     response.setHeader(
       "Content-Disposition",

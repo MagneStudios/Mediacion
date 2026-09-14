@@ -395,17 +395,19 @@ describe("AcuerdosService", () => {
       expect(claimForSignature).toHaveBeenCalledWith("acuerdo-1");
       expect(createEnvelope).toHaveBeenCalledWith({
         acuerdoId: "acuerdo-1",
-        documentText: expect.stringContaining("ACUERDO DE MEDIACIÓN"),
+        documentBytes: expect.any(Buffer),
         signers: [
           { usuarioId: "user-a", email: "a@example.com", name: "Ana Perez" },
           { usuarioId: "user-b", email: "b@example.com", name: "Beto Diaz" },
         ],
       });
-      const { documentText } = createEnvelope.mock.calls[0][0] as {
-        documentText: string;
+      const { documentBytes } = createEnvelope.mock.calls[0][0] as {
+        documentBytes: Buffer;
       };
-      expect(documentText).toContain("Identificador: acuerdo-1");
-      expect(documentText).toContain("Caso: caso-1");
+      const sent = documentBytes.toString("latin1");
+      expect(sent.startsWith("%PDF-1.4")).toBe(true);
+      expect(sent).toContain("Identificador: acuerdo-1");
+      expect(sent).toContain("Caso:          caso-1");
       expect(persistSignatureEnvelope).toHaveBeenCalledWith(
         "acuerdo-1",
         "envelope-1",
@@ -827,9 +829,12 @@ describe("AcuerdosService", () => {
         "caso-1",
         "user-a",
       );
-      expect(result.filename).toBe("acuerdo-acuerdo-1.txt");
-      expect(result.document).toContain("ACUERDO DE MEDIACIÓN");
-      expect(result.document).toContain("- Bienes: 100");
+      expect(result.filename).toBe("acuerdo-acuerdo-1.pdf");
+      const rendered = result.document.toString("latin1");
+      expect(rendered.startsWith("%PDF-1.4")).toBe(true);
+      expect(rendered).toContain("ACUERDO DE MEDIACIÓN");
+      expect(rendered).toContain("Bienes");
+      expect(rendered).toContain("100");
     });
 
     it("returns acuerdo_not_found for an unknown agreement", async () => {
