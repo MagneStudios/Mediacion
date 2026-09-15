@@ -113,7 +113,7 @@ export function Button({
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? loadingLabel}
+      accessibilityLabel={accessibilityLabel ?? (loading ? loadingLabel : undefined)}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       testID="mediacion-button"
       style={({ pressed, hovered }) => [

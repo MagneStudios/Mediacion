@@ -29,6 +29,18 @@ export type CasesService = {
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
   getInvitation(caseId: string): Promise<CaseInvitation | null>;
   /**
+   * Backed by `POST .../reenviar`. Mantiene el token — solo refresca la
+   * invitación y revive una vencida. Rechaza con
+   * `invitacion_no_reenviable` si ya fue aceptada/rechazada (mismo criterio
+   * server-side: `estado !== 'pendiente'`).
+   */
+  resendInvitation(caseId: string, invitationId: string): Promise<CaseInvitation>;
+  /**
+   * Backed by `POST .../regenerar`. Rota el token — el anterior deja de
+   * servir. Misma regla de rechazo que `resendInvitation`.
+   */
+  regenerateInvitation(caseId: string, invitationId: string): Promise<CaseInvitation>;
+  /**
    * Smallest possible lightweight lookup for other features (notices,
    * activity) that only need a safe display title for a caseId — never
    * caseCode, descripcion, or any other case-detail field. Returns null
@@ -204,6 +216,45 @@ export function createMockCasesService(): CasesService {
       const invitation = mockInvitations[caseId] ?? null;
       return delay(invitation && invitation.estado === 'pendiente' ? invitation : null, 300);
     },
+
+    async resendInvitation(caseId, invitationId) {
+      const existing = mockInvitations[caseId];
+      if (!existing || existing.id !== invitationId) {
+        return rejectAfter('invitacion_not_found', 300);
+      }
+      if (existing.estado !== 'pendiente') {
+        return rejectAfter('invitacion_no_reenviable', 300);
+      }
+
+      const refreshed: CaseInvitation = { ...existing, createdAt: new Date().toISOString() };
+      const result = await delay(refreshed, 500);
+      mockInvitations[caseId] = result;
+      return result;
+    },
+
+    async regenerateInvitation(caseId, invitationId) {
+      const existing = mockInvitations[caseId];
+      if (!existing || existing.id !== invitationId) {
+        return rejectAfter('invitacion_not_found', 300);
+      }
+      if (existing.estado !== 'pendiente') {
+        return rejectAfter('invitacion_no_reenviable', 300);
+      }
+
+      // Mismo criterio que la creación: solo link/código tienen token que
+      // rotar — una invitación por email no tiene nada que regenerar acá.
+      const token =
+        existing.tipo === 'link'
+          ? generateMockInvitationLink()
+          : existing.tipo === 'codigo'
+            ? generateMockCode()
+            : null;
+      const refreshed: CaseInvitation = { ...existing, token, createdAt: new Date().toISOString() };
+      const result = await delay(refreshed, 500);
+      mockInvitations[caseId] = result;
+      return result;
+    },
+
     async getCaseTitle(caseId) {
       const detail = mockCaseDetails[caseId];
       return delay(detail ? detail.title : null, 150);

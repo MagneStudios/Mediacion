@@ -253,6 +253,68 @@ describe('createApiCasesService', () => {
     });
   });
 
+  describe('resendInvitation', () => {
+    it('POSTs to .../reenviar and maps the refreshed invitation', async () => {
+      const { http, calls } = buildHttp(() => ({
+        id: 'inv-1',
+        tipo: 'codigo',
+        token: 'ABC123',
+        estado: 'pendiente',
+        pago_a_cargo: 'invitador',
+        email_destino: null,
+      }));
+      const service = createApiCasesService(http, () => now);
+
+      const invitation = await service.resendInvitation('caso-1', 'inv-1');
+
+      expect(calls).toEqual([
+        { path: '/casos/caso-1/invitaciones/inv-1/reenviar', options: { method: 'POST' } },
+      ]);
+      expect(invitation).toEqual({
+        id: 'inv-1',
+        caseId: 'caso-1',
+        tipo: 'codigo',
+        token: 'ABC123',
+        emailDestino: null,
+        estado: 'pendiente',
+        pagoACargo: 'invitador',
+        createdAt: now.toISOString(),
+      });
+    });
+
+    it('propagates the 409 when the invitation can no longer be resent', async () => {
+      const { http } = buildHttp(() => {
+        throw new ApiError('invitacion_no_reenviable', 'An invitation in estado aceptada cannot be resent', 409);
+      });
+      const service = createApiCasesService(http, () => now);
+
+      await expect(service.resendInvitation('caso-1', 'inv-1')).rejects.toMatchObject({
+        code: 'invitacion_no_reenviable',
+      });
+    });
+  });
+
+  describe('regenerateInvitation', () => {
+    it('POSTs to .../regenerar and maps the rotated token', async () => {
+      const { http, calls } = buildHttp(() => ({
+        id: 'inv-1',
+        tipo: 'link',
+        token: 'mediacionapp://invitacion/new-token',
+        estado: 'pendiente',
+        pago_a_cargo: null,
+        email_destino: null,
+      }));
+      const service = createApiCasesService(http, () => now);
+
+      const invitation = await service.regenerateInvitation('caso-1', 'inv-1');
+
+      expect(calls).toEqual([
+        { path: '/casos/caso-1/invitaciones/inv-1/regenerar', options: { method: 'POST' } },
+      ]);
+      expect(invitation.token).toBe('mediacionapp://invitacion/new-token');
+    });
+  });
+
   describe('joinCase', () => {
     it('posts the token to the join endpoint', async () => {
       const { http, calls } = buildHttp(() => ({ id: 'caso-1', estado: 'activo', requiresPayment: false }));

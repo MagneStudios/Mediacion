@@ -69,6 +69,14 @@ export function createBackedCasesService(api: ApiCasesService): CasesService {
       return invitations.find((invitation) => invitation.estado === estadoPendiente) ?? null;
     },
 
+    resendInvitation(caseId: string, invitationId: string): Promise<CaseInvitation> {
+      return api.resendInvitation(caseId, invitationId);
+    },
+
+    regenerateInvitation(caseId: string, invitationId: string): Promise<CaseInvitation> {
+      return api.regenerateInvitation(caseId, invitationId);
+    },
+
     getCaseTitle(caseId: string): Promise<string | null> {
       return api.getCaseTitle(caseId);
     },

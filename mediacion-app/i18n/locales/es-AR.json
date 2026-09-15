@@ -584,7 +584,15 @@
       "noPending": "No hay una invitación pendiente para este caso",
       "resend": "Reenviar invitación",
       "regenerateCode": "Regenerar código",
-      "disabledReason": "Disponible próximamente"
+      "resendError": "No pudimos reenviar la invitación",
+      "noLongerResendable": "Esta invitación ya no admite reenvío ni regeneración",
+      "regenerateDialog": {
+        "title": "¿Regenerar el código?",
+        "body": "El código o link actual va a dejar de funcionar. Vas a tener que compartir el nuevo con la otra parte.",
+        "confirm": "Sí, regenerar código",
+        "cancel": "Cancelar",
+        "error": "No pudimos regenerar el código"
+      }
     },
     "expired": {
       "title": "La invitación venció",

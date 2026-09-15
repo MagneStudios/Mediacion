@@ -72,16 +72,17 @@ export function canAddMateria(estado: EstadoCaso): boolean {
 
 /**
  * RN del pedido de cliente (`AJUSTES-PACTUM-2026-09-10` §5): *"poder invitar a
- * la contraparte en cualquier momento después de creado el caso"*. El backend
- * hoy solo expone crear/leer invitación mientras el caso está `nuevo`; el
- * resto de los estados —y los endpoints de reenviar/regenerar— todavía no
- * existen (`docs/pedidos-post-auditoria-14-09.md` §2.6).
+ * la contraparte en cualquier momento después de creado el caso"*, incluido
+ * poder reenviarla y regenerar el código. Backend expone crear/leer/reenviar/
+ * regenerar invitación sin importar el estado del caso — la restricción de
+ * estados de acá es una elección de UX del FE, no un límite del servidor
+ * (`docs/pedidos-post-auditoria-14-09.md` §2.6).
  *
- * Por eso el FE habilita la sección de invitación en estos estados aunque el
- * reenvío/regeneración real todavía no estén disponibles: en todos ellos salvo
- * `nuevo` el caso ya tiene contraparte enganchada. `acordado` entra en la lista
- * a propósito —la invitación ya fue aceptada, así que `InvitationSection` muestra
- * "No hay una invitación pendiente" en vez de un badge `pendiente` falso—.
+ * El FE habilita la sección de invitación en estos estados porque en todos
+ * ellos salvo `nuevo` el caso ya tiene contraparte enganchada. `acordado`
+ * entra en la lista a propósito —la invitación ya fue aceptada, así que
+ * `InvitationSection` muestra "No hay una invitación pendiente" en vez de un
+ * badge `pendiente` falso—.
  *
  * `expirado`/`terminado`/`cerrado`/`vencido` quedan afuera: un caso expirado
  * requiere crear caso nuevo, y los terminales no admiten invitación.

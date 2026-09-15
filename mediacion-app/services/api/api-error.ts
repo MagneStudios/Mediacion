@@ -62,6 +62,14 @@ export const codeNetworkUnavailable = 'network_unavailable';
  * invitation expired" instead of a generic "check the code" message. */
 export const codeInvitationExpired = 'invitation_expired';
 /**
+ * `POST /casos/:id/invitaciones/:invitacionId/reenviar` o `.../regenerar` en
+ * una invitación que ya no es `pendiente` (aceptada, rechazada o vencida) —
+ * `invitaciones.repository.ts::invitacionNoReenviableError`. Distinto de un
+ * conflicto genérico: reintentar no lo arregla, hace falta una invitación
+ * nueva.
+ */
+export const codeInvitacionNoReenviable = 'invitacion_no_reenviable';
+/**
  * C-01: el gate `trg_casos_gate_suscripciones` rechazó activar el caso porque
  * alguna de las dos partes no tiene suscripción activa
  * (`20260902120000_c01_gate_suscripciones.sql`, tipado en
