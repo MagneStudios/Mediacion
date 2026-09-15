@@ -84,6 +84,8 @@ const mockTerminateCase = jest.fn();
 jest.mock('@/services/cases.service', () => ({
   casesService: {
     getInvitation: jest.fn(),
+    resendInvitation: jest.fn(),
+    regenerateInvitation: jest.fn(),
     simulateInvitationAcceptance: jest.fn(),
     setCaseDeadline: jest.fn(),
     terminateCase: (...args: unknown[]) => mockTerminateCase(...args),
@@ -855,11 +857,13 @@ describe('CaseDetailScreen — invitación fuera de nuevo (Item 1)', () => {
     await waitFor(() =>
       expect(screen.getByText(t('caseDetail.awaitingCounterparty.invitationStatus.pendiente'))).toBeTruthy(),
     );
-    // Los botones de reenviar/regenerar quedan deshabilitados hasta que el
-    // backend exponga los endpoints (§2.6).
-    expect(screen.getByText(t('caseDetail.invitation.resend'))).toBeTruthy();
-    expect(screen.getByText(t('caseDetail.invitation.regenerateCode'))).toBeTruthy();
-    expect(screen.getByText(t('caseDetail.invitation.disabledReason'))).toBeTruthy();
+    // Los botones de reenviar/regenerar ya están conectados a los endpoints
+    // reales (§2.6) — visibles y habilitados cuando hay una invitación
+    // pendiente para mostrar.
+    const resend = screen.getByRole('button', { name: t('caseDetail.invitation.resend') });
+    const regenerate = screen.getByRole('button', { name: t('caseDetail.invitation.regenerateCode') });
+    expect(resend.props.accessibilityState?.disabled).toBeFalsy();
+    expect(regenerate.props.accessibilityState?.disabled).toBeFalsy();
   });
 
   it('shows "no pending" (never a fake pending badge) for an acordado case whose invitation was accepted', async () => {
@@ -885,7 +889,7 @@ describe('CaseDetailScreen — invitación fuera de nuevo (Item 1)', () => {
     },
   );
 
-  it('on nuevo keeps the view-invitation affordance and the disabled reenviar/regenerar buttons', async () => {
+  it('on nuevo keeps the view-invitation affordance, with reenviar/regenerar showing only once an invitation loads', async () => {
     mockDetail = buildDetail({
       estado: 'nuevo',
       visualStatus: 'info',
@@ -895,8 +899,9 @@ describe('CaseDetailScreen — invitación fuera de nuevo (Item 1)', () => {
     });
     await renderScreen();
     expect(screen.getByText(t('caseDetail.awaitingCounterparty.viewInvitation'))).toBeTruthy();
-    expect(screen.getByText(t('caseDetail.invitation.resend'))).toBeTruthy();
-    expect(screen.getByText(t('caseDetail.invitation.regenerateCode'))).toBeTruthy();
+    // Todavía no hay invitación cargada — nada que reenviar/regenerar.
+    expect(screen.queryByText(t('caseDetail.invitation.resend'))).toBeNull();
+    expect(screen.queryByText(t('caseDetail.invitation.regenerateCode'))).toBeNull();
   });
 });
 

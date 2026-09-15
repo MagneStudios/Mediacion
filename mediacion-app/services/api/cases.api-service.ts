@@ -24,6 +24,41 @@ type ApiInvitation = {
 };
 
 /**
+ * `InvitacionRefreshed` de `POST .../reenviar` y `.../regenerar`
+ * (`apps/api/src/invitaciones/invitaciones.types.ts`). No trae `caso_id` ni
+ * `created_at` — a diferencia de `ApiInvitationView`, es la respuesta de una
+ * mutación puntual sobre una invitación que el caller ya conoce, no una
+ * lectura completa.
+ */
+type ApiInvitationRefreshed = ApiInvitation & {
+  pago_a_cargo: PagoACargo | null;
+  email_destino: string | null;
+};
+
+/**
+ * `caseId` y `createdAt` se completan localmente por la misma razón que en
+ * `createInvitation`: la respuesta del servidor no los trae, y acá se conocen
+ * sin tener que pedirlos. `createdAt` pasa a ser el instante del refresh —
+ * nada en la UI depende de la fecha de creación original de la invitación.
+ */
+function toRefreshedInvitation(
+  caseId: string,
+  row: ApiInvitationRefreshed,
+  now: Date,
+): CaseInvitation {
+  return {
+    id: row.id,
+    caseId,
+    tipo: row.tipo,
+    token: row.token,
+    emailDestino: row.email_destino,
+    estado: row.estado,
+    pagoACargo: row.pago_a_cargo,
+    createdAt: now.toISOString(),
+  };
+}
+
+/**
  * `InvitacionView` of `GET /casos/:id/invitaciones` — richer than what the
  * POST answers with, and the reason this app can finally re-show a code after
  * a reload instead of only within the session that created it.
@@ -61,6 +96,8 @@ export type ApiCasesService = {
   createCase(input: CreateCaseInput): Promise<CaseSummary>;
   createInvitation(input: CreateInvitationInput): Promise<CaseInvitation>;
   listInvitations(caseId: string): Promise<CaseInvitation[]>;
+  resendInvitation(caseId: string, invitationId: string): Promise<CaseInvitation>;
+  regenerateInvitation(caseId: string, invitationId: string): Promise<CaseInvitation>;
   getCaseTitle(caseId: string): Promise<string | null>;
   joinCase(token: string): Promise<{ id: string; estado: string; requiresPayment: boolean }>;
   setCaseDeadline(caseId: string, plazo: string): Promise<void>;
@@ -164,6 +201,31 @@ export function createApiCasesService(
       return rows
         .map(toInvitation)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
+    /**
+     * `POST .../reenviar` — mantiene el token, solo refresca `fecha_envio` y
+     * revive una invitación vencida. `409 invitacion_no_reenviable` si ya
+     * fue aceptada/rechazada.
+     */
+    async resendInvitation(caseId: string, invitationId: string): Promise<CaseInvitation> {
+      const row = await http.request<ApiInvitationRefreshed>(
+        `/casos/${caseId}/invitaciones/${invitationId}/reenviar`,
+        { method: 'POST' },
+      );
+      return toRefreshedInvitation(caseId, row, clock());
+    },
+
+    /**
+     * `POST .../regenerar` — rota el token: el anterior deja de servir en la
+     * misma transacción, así que quien invita necesita mostrar el nuevo.
+     */
+    async regenerateInvitation(caseId: string, invitationId: string): Promise<CaseInvitation> {
+      const row = await http.request<ApiInvitationRefreshed>(
+        `/casos/${caseId}/invitaciones/${invitationId}/regenerar`,
+        { method: 'POST' },
+      );
+      return toRefreshedInvitation(caseId, row, clock());
     },
 
     async getCaseTitle(caseId: string): Promise<string | null> {

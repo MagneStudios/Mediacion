@@ -24,6 +24,28 @@ function stubApi(overrides: Partial<ApiCasesService> = {}): ApiCasesService {
         createdAt: '2026-07-30T00:00:00.000Z',
       }) as CaseInvitation,
     listInvitations: async () => [],
+    resendInvitation: async () =>
+      ({
+        id: 'inv-1',
+        caseId: 'caso-1',
+        tipo: 'codigo',
+        token: 'ABC123',
+        emailDestino: null,
+        estado: 'pendiente',
+        pagoACargo: 'invitador',
+        createdAt: '2026-07-30T00:00:00.000Z',
+      }) as CaseInvitation,
+    regenerateInvitation: async () =>
+      ({
+        id: 'inv-1',
+        caseId: 'caso-1',
+        tipo: 'codigo',
+        token: 'NEW-CODE',
+        emailDestino: null,
+        estado: 'pendiente',
+        pagoACargo: 'invitador',
+        createdAt: '2026-07-30T00:00:00.000Z',
+      }) as CaseInvitation,
     getCaseTitle: async () => 'Custodia',
     joinCase: async () => ({ id: 'caso-1', estado: 'activo', requiresPayment: false }),
     setCaseDeadline: async () => undefined,
@@ -171,6 +193,42 @@ describe('createBackedCasesService', () => {
       );
       await expect(service.simulateInvitationAcceptance('caso-1')).rejects.toThrow(
         /caso-1/,
+      );
+    });
+  });
+
+  describe('resendInvitation / regenerateInvitation', () => {
+    it('delegates resendInvitation straight to the API', async () => {
+      const resendInvitation = jest.fn(async () => serverInvitation({ token: 'ABC123' }));
+      const service = createBackedCasesService(stubApi({ resendInvitation }));
+
+      await expect(service.resendInvitation('caso-1', 'inv-1')).resolves.toMatchObject({
+        token: 'ABC123',
+      });
+      expect(resendInvitation).toHaveBeenCalledWith('caso-1', 'inv-1');
+    });
+
+    it('delegates regenerateInvitation straight to the API', async () => {
+      const regenerateInvitation = jest.fn(async () => serverInvitation({ token: 'NEW-CODE' }));
+      const service = createBackedCasesService(stubApi({ regenerateInvitation }));
+
+      await expect(service.regenerateInvitation('caso-1', 'inv-1')).resolves.toMatchObject({
+        token: 'NEW-CODE',
+      });
+      expect(regenerateInvitation).toHaveBeenCalledWith('caso-1', 'inv-1');
+    });
+
+    it('propagates a 409 from regenerateInvitation rather than swallowing it', async () => {
+      const service = createBackedCasesService(
+        stubApi({
+          regenerateInvitation: async () => {
+            throw new Error('invitacion_no_reenviable');
+          },
+        }),
+      );
+
+      await expect(service.regenerateInvitation('caso-1', 'inv-1')).rejects.toThrow(
+        'invitacion_no_reenviable',
       );
     });
   });

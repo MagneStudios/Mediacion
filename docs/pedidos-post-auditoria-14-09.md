@@ -53,26 +53,28 @@ Ya está excluido "por diseño": el enum `metodo_caso` (`supabase/migrations/202
 
 ## 2 · Backend — 6 de 7 ítems
 
-### 2.1 Cronograma embebido en el documento del acuerdo — no implementado
+> **Actualización 14/09 (tarde):** los ítems 2.1, 2.2 y 2.6 los resolvió Backend en `ed15e4e` (merge de `story/mediacion-pedidos-14-09` a `dev`, 6 commits de `brdonato`), en paralelo a las migraciones 46-48 y sin ningún doc propio (a diferencia de esas migraciones, que sí tienen `docs/changelogs-db/` y `docs/decisiones-db/`). 2.3 quedó parcial. Detalle de cada commit abajo.
+
+### 2.1 Cronograma embebido en el documento del acuerdo — ✅ resuelto
 
 > "¿los horarios de los chicos van en el contrato o en un documento anexo? En el contrato. Ya te queda todo establecido y lo firmás. [...] El generador tiene que renderizar tablas de cronograma dentro del documento."
 > — `CAMBIOS-PACTUM-v2` §10
 
-El "PDF" que se firma hoy es en realidad texto plano — `apps/api/src/acuerdos/acuerdo-export.ts` genera un `.txt` (`acuerdo-${id}.txt`) que se manda directo a SignNow. Hay que migrar a generación real de PDF con tablas de días/horarios embebidas, estructura encabezado + cuerpo + cierre. **Es la pieza más grande de las pendientes.**
+**Resuelto** (`821dff5`): `apps/api/src/acuerdos/acuerdo-pdf.ts` (PDF real, con encabezado, tabla de puntos acordados, tabla de cronograma, fundamentación y cierre) + `apps/api/src/common/pdf/pdf-writer.ts` (escritor primitivo reutilizado de `legal/acceptance-pdf.ts`). `GET /acuerdos/:id/exportar` ahora responde `application/pdf` (antes `text/plain`). **Dependencia que sigue abierta:** la tabla de cronograma necesita leer la ficha de contexto (§1.1/§2.5), que todavía no tiene lectura implementada — hasta entonces imprime "Sin cronograma cargado para este caso" (`acuerdo-pdf.ts:178`). No es un pendiente nuevo, es la misma dependencia de §2.5.
 
-### 2.2 Prompt de IA distinto por método — no implementado
+### 2.2 Prompt de IA distinto por método — ✅ resuelto
 
 > Negociación → mínima injerencia (encuadre y formas). Conciliación → media (ordena la charla). Mediación → máxima (propone soluciones). "Tres configuraciones distintas del motor (prompts/reglas), no una sola con parámetros cosméticos."
 > — `CAMBIOS-PACTUM-v2` §6
 
-`buildPrompt()` en `apps/api/src/negociacion/negociacion.service.ts:153` es un prompt fijo; no rama según `negociaciones.method`. Falta implementar las 3 configuraciones.
+**Resuelto** (`292b4f1`): `buildMethodPrompt(metodo, meetingPoint)` en `apps/api/src/negociacion/method-prompt.ts` — tres configuraciones reales (negociación/conciliación/mediación), cableado en `negociacion.service.ts:476` reemplazando el prompt fijo anterior.
 
-### 2.3 Detección de lenguaje ofensivo — no implementado
+### 2.3 Detección de lenguaje ofensivo — parcial
 
 > "detección antes de que el texto se procese o se muestre, aviso al usuario para que reformule, registro del evento para trazabilidad."
 > — `CAMBIOS-PACTUM-v2` §7
 
-Falta el servicio que corra antes de procesar/mostrar cualquier texto libre cargado por una parte, dispare el aviso y escriba a la tabla de trazabilidad (§1.2).
+**Parcial** (`40b39f9`): nuevo módulo `apps/api/src/moderacion/` — `ModeracionService.assertTextoAceptable()` corre antes de crear/editar texto libre de `casos`/`items` y bloquea con `400 texto_ofensivo` si detecta lenguaje ofensivo (lista de términos en la tabla `configuracion`, clave `moderacion_terminos`). **Falta:** todavía no escribe a `moderation_events` (mig. 47, §1.2) — la traza "queda por ahora en el log del servicio" (`logger.warn`), sin persistir auditoría.
 
 ### 2.4 Mitigación de sesgo de posición en el motor de IA — parcial
 
@@ -88,13 +90,13 @@ Lo que ya está: el motor es determinístico — `computeMeetingPoints` en `apps
 
 Falta el CRUD incremental sobre la ficha (§1.1) y conectarla al prompt del motor de propuestas.
 
-### 2.6 Invitar en cualquier momento + reenviar / regenerar código — parcial
+### 2.6 Invitar en cualquier momento + reenviar / regenerar código — ✅ resuelto
 
 > "Poder invitar a la contraparte en cualquier momento después de creado el caso [...]. Poder reenviar la invitación y regenerar el código si hace falta."
 > — `AJUSTES-PACTUM-2026-09-10` §5
 
-**Frontend ✅ resuelto** (§3.1): copiar código/link, compartir, badge de estado (vía `EstadoInvitacion`), y ahora disponible en **cualquier estado elegible** (`canInviteCounterparty`: `nuevo`, `pendiente_suscripciones`, `activo`, `en_negociacion`, `acordado`), no solo `nuevo`. `InvitationSection` es autónomo. Botones "Reenviar"/"Regenerar código" ya están en la UI, visibles pero `disabled` con motivo — listos para conectar.
-**Siguiente — Backend:** no existe ningún endpoint de reenvío ni de regeneración de código (`grep` de `reenviar|resend|regenerar|regenerate` sin resultados funcionales). El contrato `CasesService` no se tocó a propósito — se define cuando Backend construya los endpoints.
+**Backend ✅ resuelto** (`f46cd19`): `POST /casos/:id/invitaciones/:invitacionId/reenviar` y `.../regenerar` (tipo `InvitacionRefreshed`; solo `parte_a`; `409 invitacion_no_reenviable` si la invitación ya fue aceptada/rechazada). De paso corrige que `invitation_expired` colapsaba con `invalid_token` en `joinCase`.
+**Frontend ✅ resuelto** (§3.1): copiar código/link, compartir, badge de estado (vía `EstadoInvitacion`), disponible en **cualquier estado elegible** (`canInviteCounterparty`: `nuevo`, `pendiente_suscripciones`, `activo`, `en_negociacion`, `acordado`), no solo `nuevo`. `InvitationSection` es autónomo. Botones "Reenviar"/"Regenerar código" ya conectados a los endpoints reales (diálogo de confirmación para regenerar, por rotar el código/link ya compartido).
 
 ---
 
@@ -107,7 +109,7 @@ Rama: `feat/frontend-pendientes-14-09`. Planes: `docs/plan-frontend-pendientes-1
 > "Poder invitar a la contraparte en cualquier momento después de creado el caso, desde el detalle del caso."
 > — `AJUSTES-PACTUM-2026-09-10` §5
 
-Cerrado del lado FE (ver §2.6). No depende de Backend para lo que le corresponde a Frontend; reenviar/regenerar quedan en la UI pero `disabled` hasta que Backend exponga los endpoints.
+Cerrado del lado FE (ver §2.6). Reenviar/regenerar ya están conectados a los endpoints reales del backend.
 
 ### 3.2 Formulario incremental de ficha de contexto — ✅ implementado (mock, alineado a la migración 46)
 
@@ -132,9 +134,9 @@ UI completa (integrantes, actividades, colegio, cronograma, domicilios, restricc
 | 1 | Ficha de contexto del caso | DB · Backend · Frontend | DB ✅ · FE ✅ (mock) · falta BE |
 | 2 | Moderación de lenguaje ofensivo | DB · Backend · Frontend | DB ✅ · FE ✅ (mock) · falta BE |
 | 3 | Arbitraje — flag por materia | DB (opcional) · Backend | DB ✅ (flag por caso) · falta BE |
-| 4 | Cronograma embebido en el PDF del acuerdo | Backend | No implementado |
-| 5 | Prompt de IA por método | Backend | No implementado |
+| 4 | Cronograma embebido en el PDF del acuerdo | Backend | ✅ resuelto (cronograma vacío hasta que exista lectura de la ficha de contexto, §1.1) |
+| 5 | Prompt de IA por método | Backend | ✅ resuelto |
 | 6 | Mitigación de sesgo del motor de IA | Backend | Parcial |
-| 7 | Invitar en cualquier momento + reenviar/regenerar código | Backend · Frontend | FE ✅ · falta BE (reenviar/regenerar) |
+| 7 | Invitar en cualquier momento + reenviar/regenerar código | Backend · Frontend | ✅ resuelto (BE y FE) |
 
-**Frontend: los 3 ítems que le tocaban están cerrados (§3.1, §3.2, §3.3).** Lo único que queda abierto en toda esta tabla es Backend — ítems 4-7 completos, más el CRUD/servicios de 1, 2 y 3.
+**Frontend: los 3 ítems que le tocaban están cerrados (§3.1, §3.2, §3.3).** Backend resolvió 2.1, 2.2 y 2.6 el 14/09 por la tarde (`ed15e4e`, sin doc propio). Lo que sigue abierto: 2.4 (mitigación de sesgo, parcial), 2.3 (moderación, parcial — falta persistir en `moderation_events`), y el CRUD/servicios de 1 (ficha de contexto) y 3 (arbitraje, opcional).

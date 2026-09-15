@@ -584,7 +584,15 @@
       "noPending": "There is no pending invitation for this case",
       "resend": "Resend invitation",
       "regenerateCode": "Regenerate code",
-      "disabledReason": "Coming soon"
+      "resendError": "We couldn't resend the invitation",
+      "noLongerResendable": "This invitation can no longer be resent or regenerated",
+      "regenerateDialog": {
+        "title": "Regenerate the code?",
+        "body": "The current code or link will stop working. You'll need to share the new one with the other party.",
+        "confirm": "Yes, regenerate code",
+        "cancel": "Cancel",
+        "error": "We couldn't regenerate the code"
+      }
     },
     "expired": {
       "title": "The invitation expired",
